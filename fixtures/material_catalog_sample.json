@@ -1,0 +1,23 @@
+{
+  "catalog_version": 1,
+  "materials": [
+    {
+      "id": "stone/castle_wall",
+      "label": "Castle wall",
+      "resolver": "dynlit",
+      "base_color_texture": "textures/castle_wall_base.png",
+      "normal_texture": "textures/castle_wall_normal.png",
+      "roughness": 0.85,
+      "metallic": 0.0,
+      "tile_meters": [2.0, 2.0]
+    },
+    {
+      "id": "foliage/ivy",
+      "label": "Ivy",
+      "base_color_texture": "textures/ivy_base.png",
+      "alpha": "mask",
+      "alpha_cutoff": 0.5,
+      "double_sided": true
+    }
+  ]
+}

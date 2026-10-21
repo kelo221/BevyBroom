@@ -1,0 +1,30 @@
+[workspace]
+resolver = "3"
+members = ["crates/broom_bridge", "crates/broom_preview"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.97.1"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+dynlight = { path = "../DynLightBevy" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bevy = { version = "0.20.0", default-features = false, features = [
+    "std",
+    "default_app",
+    "3d_bevy_render",
+    "bevy_gltf",
+    "bevy_remote",
+    "multi_threaded",
+    "png",
+    "jpeg",
+] }
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
