@@ -21,6 +21,7 @@ import { ToolClipPlane } from '@/tools/clip_plane/tool_clip_plane.js';
 import { HandlerClipPlane } from '@/tools/clip_plane/handler_clip_plane.js';
 import { TransformMode } from '@/types/transform_mode.js';
 import { EditorComponentMode } from '@/types/editor_component_mode.js';
+import type { ViewportToolChromeDocking } from '@/tools/chrome/host/viewport_tool_chrome_docking.js';
 
 /**
  * Builds camera fit and shading coordinators and wires their controls.
@@ -111,8 +112,8 @@ export function setupToolsPaletteAndClipWiring(parts: {
   gridSnap: GridSnap;
   clipPlaneTool: ToolClipPlane;
   faceModeCoordinator: CoordinatorFaceMode;
-  toolbarContainer: HTMLElement;
-  getViewports: () => ViewportEditor[];
+  toolChromeDocking: ViewportToolChromeDocking;
+  getFloatingChromeViewports: () => readonly ViewportEditor[];
   keyboardShortcutHandler: HandlerKeyboardShortcut;
   showStatusMessage: (message: string) => void;
   syncPrimitivesToViewports: () => void;
@@ -121,7 +122,7 @@ export function setupToolsPaletteAndClipWiring(parts: {
   onToolStateChanged: () => void;
   onClipCancel: () => void;
   onTransformMode: (mode: TransformMode) => void;
-  onOpenUvEditor: () => void;
+  faceInspectorReveal: () => void;
   editorOverlayPolicy: PolicyEditorOverlay;
   modalToolSessionRegistry: RegistryModalToolSession;
   isEditorToolBusy?: () => boolean;
@@ -165,8 +166,8 @@ export function setupToolsPaletteAndClipWiring(parts: {
     gridSnap: parts.gridSnap,
     clipPlaneTool: parts.clipPlaneTool,
     faceExtrusionController: parts.faceModeCoordinator.getFaceExtrusionController(),
-    toolbarContainer: parts.toolbarContainer,
-    getViewports: parts.getViewports,
+    toolChromeDocking: parts.toolChromeDocking,
+    getFloatingChromeViewports: parts.getFloatingChromeViewports,
     keyboardShortcutHandler: parts.keyboardShortcutHandler,
     showStatusMessage: parts.showStatusMessage,
     syncPrimitivesToViewports: parts.syncPrimitivesToViewports,
@@ -177,7 +178,7 @@ export function setupToolsPaletteAndClipWiring(parts: {
     editorOverlayPolicy: parts.editorOverlayPolicy,
     modalToolSessionRegistry: parts.modalToolSessionRegistry,
     onTransformMode: parts.onTransformMode,
-    onOpenUvEditor: parts.onOpenUvEditor,
+    faceInspectorReveal: parts.faceInspectorReveal,
     onExtrudeFaces: () => parts.faceModeCoordinator.onExtrudeFaces(),
     ...(parts.isEditorToolBusy !== undefined ? { isEditorToolBusy: parts.isEditorToolBusy } : {}),
     ...(parts.switchToClipTool !== undefined ? { switchToClipTool: parts.switchToClipTool } : {}),
@@ -223,10 +224,10 @@ export function cancelClipToolSelection(
 }
 
 /**
- * Re-attaches tool chrome after viewport layout changes.
+ * Re-attaches floating tool chrome after viewport layout changes.
  *
  * @param toolsPaletteController Tool chrome controller.
- * @param getViewports Live viewports.
+ * @param getViewports Viewports that show floating chrome.
  */
 export function refreshViewportToolChrome(
   toolsPaletteController: ControllerViewportToolChrome | null,

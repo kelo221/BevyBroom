@@ -44,6 +44,19 @@ describe('scene light round trip', () => {
     expect(LightOwner.markerOf(restored)).not.toBeNull();
   });
 
+  it('loads a light saved with a scale at scale one with its radius unchanged', () => {
+    const world = new THREE.Group();
+    const settings = lightSettingsCreateDefault('point');
+    const light = LightOwner.create('Scaled Lamp', settings);
+    light.scale.set(2, 3, 4);
+    world.add(light);
+    const restored = roundTrip(world).getObjectByProperty('uuid', light.uuid);
+    expect(restored).toBeDefined();
+    if (!restored) return;
+    expect(restored.scale.distanceTo(new THREE.Vector3(1, 1, 1))).toBeLessThan(1e-9);
+    expect(LightOwner.settingsRead(restored)?.radius).toBe(settings.radius);
+  });
+
   it('does not save light visuals as separate objects', () => {
     const world = new THREE.Group();
     world.add(LightOwner.createDefault('Lamp', 'spot'));

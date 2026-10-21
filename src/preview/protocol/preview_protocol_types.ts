@@ -54,6 +54,67 @@ export interface PreviewAuthoredLight {
   realtime: boolean;
   shadows: 'raytraced' | 'realtime';
   enabled: boolean;
+  /** Intensity animation; omitted for a steady light. */
+  effect?: PreviewAuthoredLightEffect;
+  /** Spot only: image path inside the game's assets folder; omitted for none. */
+  cookie?: string;
+  /** Volumetric fog; omitted when the light has none. */
+  fog?: PreviewAuthoredFog;
+  shimmer: PreviewAuthoredShimmer;
+  illumination: 'direct' | 'single_bounce';
+  transparency: 'disabled' | 'enabled' | 'enabled_max';
+  bounce: PreviewAuthoredBounce;
+}
+
+/** Intensity animation of a light; the game's `LightEffect`. */
+export interface PreviewAuthoredLightEffect {
+  kind:
+    | 'steady'
+    | 'pulse'
+    | 'random'
+    | 'strobe'
+    | 'flicker'
+    | 'fluorescent_starter'
+    | 'fluorescent_clicker'
+    | 'fluorescent_random'
+    | 'candle'
+    | 'pulsar'
+    | 'fire'
+    | 'generator'
+    | 'lightning'
+    | 'cloudy'
+    | 'overcast';
+  pulse_speed: number;
+  pulse_modifier: number;
+  pulse_offset: number;
+  timestep: number;
+}
+
+/** Volumetric fog of a light; the game's `VolumetricLight`. */
+export interface PreviewAuthoredFog {
+  shape: 'sphere' | 'box' | 'cone_z' | 'cone_y' | 'frustum';
+  radius: number;
+  thickness: number;
+  intensity: number;
+  visibility: number;
+}
+
+/** Shimmer pattern of a light. */
+export interface PreviewAuthoredShimmer {
+  kind: 'none' | 'water' | 'random';
+  scale: number;
+  modifier: number;
+}
+
+/** Baked bounce settings of a light; the game's `LightBounce`. */
+export interface PreviewAuthoredBounce {
+  /** SRGB tint, 0 to 1 per channel, and its blend from the light's color. */
+  color: [number, number, number, number];
+  modifier: number;
+  intensity: number;
+  samples: number;
+  /** Null lets the bake choose. */
+  compression: 'bits8' | 'bits6' | 'bits5' | 'bits4' | null;
 }
 
 /** One authored room cell: a box of these half sizes under the object transform. */

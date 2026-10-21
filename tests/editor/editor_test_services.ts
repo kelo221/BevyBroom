@@ -1,0 +1,80 @@
+import * as THREE from 'three';
+import type { EditorServices } from '@/editor/window/editor_services.js';
+import { TransformMode } from '@/types/transform_mode.js';
+
+/**
+ * Builds editor services where every query answers "nothing" and every action
+ * does nothing, overriding the members a test cares about.
+ *
+ * @param overrides Members that replace the defaults.
+ * @returns Complete editor services.
+ */
+export function editorTestServicesCreate(overrides: Partial<EditorServices> = {}): EditorServices {
+  return {
+    getTransformTargets: () => [],
+    forEachSelectedObject: () => [],
+    getSelectedCount: () => 0,
+    getTransformPivot: () => new THREE.Vector3(),
+    getSelectedSegmentsAveragePosition: () => ({ x: 0, y: 0 }),
+    isSnapping: () => false,
+    getGridSnap: () => 1,
+    getAngleSnap: () => 15,
+    screenPointToGrid: (x, y) => ({ x, y }),
+    gridPointToScreen: (x, y) => ({ x, y }),
+    getActiveCamera: () => null,
+    getActivePickElement: () => null,
+    resolveInteractiveViewportAtClientPoint: () => null,
+    resolveFirstInteractiveViewportInDocument: () => null,
+    getInteractiveViewportPickElements: () => [],
+    beginSingleUseDrag: () => false,
+    applySingleUsePointerMove: () => {},
+    isTransformDragActive: () => false,
+    isPermanentGizmoHandleDragActive: () => false,
+    handleModalKeyDown: () => false,
+    commitActiveTransformDrag: () => {},
+    cancelActiveTransformDrag: () => {},
+    pinExclusiveViewportDomain: () => {},
+    pinExclusiveViewport: () => {},
+    clearExclusiveViewport: () => {},
+    pickObjectStackAtClientPoint: () => [],
+    clearObjectSelection: () => {},
+    applyObjectClickSelectionAtClientPoint: () => {},
+    tryBeginPermanentGizmoDragFromEditorPointer: () => false,
+    probePermanentGizmoUnderPointer: () => false,
+    updateBoundsHoverAtClientPoint: () => {},
+    clearBoundsHoverAtClientPoint: () => {},
+    enterFaceSelectionMode: () => {},
+    leaveFaceSelectionMode: () => {},
+    beginFaceSelectPointerDown: () => false,
+    continueFaceSelectPointerMove: () => {},
+    endFaceSelectPointerUp: () => {},
+    isFaceSelectStrokeActive: () => false,
+    hasFaceSelection: () => false,
+    beginFaceUvTransform: () => false,
+    updateFaceUvTransform: () => {},
+    endFaceUvTransform: () => false,
+    cancelFaceUvTransform: () => {},
+    isFaceUvTransformActive: () => false,
+    isGridAlignPickArmed: () => false,
+    disarmGridAlignPick: () => undefined,
+    tryGridAlignPickAtPointer: () => false,
+    updateGridAlignHoverAtPointer: () => undefined,
+    isEditModeActive: () => false,
+    beginEditSelectPointerDown: () => false,
+    setWidgetMode: () => {},
+    getWidgetMode: () => TransformMode.BOUNDS,
+    refreshGizmoPresentation: () => {},
+    setStatusMessage: () => {},
+    registerUndo: () => {},
+    discardUndo: () => {},
+    publishTransformDragVisualEnd: () => {},
+    getLastPointerClientPosition: () => null,
+    isShiftPressed: () => false,
+    isCtrlPressed: () => false,
+    isAltPressed: () => false,
+    isModifierPressed: () => false,
+    handleGlobalKeyDown: () => false,
+    isNavigationBlockingTools: () => false,
+    ...overrides,
+  };
+}

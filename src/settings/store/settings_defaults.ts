@@ -84,6 +84,44 @@ export function createDefaultKeyboardShortcutSettings(): KeyboardShortcutSetting
     ...createDefaultEditFileShortcuts(),
     ...createDefaultNavigationShortcuts(),
     ...createDefaultShadingSnapClipShortcuts(),
+    ...createDefaultWindowShortcuts(),
+  };
+}
+
+/**
+ * Default view, play, panel and selection shortcuts that follow map editor
+ * conventions: Space cycles the hovered view, Ctrl+Space maximizes it, Ctrl+1
+ * to Ctrl+3 show the Map, Entity and Face inspector tabs, Ctrl+4 and Ctrl+5
+ * toggle the info panel and inspector.
+ *
+ * @returns Partial keyboard shortcut settings.
+ */
+function createDefaultWindowShortcuts(): Pick<
+  KeyboardShortcutSettings,
+  | 'view_cycle'
+  | 'view_maximize'
+  | 'play_start'
+  | 'inspector_map'
+  | 'inspector_entity'
+  | 'inspector_face'
+  | 'info_panel_toggle'
+  | 'inspector_toggle'
+  | 'toolbar_toggle'
+  | 'select_all'
+  | 'select_none'
+> {
+  return {
+    view_cycle: createShortcut('Space'),
+    view_maximize: createShortcut('Space', true),
+    play_start: createShortcut('F5'),
+    inspector_map: createShortcut('Digit1', true),
+    inspector_entity: createShortcut('Digit2', true),
+    inspector_face: createShortcut('Digit3', true),
+    info_panel_toggle: createShortcut('Digit4', true),
+    inspector_toggle: createShortcut('Digit5', true),
+    toolbar_toggle: createShortcut('KeyT', true, false, true),
+    select_all: createShortcut('KeyA', true),
+    select_none: createShortcut('KeyA', true, true),
   };
 }
 
@@ -122,7 +160,8 @@ function createDefaultTransformShortcuts(): Pick<
 }
 
 /**
- * Default edit and file operation shortcuts.
+ * Default edit and file operation shortcuts. Ctrl+Alt+V pastes at the copied
+ * position; Cut, Copy and Paste use the fixed system clipboard keys.
  *
  * @returns Partial keyboard shortcut settings.
  */
@@ -140,6 +179,7 @@ function createDefaultEditFileShortcuts(): Pick<
   | 'duplicate'
   | 'group'
   | 'ungroup'
+  | 'paste_original'
 > {
   return {
     delete_selected: createShortcut('Delete'),
@@ -154,6 +194,7 @@ function createDefaultEditFileShortcuts(): Pick<
     duplicate: createShortcut('KeyD', true),
     group: createShortcut('KeyG', false, true),
     ungroup: createShortcut('KeyU', false, true),
+    paste_original: createShortcut('KeyV', true, false, true),
   };
 }
 

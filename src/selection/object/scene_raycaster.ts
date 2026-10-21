@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { pointerEventToNdc } from '@/utils/pointer_ndc.js';
 import { getOrBuildFacePickBvh } from '@/selection/pick/mesh_pick_acceleration.js';
+import { objectInUnselectableLayerIs } from '@/layer/model/layer_membership.js';
 
 /**
  * Shared raycasting utility for click-to-select across all viewports. Uses a
@@ -97,7 +98,8 @@ export class SceneRaycaster {
   }
 
   /**
-   * Collects meshes whose world bounding spheres may intersect the pick ray.
+   * Collects meshes whose world bounding spheres may intersect the pick ray,
+   * skipping hidden meshes and meshes in hidden or locked layers.
    *
    * @param meshes Selectable meshes.
    */
@@ -105,7 +107,7 @@ export class SceneRaycaster {
     this.candidateMeshes.length = 0;
     const ray = this.raycaster.ray;
     for (const mesh of meshes) {
-      if (!mesh.visible) continue;
+      if (!mesh.visible || objectInUnselectableLayerIs(mesh)) continue;
       mesh.updateMatrixWorld(false);
       if (!this.rayIntersectsMeshWorldSphere(mesh, ray)) continue;
       this.candidateMeshes.push(mesh);

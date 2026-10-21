@@ -2,8 +2,7 @@ import * as THREE from 'three';
 import { Viewport3D } from '@/viewports/core/viewport_3d.js';
 import { Viewport2D } from '@/viewports/core/viewport_2d.js';
 import type { ViewportEditor } from '@/viewports/core/viewport_editor.js';
-import { SELECTION_HIGHLIGHT_USERDATA_KEY } from '@/selection/object/selection_highlight.js';
-import { CLIP_PREVIEW_USERDATA_KEY } from '@/tools/clip_plane/clip_plane_preview.js';
+import { selectableMeshesCollect } from '@/selection/object/selectable_mesh_filter.js';
 import { EDITOR_SOURCE_UUID_KEY } from './viewport_sync_keys.js';
 
 export { EDITOR_SOURCE_UUID_KEY } from './viewport_sync_keys.js';
@@ -90,21 +89,15 @@ export class ManagerViewportSync {
   }
 
   /**
-   * Collects selectable meshes under the stored world object, excluding
-   * helpers.
+   * Collects selectable meshes under the stored world object, excluding helpers
+   * and meshes in hidden or locked layers.
    *
-   * @returns An array of non-helper meshes from the world object, or empty when
+   * @returns An array of selectable meshes from the world object, or empty when
    *   none is set.
    */
   getWorldSelectableMeshes(): THREE.Mesh[] {
     if (!this.worldObject) return [];
-    const meshes: THREE.Mesh[] = [];
-    this.worldObject.traverse((child) => {
-      if (child instanceof THREE.Mesh && !this.isHelperMesh(child)) {
-        meshes.push(child);
-      }
-    });
-    return meshes;
+    return selectableMeshesCollect(this.worldObject);
   }
 
   /**
@@ -160,28 +153,5 @@ export class ManagerViewportSync {
     this.worldObject = worldObject;
     const worldMeshes = this.getWorldSelectableMeshes();
     this.allViewports.forEach((viewport) => viewport.setSelectableObjects(worldMeshes));
-  }
-
-  /**
-   * Returns whether the object is a helper overlay rather than a solid mesh.
-   *
-   * @param mesh The object to test.
-   * @returns True when the object is classified as a helper.
-   */
-  private isHelperMesh(mesh: THREE.Object3D): boolean {
-    if (mesh.userData[SELECTION_HIGHLIGHT_USERDATA_KEY] === true) return true;
-    if (mesh.userData[CLIP_PREVIEW_USERDATA_KEY] === true) return true;
-    if (mesh.userData['isWireframeOverlay'] === true) return true;
-    if (mesh.userData['isSelectionHighlight']) return true;
-    if (mesh.userData['isSolidModelResult'] === true) return true;
-    if (mesh instanceof THREE.LineSegments && mesh.parent instanceof THREE.Mesh) {
-      return true;
-    }
-    let current: THREE.Object3D | null = mesh.parent;
-    while (current) {
-      if (current.userData[CLIP_PREVIEW_USERDATA_KEY] === true) return true;
-      current = current.parent;
-    }
-    return false;
   }
 }

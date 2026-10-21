@@ -3,11 +3,13 @@ import { UndoCommand } from '@/commands/command_undo.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
+import { solidBoxSizeLongestEdge, solidBoxSizeVectorResolve, type SolidBoxSize } from '@/solid/model/solid_box_size.js';
 
 /** Undoable command that adds a box brush under a solid model. */
 export class CommandSolidBoxBrushAdd implements UndoCommand {
   private readonly model: SolidModel;
-  private readonly size: number;
+  private readonly size: SolidBoxSize;
+  private readonly textureId: string | null;
   private readonly operation: SolidOperation;
   private readonly offset: THREE.Vector3;
   private readonly rotation: THREE.Euler;
@@ -26,23 +28,27 @@ export class CommandSolidBoxBrushAdd implements UndoCommand {
    * Creates an add-box-brush command.
    *
    * @param model Solid model that will own the brush.
-   * @param size Box edge length.
+   * @param size Cube edge length, or per-axis width, height and depth.
    * @param operation CSG operation for the new brush.
    * @param offset Model-local position applied after creation.
    * @param hierarchyParent Optional solid root or CSG group to append under.
    * @param rotation Model-local rotation (grid axes in model space). Defaults
    *   to identity.
+   * @param textureId Texture applied to every face of the new brush, or null to
+   *   keep the default surface.
    */
   constructor(
     model: SolidModel,
-    size: number,
+    size: SolidBoxSize,
     operation: SolidOperation,
     offset: THREE.Vector3,
     hierarchyParent: THREE.Object3D | null = null,
     rotation: THREE.Euler | null = null,
+    textureId: string | null = null,
   ) {
     this.model = model;
-    this.size = size;
+    this.size = typeof size === 'number' ? size : solidBoxSizeVectorResolve(size);
+    this.textureId = textureId;
     this.operation = operation;
     this.offset = offset.clone();
     this.rotation = rotation ? rotation.clone() : new THREE.Euler(0, 0, 0, 'XYZ');
@@ -95,6 +101,7 @@ export class CommandSolidBoxBrushAdd implements UndoCommand {
   private createBrush(): void {
     const brush = this.model.addBoxBrush(this.size, this.operation, this.hierarchyParent, false);
     this.applySpawnPose(brush);
+    this.applySpawnTexture(brush);
     this.model.markBrushesDirty([brush.id]);
     this.model.rebuild();
     this.created = brush;
@@ -114,7 +121,19 @@ export class CommandSolidBoxBrushAdd implements UndoCommand {
       this.hierarchyParent === this.model.root
         ? undefined
         : { parent: this.hierarchyParent, siblingIndex: this.hierarchyParent.children.length };
-    this.model.insertBrushInstance(this.created, this.listIndex, this.size, hierarchy);
+    this.model.insertBrushInstance(this.created, this.listIndex, solidBoxSizeLongestEdge(this.size), hierarchy);
+  }
+
+  /**
+   * Applies the requested texture to every face of the new brush.
+   *
+   * @param brush Newly created brush instance.
+   */
+  private applySpawnTexture(brush: SolidBrushInstance): void {
+    if (this.textureId === null) {
+      return;
+    }
+    brush.setAllFacesTextureId(this.textureId);
   }
 
   /**

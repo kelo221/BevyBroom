@@ -12,15 +12,10 @@ function createMutableHostSource(): {
   source: LayoutCoreHostSource;
   liveSwitcher: { current: WorkspaceSwitcherBar | null };
 } {
-  const toolbarContainer = document.createElement('div');
-  const mainLayout = document.createElement('div');
-  const viewportArea = document.createElement('div');
-  toolbarContainer.appendChild(mainLayout);
-  mainLayout.appendChild(viewportArea);
   const liveSwitcher = { current: null as WorkspaceSwitcherBar | null };
   const source = {
-    toolbarContainer,
-    viewportArea,
+    workspaceSwitcherSlot: document.createElement('div'),
+    viewportArea: document.createElement('div'),
     viewportPaneGrid: document.createElement('div'),
     workspaceStore: {} as LayoutCoreHostSource['workspaceStore'],
     workspaceController: null,
@@ -83,29 +78,9 @@ describe('buildWorkspaceAreaWiringHost', () => {
     expect(liveSwitcher.current).toBe(fakeBar);
   });
 
-  it('should place the switcher bar before the main layout row', () => {
+  it('should hand out the view bar slot that receives the workspace switcher', () => {
     const { source } = createMutableHostSource();
     const host = buildWorkspaceAreaWiringHost(source);
-    const statusBar = document.createElement('div');
-    statusBar.dataset['role'] = 'status';
-    source.toolbarContainer.appendChild(statusBar);
-    const barElement = document.createElement('div');
-    barElement.dataset['role'] = 'workspace-switcher';
-    const fakeBar = {
-      getElement: () => barElement,
-    } as unknown as WorkspaceSwitcherBar;
-    source.toolbarContainer.appendChild(barElement);
-    host.setWorkspaceSwitcherBar(fakeBar);
-
-    const mainLayout = source.viewportArea.parentElement;
-    expect(mainLayout).not.toBeNull();
-    source.toolbarContainer.insertBefore(barElement, mainLayout);
-
-    const children = Array.from(source.toolbarContainer.children);
-    const barIndex = children.indexOf(barElement);
-    const mainIndex = children.indexOf(mainLayout!);
-    const statusIndex = children.indexOf(statusBar);
-    expect(barIndex).toBeLessThan(mainIndex);
-    expect(mainIndex).toBeLessThan(statusIndex);
+    expect(host.getWorkspaceSwitcherSlot()).toBe(source.workspaceSwitcherSlot);
   });
 });

@@ -19,13 +19,11 @@ import { resolveTransformTargets } from '@/selection/object/resolve_transform_ta
 import { WindowPointerDragSession } from '@/utils/session_window_pointer_drag.js';
 import { createSyntheticPointerDown, createSyntheticPointerMove } from '@/utils/synthetic_pointer_event.js';
 import { resolveViewportOwnerWindow } from '@/utils/viewport_owner_window.js';
-import { SelectionClickThrough } from '@/selection/object/selection_click_through.js';
-import { orderObjectPickStackForViewport } from '@/selection/object/selection_pick_order_2d.js';
 import { getCadViewPlaneForKind } from '@/viewports/core/viewport_editor.js';
-import { isPerspectiveViewportKind } from '@/viewports/core/viewport_kind.js';
 import { resolveLayoutGizmoOrientation } from '@/layout/setup/helpers_layout_gizmo.js';
 import { TransformMode } from '@/types/transform_mode.js';
 import { TransformSpace } from '@/types/transform_space.js';
+import type { EntityHandleSystem } from '@/entity/handles/entity_handle_system.js';
 
 /** Objects and callbacks supplied when constructing the interaction bridge. */
 export interface DependenciesBridgeTransformInteraction {
@@ -41,8 +39,6 @@ export interface DependenciesBridgeTransformInteraction {
   getUserSnapEnabled: () => boolean;
   /** Returns true when gizmo handles should follow object-local axes. */
   isTransformSpaceLocal: () => boolean;
-  /** Duplicates the current selection and selects the created objects. */
-  onDuplicateSelectedForDrag?: () => void;
   /**
    * Invoked after a transform drag commits successfully.
    *
@@ -71,6 +67,8 @@ export interface DependenciesBridgeTransformInteraction {
   onPermanentGizmoHandleDragBegan?: () => void;
   /** Invoked when a gizmo or bounds handle drag ends. */
   onPermanentGizmoHandleDragEnded?: () => void;
+  /** Handles of selected entities, grabbed before gizmo and bounds controls. */
+  entityHandles?: EntityHandleSystem;
 }
 
 /** Handles pointer events for gizmo and bounds transform drags. */
@@ -78,8 +76,6 @@ export class BridgeTransformInteraction {
   private deps: DependenciesBridgeTransformInteraction;
   private windowDragSession: WindowPointerDragSession;
   private activeDragViewport: Viewport3D | Viewport2D | null;
-  private pendingSelectionClickEvent: MouseEvent | null;
-  private pendingSelectionClickViewport: Viewport3D | Viewport2D | null;
 
   /**
    * Creates the interaction instance and initializes drag session state.
@@ -90,8 +86,6 @@ export class BridgeTransformInteraction {
     this.deps = deps;
     this.windowDragSession = new WindowPointerDragSession();
     this.activeDragViewport = null;
-    this.pendingSelectionClickEvent = null;
-    this.pendingSelectionClickViewport = null;
     this.probeViewportAtClientPoint = null;
   }
 
@@ -115,6 +109,7 @@ export class BridgeTransformInteraction {
     if (!this.hasGizmoHandles()) return false;
     if (!this.isGizmoInteractable(viewport)) return false;
     if (this.shouldSkipGizmoForMultiSelect(event)) return false;
+    if (this.tryBeginEntityHandleDrag(event, viewport)) return true;
     const eventParams = this.buildTransformEventParams(viewport);
     return this.dispatchTransformEvent(
       event.type,
@@ -185,6 +180,7 @@ export class BridgeTransformInteraction {
     const pickElement = viewport.getContentElement();
     const gizmoGroup = viewport.getGizmoGroup();
     if (!gizmoGroup) return false;
+    if (this.deps.entityHandles?.probe({ camera, element: pickElement, event })) return true;
     const handles = this.deps.transformGizmo.getHandles();
     if (this.deps.transformGizmo.getMode() === TransformMode.BOUNDS) {
       const kind = typeof viewport.getViewportKind === 'function' ? viewport.getViewportKind() : undefined;
@@ -287,6 +283,28 @@ export class BridgeTransformInteraction {
     modifiers: { shiftKey: boolean; ctrlKey: boolean; altKey: boolean; metaKey: boolean },
   ): MouseEvent {
     return createSyntheticPointerDown(clientX, clientY, modifiers);
+  }
+
+  /**
+   * Starts dragging an entity handle under a press, when one is there. A press
+   * during a handle drag is claimed so nothing else starts.
+   *
+   * @param event Pointer event; only presses start a drag.
+   * @param viewport Viewport that received the press.
+   * @returns True when a handle drag started.
+   */
+  private tryBeginEntityHandleDrag(event: MouseEvent, viewport: Viewport3D | Viewport2D): boolean {
+    const entityHandles = this.deps.entityHandles;
+    if (event.type !== 'pointerdown' || !entityHandles || this.deps.transformHandler.isDragging()) return false;
+    if (entityHandles.isDragging()) return true;
+    const pointer = { camera: viewport.getCamera(), element: viewport.getContentElement(), event };
+    const started = entityHandles.dragBegin(pointer, this.resolveViewportOwnerWindow(viewport), () =>
+      this.deps.onPermanentGizmoHandleDragEnded?.(),
+    );
+    if (started) {
+      this.deps.onPermanentGizmoHandleDragBegan?.();
+    }
+    return started;
   }
 
   /**
@@ -429,70 +447,12 @@ export class BridgeTransformInteraction {
       viewPlane,
     );
     if (!this.deps.transformHandler.isDragging()) return false;
-    const dragObjects = this.prepareAltDragDuplicates(event, camera, pickElement, viewport);
+    const dragObjects = filterUnlockedObjects(this.deps.selectionManager.getAllSelectedObjectsAsArray());
     if (dragObjects.length === 0) return false;
-    this.pendingSelectionClickEvent = event;
-    this.pendingSelectionClickViewport = viewport;
     this.attachWindowDragCapture(viewport, event);
     this.deps.onRulerTransformFeedback?.(dragObjects, 'begin');
     this.deps.onPermanentGizmoHandleDragBegan?.();
     return true;
-  }
-
-  /**
-   * Replaces a valid Alt-drag session with an equivalent session targeting
-   * newly duplicated objects.
-   *
-   * @param event The pointerdown event that began the drag.
-   * @param camera The active viewport camera.
-   * @param pickElement The active viewport pickElement.
-   * @param viewport Viewport that owns the refreshed gizmo clone.
-   * @returns Objects targeted by the active drag, or an empty array on failure.
-   */
-  private prepareAltDragDuplicates(
-    event: MouseEvent,
-    camera: THREE.Camera,
-    pickElement: HTMLElement,
-    viewport: Viewport3D | Viewport2D,
-  ): THREE.Mesh[] {
-    const current = filterUnlockedObjects(this.deps.selectionManager.getAllSelectedObjectsAsArray());
-    if (!event.altKey || !this.deps.onDuplicateSelectedForDrag) return current;
-    this.deps.transformHandler.onPointerUp(this.computeCurrentPivot(), this.resolveDragTargets(current));
-    this.deps.onDuplicateSelectedForDrag();
-    const duplicates = filterUnlockedObjects(this.deps.selectionManager.getAllSelectedObjectsAsArray());
-    if (duplicates.length === 0) return duplicates;
-    this.restartTransformDrag(event, camera, pickElement, duplicates, viewport);
-    return this.deps.transformHandler.isDragging() ? duplicates : [];
-  }
-
-  /**
-   * Starts the transform session again with duplicated selection targets.
-   *
-   * @param event Original pointerdown event.
-   * @param camera Active viewport camera.
-   * @param pickElement Active viewport pickElement.
-   * @param duplicates Newly created selection targets.
-   * @param viewport Viewport that owns the refreshed gizmo clone.
-   */
-  private restartTransformDrag(
-    event: MouseEvent,
-    camera: THREE.Camera,
-    pickElement: HTMLElement,
-    duplicates: THREE.Mesh[],
-    viewport: Viewport3D | Viewport2D,
-  ): void {
-    const kind = typeof viewport.getViewportKind === 'function' ? viewport.getViewportKind() : undefined;
-    const viewPlane = kind ? getCadViewPlaneForKind(kind) : 'xyz';
-    this.deps.transformHandler.onPointerDown(
-      camera,
-      pickElement,
-      event,
-      this.deps.transformGizmo.getHandles(),
-      this.resolveDragTargets(duplicates),
-      this.computeCurrentPivot(),
-      viewport.getGizmoGroup() ?? new THREE.Group(),
-      viewPlane,
-    );
   }
 
   /**
@@ -655,19 +615,6 @@ export class BridgeTransformInteraction {
   }
 
   /**
-   * Returns whether reverse object pick order applies for this viewport.
-   *
-   * @param viewport Viewport under the pointer.
-   * @returns True for orthographic (non-perspective) viewports.
-   */
-  private shouldUseReverseOutlinerObjectPick(viewport: Viewport3D | Viewport2D): boolean {
-    if (typeof viewport.getViewportKind !== 'function') {
-      return false;
-    }
-    return !isPerspectiveViewportKind(viewport.getViewportKind());
-  }
-
-  /**
    * Resolves the handle quaternion for the active transform space.
    *
    * @param selected Selected objects.
@@ -697,8 +644,7 @@ export class BridgeTransformInteraction {
 
   /**
    * Handles the pointer up phase of a transform drag. Clears window capture so
-   * later viewport moves do not resume the drag. Bounds face clicks without
-   * movement cycle nested object selection.
+   * later viewport moves do not resume the drag.
    *
    * @returns True if the event was consumed.
    */
@@ -710,17 +656,10 @@ export class BridgeTransformInteraction {
     const pivot = this.computeCurrentPivot();
     const selectedObjects = filterUnlockedObjects(this.deps.selectionManager.getAllSelectedObjectsAsArray());
     const transformTargets = this.resolveDragTargets(selectedObjects);
-    const selectionClick = this.deps.transformHandler.onPointerUp(pivot, transformTargets);
-    const clickEvent = this.pendingSelectionClickEvent;
-    const clickViewport = this.pendingSelectionClickViewport;
+    this.deps.transformHandler.onPointerUp(pivot, transformTargets);
     this.clearWindowDragCapture();
     this.restoreSnapAfterDragEnds();
     this.deps.onPermanentGizmoHandleDragEnded?.();
-    if (selectionClick) {
-      this.deps.onRulerTransformFeedback?.(selectedObjects, 'end');
-      this.applyBoundsFaceSelectionClick(clickEvent, clickViewport);
-      return true;
-    }
     this.commitTransformAfterDrag(transformTargets);
     return true;
   }
@@ -744,33 +683,10 @@ export class BridgeTransformInteraction {
     this.deps.onAfterTransformCommit(transformTargets);
   }
 
-  /**
-   * Applies click-through selection after a bounds face press with no drag.
-   *
-   * @param event The original pointerdown event used for picking.
-   * @param viewport The viewport that received the press.
-   */
-  private applyBoundsFaceSelectionClick(event: MouseEvent | null, viewport: Viewport3D | Viewport2D | null): void {
-    if (!event || !viewport) return;
-    if (typeof viewport.getObjectPickStack !== 'function') return;
-    const stack = viewport.getObjectPickStack(event);
-    const orderedStack = orderObjectPickStackForViewport(stack, this.shouldUseReverseOutlinerObjectPick(viewport));
-    const picked = SelectionClickThrough.pickFromStack(
-      orderedStack,
-      this.deps.selectionManager,
-      event.clientX,
-      event.clientY,
-    );
-    if (!picked) return;
-    this.deps.selectionManager.selectFromClick(picked, false, false);
-  }
-
   /** Drops window-level drag listeners and the originating viewport reference. */
   private clearWindowDragCapture(): void {
     this.windowDragSession.end();
     this.activeDragViewport = null;
-    this.pendingSelectionClickEvent = null;
-    this.pendingSelectionClickViewport = null;
   }
 
   /** Refreshes the properties panel for the currently bound object. */

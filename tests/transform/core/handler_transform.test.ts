@@ -10,6 +10,7 @@ import { TransformConstraint } from '@/transform/core/transform_constraint.js';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
 import { HandlerTransform } from '@/transform/core/handler_transform.js';
 import { managerMouseCursor } from '@/input/manager_mouse_cursor.js';
+import { pointerClientPointOfWorld } from '@/utils/pointer_client_project.js';
 
 describe('TransformHandler', () => {
   let handler: HandlerTransform;
@@ -120,41 +121,40 @@ describe('TransformHandler', () => {
     expect(handler.isDragging()).toBe(false);
   });
 
-  it('starts a bounds face move when pressing the face (not a handle)', () => {
+  it('leaves a press on the bounds face interior to the active tool', () => {
     const setup = createBoundsPickSetup(gizmo);
-    // Off-center so the face plane is hit without a resize handle.
+    const interior = pointerClientPointOfWorld(boundsFaceInteriorPoint(setup.meshes), setup.camera, setup.pickElement);
     handler.onPointerDown(
       setup.camera,
       setup.pickElement,
-      new MouseEvent('pointerdown', { clientX: 460, clientY: 280 }),
+      new MouseEvent('pointerdown', { clientX: interior.clientX, clientY: interior.clientY }),
       setup.handles,
       setup.meshes,
       setup.pivot,
       setup.gizmoGroup,
     );
-    expect(handler.isDragging()).toBe(true);
-    expect(handler.isBoundsResizeDrag()).toBe(false);
-    handler.onPointerUp(setup.pivot, setup.meshes);
+    expect(handler.isDragging()).toBe(false);
   });
 
-  it('uses body-move highlight when hovering face interior away from handles', () => {
+  it('does not highlight the face interior while hovering away from handles', () => {
     const setup = createBoundsPickSetup(gizmo);
+    const interior = pointerClientPointOfWorld(boundsFaceInteriorPoint(setup.meshes), setup.camera, setup.pickElement);
     handler.updateBoundsHover(
       setup.camera,
       setup.pickElement,
-      new MouseEvent('pointermove', { clientX: 460, clientY: 280 }),
+      new MouseEvent('pointermove', { clientX: interior.clientX, clientY: interior.clientY }),
       setup.gizmoGroup,
     );
-    expect(gizmo.getHighlightedBoundsFace()).toBe(BoundsFace.POS_Z);
-    expect(gizmo.getHighlightedBoundsFaceMode()).toBe('move');
+    expect(gizmo.getHighlightedBoundsFace()).toBeNull();
   });
 
   it('clears bounds hover highlight and stops re-issuing the hover cursor', () => {
     const setup = createBoundsPickSetup(gizmo);
+    const handlePoint = pointerClientPointOfWorld(boundsCenter(setup.meshes), setup.camera, setup.pickElement);
     handler.updateBoundsHover(
       setup.camera,
       setup.pickElement,
-      new MouseEvent('pointermove', { clientX: 460, clientY: 280 }),
+      new MouseEvent('pointermove', { clientX: handlePoint.clientX, clientY: handlePoint.clientY }),
       setup.gizmoGroup,
     );
     expect(gizmo.getHighlightedBoundsFace()).toBe(BoundsFace.POS_Z);
@@ -168,53 +168,21 @@ describe('TransformHandler', () => {
     expect(managerMouseCursor.getAppliedCursorCss()).toBe('');
   });
 
-  it('treats bounds face press without movement as a selection click', () => {
+  it('starts a bounds resize from the handle facing the camera and ends it on pointer up', () => {
     const setup = createBoundsPickSetup(gizmo);
-    const downEvent = new MouseEvent('pointerdown', {
-      clientX: 460,
-      clientY: 280,
-    });
+    const handlePoint = pointerClientPointOfWorld(boundsCenter(setup.meshes), setup.camera, setup.pickElement);
     handler.onPointerDown(
       setup.camera,
       setup.pickElement,
-      downEvent,
+      new MouseEvent('pointerdown', { clientX: handlePoint.clientX, clientY: handlePoint.clientY }),
       setup.handles,
       setup.meshes,
       setup.pivot,
       setup.gizmoGroup,
     );
     expect(handler.isDragging()).toBe(true);
-    const selectionClick = handler.onPointerUp(setup.pivot, setup.meshes);
-    expect(selectionClick).toBe(true);
-    expect(handler.isDragging()).toBe(false);
-  });
-
-  it('commits bounds face move after the pointer moves past the click threshold', () => {
-    const setup = createBoundsPickSetup(gizmo);
-    const downEvent = new MouseEvent('pointerdown', {
-      clientX: 460,
-      clientY: 280,
-    });
-    handler.onPointerDown(
-      setup.camera,
-      setup.pickElement,
-      downEvent,
-      setup.handles,
-      setup.meshes,
-      setup.pivot,
-      setup.gizmoGroup,
-    );
-    expect(handler.isDragging()).toBe(true);
-    expect(handler.isBoundsResizeDrag()).toBe(false);
-    handler.onPointerMove(
-      setup.camera,
-      setup.pickElement,
-      new MouseEvent('pointermove', { clientX: 490, clientY: 310 }),
-      setup.pivot,
-      setup.meshes,
-    );
-    const selectionClick = handler.onPointerUp(setup.pivot, setup.meshes);
-    expect(selectionClick).toBe(false);
+    expect(handler.isBoundsResizeDrag()).toBe(true);
+    handler.onPointerUp(setup.pivot, setup.meshes);
     expect(handler.isDragging()).toBe(false);
   });
 });
@@ -258,4 +226,30 @@ function createBoundsPickSetup(gizmo: GizmoTransform): {
     pivot: new THREE.Vector3(0, 0, 0),
     gizmoGroup,
   };
+}
+
+/**
+ * Returns the world center of the test meshes' bounds.
+ *
+ * @param meshes Test meshes.
+ * @returns World center.
+ */
+function boundsCenter(meshes: readonly THREE.Mesh[]): THREE.Vector3 {
+  const bounds = new THREE.Box3();
+  meshes.forEach((mesh) => bounds.expandByObject(mesh));
+  return bounds.getCenter(new THREE.Vector3());
+}
+
+/**
+ * Returns a point on the camera-facing +Z bounds face halfway between its
+ * center and its corner, away from the resize handle in the face center.
+ *
+ * @param meshes Test meshes.
+ * @returns World point inside the +Z face.
+ */
+function boundsFaceInteriorPoint(meshes: readonly THREE.Mesh[]): THREE.Vector3 {
+  const bounds = new THREE.Box3();
+  meshes.forEach((mesh) => bounds.expandByObject(mesh));
+  const center = bounds.getCenter(new THREE.Vector3());
+  return new THREE.Vector3((center.x + bounds.max.x) / 2, (center.y + bounds.max.y) / 2, bounds.max.z);
 }

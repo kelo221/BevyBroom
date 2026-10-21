@@ -25,7 +25,6 @@ export function ensureSettingsDialogStyles(): void {
  * @returns CSS text.
  */
 function buildSettingsDialogCss(): string {
-  const selection = hexToRgb(Theme.selectionColor);
   return `
 @keyframes settingsBackdropIn {
   from { opacity: 0; }
@@ -40,11 +39,6 @@ function buildSettingsDialogCss(): string {
 }
 .settings-dialog-panel {
   animation: settingsPanelIn 180ms ease-out forwards;
-}
-.settings-dialog-tab[aria-selected="true"] {
-  color: #ffffff !important;
-  background: rgba(232, 106, 23, 0.22) !important;
-  border-color: ${selection} !important;
 }
 `.trim();
 }
@@ -125,20 +119,13 @@ export function styleSettingsCloseButton(closeButton: HTMLButtonElement): void {
 }
 
 /**
- * Applies styles to the horizontal tab bar.
+ * Lets the settings tab book fill the dialog below the header.
  *
- * @param tabBar Tab bar element.
+ * @param tabBook Tab book root element.
  */
-export function styleSettingsTabBar(tabBar: HTMLElement): void {
-  tabBar.classList.add('settings-dialog-tab-bar');
-  tabBar.style.display = 'flex';
-  tabBar.style.flexWrap = 'wrap';
-  tabBar.style.alignItems = 'center';
-  tabBar.style.gap = '4px';
-  tabBar.style.padding = '8px 12px';
-  tabBar.style.borderBottom = `1px solid ${hexToRgb(Theme.separatorColor)}`;
-  tabBar.style.background = hexToRgb(Theme.toolbarBackground);
-  tabBar.setAttribute('role', 'tablist');
+export function styleSettingsTabBook(tabBook: HTMLElement): void {
+  tabBook.style.flex = '1 1 auto';
+  tabBook.style.minHeight = '0';
 }
 
 /**
@@ -165,34 +152,13 @@ export function styleSettingsResetButton(button: HTMLButtonElement): void {
 }
 
 /**
- * Applies styles to one settings tab button.
- *
- * @param tab Tab button element.
- */
-export function styleSettingsTabButton(tab: HTMLButtonElement): void {
-  tab.type = 'button';
-  tab.classList.add('settings-dialog-tab');
-  tab.style.cursor = 'pointer';
-  tab.style.border = '1px solid transparent';
-  tab.style.borderRadius = '4px';
-  tab.style.padding = '5px 10px';
-  tab.style.fontSize = '12px';
-  tab.style.fontWeight = '500';
-  tab.style.fontFamily = Theme.uiFontFamily;
-  tab.style.background = 'transparent';
-  tab.style.color = Theme.buttonTextColor;
-  tab.style.letterSpacing = '0.01em';
-  tab.style.transition = 'background 80ms ease, border-color 80ms ease';
-  bindTabHover(tab);
-}
-
-/**
  * Applies styles to the scrollable tab content host.
  *
  * @param content Content host element.
  */
 export function styleSettingsContent(content: HTMLElement): void {
   content.classList.add('settings-dialog-content');
+  content.style.display = 'block';
   content.style.flex = '1 1 auto';
   content.style.overflowY = 'auto';
   content.style.padding = '10px 14px 16px';
@@ -208,28 +174,6 @@ export function styleSettingsContent(content: HTMLElement): void {
  */
 function buildToolbarGradient(): string {
   return `linear-gradient(180deg, ${hexToRgb(Theme.toolbarBackground)} 0%, ${hexToRgb(Theme.toolbarBackgroundEnd)} 100%)`;
-}
-
-/**
- * Binds hover background feedback that skips selected tabs.
- *
- * @param tab Tab button element.
- */
-function bindTabHover(tab: HTMLButtonElement): void {
-  tab.addEventListener('mouseenter', () => {
-    if (tab.getAttribute('aria-selected') === 'true') {
-      return;
-    }
-    tab.style.background = hexToRgb(Theme.buttonHoverColor);
-    tab.style.borderColor = 'rgba(255,255,255,0.06)';
-  });
-  tab.addEventListener('mouseleave', () => {
-    if (tab.getAttribute('aria-selected') === 'true') {
-      return;
-    }
-    tab.style.background = 'transparent';
-    tab.style.borderColor = 'transparent';
-  });
 }
 
 /**

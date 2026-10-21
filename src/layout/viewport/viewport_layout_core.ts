@@ -27,16 +27,17 @@ import { AlignmentAxis } from '@/types/alignment_axis.js';
 import { HandlerSceneIo } from '@/tools/io/handler_scene_io.js';
 import { HandlerCsgAction } from '@/tools/csg/handler_csg_action.js';
 import { TerrainGenerator } from '@/terrain/terrain_generator.js';
-import { UvEditor } from '@/texture/ui/uv/uv_editor.js';
 import { ControllerUvEditor } from '@/texture/controller/controller_uv_editor.js';
-import { TextureBrowser } from '@/texture/ui/browser/texture_browser.js';
 import { ControllerTextureBrowser } from '@/texture/controller/controller_texture_browser.js';
 import { ControllerTextureAssignment } from '@/texture/controller/controller_texture_assignment.js';
 import { TextureLockSettings } from '@/texture/lock/texture_lock_settings.js';
 import { audioSettings } from '@/audio/settings/audio_settings.js';
 import { audioContextHost } from '@/audio/context/audio_context_host.js';
 import { bindEditorAudioSpaceProbe } from '@/audio/space/audio_space_probe_bind.js';
-import { BuilderEditorShell } from '@/layout/shell/builder_editor_shell.js';
+import { BuilderEditorShell, type EditorShellElements } from '@/layout/shell/builder_editor_shell.js';
+import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
+import type { LayoutShellPanels } from '@/layout/shell/mount/layout_shell_panels.js';
+import { ShellMainWindowControl } from '@/layout/shell/actions/shell_main_window_control.js';
 import { filterUnlockedObjects } from '@/utils/object_lock.js';
 import { findPickSurfaceAtClientPoint } from '@/utils/pointer_client_hit.js';
 import { ViewportSceneBootstrap } from './viewport_scene_bootstrap.js';
@@ -181,11 +182,19 @@ export abstract class ViewportLayoutCore {
   protected outlinerPanel!: PanelOutliner;
   protected propertiesPanel!: PanelProperties;
   protected toolbarContainer!: HTMLElement;
+  /** Main window shell: docks, bars and their commands. */
+  protected shellElements!: EditorShellElements;
+  /** Docked inspector and info panel contents. */
+  protected shellPanels: LayoutShellPanels | null = null;
+  protected clipboardSystem: import('@/layout/setup/layout_clipboard_setup.js').LayoutClipboardSystem | null = null;
   protected transformGizmo!: GizmoTransform;
   protected gizmoRaycaster!: GizmoRaycaster;
   protected transformExecutor!: TransformExecutor;
   protected transformHandler!: HandlerTransform;
   protected componentTransformHandler!: import('@/edit/transform/handler_component_transform.js').HandlerComponentTransform;
+  protected entityHandles!: import('@/entity/handles/entity_handle_system.js').EntityHandleSystem;
+  protected layerSystem!: import('@/layer/layer_system.js').LayerSystem;
+  protected layerManager!: import('@/layer/model/layer_manager.js').LayerManager;
   /** Shape Editor-style single-active-tool manager (SwitchTool / UseTool). */
   protected toolEditorSystem: LayoutToolEditorSystem | null = null;
   protected gridSnap!: GridSnap;
@@ -207,9 +216,7 @@ export abstract class ViewportLayoutCore {
   protected transformInteractionBridge!: BridgeTransformInteraction;
   protected csgActionHandler!: HandlerCsgAction;
   protected terrainGenerator!: TerrainGenerator;
-  protected uvEditor!: UvEditor | null;
   protected uvEditorController!: ControllerUvEditor | null;
-  protected textureBrowser!: TextureBrowser | null;
   protected textureBrowserController!: ControllerTextureBrowser | null;
   protected textureAssignmentController!: ControllerTextureAssignment | null;
   protected textureLock!: TextureLockSettings;
@@ -268,9 +275,7 @@ export abstract class ViewportLayoutCore {
   /** Assigns core managers that do not depend on DOM layout. */
   protected initializeCoreSystems(): void {
     Object.assign(this, createLayoutCoreSystems());
-    this.uvEditor = null;
     this.uvEditorController = null;
-    this.textureBrowser = null;
     this.textureBrowserController = null;
     this.textureAssignmentController = null;
     this.toolsPaletteController = null;
@@ -293,18 +298,23 @@ export abstract class ViewportLayoutCore {
 
   /** Builds the DOM shell and instantiates the four viewports. */
   protected buildShellAndViewports(): void {
-    const shellBuilder = new BuilderEditorShell();
-    const shell = shellBuilder.build(
+    const shell = new BuilderEditorShell().build(
       this.container,
-      this.selectionManager,
-      this.worldObject,
-      this.commandStack,
-      this.gridSnap,
-      this.textureLock,
-      this.hierarchyReparentHandler,
-      this.createOutlinerActions(),
-      this.createToolbarShellActionsBundle(),
+      {
+        selectionManager: this.selectionManager,
+        worldObject: this.worldObject,
+        commandStack: this.commandStack,
+        gridSnap: this.gridSnap,
+        textureLock: this.textureLock,
+        hierarchyReparentHandler: this.hierarchyReparentHandler,
+      },
+      {
+        outlinerActions: this.createOutlinerActions(),
+        toolbarActions: this.createToolbarShellActionsBundle(),
+        windowActions: this.createShellWindowActions(),
+      },
     );
+    this.shellElements = shell;
     this.toolbarContainer = shell.toolbarContainer;
     this.viewportArea = shell.viewportArea;
     this.viewportPaneGrid = shell.viewportPaneGrid;
@@ -587,8 +597,7 @@ export abstract class ViewportLayoutCore {
     this.sceneIOHandler = new HandlerSceneIo();
     this.setupCameraAndShadingCoordinators();
     this.setupFaceModeCoordinator();
-    this.setupUvEditor();
-    this.setupTextureBrowser();
+    this.setupShellPanels();
     this.setupToolsPaletteAndClip();
     this.setupSolidModelPanel();
     this.setupPlayerSystem();
@@ -606,8 +615,6 @@ export abstract class ViewportLayoutCore {
       return;
     }
 
-    this.registerToolEditorGuiSurface(this.uvEditor, 'uv_editor');
-    this.registerToolEditorGuiSurface(this.textureBrowser, 'texture_browser');
     this.registerToolEditorGuiSurface(this.solidModelPanel, 'solid_model_panel');
     this.registerToolEditorGuiSurface(this.aiCaptureDebugPanel, 'ai_capture_debug_panel');
     this.toolEditorSystem.installFocusPointerRouter(this.toolbarContainer);
@@ -765,7 +772,7 @@ export abstract class ViewportLayoutCore {
    */
   private toLayoutCoreHostSource(): LayoutCoreHostSource {
     return {
-      toolbarContainer: this.toolbarContainer,
+      workspaceSwitcherSlot: this.shellElements.frame.viewBarWorkspaceSlotRead(),
       viewportArea: this.viewportArea,
       viewportPaneGrid: this.viewportPaneGrid,
       workspaceStore: this.workspaceStore,
@@ -893,8 +900,8 @@ export abstract class ViewportLayoutCore {
       gridSnap: this.gridSnap,
       clipPlaneTool: this.clipPlaneTool,
       faceModeCoordinator: this.faceModeCoordinator,
-      toolbarContainer: this.toolbarContainer,
-      getViewports: () => this.getAllInteractiveViewports(),
+      toolChromeDocking: this.shellElements.toolChromeDocking,
+      getFloatingChromeViewports: () => this.detachedViewportWindow.getViewports(),
       keyboardShortcutHandler: this.keyboardShortcutHandler,
       showStatusMessage: (message) => this.showStatusMessage(message),
       syncPrimitivesToViewports: () => this.syncPrimitivesToViewports(),
@@ -903,7 +910,7 @@ export abstract class ViewportLayoutCore {
       onToolStateChanged: () => this.onClipToolStateChanged(),
       onClipCancel: () => this.onClipCancel(),
       onTransformMode: (mode) => this.onTransformMode(mode),
-      onOpenUvEditor: () => this.onToggleUvEditor(),
+      faceInspectorReveal: () => this.faceInspectorReveal(),
       editorOverlayPolicy: this.editorOverlayPolicy,
       modalToolSessionRegistry: this.modalToolSessionRegistry,
       isEditorToolBusy: () => this.toolEditorSystem?.isActiveEventReceiverBusy() === true,
@@ -1002,7 +1009,15 @@ export abstract class ViewportLayoutCore {
       this.refreshCadRulersFromSelection();
       this.updateGizmoVisibility();
     });
-    refreshViewportToolChrome(this.toolsPaletteController, () => this.getAllInteractiveViewports());
+    this.floatingToolChromeSync();
+  }
+
+  /**
+   * Attaches floating tool chrome to the detached viewports and removes it from
+   * closed ones.
+   */
+  protected floatingToolChromeSync(): void {
+    refreshViewportToolChrome(this.toolsPaletteController, () => this.detachedViewportWindow.getViewports());
   }
 
   /** Keeps translation snap aligned with the visual grid orientation. */
@@ -1230,6 +1245,9 @@ export abstract class ViewportLayoutCore {
       previewLinkServiceEnsure: () => this.gamePreviewLayoutEnsure().serviceEnsure(),
       sceneDocumentLoad: (sceneJson) =>
         this.sceneIOHandler.loadSceneFromText(sceneJson, this.worldObject, () => this.onSceneLoaded(), this.statusBar),
+      issuesValidateNow: () => this.shellPanels?.issuesValidateNow() ?? [],
+      mainWindowControlRead: () => new ShellMainWindowControl(this.shellElements),
+      viewportsInteractiveRead: () => this.getAllInteractiveViewports(),
     });
     this.setupAiCaptureDebugPanel();
   }
@@ -1298,11 +1316,10 @@ export abstract class ViewportLayoutCore {
     openLayoutMcpDialog(this.container, this.toolbar, this.statusBar, (message) => this.showStatusMessage(message));
   }
 
-  /** Toggles editor audio feedback and updates the toolbar Audio button. */
+  /** Toggles editor audio feedback and reports the new state. */
   protected onToggleAudio(): void {
     audioContextHost.unlock();
     const enabled = audioSettings.toggle();
-    this.toolbar.setButtonActiveByLabel('Audio', enabled);
     this.statusBar?.setLastAction(enabled ? 'Audio on' : 'Audio off');
   }
 
@@ -1456,11 +1473,15 @@ export abstract class ViewportLayoutCore {
   /** Sets up keyboard shortcuts using the dedicated shortcut handler. */
   protected abstract setupKeyboardShortcuts(): void;
 
-  /** Creates the floating UV editor panel and controller. */
-  protected abstract setupUvEditor(): void;
+  /** Builds and mounts the docked inspector and info panel contents. */
+  protected abstract setupShellPanels(): void;
 
-  /** Creates the floating texture browser, library wiring, and assignment. */
-  protected abstract setupTextureBrowser(): void;
+  /**
+   * Builds the main window selection, view, play, tool and grid commands.
+   *
+   * @returns Window actions.
+   */
+  protected abstract createShellWindowActions(): ShellWindowActions;
 
   /** Handles post-primitive-creation synchronization and UI refresh. */
   protected abstract onPrimitiveCreated(): void;
@@ -1492,8 +1513,8 @@ export abstract class ViewportLayoutCore {
   /** @param mode Transform mode to activate. */
   protected abstract onTransformMode(mode: TransformMode): void;
 
-  /** Toggles the UV editor panel. */
-  protected abstract onToggleUvEditor(): void;
+  /** Shows the Face tab of the inspector. */
+  protected abstract faceInspectorReveal(): void;
 
   /** @returns True when face selection mode is active. */
   protected abstract isFaceSelectionModeActive(): boolean;

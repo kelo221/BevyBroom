@@ -6,6 +6,7 @@ import { ShadingMode } from '@/types/shading_mode.js';
 import type { ViewportEditor } from '@/viewports/core/viewport_editor.js';
 import type { ControllerViewportShading } from '@/viewports/shading/controller_viewport_shading.js';
 import type { ViewportToolbar } from '@/ui/viewport_chrome/viewport_toolbar.js';
+import { VIEWPORT_FOCUS_FRAME_ATTRIBUTE } from '@/viewports/focus/viewport_focus_frame.js';
 
 /**
  * Builds a minimal viewport stand-in for activation and toolbar wiring tests.
@@ -80,6 +81,18 @@ describe('CoordinatorShadingMode', () => {
   it('still activates on pointer down for click selection of the active pane', () => {
     elements[1]!.dispatchEvent(new Event('pointerdown'));
     expect(coordinator.getActiveViewportIndex()).toBe(1);
+  });
+
+  it('frames only the pane under the pointer and moves the frame with the pointer', () => {
+    const framedIndices = (): number[] =>
+      elements.flatMap((element, index) =>
+        element.getAttribute(VIEWPORT_FOCUS_FRAME_ATTRIBUTE) === 'true' ? [index] : [],
+      );
+    expect(framedIndices()).toEqual([coordinator.getActiveViewportIndex()]);
+    elements[1]?.dispatchEvent(new Event('pointerenter'));
+    expect(framedIndices()).toEqual([1]);
+    elements[0]?.dispatchEvent(new Event('pointermove'));
+    expect(framedIndices()).toEqual([0]);
   });
 
   it('wires content wireframes and projected grid toggles on every toolbar', () => {

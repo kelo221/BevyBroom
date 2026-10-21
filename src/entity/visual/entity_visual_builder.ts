@@ -2,8 +2,10 @@ import * as THREE from 'three';
 import {
   ENTITY_PICK_MESH_USERDATA_KEY,
   ENTITY_VISUAL_PART_USERDATA_KEY,
+  ENTITY_VISUAL_PERSISTENT_USERDATA_KEY,
   entityPickMeshIs,
   entityVisualPartIs,
+  entityVisualPersistentIs,
 } from '@/entity/model/entity_owner_keys.js';
 
 /** Look of one set of guide lines drawn under an entity owner. */
@@ -77,12 +79,15 @@ export class EntityVisualBuilder {
   }
 
   /**
-   * Removes and disposes every visual part except the marker.
+   * Removes and disposes every visual part except the marker and the other
+   * persistent parts.
    *
    * @param owner Entity owner group.
    */
   static guidesRemove(owner: THREE.Object3D): void {
-    const stale = owner.children.filter((child) => entityVisualPartIs(child) && !entityPickMeshIs(child));
+    const stale = owner.children.filter(
+      (child) => entityVisualPartIs(child) && !entityPickMeshIs(child) && !entityVisualPersistentIs(child),
+    );
     for (const part of stale) {
       owner.remove(part);
       EntityVisualBuilder.lineDispose(part);
@@ -134,6 +139,16 @@ export class EntityVisualBuilder {
    */
   static partFlag(object: THREE.Object3D): void {
     object.userData[ENTITY_VISUAL_PART_USERDATA_KEY] = true;
+  }
+
+  /**
+   * Marks an object as an entity visual part that refreshes keep.
+   *
+   * @param object Visual object.
+   */
+  static partPersistentFlag(object: THREE.Object3D): void {
+    EntityVisualBuilder.partFlag(object);
+    object.userData[ENTITY_VISUAL_PERSISTENT_USERDATA_KEY] = true;
   }
 
   /**

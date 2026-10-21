@@ -1,4 +1,29 @@
 import { entityNumberClamp } from '@/entity/model/entity_number_clamp.js';
+import {
+  type LightSettingsBaking,
+  lightSettingsBakingCreateDefault,
+  lightSettingsBakingSanitize,
+} from '@/light/model/features/light_settings_baking.js';
+import {
+  type LightSettingsCookie,
+  lightSettingsCookieCreateDefault,
+  lightSettingsCookieSanitize,
+} from '@/light/model/features/light_settings_cookie.js';
+import {
+  type LightSettingsEffect,
+  lightSettingsEffectCreateDefault,
+  lightSettingsEffectSanitize,
+} from '@/light/model/features/light_settings_effect.js';
+import {
+  type LightSettingsFog,
+  lightSettingsFogCreateDefault,
+  lightSettingsFogSanitize,
+} from '@/light/model/features/light_settings_fog.js';
+import {
+  type LightSettingsShimmer,
+  lightSettingsShimmerCreateDefault,
+  lightSettingsShimmerSanitize,
+} from '@/light/model/features/light_settings_shimmer.js';
 
 /** Light shapes the editor authors. Spots shine along the owner's local −Z axis. */
 export type LightKind = 'point' | 'spot';
@@ -7,10 +32,10 @@ export type LightKind = 'point' | 'spot';
 export type LightShadowMode = 'raytraced' | 'realtime';
 
 /**
- * Authored light definition. Units follow the game renderer: meters and
- * degrees.
+ * Shape, color and range of an authored light. Units follow the game renderer:
+ * meters and degrees.
  */
-export interface LightSettings {
+export interface LightSettingsCore {
   kind: LightKind;
   /** SRGB color as a 0xRRGGBB number. */
   colorHex: number;
@@ -32,8 +57,22 @@ export interface LightSettings {
   enabled: boolean;
 }
 
+/**
+ * Authored light definition: the core fields plus the effect, cookie, fog,
+ * shimmer and baking groups, all flat on one object.
+ */
+export type LightSettings = LightSettingsCore &
+  LightSettingsEffect &
+  LightSettingsCookie &
+  LightSettingsFog &
+  LightSettingsShimmer &
+  LightSettingsBaking;
+
 /** Largest spot cone angle from the axis, in degrees. */
 export const LIGHT_MAX_CUTOFF_DEGREES = 179;
+
+/** Narrowest outer spot cone half angle the editor allows, in degrees. */
+export const LIGHT_MIN_OUTER_CUTOFF_DEGREES = 0.5;
 
 /** Smallest radius the editor allows, in meters. */
 export const LIGHT_MIN_RADIUS = 0.05;
@@ -45,6 +84,23 @@ export const LIGHT_MIN_RADIUS = 0.05;
  * @returns Fresh settings object.
  */
 export function lightSettingsCreateDefault(kind: LightKind): LightSettings {
+  return {
+    ...lightSettingsCoreCreateDefault(kind),
+    ...lightSettingsEffectCreateDefault(),
+    ...lightSettingsCookieCreateDefault(),
+    ...lightSettingsFogCreateDefault(kind === 'spot'),
+    ...lightSettingsShimmerCreateDefault(),
+    ...lightSettingsBakingCreateDefault(),
+  };
+}
+
+/**
+ * Returns the default core fields of a new light of the given kind.
+ *
+ * @param kind Point or spot.
+ * @returns Fresh core settings.
+ */
+function lightSettingsCoreCreateDefault(kind: LightKind): LightSettingsCore {
   return {
     kind,
     colorHex: kind === 'spot' ? 0xfff2dd : 0xffe2b8,
@@ -82,33 +138,47 @@ export function lightSettingsEqual(first: LightSettings, second: LightSettings):
 }
 
 /**
- * Returns settings the game renderer accepts: positive radius, non-negative
- * intensity, an open spot cone with the inner angle inside the outer one, and a
- * 24-bit color.
+ * Returns settings the game renderer accepts in every group, keeping only the
+ * fields lights have.
  *
  * @param settings Possibly invalid settings.
  * @returns Valid settings.
  */
 export function lightSettingsSanitize(settings: LightSettings): LightSettings {
-  const defaults = lightSettingsCreateDefault(settings.kind);
+  const core = lightSettingsCoreSanitize(settings);
+  return {
+    ...core,
+    ...lightSettingsEffectSanitize(settings),
+    ...lightSettingsCookieSanitize(settings),
+    ...lightSettingsFogSanitize(settings, core.kind === 'spot'),
+    ...lightSettingsShimmerSanitize(settings),
+    ...lightSettingsBakingSanitize(settings),
+  };
+}
+
+/**
+ * Returns valid core fields: positive radius, non-negative intensity, an open
+ * spot cone with the inner angle inside the outer one, and a 24-bit color.
+ *
+ * @param settings Possibly invalid core settings.
+ * @returns Valid core settings.
+ */
+function lightSettingsCoreSanitize(settings: LightSettingsCore): LightSettingsCore {
+  const defaults = lightSettingsCoreCreateDefault(settings.kind);
   const outer = entityNumberClamp(
     settings.outerCutoffDegrees,
-    0.5,
+    LIGHT_MIN_OUTER_CUTOFF_DEGREES,
     LIGHT_MAX_CUTOFF_DEGREES,
     defaults.outerCutoffDegrees,
   );
+  const innerFallback = Math.min(outer, defaults.innerCutoffDegrees);
   return {
     kind: settings.kind === 'spot' ? 'spot' : 'point',
     colorHex: Math.round(entityNumberClamp(settings.colorHex, 0, 0xffffff, defaults.colorHex)),
     intensity: entityNumberClamp(settings.intensity, 0, 1e6, defaults.intensity),
     radius: entityNumberClamp(settings.radius, LIGHT_MIN_RADIUS, 1e5, defaults.radius),
     falloff: entityNumberClamp(settings.falloff, 0, 1, defaults.falloff),
-    innerCutoffDegrees: entityNumberClamp(
-      settings.innerCutoffDegrees,
-      0,
-      outer,
-      Math.min(outer, defaults.innerCutoffDegrees),
-    ),
+    innerCutoffDegrees: entityNumberClamp(settings.innerCutoffDegrees, 0, outer, innerFallback),
     outerCutoffDegrees: outer,
     realtime: settings.realtime === true,
     shadows: settings.shadows === 'realtime' ? 'realtime' : 'raytraced',

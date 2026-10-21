@@ -35,11 +35,12 @@ export interface GizmoBoundsScreenStyleHost {
   getCurrentBounds(): DataOrientedBounds | null;
 
   /**
-   * Returns whether resize grips should be shown.
+   * Returns whether the selection may be resized, which decides whether resize
+   * grips are shown.
    *
-   * @returns True when resize handles are wanted.
+   * @returns True when resizing is allowed.
    */
-  areResizeHandlesWanted(): boolean;
+  isResizeAllowed(): boolean;
 
   /**
    * Returns the currently highlighted face.
@@ -47,13 +48,6 @@ export interface GizmoBoundsScreenStyleHost {
    * @returns Highlighted face or null.
    */
   getHighlightedFace(): BoundsFace | null;
-
-  /**
-   * Returns the current highlight mode string.
-   *
-   * @returns Highlight mode.
-   */
-  getHighlightMode(): string;
 
   /**
    * Returns the theme colors.
@@ -145,7 +139,7 @@ export class GizmoBoundsScreenStyle {
     if (!bounds) {
       return;
     }
-    const resizeWanted = this.host.areResizeHandlesWanted();
+    const resizeAllowed = this.host.isResizeAllowed();
     root.traverse((child) => {
       if (!(child instanceof THREE.Mesh)) {
         return;
@@ -156,8 +150,8 @@ export class GizmoBoundsScreenStyle {
       if (child.userData[BOUNDS_HANDLE_IS_EAR_KEY] === true) {
         return;
       }
-      child.visible = resizeWanted;
-      if (!resizeWanted) {
+      child.visible = resizeAllowed;
+      if (!resizeAllowed) {
         return;
       }
       const face = child.userData[BOUNDS_FACE_USERDATA_KEY] as BoundsFace | undefined;
@@ -184,7 +178,7 @@ export class GizmoBoundsScreenStyle {
     camera: THREE.Camera,
     viewportHeightPx: number,
   ): void {
-    const resizeWanted = this.host.areResizeHandlesWanted();
+    const resizeAllowed = this.host.isResizeAllowed();
     root.traverse((child) => {
       if (!(child instanceof THREE.Mesh)) {
         return;
@@ -206,7 +200,7 @@ export class GizmoBoundsScreenStyle {
       const sideLength = this.earSideLengthWorld(face, viewPlane);
       const layout = computeBoundsEarScreenLayout(camera, viewportHeightPx, sideLength);
       this.placeEarOnFace(child, face, orientation, layout);
-      child.visible = resizeWanted && this.isEarAlongEdgeLongEnough(layout.alongEdge, camera, viewportHeightPx);
+      child.visible = resizeAllowed && this.isEarAlongEdgeLongEnough(layout.alongEdge, camera, viewportHeightPx);
     });
     this.applyEarHighlightColors(root);
   }
@@ -271,9 +265,6 @@ export class GizmoBoundsScreenStyle {
     viewPlane: CadViewPlane,
     hiddenAxes: ReadonlyArray<'x' | 'y' | 'z'>,
   ): void {
-    if (child.userData['isBoundsFacePick'] === true) {
-      return;
-    }
     const axis = this.resolveObjectAxis(child);
     if (!axis) {
       return;
@@ -283,7 +274,7 @@ export class GizmoBoundsScreenStyle {
     if (!isHandle && !isEdgeHighlight) {
       return;
     }
-    if (isHandle && !this.host.areResizeHandlesWanted()) {
+    if (isHandle && !this.host.isResizeAllowed()) {
       child.visible = false;
       return;
     }
@@ -322,7 +313,7 @@ export class GizmoBoundsScreenStyle {
       offset: earWorldSize * 0.28,
     };
     this.placeEarOnFace(mesh, face, orientation, fallbackLayout);
-    mesh.visible = this.host.areResizeHandlesWanted();
+    mesh.visible = this.host.isResizeAllowed();
   }
 
   /**
@@ -373,7 +364,6 @@ export class GizmoBoundsScreenStyle {
    */
   applyEarHighlightColors(root: THREE.Object3D): void {
     const theme = this.host.getTheme();
-    const highlightMode = this.host.getHighlightMode();
     const highlightedFace = this.host.getHighlightedFace();
     root.traverse((child) => {
       if (!(child instanceof THREE.Mesh)) {
@@ -388,7 +378,7 @@ export class GizmoBoundsScreenStyle {
       }
       const face = child.userData[BOUNDS_FACE_USERDATA_KEY] as BoundsFace | undefined;
       const base = (child.userData[BOUNDS_EAR_BASE_COLOR_KEY] as number | undefined) ?? theme.boundsHandleColor;
-      const isResizeHover = highlightMode === 'resize' && highlightedFace !== null && face === highlightedFace;
+      const isResizeHover = highlightedFace !== null && face === highlightedFace;
       material.color.setHex(isResizeHover ? theme.boundsHandleHoverColor : base);
       material.opacity = isResizeHover ? 0.95 : 0.9;
       material.needsUpdate = true;

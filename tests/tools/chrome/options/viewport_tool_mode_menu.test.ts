@@ -15,8 +15,10 @@ describe('buildViewportToolModeMenuEntries', () => {
 
   it('marks the active mode with a checkmark', () => {
     const entries = buildViewportToolModeMenuEntries(EditorInteractionMode.EDIT_MODE, () => undefined);
-    const actions = entries.filter(isMenuAction);
-    expect(actions[0]!.label.startsWith('✓')).toBe(false);
-    expect(actions[1]!.label.startsWith('✓')).toBe(true);
+    const checkedLabels = entries
+      .filter(isMenuAction)
+      .filter((entry) => entry.isChecked?.() === true)
+      .map((entry) => entry.label);
+    expect(checkedLabels).toEqual(['Edit Mode']);
   });
 });

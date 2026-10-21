@@ -5,7 +5,6 @@ import { BoundsFace } from '@/types/bounds_face.js';
 import {
   applyBoundsFaceEdgeHighlight,
   BOUNDS_FACE_EDGE_HIGHLIGHT_KEY,
-  BOUNDS_MOVE_HIGHLIGHT_COLOR,
   createUnitFaceEdgeHighlightGeometry,
 } from '@/transform/bounds/bounds_face_highlight.js';
 
@@ -18,41 +17,37 @@ describe('bounds face edge highlight', () => {
     geometry.dispose();
   });
 
-  it('shows only the highlighted face edge outline in orange for resize', () => {
+  it('shows only the highlighted face edge outline in the selection color', () => {
     const root = new THREE.Group();
     const a = createEdgeHighlight(BoundsFace.POS_X);
     const b = createEdgeHighlight(BoundsFace.POS_Y);
     root.add(a, b);
 
-    applyBoundsFaceEdgeHighlight(root, BoundsFace.POS_X, 'resize');
+    applyBoundsFaceEdgeHighlight(root, BoundsFace.POS_X);
 
     expect(a.visible).toBe(true);
     expect(b.visible).toBe(false);
     expect((a.material as THREE.LineBasicMaterial).color.getHex()).toBe(Theme.selectionColor);
   });
 
-  it('uses white for move mode when allowed', () => {
+  it('colors the outline with the selection color of the given theme', () => {
     const root = new THREE.Group();
     const edge = createEdgeHighlight(BoundsFace.POS_Z);
     root.add(edge);
-    applyBoundsFaceEdgeHighlight(root, BoundsFace.POS_Z, 'move', Theme, true);
-    expect(edge.visible).toBe(true);
-    expect((edge.material as THREE.LineBasicMaterial).color.getHex()).toBe(BOUNDS_MOVE_HIGHLIGHT_COLOR);
-  });
+    const customSelectionColor = (Theme.selectionColor ^ 0x00ff00) & 0xffffff;
+    const customTheme = { ...Theme, selectionColor: customSelectionColor } as unknown as typeof Theme;
 
-  it('suppresses move highlights when allowMoveHighlight is false (2D)', () => {
-    const root = new THREE.Group();
-    const edge = createEdgeHighlight(BoundsFace.NEG_X);
-    root.add(edge);
-    applyBoundsFaceEdgeHighlight(root, BoundsFace.NEG_X, 'move', Theme, false);
-    expect(edge.visible).toBe(false);
+    applyBoundsFaceEdgeHighlight(root, BoundsFace.POS_Z, customTheme);
+
+    expect(edge.visible).toBe(true);
+    expect((edge.material as THREE.LineBasicMaterial).color.getHex()).toBe(customSelectionColor);
   });
 
   it('hides all edge outlines when highlight is cleared', () => {
     const root = new THREE.Group();
     const edge = createEdgeHighlight(BoundsFace.NEG_Z);
     root.add(edge);
-    applyBoundsFaceEdgeHighlight(root, BoundsFace.NEG_Z, 'resize');
+    applyBoundsFaceEdgeHighlight(root, BoundsFace.NEG_Z);
     applyBoundsFaceEdgeHighlight(root, null);
     expect(edge.visible).toBe(false);
   });

@@ -3,16 +3,22 @@ import { Theme } from '@/theme.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { HandlerHierarchyReparent } from '@/outliner/hierarchy/handler_hierarchy_reparent.js';
 import { Toolbar } from '@/ui/toolbar/toolbar.js';
-import { ToolbarIcons } from '@/ui/toolbar/toolbar_icons.js';
 import { PanelOutliner } from '@/outliner/ui/panel_outliner.js';
 import { PanelProperties } from '@/ui/properties/panel_properties.js';
 import { StatusBar } from '@/ui/status/status_bar.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
 import { TextureLockSettings } from '@/texture/lock/texture_lock_settings.js';
-import { createAddMenuEntries } from '@/layout/setup/add_menu_entries.js';
 import type { OutlinerDropPlacement } from '@/outliner/ui/outliner_drop_placement.js';
-import type { ShellFileMenuShortcutAction } from '@/layout/shell/shell_file_menu_shortcut_action.js';
+import type { ViewportToolChromeDocking } from '@/tools/chrome/host/viewport_tool_chrome_docking.js';
+import { ShellFrame } from '@/layout/shell/frame/shell_frame.js';
+import { ShellInspector } from '@/layout/shell/inspector/shell_inspector.js';
+import { ShellInfoPanel } from '@/layout/shell/info_panel/shell_info_panel.js';
+import { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
+import { ShellDockCommands } from '@/layout/shell/actions/shell_dock_commands.js';
+import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
+import { shellMenuBarPopulate, shellMenusBuiltinCreate } from '@/layout/shell/menubar/shell_menu_bar.js';
+import { ShellToolBarBuilder } from '@/layout/shell/toolbar/shell_tool_bar_builder.js';
 
 /** Outliner action callbacks accepted when building the shell. */
 export interface EditorShellOutlinerActions {
@@ -53,8 +59,6 @@ export interface EditorToolbarActions {
   onAddEntityPlaced: (factory: () => THREE.Group, objectRadius: number) => void;
   onUndo: () => void;
   onRedo: () => void;
-  onToggleUvEditor: () => void;
-  onToggleTextureBrowser: () => void;
   onToggleSolidModelPanel: () => void;
   onToggleSettingsDialog: () => void;
   onOpenDocumentation: () => void;
@@ -91,8 +95,6 @@ export interface EditorToolbarActions {
   onExportGlb: () => void;
   onExportObj: () => void;
   onExportFbx: () => void;
-  /** Resolves a live keyboard shortcut label for File menu items. */
-  getShortcutLabel: (action: ShellFileMenuShortcutAction) => string;
   onSetTransformSpaceGlobal: () => void;
   onSetTransformSpaceLocal: () => void;
   isUserSnapEnabled: () => boolean;
@@ -105,123 +107,145 @@ export interface EditorToolbarActions {
 
 /** Result of building the main editor shell DOM structure. */
 export interface EditorShellElements {
+  /** Main window root column; floating panels and dialogs mount here. */
   toolbarContainer: HTMLElement;
-  mainLayout: HTMLElement;
   /** Relative host element for the viewport workspace. */
   viewportArea: HTMLElement;
   /** Absolute layer that holds pane chrome containers. */
   viewportPaneGrid: HTMLElement;
   viewports: HTMLElement[];
+  /** Main icon toolbar. */
   toolbar: Toolbar;
+  /** Slim menu bar of text menus. */
+  menuBar: Toolbar;
   outlinerPanel: PanelOutliner;
   propertiesPanel: PanelProperties;
   statusBar: StatusBar;
+  /** Main window skeleton with the docks. */
+  frame: ShellFrame;
+  /** Right-hand Map / Entity / Face inspector. */
+  inspector: ShellInspector;
+  /** Bottom Console / Issues panel. */
+  infoPanel: ShellInfoPanel;
+  /** Commands that show, hide and switch the docks. */
+  dockCommands: ShellDockCommands;
+  /** Parents of the docked tool buttons and tool options. */
+  toolChromeDocking: ViewportToolChromeDocking;
+}
+
+/** Scene services the shell panels bind to. */
+export interface EditorShellServices {
+  selectionManager: ManagerSelection;
+  worldObject: THREE.Group;
+  commandStack: CommandStack;
+  gridSnap: GridSnap;
+  textureLock: TextureLockSettings;
+  hierarchyReparentHandler: HandlerHierarchyReparent;
+}
+
+/** Action bundles the shell menus, toolbar and outliner run. */
+export interface EditorShellActionBundles {
+  outlinerActions: EditorShellOutlinerActions;
+  toolbarActions: EditorToolbarActions;
+  windowActions: ShellWindowActions;
+}
+
+/** Docks and bars created before the panels are mounted. */
+interface EditorShellSkeleton {
+  frame: ShellFrame;
+  inspector: ShellInspector;
+  infoPanel: ShellInfoPanel;
+  dockCommands: ShellDockCommands;
 }
 
 /**
- * Builds the editor DOM shell: toolbar, viewport grid, outliner, properties,
- * status bar.
+ * Builds the main window in the map editor arrangement: a menu bar, an icon
+ * toolbar, the map views with a view bar above and the info panel below, the
+ * inspector on the right, and the status bar.
  */
 export class BuilderEditorShell {
   /**
    * Builds and appends the full editor shell under the given container.
    *
    * @param editorContainer Root DOM element that receives the shell.
-   * @param selectionManager Selection manager for the outliner and properties
-   *   panels.
-   * @param worldObject Root hierarchy group for the outliner.
-   * @param commandStack Undo/redo stack for the properties panel and status
-   *   bar.
-   * @param gridSnap Grid snap for initial status bar values.
-   * @param textureLock Texture lock settings for the properties panel.
-   * @param hierarchyReparentHandler Handler for outliner reparent drops.
-   * @param outlinerActions Callbacks for outliner context and hierarchy
-   *   actions.
-   * @param toolbarActions Callbacks for toolbar menus and buttons.
+   * @param services Scene services the panels bind to.
+   * @param bundles Outliner, toolbar and window actions.
    * @returns Created shell elements and UI components.
    */
   build(
     editorContainer: HTMLElement,
-    selectionManager: ManagerSelection,
-    worldObject: THREE.Group,
-    commandStack: CommandStack,
-    gridSnap: GridSnap,
-    textureLock: TextureLockSettings,
-    hierarchyReparentHandler: HandlerHierarchyReparent,
-    outlinerActions: EditorShellOutlinerActions,
-    toolbarActions: EditorToolbarActions,
+    services: EditorShellServices,
+    bundles: EditorShellActionBundles,
   ): EditorShellElements {
-    const toolbarContainer = this.createToolbarContainer(editorContainer);
-    const toolbar = new Toolbar(toolbarContainer);
-    this.createToolbarButtons(toolbar, toolbarActions);
-    const mainLayout = this.createMainLayout(toolbarContainer);
-    const viewportShell = this.createViewportShell(mainLayout);
-    const viewports = this.createViewportContainers(viewportShell.paneGrid);
-    const outlinerPanel = this.createOutliner(
-      mainLayout,
-      selectionManager,
-      worldObject,
-      hierarchyReparentHandler,
-      outlinerActions,
-    );
-    const propertiesPanel = this.createPropertiesPanel(mainLayout, selectionManager, commandStack, textureLock);
-    const statusBar = this.createStatusBar(toolbarContainer, gridSnap, commandStack);
+    const skeleton = this.skeletonCreate(editorContainer);
+    const menuBar = this.menuBarCreate(skeleton, bundles);
+    const toolbar = new Toolbar(skeleton.frame.toolbarHostRead());
+    const railParent = new ShellToolBarBuilder().build(toolbar, bundles.toolbarActions, bundles.windowActions);
+    const viewportShell = this.createViewportShell(skeleton.frame.viewColumnRead());
     return {
-      toolbarContainer,
-      mainLayout,
+      toolbarContainer: skeleton.frame.getElement(),
       viewportArea: viewportShell.host,
       viewportPaneGrid: viewportShell.paneGrid,
-      viewports,
+      viewports: this.createViewportContainers(viewportShell.paneGrid),
       toolbar,
-      outlinerPanel,
-      propertiesPanel,
-      statusBar,
+      menuBar,
+      outlinerPanel: this.createOutliner(
+        skeleton.inspector.slotRead('map_outliner'),
+        services,
+        bundles.outlinerActions,
+      ),
+      propertiesPanel: this.createPropertiesPanel(skeleton.inspector.slotRead('entity_properties'), services),
+      statusBar: this.createStatusBar(skeleton.frame.getElement(), services.gridSnap, services.commandStack),
+      ...skeleton,
+      toolChromeDocking: { railParent, optionsParent: skeleton.frame.viewBarToolSlotRead() },
     };
   }
 
   /**
-   * Creates and styles the root toolbar container element.
+   * Creates the main window skeleton and mounts the docks into it.
    *
-   * @param editorContainer Root editor container.
-   * @returns The toolbar container element.
+   * @param editorContainer Root DOM element that receives the shell.
+   * @returns Frame, docks and dock commands.
    */
-  private createToolbarContainer(editorContainer: HTMLElement): HTMLElement {
-    const toolbarContainer = document.createElement('div');
-    toolbarContainer.style.display = 'flex';
-    toolbarContainer.style.flexDirection = 'column';
-    toolbarContainer.style.width = '100%';
-    toolbarContainer.style.height = '100%';
-    editorContainer.appendChild(toolbarContainer);
-    return toolbarContainer;
+  private skeletonCreate(editorContainer: HTMLElement): EditorShellSkeleton {
+    const stateStore = new ShellStateStore();
+    const frame = new ShellFrame(editorContainer, stateStore);
+    const inspector = new ShellInspector(stateStore);
+    const infoPanel = new ShellInfoPanel(stateStore);
+    frame.inspectorHostRead().appendChild(inspector.getElement());
+    frame.infoPanelHostRead().appendChild(infoPanel.getElement());
+    return { frame, inspector, infoPanel, dockCommands: new ShellDockCommands(frame, inspector, infoPanel) };
   }
 
   /**
-   * Creates and styles the main horizontal flex layout element.
+   * Creates the menu bar and fills it with the main window menus.
    *
-   * @param toolbarContainer Parent flex column that receives the layout.
-   * @returns The main layout element.
+   * @param skeleton Frame and docks.
+   * @param bundles Toolbar and window actions the menus run.
+   * @returns Menu bar.
    */
-  private createMainLayout(toolbarContainer: HTMLElement): HTMLElement {
-    const mainLayout = document.createElement('div');
-    mainLayout.style.display = 'flex';
-    mainLayout.style.flex = '1';
-    mainLayout.style.overflow = 'hidden';
-    toolbarContainer.appendChild(mainLayout);
-    return mainLayout;
+  private menuBarCreate(skeleton: EditorShellSkeleton, bundles: EditorShellActionBundles): Toolbar {
+    const menuBar = new Toolbar(skeleton.frame.menuBarHostRead(), 'menubar');
+    shellMenuBarPopulate(menuBar, shellMenusBuiltinCreate(), {
+      toolbarActions: bundles.toolbarActions,
+      windowActions: bundles.windowActions,
+      dockCommands: skeleton.dockCommands,
+    });
+    return menuBar;
   }
 
   /**
    * Creates the viewport workspace host and appends the absolute pane grid
-   * overlay under the main layout.
+   * overlay under the view column.
    *
-   * @param mainLayout Parent layout that receives the host.
+   * @param viewColumn Column below the view bar that receives the host.
    * @returns Host element and nested pane grid layer.
    */
-  private createViewportShell(mainLayout: HTMLElement): { host: HTMLElement; paneGrid: HTMLElement } {
+  private createViewportShell(viewColumn: HTMLElement): { host: HTMLElement; paneGrid: HTMLElement } {
     const host = this.createViewportHost();
     const paneGrid = this.createViewportPaneGrid();
     host.appendChild(paneGrid);
-    mainLayout.appendChild(host);
+    viewColumn.appendChild(host);
     return { host, paneGrid };
   }
 
@@ -292,23 +316,37 @@ export class BuilderEditorShell {
   }
 
   /**
-   * Creates the outliner panel and registers context callbacks.
+   * Creates the outliner panel filling its inspector slot and registers context
+   * callbacks.
    *
-   * @param mainLayout Parent layout that receives the panel.
-   * @param selectionManager Selection manager for the panel.
-   * @param worldObject Root hierarchy group for the panel.
-   * @param hierarchyReparentHandler Reparent drop handler to wire.
+   * @param slot Inspector slot that receives the panel.
+   * @param services Scene services the panel binds to.
    * @param outlinerActions Outliner action callbacks to register.
    * @returns Configured PanelOutliner.
    */
   private createOutliner(
-    mainLayout: HTMLElement,
-    selectionManager: ManagerSelection,
-    worldObject: THREE.Group,
-    hierarchyReparentHandler: HandlerHierarchyReparent,
+    slot: HTMLElement,
+    services: EditorShellServices,
     outlinerActions: EditorShellOutlinerActions,
   ): PanelOutliner {
-    const outlinerPanel = new PanelOutliner(mainLayout, selectionManager, worldObject);
+    const outlinerPanel = new PanelOutliner(slot, services.selectionManager, services.worldObject);
+    this.dockedPanelFill(outlinerPanel.getElement());
+    this.outlinerCallbacksBind(outlinerPanel, services.hierarchyReparentHandler, outlinerActions);
+    return outlinerPanel;
+  }
+
+  /**
+   * Registers outliner context, hierarchy and reparent callbacks.
+   *
+   * @param outlinerPanel Outliner panel.
+   * @param hierarchyReparentHandler Reparent drop handler to wire.
+   * @param outlinerActions Outliner action callbacks to register.
+   */
+  private outlinerCallbacksBind(
+    outlinerPanel: PanelOutliner,
+    hierarchyReparentHandler: HandlerHierarchyReparent,
+    outlinerActions: EditorShellOutlinerActions,
+  ): void {
     outlinerPanel.setContextCallbacks(
       (mesh) => outlinerActions.onDuplicateFromOutliner(mesh),
       (mesh) => outlinerActions.onDeleteFromOutliner(mesh),
@@ -324,28 +362,37 @@ export class BuilderEditorShell {
     outlinerPanel.setReparentCallback((dragged, target, placement) =>
       outlinerActions.reparentFromDrop(dragged, target, placement),
     );
-    return outlinerPanel;
   }
 
   /**
-   * Creates the properties panel and wires command stack and texture lock.
+   * Creates the properties panel filling its inspector slot and wires command
+   * stack and texture lock.
    *
-   * @param mainLayout Parent layout that receives the panel.
-   * @param selectionManager Selection manager for the panel.
-   * @param commandStack Undo stack for property edits.
-   * @param textureLock Texture lock settings for the panel.
+   * @param slot Inspector slot that receives the panel.
+   * @param services Scene services the panel binds to.
    * @returns Configured PanelProperties.
    */
-  private createPropertiesPanel(
-    mainLayout: HTMLElement,
-    selectionManager: ManagerSelection,
-    commandStack: CommandStack,
-    textureLock: TextureLockSettings,
-  ): PanelProperties {
-    const propertiesPanel = new PanelProperties(mainLayout, Theme, selectionManager);
-    propertiesPanel.setCommandStack(commandStack);
-    propertiesPanel.setTextureLockSettings(textureLock);
+  private createPropertiesPanel(slot: HTMLElement, services: EditorShellServices): PanelProperties {
+    const propertiesPanel = new PanelProperties(slot, Theme, services.selectionManager);
+    this.dockedPanelFill(propertiesPanel.getContainer());
+    propertiesPanel.getContainer().style.overflowY = 'auto';
+    propertiesPanel.setCommandStack(services.commandStack);
+    propertiesPanel.setTextureLockSettings(services.textureLock);
     return propertiesPanel;
+  }
+
+  /**
+   * Makes a side panel fill its dock slot instead of keeping a fixed column
+   * width.
+   *
+   * @param panelRoot Root element of the panel.
+   */
+  private dockedPanelFill(panelRoot: HTMLElement): void {
+    panelRoot.style.width = 'auto';
+    panelRoot.style.minWidth = '0';
+    panelRoot.style.flex = '1 1 auto';
+    panelRoot.style.minHeight = '0';
+    panelRoot.style.borderLeft = 'none';
   }
 
   /**
@@ -366,279 +413,5 @@ export class BuilderEditorShell {
       statusBar.setUndoRedoCounts(undoCount, redoCount);
     });
     return statusBar;
-  }
-
-  /**
-   * Populates the toolbar with menus, history, snap, and panel toggle controls.
-   *
-   * @param toolbar Toolbar instance to populate.
-   * @param actions Callbacks for each toolbar control.
-   */
-  private createToolbarButtons(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    this.addMenuControls(toolbar, actions);
-    this.addHistoryControls(toolbar, actions);
-    this.addSnapControls(toolbar, actions);
-    this.addPanelToggleControls(toolbar, actions);
-  }
-
-  /**
-   * Adds primary menu dropdowns (File, Edit, Add, CSG, Align).
-   *
-   * @param toolbar Toolbar instance to populate.
-   * @param actions Callbacks for each toolbar control.
-   */
-  private addMenuControls(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    this.addFileMenu(toolbar, actions);
-    this.addEditMenu(toolbar, actions);
-    this.addAddMenu(toolbar, actions);
-    this.addCsgMenu(toolbar, actions);
-    this.addAlignMenu(toolbar, actions);
-    this.addGameMenu(toolbar, actions);
-  }
-
-  /**
-   * Adds the Game menu that links the editor to the running game preview.
-   *
-   * @param toolbar Toolbar instance to populate.
-   * @param actions Callbacks for each toolbar control.
-   */
-  private addGameMenu(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addDropdown('Game', [{ label: 'Game Preview…', onClick: () => actions.onToggleGamePreviewPanel() }]);
-  }
-
-  /**
-   * Adds the File menu with New, Save/Load, Import, and Export submenus.
-   *
-   * @param toolbar Toolbar instance to populate.
-   * @param actions Callbacks for each toolbar control.
-   */
-  private addFileMenu(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addDropdown('File', this.buildFileMenuEntries(actions));
-  }
-
-  /**
-   * Builds declarative File menu entries.
-   *
-   * @param actions Toolbar action callbacks.
-   * @returns File menu entries.
-   */
-  private buildFileMenuEntries(actions: EditorToolbarActions) {
-    return [
-      { label: 'New', onClick: () => actions.onNewScene() },
-      { kind: 'separator' as const },
-      {
-        label: 'Save',
-        onClick: () => actions.onSaveScene(),
-        shortcut: () => actions.getShortcutLabel('save'),
-      },
-      {
-        label: 'Save As…',
-        onClick: () => actions.onSaveSceneAs(),
-        shortcut: () => actions.getShortcutLabel('save_as'),
-      },
-      {
-        label: 'Load',
-        onClick: () => actions.onLoadScene(),
-        shortcut: () => actions.getShortcutLabel('load'),
-      },
-      { kind: 'separator' as const },
-      this.buildFileImportSubmenu(actions),
-      this.buildFileExportSubmenu(actions),
-    ];
-  }
-
-  /**
-   * Builds the File → Import submenu entry.
-   *
-   * @param actions Toolbar action callbacks.
-   * @returns Submenu entry.
-   */
-  private buildFileImportSubmenu(actions: EditorToolbarActions) {
-    return {
-      kind: 'submenu' as const,
-      label: 'Import',
-      children: [
-        {
-          label: 'Valve Map Format 2006 (.vmf)…',
-          onClick: () => actions.onImportVmf(),
-        },
-        {
-          label: 'Wavefront OBJ (.obj)…',
-          onClick: () => actions.onImportObj(),
-        },
-      ],
-    };
-  }
-
-  /**
-   * Builds the File → Export submenu entry.
-   *
-   * @param actions Toolbar action callbacks.
-   * @returns Submenu entry.
-   */
-  private buildFileExportSubmenu(actions: EditorToolbarActions) {
-    return {
-      kind: 'submenu' as const,
-      label: 'Export',
-      children: [
-        {
-          label: 'Export GLTF (.glb)…',
-          onClick: () => actions.onExportGlb(),
-          shortcut: () => actions.getShortcutLabel('export_glb'),
-        },
-        {
-          label: 'Wavefront OBJ/MTL (.obj)…',
-          onClick: () => actions.onExportObj(),
-        },
-        {
-          label: 'Autodesk FBX (.fbx)…',
-          onClick: () => actions.onExportFbx(),
-        },
-      ],
-    };
-  }
-
-  /**
-   * Adds the Edit menu (delete, duplicate, group, ungroup).
-   *
-   * @param toolbar Toolbar instance to populate.
-   * @param actions Callbacks for each toolbar control.
-   */
-  private addEditMenu(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addDropdown('Edit', [
-      { label: 'Delete', onClick: () => actions.onDeleteSelected() },
-      { label: 'Duplicate', onClick: () => actions.onDuplicateSelected() },
-      { label: 'Group', onClick: () => actions.onGroupSelected() },
-      { label: 'Ungroup', onClick: () => actions.onUngroupSelected() },
-    ]);
-  }
-
-  /**
-   * Adds the Add menu for primitives and solid models.
-   *
-   * @param toolbar Toolbar instance to populate.
-   * @param actions Callbacks for each toolbar control.
-   */
-  private addAddMenu(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addDropdown('Add', createAddMenuEntries(actions));
-  }
-
-  /**
-   * Adds the CSG boolean menu with enable gates.
-   *
-   * @param toolbar Toolbar instance to populate.
-   * @param actions Callbacks for each toolbar control.
-   */
-  private addCsgMenu(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addDropdown('CSG', [
-      {
-        label: 'Union',
-        onClick: () => actions.onCsgUnion(),
-        isEnabled: () => actions.canRunCsgBoolean(),
-      },
-      {
-        label: 'Subtract',
-        onClick: () => actions.onCsgSubtract(),
-        isEnabled: () => actions.canRunCsgBoolean(),
-      },
-      {
-        label: 'Intersect',
-        onClick: () => actions.onCsgIntersect(),
-        isEnabled: () => actions.canRunCsgBoolean(),
-      },
-    ]);
-  }
-
-  /**
-   * Adds the Align menu for selection alignment actions.
-   *
-   * @param toolbar Toolbar instance to populate.
-   * @param actions Callbacks for each toolbar control.
-   */
-  private addAlignMenu(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addDropdown('Align', [
-      { label: 'Origin', onClick: () => actions.onAlignToOrigin() },
-      { label: 'Grid Center', onClick: () => actions.onAlignToGridCenter() },
-      { label: 'To Object', onClick: () => actions.onAlignToObject() },
-    ]);
-  }
-
-  /**
-   * Adds undo/redo icon controls.
-   *
-   * @param toolbar Toolbar instance to populate.
-   * @param actions Callbacks for each toolbar control.
-   */
-  private addHistoryControls(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addSeparator();
-    toolbar.addIconButton('Undo', ToolbarIcons.undo(), () => actions.onUndo());
-    toolbar.addIconButton('Redo', ToolbarIcons.redo(), () => actions.onRedo());
-  }
-
-  /**
-   * Adds snap interval, transform-space, and UV lock controls.
-   *
-   * @param toolbar Toolbar instance to populate.
-   * @param actions Callbacks for each toolbar control.
-   */
-  private addSnapControls(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addSeparator();
-    toolbar.addIconButton('Snap', ToolbarIcons.snap(), () => actions.onToggleSnap());
-    toolbar.setButtonActiveByLabel('Snap', actions.isUserSnapEnabled());
-    toolbar.addButton('−', () => actions.onSnapIntervalBackward()).title = 'Decrease snap interval';
-    toolbar.addButton('+', () => actions.onSnapIntervalForward()).title = 'Increase snap interval';
-    toolbar.addSeparator();
-    toolbar.addButton('Global', () => actions.onSetTransformSpaceGlobal()).title = 'Gizmo axes: world (global)';
-    toolbar.addButton('Local', () => actions.onSetTransformSpaceLocal()).title = 'Gizmo axes: object local';
-    this.applyTransformSpaceButtonState(toolbar, actions.isTransformSpaceLocal());
-    toolbar.addSeparator();
-    toolbar.addButton('Pos Lock', () => actions.onTogglePositionLock()).title =
-      'Position lock: UVs stick when moving/rotating (off = world slide)';
-    toolbar.setButtonActiveByLabel('Pos Lock', actions.isPositionLockEnabled());
-    toolbar.addButton('Stretch Lock', () => actions.onToggleStretchLock()).title =
-      'Stretch lock: UVs stretch when scaling (off = tile density)';
-    toolbar.setButtonActiveByLabel('Stretch Lock', actions.isStretchLockEnabled());
-  }
-
-  /**
-   * Highlights Global or Local according to the current transform space.
-   *
-   * @param toolbar Toolbar with Global/Local buttons.
-   * @param isLocal Whether local space is active.
-   */
-  private applyTransformSpaceButtonState(toolbar: Toolbar, isLocal: boolean): void {
-    toolbar.setButtonActiveByLabel('Global', !isLocal);
-    toolbar.setButtonActiveByLabel('Local', isLocal);
-  }
-
-  /**
-   * Adds floating panel toggle icons (UV, textures), About, Audio next to AI
-   * Captures, then a trailing spacer and MCP on the far right.
-   *
-   * @param toolbar Toolbar instance to populate.
-   * @param actions Callbacks for each toolbar control.
-   */
-  private addPanelToggleControls(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addSeparator();
-    toolbar.addIconButton('UV Editor', ToolbarIcons.uvEditor(), () => actions.onToggleUvEditor());
-    toolbar.addIconButton('Texture Browser', ToolbarIcons.textureBrowser(), () => actions.onToggleTextureBrowser());
-    toolbar.addIconButton('Solid Model', ToolbarIcons.solidModel(), () => actions.onToggleSolidModelPanel());
-    toolbar.addIconButton('Settings', ToolbarIcons.settings(), () => actions.onToggleSettingsDialog());
-    toolbar.addSeparator();
-    toolbar.addIconButton('Documentation', ToolbarIcons.documentation(), () => actions.onOpenDocumentation());
-    toolbar.addIconButton('About', ToolbarIcons.about(), () => actions.onOpenAboutDialog());
-    toolbar.addIconButton('Detached Viewport', ToolbarIcons.detachedViewport(), () => actions.onOpenDetachedViewport());
-    toolbar.addIconButton('AI Captures', ToolbarIcons.aiCaptureDebug(), () =>
-      actions.onToggleAiCaptureDebugPanel(),
-    ).title = 'AI capture_view images (debug)';
-    toolbar.addSeparator();
-    const audioButton = toolbar.addButton('Audio', () => actions.onToggleAudio());
-    audioButton.title = 'Editor sound feedback';
-    audioButton.setAttribute('aria-label', 'Audio');
-    toolbar.setButtonActiveByLabel('Audio', actions.isAudioEnabled());
-    toolbar.addTrailingSpacer();
-    toolbar.addIconButton('MCP', ToolbarIcons.mcp(), () => actions.onOpenMcpDialog()).title =
-      'MCP server (orange when running)';
-    toolbar.setButtonActiveByLabel('MCP', false);
   }
 }

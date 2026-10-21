@@ -238,28 +238,6 @@ export class ToolbarIcons {
   }
 
   /**
-   * UV editor grid icon.
-   *
-   * @returns SVG markup string.
-   */
-  static uvEditor(): string {
-    return this.wrapSvg(
-      '<rect x="4" y="4" width="16" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path stroke="currentColor" stroke-width="1.3" d="M12 4v16M4 12h16"/><path fill="currentColor" opacity="0.35" d="M12 12h8v8h-8z"/>',
-    );
-  }
-
-  /**
-   * Texture browser image icon.
-   *
-   * @returns SVG markup string.
-   */
-  static textureBrowser(): string {
-    return this.wrapSvg(
-      '<rect x="4" y="5" width="16" height="14" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="10" r="1.5" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="1.5" d="M5 16l4-4 3 3 3-4 4 5"/>',
-    );
-  }
-
-  /**
    * Snap-to-grid icon (grid with a snap target at the intersection).
    *
    * @returns SVG markup string.
@@ -267,72 +245,6 @@ export class ToolbarIcons {
   static snap(): string {
     return this.wrapSvg(
       '<path fill="none" stroke="currentColor" stroke-width="1.5" d="M5 8h14M5 12h14M5 16h14M8 5v14M12 5v14M16 5v14"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/>',
-    );
-  }
-
-  /**
-   * Cube primitive icon for the main toolbar.
-   *
-   * @returns SVG markup string.
-   */
-  static primitiveCube(): string {
-    return this.wrapSvg(
-      '<path fill="none" stroke="currentColor" stroke-width="1.5" d="M4 8 12 3.5 20 8v8L12 20.5 4 16V8z"/><path fill="none" stroke="currentColor" stroke-width="1.5" d="M12 12v8.5M4 8l8 4 8-4"/>',
-    );
-  }
-
-  /**
-   * Sphere primitive icon for the main toolbar.
-   *
-   * @returns SVG markup string.
-   */
-  static primitiveSphere(): string {
-    return this.wrapSvg(
-      '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="3.5" ry="8" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="none" stroke="currentColor" stroke-width="1.4" d="M4.5 12h15"/>',
-    );
-  }
-
-  /**
-   * Cylinder primitive icon for the main toolbar.
-   *
-   * @returns SVG markup string.
-   */
-  static primitiveCylinder(): string {
-    return this.wrapSvg(
-      '<ellipse cx="12" cy="6.5" rx="6.5" ry="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path fill="none" stroke="currentColor" stroke-width="1.5" d="M5.5 6.5v11c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-11"/><ellipse cx="12" cy="17.5" rx="6.5" ry="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/>',
-    );
-  }
-
-  /**
-   * Plane primitive icon for the main toolbar.
-   *
-   * @returns SVG markup string.
-   */
-  static primitivePlane(): string {
-    return this.wrapSvg(
-      '<rect x="5" y="5" width="14" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><path fill="currentColor" opacity="0.3" d="M5 5h14v14H5z"/>',
-    );
-  }
-
-  /**
-   * Terrain primitive icon for the main toolbar.
-   *
-   * @returns SVG markup string.
-   */
-  static primitiveTerrain(): string {
-    return this.wrapSvg(
-      '<path fill="none" stroke="currentColor" stroke-width="1.5" d="M3 17 8 10l4 4 3-5 6 8H3z"/><path fill="currentColor" opacity="0.35" d="M3 17 8 10l4 4 3-5 6 8H3z"/>',
-    );
-  }
-
-  /**
-   * Solid model (brush CSG) icon for the main toolbar.
-   *
-   * @returns SVG markup string.
-   */
-  static solidModel(): string {
-    return this.wrapSvg(
-      '<path fill="none" stroke="currentColor" stroke-width="1.5" d="M5 8.5 12 4.5l7 4v8l-7 4-7-4v-8z"/><path fill="none" stroke="currentColor" stroke-width="1.5" d="M8 10h5v5H8z"/><path fill="currentColor" opacity="0.35" d="M10 7h7v7h-7z"/>',
     );
   }
 
@@ -348,39 +260,6 @@ export class ToolbarIcons {
   }
 
   /**
-   * About / information circle icon for the main toolbar.
-   *
-   * @returns SVG markup string.
-   */
-  static about(): string {
-    return this.wrapSvg(
-      '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5"/><path fill="currentColor" d="M11 10h2v7h-2zm0-3h2v2h-2z"/>',
-    );
-  }
-
-  /**
-   * Detached / external window icon for multi-monitor viewport testing.
-   *
-   * @returns SVG markup string.
-   */
-  static detachedViewport(): string {
-    return this.wrapSvg(
-      '<rect x="3" y="6" width="12" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path fill="none" stroke="currentColor" stroke-width="1.5" d="M9 3h9a1.5 1.5 0 0 1 1.5 1.5V13M15 3v4h4"/>',
-    );
-  }
-
-  /**
-   * Image stack icon for the AI capture debug floating window.
-   *
-   * @returns SVG markup string.
-   */
-  static aiCaptureDebug(): string {
-    return this.wrapSvg(
-      '<rect x="4" y="7" width="14" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path fill="none" stroke="currentColor" stroke-width="1.5" d="M7 7V5.5A1.5 1.5 0 0 1 8.5 4h9A1.5 1.5 0 0 1 19 5.5V14M8 14l2.2-2.5 1.8 1.6L15 10l3 4"/><circle cx="9.5" cy="10" r="1" fill="currentColor"/>',
-    );
-  }
-
-  /**
    * Settings / gear icon for the main toolbar. Hub circle is nudged slightly
    * right of the geometric mid so it sits in the gear opening.
    *
@@ -389,17 +268,6 @@ export class ToolbarIcons {
   static settings(): string {
     return this.wrapSvg(
       '<path fill="none" stroke="currentColor" stroke-width="1.5" d="M19.4 13.5v-3l1.6-1.2-1.5-2.6-2 .5a7.2 7.2 0 0 0-1.7-1L15.4 4h-2.8l-.4 2.2a7.2 7.2 0 0 0-1.7 1l-2-.5L6.9 9.3 8.5 10.5v3L6.9 14.7l1.5 2.6 2-.5a7.2 7.2 0 0 0 1.7 1l.4 2.2h2.8l.4-2.2a7.2 7.2 0 0 0 1.7-1l2 .5 1.5-2.6-1.5-1.2z"/><circle cx="13.5" cy="12" r="3.8" fill="none" stroke="currentColor" stroke-width="1.5"/>',
-    );
-  }
-
-  /**
-   * Speaker icon for the main toolbar audio toggle.
-   *
-   * @returns SVG markup string.
-   */
-  static audio(): string {
-    return this.wrapSvg(
-      '<path fill="none" stroke="currentColor" stroke-width="1.5" d="M4 10v4h3l5 4V6L7 10H4z"/><path fill="none" stroke="currentColor" stroke-width="1.5" d="M16 9.5a3.5 3.5 0 0 1 0 5M18.5 7a6 6 0 0 1 0 10"/>',
     );
   }
 

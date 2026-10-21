@@ -4,7 +4,7 @@ BevyBroom provides ordinary primitives for free-standing scene geometry and soli
 
 ## Create ordinary primitives
 
-Open **Add > Geometry** in the top toolbar:
+Open **Add > Geometry** in the menu bar:
 
 - **Cube** for blockouts, walls, platforms, and box-shaped props.
 - **Sphere** for rounded volumes and placeholders.
@@ -24,9 +24,27 @@ Choose **Add > Brushes > Solid Model** to create brush-based architecture.
 
 Use terrain for broad layout and landscape blocking. Very dense terrain can be harder to edit and export, so begin with modest detail and add complexity only when the shape requires it.
 
+## Draw box brushes and move with the mouse
+
+With nothing selected, drag in empty space or across a surface to draw a new
+box brush. In the 3D view the box starts on the surface under the pointer (or
+on the grid) and you drag out its footprint; hold `Shift` for a square
+footprint and `Alt` to pull the height. In a 2D view you drag the visible
+rectangle and the depth comes from the last selection; `Shift` keeps the
+sides equal. The box snaps outward to the grid, a flat side grows one grid
+step, and the brush joins the active solid model (a new **World** model is
+created when there is none) with the current texture. `Escape` cancels.
+
+Drag a selected object to move the whole selection. The 3D view moves on the
+horizontal grid plane; hold `Alt` to move vertically. 2D views move in the
+view plane. Moves snap to grid steps unless `Shift` is held, `Ctrl` at the
+start duplicates first, and `Escape` puts everything back. A press on a
+visible resize arrow of the bounds still resizes; arrows hidden behind the
+selection (drawn faintly through it) leave the press to the move.
+
 ## Transform modes
 
-Open the Tools palette and choose Object Select to see the four transform choices.
+Choose the Object Select tool button in the toolbar to see the four transform choices in the tool options on the left of the view bar.
 
 ### Bounds
 

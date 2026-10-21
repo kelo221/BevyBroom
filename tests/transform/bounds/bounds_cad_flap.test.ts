@@ -70,7 +70,7 @@ describe('CAD resize ear geometry', () => {
 });
 
 describe('orthographic ears and perspective cubes', () => {
-  it('hides Y resize grips in top (xz) but keeps Y face picks for body drag', () => {
+  it('hides Y resize grips in top (xz) clones and styles X/Z as ears', () => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2));
     mesh.updateMatrixWorld(true);
     const gizmo = new GizmoTransform(Theme);
@@ -84,8 +84,6 @@ describe('orthographic ears and perspective cubes', () => {
     expect(summary.axesVisible.has('z')).toBe(true);
     expect(summary.earCount).toBe(4);
     expect(summary.cubeCount).toBe(0);
-    expect(countVisibleFacePicks(topClone)).toBe(6);
-    expect(countVisibleFacePicksForAxis(topClone, 'y')).toBe(2);
     gizmo.dispose();
   });
 
@@ -102,7 +100,6 @@ describe('orthographic ears and perspective cubes', () => {
     expect(summary.axesVisible.has('x')).toBe(true);
     expect(summary.axesVisible.has('y')).toBe(true);
     expect(summary.earCount).toBe(4);
-    expect(countVisibleFacePicks(frontClone)).toBe(6);
     gizmo.dispose();
   });
 
@@ -119,7 +116,6 @@ describe('orthographic ears and perspective cubes', () => {
     expect(summary.axesVisible.has('y')).toBe(true);
     expect(summary.axesVisible.has('z')).toBe(true);
     expect(summary.earCount).toBe(4);
-    expect(countVisibleFacePicks(sideClone)).toBe(6);
     gizmo.dispose();
   });
 
@@ -224,42 +220,6 @@ function collectHandleSummary(root: THREE.Object3D): HandleSummary {
     }
   });
   return { axesVisible, earCount, cubeCount, arrowHandleCount };
-}
-
-/**
- * Counts visible face pick planes under a gizmo root.
- *
- * @param root Gizmo root.
- * @returns Number of visible face pick meshes.
- */
-function countVisibleFacePicks(root: THREE.Object3D): number {
-  let count = 0;
-  root.traverse((child) => {
-    if (!(child instanceof THREE.Mesh) || !child.visible) return;
-    if (child.userData['isBoundsFacePick'] === true) count += 1;
-  });
-  return count;
-}
-
-/**
- * Counts visible face pick planes on a given axis.
- *
- * @param root Gizmo root.
- * @param axis Axis letter.
- * @returns Count of matching visible face picks.
- */
-function countVisibleFacePicksForAxis(root: THREE.Object3D, axis: 'x' | 'y' | 'z'): number {
-  let count = 0;
-  root.traverse((child) => {
-    if (!(child instanceof THREE.Mesh) || !child.visible) return;
-    if (child.userData['isBoundsFacePick'] !== true) return;
-    const face = child.userData['boundsFace'] as BoundsFace | undefined;
-    if (!face) return;
-    if (axis === 'x' && (face === BoundsFace.POS_X || face === BoundsFace.NEG_X)) count += 1;
-    if (axis === 'y' && (face === BoundsFace.POS_Y || face === BoundsFace.NEG_Y)) count += 1;
-    if (axis === 'z' && (face === BoundsFace.POS_Z || face === BoundsFace.NEG_Z)) count += 1;
-  });
-  return count;
 }
 
 /**

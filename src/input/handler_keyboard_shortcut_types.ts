@@ -48,7 +48,17 @@ export type NavigationActiveCallback = () => boolean;
  * @returns True if shortcuts must not run.
  */
 export function handlerKeyboardShortcutIsTypingInFormField(event: KeyboardEvent): boolean {
-  const target = event.target;
+  return handlerKeyboardShortcutIsTypingTarget(event.target);
+}
+
+/**
+ * Returns true when an event target is a text field or editable element that
+ * owns keys and clipboard actions.
+ *
+ * @param target Event target.
+ * @returns True for inputs, text areas, selects and editable content.
+ */
+export function handlerKeyboardShortcutIsTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false;
   }

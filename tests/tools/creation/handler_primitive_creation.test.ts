@@ -37,6 +37,25 @@ describe('primitive creation handler', () => {
     expect(created.position.distanceTo(expected)).toBeLessThan(1e-4);
     expect(created.position.z).toBeGreaterThan(exit.z);
   });
+
+  /**
+   * Objects created inside a spawn camera override land on the override's view
+   * ray; afterwards the active view camera is used again.
+   */
+  it('places objects on the override camera ray only while the override runs', () => {
+    const world = new THREE.Group();
+    const activeCamera = cameraLookingForward();
+    const overrideCamera = cameraLookingAlongPositiveZ();
+    const handler = createHandler(world, activeCamera);
+    handler.spawnCameraOverrideRun(overrideCamera, () => handler.createBevelVolume());
+    const overridden = requireCreatedVolume(world, null);
+    handler.createBevelVolume();
+    const regular = requireCreatedVolume(world, overridden);
+    const overrideSpawn = computeCameraForwardSpawnPosition(overrideCamera, DEFAULT_SPAWN_DISTANCE);
+    const activeSpawn = computeCameraForwardSpawnPosition(activeCamera, DEFAULT_SPAWN_DISTANCE);
+    expect(overridden.position.distanceTo(overrideSpawn)).toBeLessThan(1e-4);
+    expect(regular.position.distanceTo(activeSpawn)).toBeLessThan(1e-4);
+  });
 });
 
 /**

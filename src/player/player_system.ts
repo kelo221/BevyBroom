@@ -22,7 +22,10 @@ export interface PlayerSystemHost {
   showStatusMessage: (message: string) => void;
 }
 
-/** Self-contained play-mode system: figurine placement, Space enter, ESC exit. */
+/**
+ * Self-contained play-mode system: figurine placement, Play command enter, ESC
+ * exit.
+ */
 export class PlayerSystem {
   private readonly host: PlayerSystemHost;
   private readonly spawnState: PlayerSpawnState;
@@ -69,25 +72,12 @@ export class PlayerSystem {
   }
 
   /**
-   * Handles a global keydown for entering play mode with Space.
+   * Starts play mode from the Play command when the editor is idle.
    *
-   * @param event Browser keyboard event.
-   * @returns True when the event was consumed.
+   * @returns True when play mode started.
    */
-  tryHandleGlobalKeyDown(event: KeyboardEvent): boolean {
-    if (this.isDisposed) {
-      return false;
-    }
-    if (this.session.getIsActive()) {
-      return false;
-    }
-    if (event.code !== 'Space' && event.key !== ' ') {
-      return false;
-    }
-    if (event.repeat) {
-      return true;
-    }
-    if (event.ctrlKey || event.metaKey || event.altKey) {
+  playModeStart(): boolean {
+    if (this.isDisposed || this.session.getIsActive()) {
       return false;
     }
     return this.tryBeginPlayMode();
@@ -157,7 +147,7 @@ export class PlayerSystem {
     this.spawnState.clearSpawn();
     this.figurineMarker.clear();
     this.refreshButtonActiveState();
-    this.host.showStatusMessage('Play spawn cleared — Space uses the current camera');
+    this.host.showStatusMessage('Play spawn cleared — Play uses the current camera');
   }
 
   /** Installs figurine buttons next to each perspective viewport title. */

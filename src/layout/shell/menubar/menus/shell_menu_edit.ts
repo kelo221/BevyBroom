@@ -1,0 +1,95 @@
+import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
+import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
+
+/** Edit menu: history, selection, grouping, CSG and alignment commands. */
+export class ShellMenuEdit extends ShellMenu {
+  readonly label = 'Edit';
+
+  /**
+   * Builds the Edit menu entries.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Menu entries.
+   */
+  entriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    const actions = context.toolbarActions;
+    const window = context.windowActions;
+    return [
+      this.actionEntry(context, 'Undo', () => actions.onUndo(), { shortcutAction: 'undo' }),
+      this.actionEntry(context, 'Redo', () => actions.onRedo(), { shortcutAction: 'redo' }),
+      this.separatorEntry(),
+      ...this.clipboardEntriesBuild(context),
+      this.actionEntry(context, 'Duplicate', () => actions.onDuplicateSelected(), { shortcutAction: 'duplicate' }),
+      this.actionEntry(context, 'Delete', () => actions.onDeleteSelected(), { shortcutAction: 'delete_selected' }),
+      this.separatorEntry(),
+      this.actionEntry(context, 'Select All', () => window.selectAll(), { shortcutAction: 'select_all' }),
+      this.actionEntry(context, 'Select None', () => window.selectNone(), { shortcutAction: 'select_none' }),
+      this.separatorEntry(),
+      this.actionEntry(context, 'Group', () => actions.onGroupSelected(), { shortcutAction: 'group' }),
+      this.actionEntry(context, 'Ungroup', () => actions.onUngroupSelected(), { shortcutAction: 'ungroup' }),
+      this.separatorEntry(),
+      this.csgSubmenuBuild(context),
+      this.alignSubmenuBuild(context),
+    ];
+  }
+
+  /**
+   * Builds the Cut, Copy, Paste and Paste at Original Position entries. Cut and
+   * Copy are enabled only while something is selected; the system clipboard
+   * keys are fixed, Paste at Original Position is configurable.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Clipboard entries.
+   */
+  private clipboardEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    const window = context.windowActions;
+    const isEnabled = (): boolean => window.clipboardSelectionHasObjectsIs();
+    return [
+      this.actionEntry(context, 'Cut', () => window.clipboardCut(), { isEnabled, shortcutText: 'Ctrl+X' }),
+      this.actionEntry(context, 'Copy', () => window.clipboardCopy(), { isEnabled, shortcutText: 'Ctrl+C' }),
+      this.actionEntry(context, 'Paste', () => window.clipboardPaste(), { shortcutText: 'Ctrl+V' }),
+      this.actionEntry(context, 'Paste at Original Position', () => window.clipboardPasteAtOriginalPosition(), {
+        shortcutAction: 'paste_original',
+      }),
+    ];
+  }
+
+  /**
+   * Builds the CSG submenu, enabled only when the selection supports booleans.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Submenu entry.
+   */
+  private csgSubmenuBuild(context: ShellMenuContext): ToolbarMenuEntry {
+    const actions = context.toolbarActions;
+    const isEnabled = (): boolean => actions.canRunCsgBoolean();
+    return {
+      kind: 'submenu',
+      label: 'CSG',
+      children: [
+        this.actionEntry(context, 'Union', () => actions.onCsgUnion(), { isEnabled }),
+        this.actionEntry(context, 'Subtract', () => actions.onCsgSubtract(), { isEnabled }),
+        this.actionEntry(context, 'Intersect', () => actions.onCsgIntersect(), { isEnabled }),
+      ],
+    };
+  }
+
+  /**
+   * Builds the Align submenu.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Submenu entry.
+   */
+  private alignSubmenuBuild(context: ShellMenuContext): ToolbarMenuEntry {
+    const actions = context.toolbarActions;
+    return {
+      kind: 'submenu',
+      label: 'Align',
+      children: [
+        this.actionEntry(context, 'Origin', () => actions.onAlignToOrigin(), { shortcutAction: 'align_origin' }),
+        this.actionEntry(context, 'Grid Center', () => actions.onAlignToGridCenter()),
+        this.actionEntry(context, 'To Object', () => actions.onAlignToObject()),
+      ],
+    };
+  }
+}

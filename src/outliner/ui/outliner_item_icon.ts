@@ -1,11 +1,17 @@
 import type * as THREE from 'three';
 import { FactoryObjectIcon } from './factory_object_icon.js';
+import type { IconName } from '@/ui/icons/icon_name.js';
+import { iconSvgMarkup } from '@/ui/icons/icon_svg.js';
+
+/** Pixel size of SVG icons in outliner rows. */
+const OUTLINER_ITEM_ICON_SIZE_PX = 13;
 
 /** Icon marker render options for outliner glyph and badge slots. */
 export interface OutlinerItemIconMarker {
   character: string;
   color: string;
   cssDot: boolean;
+  iconName: IconName | null;
   dotSizePx: number;
   nudgeYPx: number;
 }
@@ -27,21 +33,31 @@ export function outlinerItemApplyIconFromObject(
     character: icon.character,
     color: icon.color,
     cssDot: icon.cssDot === true,
+    iconName: icon.iconName ?? null,
     dotSizePx: 8,
     nudgeYPx: icon.cssDotNudgeYPx ?? 0,
   });
+  outlinerItemApplyIconBadge(iconBadgeElement, icon);
+}
+
+/**
+ * Shows an object's operation badge as a dot or a character, or hides the badge
+ * slot when the object has none.
+ *
+ * @param iconBadgeElement Badge element for CSG operation dots.
+ * @param icon Icon of the row's object.
+ */
+function outlinerItemApplyIconBadge(
+  iconBadgeElement: HTMLElement,
+  icon: ReturnType<typeof FactoryObjectIcon.getIcon>,
+): void {
   if (icon.badgeCssDot && icon.badgeColor) {
     outlinerItemApplyOverlayDot(iconBadgeElement, icon.badgeColor, 5);
     return;
   }
   if (icon.badgeCharacter && icon.badgeColor) {
-    outlinerItemApplyIconMarker(iconBadgeElement, {
-      character: icon.badgeCharacter,
-      color: icon.badgeColor,
-      cssDot: false,
-      dotSizePx: 5,
-      nudgeYPx: 0,
-    });
+    const marker = { character: icon.badgeCharacter, color: icon.badgeColor, cssDot: false, iconName: null };
+    outlinerItemApplyIconMarker(iconBadgeElement, { ...marker, dotSizePx: 5, nudgeYPx: 0 });
     iconBadgeElement.style.display = 'inline-flex';
     return;
   }
@@ -49,7 +65,7 @@ export function outlinerItemApplyIconFromObject(
 }
 
 /**
- * Renders either a text glyph or a CSS circle into an icon slot.
+ * Renders a text glyph, an SVG icon or a CSS circle into an icon slot.
  *
  * @param element Target glyph or badge element.
  * @param marker Render options.
@@ -60,8 +76,12 @@ export function outlinerItemApplyIconMarker(element: HTMLElement, marker: Outlin
     return;
   }
   outlinerItemClearCssDotStyles(element);
-  element.textContent = marker.character;
   element.style.color = marker.color;
+  if (marker.iconName !== null) {
+    element.innerHTML = iconSvgMarkup(marker.iconName, OUTLINER_ITEM_ICON_SIZE_PX);
+    return;
+  }
+  element.textContent = marker.character;
   element.style.fontSize = '12px';
 }
 

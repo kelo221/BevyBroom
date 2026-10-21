@@ -8,20 +8,22 @@ BevyBroom may run in a browser or as a standalone desktop application. The editi
 
 When the editor opens, you will see four views:
 
-- **Top** looks down on the X–Z ground plane.
-- **Front** looks at the X–Y plane.
-- **Side** looks at the Y–Z plane.
-- **Perspective** is the free-moving 3D view.
+- **Perspective** at the top left is the free-moving 3D view.
+- **Top** at the top right looks down on the X–Z ground plane.
+- **Side** at the bottom left looks at the Y–Z plane.
+- **Front** at the bottom right looks at the X–Y plane.
 
-The scene hierarchy and object properties appear to the right. The status bar along the bottom reports the active mode, snapping, selection type, and recent actions.
+The menu bar and the toolbar are at the top. The inspector on the right shows the scene hierarchy in its **Map** tab and the object properties in its **Entity** tab. The info panel below the views keeps a console of recent messages, and the status bar along the bottom reports the active mode, snapping, selection type, and recent actions.
 
 ## Add your first object
 
-1. Open **Add** in the top toolbar.
-2. Choose **Cube**.
+1. Open the **Add** menu in the menu bar.
+2. Choose **Geometry > Cube**.
 3. Look for the new cube in the viewports and in the scene hierarchy.
 
-The toolbar also contains icon buttons for common object types. Hover over an unfamiliar icon to read its name.
+To draw a brush instead, click empty space so nothing is selected, then drag in a view. In the Top view the brush gets the visible rectangle you drag; in Perspective it starts on the surface under the mouse and is one grid step tall. See [Creating and transforming objects](creating_and_transforming.md).
+
+You can also drag a tile from the Entity Browser in the inspector's **Entity** tab onto a viewport to place an object where you drop it.
 
 New objects are placed using the editor's current placement context. If an object is outside the part of the scene you are viewing, select it in the hierarchy and press `F` to frame it.
 
@@ -40,8 +42,8 @@ Click a section heading to collapse or reopen it. Change a numeric field and com
 
 ## Move and resize it
 
-1. Press `W` for the Move tool.
-2. Drag a colored axis handle to move along one axis.
+1. Drag the selected cube itself to move it on the grid; in Perspective hold `Alt` to move it up or down.
+2. For a constrained move, press `W` for the Move tool and drag a colored axis handle.
 3. Press `T` for Bounds mode.
 4. Drag a bounds face to resize the object from that side.
 
@@ -51,7 +53,7 @@ The common axis colors are:
 - Green: Y
 - Blue: Z
 
-Snapping is enabled by default. Use the **Snap** button to toggle it, and use the `−` and `+` controls to change the interval. The bottom status bar shows the current interval.
+Snapping is enabled by default. Use the **Snap** button in the toolbar to toggle it, and choose a size from the **Grid** dropdown next to it, or press `,` and `.`, to change the interval. The bottom status bar shows the current interval.
 
 If an edit does not look right, press `Ctrl+Z`. Use `Ctrl+Y` or `Ctrl+Shift+Z` to redo it.
 
@@ -67,7 +69,7 @@ In the Perspective view:
 
 In the Top, Front, or Side view:
 
-- Drag with the right mouse button to pan.
+- Drag with the middle or the right mouse button to pan.
 - Use the mouse wheel to zoom.
 
 Press `F` to frame the current selection in the active view. Press `Shift+F` to fit all viewports.

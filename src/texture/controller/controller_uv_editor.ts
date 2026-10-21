@@ -19,6 +19,7 @@ import {
   getCommonTrsFieldState,
 } from '@/texture/uv/face_texture_applier.js';
 import type { UvRelativeTrsOp } from '@/texture/uv/uv_trs_ops.js';
+import type { FaceAttributesView } from '@/texture/ui/face_attributes/face_attributes_view.js';
 
 /**
  * Callback for status messages.
@@ -27,20 +28,13 @@ import type { UvRelativeTrsOp } from '@/texture/uv/uv_trs_ops.js';
  */
 export type UvEditorStatusCallback = (message: string) => void;
 
-/**
- * Callback when UV editor field values should refresh.
- *
- * @param fields Per-field shared or mixed TRS state.
- */
-export type UvEditorUiRefreshCallback = (fields: UvEditorTrsFieldState) => void;
-
 /** Coordinates UV editor actions with selection and undo. */
 export class ControllerUvEditor {
   private selectionManager: ManagerSelection;
   private faceExtrusionController: ControllerFaceExtrusion;
   private commandStack: CommandStack;
   private statusCallback: UvEditorStatusCallback | null;
-  private uiRefreshCallback: UvEditorUiRefreshCallback | null;
+  private view: FaceAttributesView | null;
 
   /**
    * Creates a UV editor controller.
@@ -58,7 +52,7 @@ export class ControllerUvEditor {
     this.faceExtrusionController = faceExtrusionController;
     this.commandStack = commandStack;
     this.statusCallback = null;
-    this.uiRefreshCallback = null;
+    this.view = null;
   }
 
   /**
@@ -71,21 +65,26 @@ export class ControllerUvEditor {
   }
 
   /**
-   * Registers a UI refresh callback for mixed-value display.
+   * Sets the view that shows the selection's shared face attribute values.
    *
-   * @param callback UI refresh handler.
+   * @param view Face attributes view, or null to detach.
    */
-  setUiRefreshCallback(callback: UvEditorUiRefreshCallback | null): void {
-    this.uiRefreshCallback = callback;
+  setView(view: FaceAttributesView | null): void {
+    this.view = view;
   }
 
-  /** Refreshes UV editor fields from the current selection. */
+  /**
+   * Reads the shared or mixed face attribute values of the current selection.
+   *
+   * @returns Per-field state where null means mixed.
+   */
+  readFieldStateFromSelection(): UvEditorTrsFieldState {
+    return getCommonTrsFieldState(this.collectTargets());
+  }
+
+  /** Shows the current selection's face attribute values in the view. */
   refreshFromSelection(): void {
-    const targets = this.collectTargets();
-    const fields = getCommonTrsFieldState(targets);
-    if (this.uiRefreshCallback) {
-      this.uiRefreshCallback(fields);
-    }
+    this.view?.setFromFieldState(this.readFieldStateFromSelection());
   }
 
   /**

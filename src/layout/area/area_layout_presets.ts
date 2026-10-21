@@ -55,24 +55,25 @@ export function createTripleLayout(): AreaTreeNode {
 }
 
 /**
- * Classic quad: top | front over side | perspective.
+ * Map editor quad in two columns: perspective over side on the left, top over
+ * front on the right.
  *
  * @returns Layout tree root.
  */
 export function createQuadLayout(): AreaTreeNode {
-  const topRow = createAreaSplitNode(
-    'horizontal',
+  const leftColumn = createAreaSplitNode(
+    'vertical',
+    0.5,
+    createAreaLeafNode(createViewportLeafPayload(DEFAULT_AREA_IDS.perspective, ViewportKind.PERSPECTIVE)),
+    createAreaLeafNode(createViewportLeafPayload(DEFAULT_AREA_IDS.side, ViewportKind.SIDE)),
+  );
+  const rightColumn = createAreaSplitNode(
+    'vertical',
     0.5,
     createAreaLeafNode(createViewportLeafPayload(DEFAULT_AREA_IDS.top, ViewportKind.TOP)),
     createAreaLeafNode(createViewportLeafPayload(DEFAULT_AREA_IDS.front, ViewportKind.FRONT)),
   );
-  const bottomRow = createAreaSplitNode(
-    'horizontal',
-    0.5,
-    createAreaLeafNode(createViewportLeafPayload(DEFAULT_AREA_IDS.side, ViewportKind.SIDE)),
-    createAreaLeafNode(createViewportLeafPayload(DEFAULT_AREA_IDS.perspective, ViewportKind.PERSPECTIVE)),
-  );
-  return createAreaSplitNode('vertical', 0.5, topRow, bottomRow);
+  return createAreaSplitNode('horizontal', 0.5, leftColumn, rightColumn);
 }
 
 /**

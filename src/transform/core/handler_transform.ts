@@ -475,7 +475,6 @@ export class HandlerTransform {
     if (this.session.dragObjects.length === 0) {
       this.session.dragObjects = selectedObjects.slice();
     }
-    this.trackBoundsFacePointerMovement(event);
     if (this.modalIntegration.hasTypedValue()) {
       return;
     }
@@ -500,23 +499,16 @@ export class HandlerTransform {
   }
 
   /**
-   * Processes a pointer up event to end the drag. Bounds face presses without
-   * real movement are treated as selection clicks so nested objects remain
-   * reachable while bounds drag still works.
+   * Processes a pointer up event to end the drag and records its undo entry.
    *
    * @param pivot The transform pivot point used during the drag.
    * @param selectedObjects The selected meshes that were transformed.
-   * @returns True when the press should run object click-through selection.
    */
-  onPointerUp(pivot: THREE.Vector3 = new THREE.Vector3(), selectedObjects: THREE.Object3D[] = []): boolean {
-    const selectionClick = this.isBoundsFaceClickWithoutDrag();
-    if (selectionClick) {
-      this.restoreMeshesFromSnapshot(selectedObjects);
-    } else if (this.session.dragActive) {
+  onPointerUp(pivot: THREE.Vector3 = new THREE.Vector3(), selectedObjects: THREE.Object3D[] = []): void {
+    if (this.session.dragActive) {
       this.commandPusher.pushUndoCommand(pivot, selectedObjects);
     }
     this.finishDragInteraction();
-    return selectionClick;
   }
 
   /** Clears active handle, guide lines, modal keyboard state, and drag session. */
@@ -524,45 +516,14 @@ export class HandlerTransform {
     this.modalIntegration.endDrag();
     this.transformGizmo.setActiveHandle(null);
     this.transformGizmo.setBoundsGuideLinesVisible(false);
-    this.transformGizmo.setBoundsResizeHandlesVisible(true);
     this.transformGizmo.setHighlightedBoundsFace(null);
     this.session.clearInteractionTargets();
   }
 
   /**
-   * Returns true for a bounds face press that never moved past the click
-   * threshold (click-through selection into nested objects).
+   * Restores object positions, rotations and scales from the pre-drag snapshot.
    *
-   * @returns True when pointer-up should cycle object selection instead of
-   *   commit.
-   */
-  private isBoundsFaceClickWithoutDrag(): boolean {
-    if (!this.session.dragActive) return false;
-    if (!this.session.isBoundsResize && !this.session.isBoundsFaceMove) return false;
-    return !this.session.boundsPointerMoved;
-  }
-
-  /**
-   * Marks bounds face interaction as a drag once screen movement exceeds
-   * threshold.
-   *
-   * @param event The pointer move event.
-   */
-  private trackBoundsFacePointerMovement(event: MouseEvent): void {
-    if (!this.session.isBoundsResize && !this.session.isBoundsFaceMove) return;
-    if (this.session.boundsPointerMoved) return;
-    const deltaX = event.clientX - this.session.pointerDownClientX;
-    const deltaY = event.clientY - this.session.pointerDownClientY;
-    const clickThresholdPixels = 4;
-    if (deltaX * deltaX + deltaY * deltaY > clickThresholdPixels * clickThresholdPixels) {
-      this.session.boundsPointerMoved = true;
-    }
-  }
-
-  /**
-   * Restores mesh transforms from the pre-drag snapshot (cancelled face click).
-   *
-   * @param selectedObjects Meshes that may have been nudged during the press.
+   * @param selectedObjects Objects that may have been changed during the drag.
    */
   private restoreMeshesFromSnapshot(selectedObjects: THREE.Object3D[]): void {
     selectedObjects.forEach((object) => {

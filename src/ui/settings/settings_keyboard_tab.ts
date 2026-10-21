@@ -30,6 +30,7 @@ const EDITOR_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, stri
   ['redo', 'Redo'],
   ['redo_alternate', 'Redo (Alternative)'],
   ['duplicate', 'Duplicate Selected'],
+  ['paste_original', 'Paste at Original Position'],
   ['group', 'Group Selected'],
   ['ungroup', 'Ungroup Selected'],
   ['align_origin', 'Align to Origin'],
@@ -58,8 +59,29 @@ const CLIP_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, string
   ['clip_split', 'Split Clip'],
 ];
 
-/** Fixed keyboard reminders for face editing and 3D fly navigation. */
+/** View, play, panel and selection shortcuts. */
+const WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, string]> = [
+  ['view_cycle', 'Cycle View Under Pointer'],
+  ['view_maximize', 'Maximize / Restore View'],
+  ['play_start', 'Play'],
+  ['inspector_map', 'Show Map Inspector'],
+  ['inspector_entity', 'Show Entity Inspector'],
+  ['inspector_face', 'Show Face Inspector'],
+  ['info_panel_toggle', 'Toggle Info Panel'],
+  ['inspector_toggle', 'Toggle Inspector'],
+  ['toolbar_toggle', 'Toggle Toolbar'],
+  ['select_all', 'Select All'],
+  ['select_none', 'Select None'],
+];
+
+/**
+ * Fixed keyboard reminders for the clipboard, face editing and 3D fly
+ * navigation.
+ */
 const KEYBOARD_REMINDER_ROWS: ReadonlyArray<readonly [string, string, string]> = [
+  ['clipboard-cut', 'Cut Selected', 'Ctrl+X'],
+  ['clipboard-copy', 'Copy Selected', 'Ctrl+C'],
+  ['clipboard-paste', 'Paste Under Pointer', 'Ctrl+V'],
   ['edit-knife', 'Knife (add vertex on edge, Edit Mode)', 'K'],
   ['edit-loop-cut', 'Loop Cut (Edit Mode)', 'Ctrl+R'],
   ['edit-merge', 'Merge Vertices (Edit Mode)', 'M'],
@@ -69,6 +91,8 @@ const KEYBOARD_REMINDER_ROWS: ReadonlyArray<readonly [string, string, string]> =
   ['fly-left-right', '3D Fly Left / Right (hold RMB)', 'A / D'],
   ['fly-down-up', '3D Fly Down / Up (hold RMB)', 'Q / E'],
   ['fly-speed-boost', '3D Fly Speed Boost (hold RMB)', 'Shift'],
+  ['view-pan', 'Pan Any View', 'Middle Mouse Drag'],
+  ['view-dolly', '3D Move Forward / Back (Mouse settings)', 'Alt + Middle Mouse Drag'],
 ];
 
 /** Keyboard tab content for rebinding primary editor actions. */
@@ -106,6 +130,7 @@ export class SettingsKeyboardTab {
       this.buildCategory('Commands', EDITOR_SHORTCUT_ROWS, settings),
       this.buildCategory('Shading', SHADING_SHORTCUT_ROWS, settings),
       this.buildCategory('Clip Plane Tool', CLIP_SHORTCUT_ROWS, settings),
+      this.buildCategory('Window and Views', WINDOW_SHORTCUT_ROWS, settings),
       this.buildReminderCategory(),
     );
   }

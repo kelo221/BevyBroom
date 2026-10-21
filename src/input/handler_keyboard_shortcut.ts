@@ -1,6 +1,6 @@
 import { ManagerInput } from './manager_input.js';
 import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
-import type { KeyboardShortcutSettings } from '@/settings/store/settings_types.js';
+import type { KeyboardShortcutAction, KeyboardShortcutSettings } from '@/settings/store/settings_types.js';
 import {
   handlerKeyboardShortcutIsTypingInFormField,
   type ActionCallback,
@@ -80,6 +80,8 @@ export class HandlerKeyboardShortcut {
   private onToolEventRouterKeyDown: ((event: KeyboardEvent) => boolean) | null;
   private keydownListener: ((event: KeyboardEvent) => void) | null;
   private readonly registeredWindows: Set<Window>;
+  /** Callbacks of shortcut actions registered through {@link actionCallbackSet}. */
+  private readonly actionCallbacks: Map<KeyboardShortcutAction, ActionCallback>;
   private readonly getKeyboardShortcuts: () => KeyboardShortcutSettings;
 
   /**
@@ -138,6 +140,43 @@ export class HandlerKeyboardShortcut {
     this.onToolEventRouterKeyDown = null;
     this.keydownListener = null;
     this.registeredWindows = new Set();
+    this.actionCallbacks = new Map();
+  }
+
+  /**
+   * Registers or replaces the callback of one configurable shortcut action.
+   * These actions run after camera navigation checks, so they never fire while
+   * flying or panning.
+   *
+   * @param action Shortcut action from the keyboard settings.
+   * @param callback Function run when the shortcut is pressed, or null to
+   *   remove it.
+   */
+  actionCallbackSet(action: KeyboardShortcutAction, callback: ActionCallback | null): void {
+    if (callback) {
+      this.actionCallbacks.set(action, callback);
+      return;
+    }
+    this.actionCallbacks.delete(action);
+  }
+
+  /**
+   * Runs the first registered action whose shortcut matches the event.
+   *
+   * @param event Browser keyboard event.
+   * @returns True when an action ran.
+   */
+  private registeredActionDispatch(event: KeyboardEvent): boolean {
+    for (const [action, callback] of this.actionCallbacks) {
+      if (this.matchesShortcut(event, action)) {
+        event.preventDefault();
+        if (!event.repeat) {
+          callback();
+        }
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -189,6 +228,9 @@ export class HandlerKeyboardShortcut {
     }
     if (this.isFlyNavigationBlockingTools()) {
       return false;
+    }
+    if (this.registeredActionDispatch(event)) {
+      return true;
     }
     if (handlerKeyboardShortcutHandleClipPlaneKeys(host, event)) {
       return true;

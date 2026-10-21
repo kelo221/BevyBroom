@@ -30,7 +30,7 @@ describe('ControllerAudioPlayback', () => {
     const softClick = createSoftClickMock();
     const softWhoosh = createSoftWhooshMock();
     const pageTurn = createPageTurnMock();
-    const settings = new AudioSettings(new MemorySettingsStorage());
+    const settings = audioSettingsEnabledCreate();
     settings.setEnabled(false);
     notificationFrameEvents.raiseSelectionMovedWithSnapping();
     notificationFrameEvents.beginFrame();
@@ -46,7 +46,7 @@ describe('ControllerAudioPlayback', () => {
     const softClick = createSoftClickMock();
     const softWhoosh = createSoftWhooshMock();
     const pageTurn = createPageTurnMock();
-    const settings = new AudioSettings(new MemorySettingsStorage());
+    const settings = audioSettingsEnabledCreate();
     notificationFrameEvents.raiseSelectionMovedWithSnapping();
     notificationFrameEvents.raiseSelectionScaledWithSnapping();
     notificationFrameEvents.beginFrame();
@@ -62,7 +62,7 @@ describe('ControllerAudioPlayback', () => {
     const softClick = createSoftClickMock();
     const softWhoosh = createSoftWhooshMock();
     const pageTurn = createPageTurnMock();
-    const settings = new AudioSettings(new MemorySettingsStorage());
+    const settings = audioSettingsEnabledCreate();
     const controller = createController(settings, softClick, softWhoosh.player, pageTurn, rateLimiter);
 
     notificationFrameEvents.raiseSelectionMovedWithSnapping();
@@ -87,7 +87,7 @@ describe('ControllerAudioPlayback', () => {
     const softClick = createSoftClickMock();
     const softWhoosh = createSoftWhooshMock();
     const pageTurn = createPageTurnMock();
-    const settings = new AudioSettings(new MemorySettingsStorage());
+    const settings = audioSettingsEnabledCreate();
     notificationFrameEvents.raiseSolidCsgOperationFlipped();
     notificationFrameEvents.beginFrame();
     const controller = createController(settings, softClick, softWhoosh.player, pageTurn);
@@ -100,7 +100,7 @@ describe('ControllerAudioPlayback', () => {
     const softWhoosh = createSoftWhooshMock();
     const pageTurn = createPageTurnMock();
     const softFootstep = createSoftFootstepMock();
-    const settings = new AudioSettings(new MemorySettingsStorage());
+    const settings = audioSettingsEnabledCreate();
     notificationFrameEvents.raisePlayerFootstep(2, 0, 4, 8);
     notificationFrameEvents.beginFrame();
     const controller = createController(
@@ -121,7 +121,7 @@ describe('ControllerAudioPlayback', () => {
     const softClick = createSoftClickMock();
     const softWhoosh = createSoftWhooshMock();
     const pageTurn = createPageTurnMock();
-    const settings = new AudioSettings(new MemorySettingsStorage());
+    const settings = audioSettingsEnabledCreate();
     notificationFrameEvents.beginFrame();
     const controller = createController(settings, softClick, softWhoosh.player, pageTurn);
     controller.endFrame();
@@ -141,7 +141,7 @@ describe('ControllerAudioPlayback', () => {
     const softClick = createSoftClickMock();
     const softWhoosh = createSoftWhooshMock();
     const pageTurn = createPageTurnMock();
-    const settings = new AudioSettings(new MemorySettingsStorage());
+    const settings = audioSettingsEnabledCreate();
     notificationFrameEvents.raiseSelectionMovedWithSnapping(2);
     notificationFrameEvents.raiseSelectionMovedWithSnapping(2);
     notificationFrameEvents.beginFrame();
@@ -171,7 +171,7 @@ describe('ControllerAudioPlayback', () => {
     const softClick = createSoftClickMock();
     const softWhoosh = createSoftWhooshMock();
     const pageTurn = createPageTurnMock();
-    const settings = new AudioSettings(new MemorySettingsStorage());
+    const settings = audioSettingsEnabledCreate();
     notificationFrameEvents.raiseSelectionRotatedWithSnapping(0.25);
     notificationFrameEvents.raiseSelectionRotatedWithSnapping(0.25);
     notificationFrameEvents.beginFrame();
@@ -187,7 +187,7 @@ describe('ControllerAudioPlayback', () => {
     const softClick = createSoftClickMock();
     const softWhoosh = createSoftWhooshMock();
     const pageTurn = createPageTurnMock();
-    const settings = new AudioSettings(new MemorySettingsStorage());
+    const settings = audioSettingsEnabledCreate();
     notificationFrameEvents.raiseSelectionResizedWithSnapping(7);
     notificationFrameEvents.beginFrame();
     const controller = createController(settings, softClick, softWhoosh.player, pageTurn);
@@ -199,7 +199,7 @@ describe('ControllerAudioPlayback', () => {
     const softClick = createSoftClickMock();
     const softWhoosh = createSoftWhooshMock();
     const pageTurn = createPageTurnMock();
-    const settings = new AudioSettings(new MemorySettingsStorage());
+    const settings = audioSettingsEnabledCreate();
     notificationFrameEvents.raiseSelectionScaledWithSnapping(7);
     notificationFrameEvents.beginFrame();
     const controller = createController(settings, softClick, softWhoosh.player, pageTurn);
@@ -211,7 +211,7 @@ describe('ControllerAudioPlayback', () => {
     const softClick = createSoftClickMock();
     const softWhoosh = createSoftWhooshMock();
     const pageTurn = createPageTurnMock();
-    const settings = new AudioSettings(new MemorySettingsStorage());
+    const settings = audioSettingsEnabledCreate();
     notificationFrameEvents.raiseSelectionMovedWithSnapping(1);
     notificationFrameEvents.raiseSelectionMovedWithSnapping(1);
     notificationFrameEvents.raiseSelectionScaledWithSnapping();
@@ -351,4 +351,16 @@ function createRunningContextMock(): AudioContext {
     createPanner: vi.fn(() => panner),
     resume: vi.fn(async () => undefined),
   } as unknown as AudioContext;
+}
+
+/**
+ * Creates audio settings in memory with audio turned on, since audio starts
+ * off.
+ *
+ * @returns Enabled audio settings.
+ */
+function audioSettingsEnabledCreate(): AudioSettings {
+  const settings = new AudioSettings(new MemorySettingsStorage());
+  settings.setEnabled(true);
+  return settings;
 }

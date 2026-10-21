@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { entityBoundsResizableAny } from '@/entity/bounds/entity_bounds.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { GizmoTransform } from '@/transform/gizmo/gizmo_transform.js';
 import { TransformExecutor } from '@/transform/core/transform_executor.js';
@@ -47,6 +48,7 @@ export function updateLayoutGizmoPivot(context: ContextHelpersLayoutGizmo): void
     applySelectionGizmoPose(context, selected);
     return;
   }
+  context.transformGizmo.setBoundsResizeAllowed(true);
   context.transformGizmo.setPivot(new THREE.Vector3(0, 0, 0));
   context.transformGizmo.setOrientation(resolveLayoutGizmoOrientation(context, []));
   context.transformGizmo.updateBoundsFromMeshes([]);
@@ -60,6 +62,7 @@ export function updateLayoutGizmoPivot(context: ContextHelpersLayoutGizmo): void
  */
 function applyComponentEditGizmoPose(context: ContextHelpersLayoutGizmo, pivot: THREE.Vector3): void {
   const selected = Array.from(context.selectionManager.getSelectedObjects());
+  context.transformGizmo.setBoundsResizeAllowed(true);
   context.transformGizmo.setPivot(pivot);
   context.transformGizmo.setOrientation(resolveLayoutGizmoOrientation(context, selected));
   syncGizmoOrthoDepthAxisPolicy(context);
@@ -79,6 +82,7 @@ function applyComponentEditGizmoPose(context: ContextHelpersLayoutGizmo, pivot: 
  */
 function applySelectionGizmoPose(context: ContextHelpersLayoutGizmo, selected: THREE.Mesh[]): void {
   const pivot = context.transformExecutor.computePivot(selected);
+  context.transformGizmo.setBoundsResizeAllowed(entityBoundsResizableAny(selected));
   context.transformGizmo.setPivot(pivot);
   context.transformGizmo.setOrientation(resolveLayoutGizmoOrientation(context, selected));
   syncGizmoOrthoDepthAxisPolicy(context);

@@ -3,6 +3,8 @@
  * Action items may omit `kind` for a compact authoring style.
  */
 
+import type { IconName } from '@/ui/icons/icon_name.js';
+
 /** Clickable menu row with optional enablement and shortcut label. */
 export interface ToolbarMenuAction {
   /** Discriminator; omit or set to action for a normal item. */
@@ -26,6 +28,15 @@ export interface ToolbarMenuAction {
    * the menu refreshes so dynamic help text stays accurate.
    */
   tooltip?: string | (() => string | undefined | null);
+  /** Optional icon drawn in front of the label. */
+  icon?: IconName;
+  /** CSS color of the icon; the icon uses the text color when omitted. */
+  iconColor?: string;
+  /**
+   * Optional live checked state. When present the row shows a check mark slot
+   * that is filled while the function returns true.
+   */
+  isChecked?: () => boolean;
 }
 
 /** Horizontal rule between menu sections. */
@@ -55,6 +66,10 @@ export interface ToolbarMenuSubmenu {
    * the menu refreshes.
    */
   tooltip?: string | (() => string | undefined | null);
+  /** Optional icon drawn in front of the label. */
+  icon?: IconName;
+  /** CSS color of the icon; the icon uses the text color when omitted. */
+  iconColor?: string;
 }
 
 /** One entry in a toolbar dropdown or nested submenu panel. */

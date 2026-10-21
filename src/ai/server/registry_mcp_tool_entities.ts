@@ -1,3 +1,4 @@
+import { MCP_LIGHT_SETTINGS_DESCRIPTION } from './registry_mcp_tool_light_settings.js';
 import { emptySchema, tool, vec3Schema, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
 /**
@@ -13,7 +14,10 @@ function entityAddSchema(settingsDescription: string): Record<string, unknown> {
       name: { type: 'string', description: 'Outliner name. Defaults to the kind name.' },
       position: { ...vec3Schema, description: 'World position in meters (right-handed, Y up).' },
       rotationDegrees: { ...vec3Schema, description: 'Euler rotation in degrees (XYZ order).' },
-      scale: { ...vec3Schema, description: 'Scale; rooms and portals size with it.' },
+      scale: {
+        ...vec3Schema,
+        description: 'Scale; rooms and portals size with it. Lights ignore it: set settings.radius instead.',
+      },
       settings: { type: 'object', description: settingsDescription },
     },
   };
@@ -36,9 +40,6 @@ function entitySettingsSetSchema(settingsDescription: string): Record<string, un
   };
 }
 
-const LIGHT_SETTINGS_DESCRIPTION =
-  'Light settings: kind ("point" | "spot"), colorHex (0xRRGGBB number), intensity, radius (m), falloff, innerCutoffDegrees, outerCutoffDegrees, realtime (bool), shadows ("raytraced" | "realtime"), enabled (bool).';
-
 const ROOM_SETTINGS_DESCRIPTION =
   'Room settings: halfSizeX, halfSizeY, halfSizeZ in local meters. A room is a box cell for portal culling.';
 
@@ -53,12 +54,12 @@ export const MCP_ENTITY_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(
     'add_light',
     'Add a light (undoable). Returns its id and settings.',
-    entityAddSchema(LIGHT_SETTINGS_DESCRIPTION),
+    entityAddSchema(MCP_LIGHT_SETTINGS_DESCRIPTION),
   ),
   tool(
     'set_light_settings',
     'Change settings of a light (undoable).',
-    entitySettingsSetSchema(LIGHT_SETTINGS_DESCRIPTION),
+    entitySettingsSetSchema(MCP_LIGHT_SETTINGS_DESCRIPTION),
   ),
   tool(
     'add_room',

@@ -37,11 +37,20 @@ export abstract class ObjectDataContributor {
   sceneDocumentWrite(_worldGroup: THREE.Object3D, _scene: SceneJSON): void {}
 
   /**
+   * Forgets document-wide data when the world is cleared for a new or loaded
+   * document.
+   *
+   * @param _worldGroup Live world root that was cleared.
+   */
+  sceneDocumentClear(_worldGroup: THREE.Object3D): void {}
+
+  /**
    * Reads document-wide data before any object is created.
    *
    * @param _scene Scene file being read.
+   * @param _worldGroup Live world root the document is loaded into.
    */
-  sceneDocumentRead(_scene: SceneJSON): void {}
+  sceneDocumentRead(_scene: SceneJSON, _worldGroup: THREE.Object3D): void {}
 
   /**
    * Copies this feature's data of one object onto a duplicate that was built

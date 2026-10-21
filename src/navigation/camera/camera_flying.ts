@@ -29,6 +29,8 @@ export class CameraFlying {
   private mouseSensitivity: number;
   private panTarget: THREE.Vector3;
   private panDistance: number;
+  private altMiddleDragDollyEnabled: boolean;
+  private altMiddleDragDollyInverted: boolean;
   private isDisposed: boolean;
   private isEnabled: boolean;
   private holdsPointerLock: boolean;
@@ -79,6 +81,8 @@ export class CameraFlying {
     this.mouseSensitivity = 0.002;
     this.panTarget = new THREE.Vector3();
     this.panDistance = 1;
+    this.altMiddleDragDollyEnabled = false;
+    this.altMiddleDragDollyInverted = false;
     this.scratchLocalForward = new THREE.Vector3();
     this.scratchWorldForward = new THREE.Vector3();
     this.scratchWorldRight = new THREE.Vector3();
@@ -279,7 +283,9 @@ export class CameraFlying {
     if (this.isRotating) {
       this.handleRotation(event.movementX, event.movementY);
     }
-    if (this.isPanning) {
+    if (this.isPanning && this.altMiddleDragDollyApplies(event)) {
+      this.handleDolly(event.movementY);
+    } else if (this.isPanning) {
       this.handlePan(event.movementX, event.movementY);
     }
   }
@@ -557,5 +563,39 @@ export class CameraFlying {
    */
   setMoveSpeed(speed: number): void {
     this.moveSpeed = Math.max(1, Math.min(20, speed));
+  }
+
+  /**
+   * Configures whether Alt + middle mouse drag moves the camera along its view
+   * direction instead of panning.
+   *
+   * @param enabled True when Alt + middle drag dollies the camera.
+   * @param inverted True when dragging up moves the camera backward.
+   */
+  setAltMiddleDragDolly(enabled: boolean, inverted: boolean): void {
+    this.altMiddleDragDollyEnabled = enabled;
+    this.altMiddleDragDollyInverted = inverted;
+  }
+
+  /**
+   * Returns whether a pan drag event should dolly the camera instead.
+   *
+   * @param event Pointer move event carrying the Alt modifier state.
+   * @returns True when Alt + middle drag dolly is enabled and Alt is held.
+   */
+  private altMiddleDragDollyApplies(event: PointerEvent): boolean {
+    return this.altMiddleDragDollyEnabled && event.altKey;
+  }
+
+  /**
+   * Moves the camera along its view direction from vertical drag movement.
+   *
+   * @param deltaY Vertical mouse movement in CSS pixels; dragging up is
+   *   negative.
+   */
+  private handleDolly(deltaY: number): void {
+    const direction = this.altMiddleDragDollyInverted ? 1 : -1;
+    const scale = this.panDistance * 0.002;
+    this.camera.position.addScaledVector(this.getForward(), direction * deltaY * scale);
   }
 }

@@ -15,15 +15,14 @@ export function disposeLayoutOwnedResources(parts: {
   outlinerPanel?: { dispose: () => void } | null;
   toolbar?: { dispose: () => void } | null;
   statusBar?: { dispose: () => void } | null;
-  uvEditor?: { dispose: () => void } | null;
-  textureBrowserController?: { dispose: () => void } | null;
-  textureBrowser?: { dispose: () => void } | null;
+  shellPanels?: { dispose: () => void } | null;
   toolsPalette?: { dispose: () => void } | null;
   toolsPaletteController?: { dispose: () => void } | null;
   settingsDialog?: { dispose: () => void } | null;
   settingsApplicator?: { dispose: () => void } | null;
   aboutDialog?: { dispose: () => void } | null;
   cadRulerSystem?: { dispose: () => void } | null;
+  layerSystem?: { dispose: () => void } | null;
 }): void {
   parts.faceExtrusionController?.dispose();
   parts.selectionVisualController?.dispose();
@@ -36,13 +35,12 @@ export function disposeLayoutOwnedResources(parts: {
   parts.outlinerPanel?.dispose();
   parts.toolbar?.dispose();
   parts.statusBar?.dispose();
-  parts.uvEditor?.dispose();
-  parts.textureBrowserController?.dispose();
-  parts.textureBrowser?.dispose();
+  parts.shellPanels?.dispose();
   parts.toolsPalette?.dispose();
   parts.toolsPaletteController?.dispose();
   parts.settingsDialog?.dispose();
   parts.settingsApplicator?.dispose();
   parts.aboutDialog?.dispose();
   parts.cadRulerSystem?.dispose();
+  parts.layerSystem?.dispose();
 }

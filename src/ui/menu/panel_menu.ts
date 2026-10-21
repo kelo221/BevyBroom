@@ -10,6 +10,8 @@ import {
   applyMenuItemEnabledState,
   applyMenuItemHoverState,
   styleMenuActionRow,
+  styleMenuCheck,
+  styleMenuIcon,
   styleMenuLabel,
   styleMenuPanel,
   styleMenuSeparator,
@@ -17,6 +19,7 @@ import {
   styleMenuSubmenuCaret,
 } from './menu_styles.js';
 import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js';
+import { ICON_SVG_DEFAULT_SIZE_PX, iconSvgElementCreate } from '@/ui/icons/icon_svg.js';
 
 /** Bound action or submenu row with its live entry definition. */
 interface BoundMenuRow {
@@ -25,6 +28,8 @@ interface BoundMenuRow {
   /** Wrapper used for submenu parents so the flyout is not inside the button. */
   rowHost: HTMLElement;
   shortcutElement: HTMLElement | null;
+  /** Check mark slot of checkable action rows. */
+  checkElement: HTMLElement | null;
   submenuPanel: PanelMenu | null;
 }
 
@@ -344,8 +349,9 @@ export class PanelMenu {
    * @returns Row button element.
    */
   private createActionRow(entry: ToolbarMenuAction): HTMLButtonElement {
-    const button = this.createBaseRowButton(entry.label);
+    const button = this.createBaseRowButton(entry);
     applyMenuItemTooltip(button, entry.tooltip);
+    const checkElement = this.checkSlotPrepend(button, entry);
     const shortcutElement = this.appendShortcutSlot(button);
     this.bindActionActivation(button, entry);
     this.bindActionRowHover(button);
@@ -354,9 +360,43 @@ export class PanelMenu {
       button,
       rowHost: button,
       shortcutElement,
+      checkElement,
       submenuPanel: null,
     });
     return button;
+  }
+
+  /**
+   * Puts a check mark slot in front of the label of a checkable action.
+   *
+   * @param button Action row button.
+   * @param entry Action definition.
+   * @returns Check slot, or null when the action is not checkable.
+   */
+  private checkSlotPrepend(button: HTMLButtonElement, entry: ToolbarMenuAction): HTMLElement | null {
+    if (!entry.isChecked) {
+      return null;
+    }
+    const check = this.ownerDocument.createElement('span');
+    check.setAttribute('aria-hidden', 'true');
+    styleMenuCheck(check);
+    button.setAttribute('role', 'menuitemcheckbox');
+    button.prepend(check);
+    return check;
+  }
+
+  /**
+   * Shows or clears the check mark of a checkable row.
+   *
+   * @param row Bound row state.
+   */
+  private checkSlotRefresh(row: BoundMenuRow): void {
+    if (!row.checkElement || !isMenuAction(row.entry) || !row.entry.isChecked) {
+      return;
+    }
+    const isChecked = row.entry.isChecked();
+    row.checkElement.textContent = isChecked ? '✓' : '';
+    row.button.setAttribute('aria-checked', isChecked ? 'true' : 'false');
   }
 
   /**
@@ -371,7 +411,7 @@ export class PanelMenu {
     host.classList.add('editor-toolbar-dropdown-submenu-host');
     host.style.position = 'relative';
     host.style.width = '100%';
-    const button = this.createBaseRowButton(entry.label);
+    const button = this.createBaseRowButton(entry);
     applyMenuItemTooltip(button, entry.tooltip);
     button.classList.add('editor-toolbar-dropdown-item-has-submenu');
     button.setAttribute('aria-haspopup', 'menu');
@@ -386,6 +426,7 @@ export class PanelMenu {
       button,
       rowHost: host,
       shortcutElement: null,
+      checkElement: null,
       submenuPanel,
     });
     return host;
@@ -397,7 +438,7 @@ export class PanelMenu {
    * @param label Visible left-side label text.
    * @returns Styled button with label span.
    */
-  private createBaseRowButton(label: string): HTMLButtonElement {
+  private createBaseRowButton(entry: ToolbarMenuAction | ToolbarMenuSubmenu): HTMLButtonElement {
     const button = this.ownerDocument.createElement('button');
     button.classList.add('editor-toolbar-dropdown-item');
     button.type = 'button';
@@ -405,10 +446,26 @@ export class PanelMenu {
     styleMenuActionRow(button);
     const labelElement = this.ownerDocument.createElement('span');
     labelElement.classList.add('editor-toolbar-dropdown-label');
-    labelElement.textContent = label;
     styleMenuLabel(labelElement);
+    this.rowIconAppend(labelElement, entry);
+    labelElement.appendChild(this.ownerDocument.createTextNode(entry.label));
     button.appendChild(labelElement);
     return button;
+  }
+
+  /**
+   * Appends the entry's icon in front of the label text when it has one.
+   *
+   * @param labelElement Label span of the row.
+   * @param entry Action or submenu definition.
+   */
+  private rowIconAppend(labelElement: HTMLElement, entry: ToolbarMenuAction | ToolbarMenuSubmenu): void {
+    if (entry.icon === undefined) {
+      return;
+    }
+    const icon = iconSvgElementCreate(this.ownerDocument, entry.icon, ICON_SVG_DEFAULT_SIZE_PX, entry.iconColor);
+    styleMenuIcon(icon);
+    labelElement.appendChild(icon);
   }
 
   /**
@@ -612,6 +669,7 @@ export class PanelMenu {
     if (isMenuAction(row.entry) && row.shortcutElement) {
       this.refreshShortcutLabel(row.shortcutElement, row.entry);
     }
+    this.checkSlotRefresh(row);
     row.submenuPanel?.refresh();
   }
 

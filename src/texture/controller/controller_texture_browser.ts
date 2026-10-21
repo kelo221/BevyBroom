@@ -1,4 +1,4 @@
-import { TextureBrowser } from '@/texture/ui/browser/texture_browser.js';
+import type { MaterialBrowserView } from '@/texture/ui/material_browser/material_browser_view.js';
 import { TextureLibrary } from '@/texture/library/texture_library.js';
 import { FolderTextureScanner } from '@/texture/library/folder_texture_scanner.js';
 import {
@@ -27,7 +27,7 @@ export type TextureBrowserSelectionCallback = (entry: TextureBrowserEntry | null
 
 /** Dependencies for the texture browser controller. */
 export interface TextureBrowserControllerDependencies {
-  browser: TextureBrowser;
+  browser: MaterialBrowserView;
   library?: TextureLibrary;
   scanner?: FolderTextureScanner;
   directoryAccess?: LocalDirectoryAccess;
@@ -35,7 +35,7 @@ export interface TextureBrowserControllerDependencies {
 
 /** Coordinates folder open, library updates, and browser UI refresh. */
 export class ControllerTextureBrowser {
-  private browser: TextureBrowser;
+  private browser: MaterialBrowserView;
   private library: TextureLibrary;
   private scanner: FolderTextureScanner;
   private directoryAccess: LocalDirectoryAccess;

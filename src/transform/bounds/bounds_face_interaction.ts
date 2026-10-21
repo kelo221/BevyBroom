@@ -1,17 +1,7 @@
 import * as THREE from 'three';
 import { BoundsFace } from '@/types/bounds_face.js';
-import {
-  getBoundsFaceHalfExtent,
-  getBoundsFaceLocalNormal,
-  type DataOrientedBounds,
-} from './builder_oriented_bounds.js';
+import { type DataOrientedBounds } from './builder_oriented_bounds.js';
 import { getCadViewPlaneAxes, type CadLocalAxis, type CadViewPlane } from '@/rulers/view/cad_view_plane.js';
-
-/**
- * Fraction of each face half-extent treated as the resize rim. Hits inside the
- * remaining center region start a face-plane move instead.
- */
-export const BOUNDS_FACE_RESIZE_EDGE_BAND_RATIO = 0.3;
 
 /**
  * Exterior-only pick band for 2D silhouette edges as a fraction of the larger
@@ -25,31 +15,6 @@ export const BOUNDS_SILHOUETTE_EXTERIOR_MIN_BAND = 0.05;
 
 /** Maximum exterior band so large boxes do not get a huge resize rim. */
 export const BOUNDS_SILHOUETTE_EXTERIOR_MAX_BAND = 0.12;
-
-/** Interaction mode chosen from a face pick location. */
-export type BoundsFaceInteractionMode = 'move' | 'resize';
-
-/**
- * Chooses move vs resize from where the pointer hit the face. Center of the
- * face moves the selection; near the rim resizes that side. No modifier key.
- *
- * @param hitPoint World-space hit on the face.
- * @param bounds Current oriented bounds.
- * @param face Hit face.
- * @param edgeBandRatio Rim thickness as a fraction of face half-size (0–0.5).
- * @returns Interaction mode for this press.
- */
-export function resolveBoundsFaceInteractionMode(
-  hitPoint: THREE.Vector3,
-  bounds: DataOrientedBounds,
-  face: BoundsFace,
-  edgeBandRatio: number = BOUNDS_FACE_RESIZE_EDGE_BAND_RATIO,
-): BoundsFaceInteractionMode {
-  if (isBoundsFaceHitNearEdge(hitPoint, bounds, face, edgeBandRatio)) {
-    return 'resize';
-  }
-  return 'move';
-}
 
 /**
  * Picks a one-sided resize face from a world point on the 2D silhouette of the
@@ -202,79 +167,4 @@ function negativeFaceForAxis(axis: CadLocalAxis): BoundsFace {
   if (axis === 0) return BoundsFace.NEG_X;
   if (axis === 1) return BoundsFace.NEG_Y;
   return BoundsFace.NEG_Z;
-}
-
-/**
- * Returns true when a face hit lies in the outer rim used for one-sided resize.
- *
- * @param hitPoint World-space hit on the face.
- * @param bounds Current oriented bounds.
- * @param face Hit face.
- * @param edgeBandRatio Rim thickness as a fraction of face half-size (0–0.5).
- * @returns True when the hit is near a face edge.
- */
-export function isBoundsFaceHitNearEdge(
-  hitPoint: THREE.Vector3,
-  bounds: DataOrientedBounds,
-  face: BoundsFace,
-  edgeBandRatio: number = BOUNDS_FACE_RESIZE_EDGE_BAND_RATIO,
-): boolean {
-  const band = clampEdgeBandRatio(edgeBandRatio);
-  const faceAxes = getFaceTangentHalfExtents(bounds.halfExtents, face);
-  if (faceAxes.halfU <= 1e-8 || faceAxes.halfV <= 1e-8) return true;
-  const local = hitPoint.clone().sub(bounds.center).applyQuaternion(bounds.quaternion.clone().invert());
-  const faceCenterLocal = getBoundsFaceLocalNormal(face).multiplyScalar(
-    getBoundsFaceHalfExtent(bounds.halfExtents, face),
-  );
-  const onFace = local.sub(faceCenterLocal);
-  const u = Math.abs(onFace.dot(faceAxes.axisU));
-  const v = Math.abs(onFace.dot(faceAxes.axisV));
-  const edgeU = faceAxes.halfU * (1 - band);
-  const edgeV = faceAxes.halfV * (1 - band);
-  return u >= edgeU || v >= edgeV;
-}
-
-/**
- * Clamps the edge-band ratio to a usable range.
- *
- * @param edgeBandRatio Requested ratio.
- * @returns Clamped ratio.
- */
-function clampEdgeBandRatio(edgeBandRatio: number): number {
-  return Math.min(0.49, Math.max(0.05, edgeBandRatio));
-}
-
-/**
- * Returns unit tangents and half-sizes for the two axes spanning a bounds face.
- *
- * @param halfExtents OBB half extents.
- * @param face Face whose tangent plane is needed.
- * @returns Face-local U/V axes and half extents.
- */
-function getFaceTangentHalfExtents(
-  halfExtents: THREE.Vector3,
-  face: BoundsFace,
-): { axisU: THREE.Vector3; axisV: THREE.Vector3; halfU: number; halfV: number } {
-  if (face === BoundsFace.POS_X || face === BoundsFace.NEG_X) {
-    return {
-      axisU: new THREE.Vector3(0, 0, 1),
-      axisV: new THREE.Vector3(0, 1, 0),
-      halfU: halfExtents.z,
-      halfV: halfExtents.y,
-    };
-  }
-  if (face === BoundsFace.POS_Y || face === BoundsFace.NEG_Y) {
-    return {
-      axisU: new THREE.Vector3(1, 0, 0),
-      axisV: new THREE.Vector3(0, 0, 1),
-      halfU: halfExtents.x,
-      halfV: halfExtents.z,
-    };
-  }
-  return {
-    axisU: new THREE.Vector3(1, 0, 0),
-    axisV: new THREE.Vector3(0, 1, 0),
-    halfU: halfExtents.x,
-    halfV: halfExtents.y,
-  };
 }

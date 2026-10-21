@@ -70,12 +70,26 @@ export class ObjectDataContributorRegistry {
   }
 
   /**
+   * Lets every contributor forget document-wide data of a cleared world.
+   *
+   * @param worldGroup Live world root that was cleared.
+   */
+  static sceneDocumentClear(worldGroup: THREE.Object3D): void {
+    ObjectDataContributorRegistry.contributors
+      .list()
+      .forEach((contributor) => contributor.sceneDocumentClear(worldGroup));
+  }
+
+  /**
    * Lets every contributor read document-wide data before objects are created.
    *
    * @param scene Scene file being read.
+   * @param worldGroup Live world root the document is loaded into.
    */
-  static sceneDocumentRead(scene: SceneJSON): void {
-    ObjectDataContributorRegistry.contributors.list().forEach((contributor) => contributor.sceneDocumentRead(scene));
+  static sceneDocumentRead(scene: SceneJSON, worldGroup: THREE.Object3D): void {
+    ObjectDataContributorRegistry.contributors
+      .list()
+      .forEach((contributor) => contributor.sceneDocumentRead(scene, worldGroup));
   }
 
   /**

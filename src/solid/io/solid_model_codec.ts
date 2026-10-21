@@ -16,6 +16,11 @@ import {
 } from '@/texture/uv/face_texture_mapping.js';
 import { isResultMesh } from '@/solid/model/solid_model_keys.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
+import {
+  solidSerializedTransformAssignFromMatrix,
+  solidSerializedTransformSpaceChange,
+  type SolidSerializedTransform,
+} from '@/solid/io/solid_model_codec_transform.js';
 
 /** Serializable snapshot of a solid brush instance. */
 export interface SerializedSolidBrush {
@@ -102,8 +107,7 @@ export class SolidModelCodec {
    * @returns Serialized solid model payload.
    */
   static encode(model: SolidModel): SerializedSolidModel {
-    model.syncBrushesFromScene();
-    model.syncAuthoredMappingsFromResultMesh();
+    this.encodePrepare(model);
     const payload: SerializedSolidModel = {
       brushes: model.getBrushes().map((brush) => this.encodeBrush(brush)),
     };
@@ -143,6 +147,185 @@ export class SolidModelCodec {
       model.rebuild(true);
     }
     return model;
+  }
+
+  /**
+   * Encodes brush meshes and solid CSG groups of one model. The transform of
+   * each given node is written in world space so the nodes can be decoded into
+   * any model; nested children keep transforms local to their group.
+   *
+   * @param model Solid model owning the nodes.
+   * @param nodes Brush meshes and solid CSG groups of the model, in the order
+   *   they are written; other objects are skipped.
+   * @returns Brushes under the nodes and one hierarchy entry per node.
+   */
+  static encodeNodesWorldSpace(model: SolidModel, nodes: readonly THREE.Object3D[]): SerializedSolidModel {
+    this.encodePrepare(model);
+    const brushes: SerializedSolidBrush[] = [];
+    const hierarchy: SerializedSolidTreeNode[] = [];
+    for (const node of nodes) {
+      this.encodeNodeWorldSpaceAppend(model, node, brushes, hierarchy);
+    }
+    return { brushes, hierarchy };
+  }
+
+  /**
+   * Adds brushes and solid CSG groups to an existing model after its current
+   * root children, whose order stays unchanged. Top-level node transforms are
+   * read as world space and converted into the model root's space. Brush ids
+   * are used as given, so callers pass fresh ids. The model is rebuilt for the
+   * new brushes only.
+   *
+   * @param model Solid model receiving the nodes.
+   * @param data Brushes and their hierarchy; without a hierarchy every brush is
+   *   a top-level node.
+   * @returns Created top-level brush meshes and groups in hierarchy order.
+   */
+  static decodeNodesInto(model: SolidModel, data: SerializedSolidModel): THREE.Object3D[] {
+    const localized = this.nodesLocalizeToModel(model, data);
+    const existingChildren = model.root.children.slice();
+    const brushIds = this.brushesDecodeInto(model, localized.brushes);
+    this.childrenOrderRestore(model.root, existingChildren);
+    const brushMeshById = this.buildBrushMeshMap(model);
+    const created = this.nodesHierarchyRead(localized)
+      .map((node) => this.attachHierarchyNode(model.root, node, brushMeshById))
+      .filter((object): object is THREE.Object3D => object !== null);
+    model.syncBrushOrderFromScene();
+    model.markBrushesDirty(brushIds);
+    model.rebuild();
+    return created;
+  }
+
+  /**
+   * Syncs brush transforms and authored mappings from the scene before
+   * encoding.
+   *
+   * @param model Solid model about to be encoded.
+   */
+  private static encodePrepare(model: SolidModel): void {
+    model.syncBrushesFromScene();
+    model.syncAuthoredMappingsFromResultMesh();
+  }
+
+  /**
+   * Encodes one node with its brushes and writes its world transform onto the
+   * node's own serialized transform.
+   *
+   * @param model Solid model owning the node.
+   * @param node Brush mesh or solid CSG group.
+   * @param brushes Accumulator for serialized brushes.
+   * @param hierarchy Accumulator for top-level tree nodes.
+   */
+  private static encodeNodeWorldSpaceAppend(
+    model: SolidModel,
+    node: THREE.Object3D,
+    brushes: SerializedSolidBrush[],
+    hierarchy: SerializedSolidTreeNode[],
+  ): void {
+    const treeNode = this.encodeHierarchyChild(node);
+    if (!treeNode) return;
+    const nodeBrushes = this.encodeBrushesUnder(model, node);
+    node.updateWorldMatrix(true, false);
+    const ownTransform =
+      treeNode.kind === 'group' ? treeNode : nodeBrushes.find((brush) => brush.id === treeNode.brushId);
+    if (ownTransform) {
+      solidSerializedTransformAssignFromMatrix(ownTransform, node.matrixWorld);
+    }
+    brushes.push(...nodeBrushes);
+    hierarchy.push(treeNode);
+  }
+
+  /**
+   * Encodes every registered brush at or under a scene node in scene order.
+   *
+   * @param model Solid model owning the brushes.
+   * @param node Scene node to scan.
+   * @returns Serialized brushes.
+   */
+  private static encodeBrushesUnder(model: SolidModel, node: THREE.Object3D): SerializedSolidBrush[] {
+    const brushes: SerializedSolidBrush[] = [];
+    node.traverse((object) => {
+      const instance = SolidBrushVisual.isBrushObject(object) ? model.findBrushByMesh(object) : undefined;
+      if (instance) brushes.push(this.encodeBrush(instance));
+    });
+    return brushes;
+  }
+
+  /**
+   * Copies node data and converts top-level node transforms from world space
+   * into the space of a model's root.
+   *
+   * @param model Solid model receiving the nodes.
+   * @param data Nodes with world-space top-level transforms.
+   * @returns Independent copy with root-space top-level transforms.
+   */
+  private static nodesLocalizeToModel(model: SolidModel, data: SerializedSolidModel): SerializedSolidModel {
+    const copy = JSON.parse(JSON.stringify(data)) as SerializedSolidModel;
+    model.root.updateWorldMatrix(true, false);
+    const worldToRoot = model.root.matrixWorld.clone().invert();
+    this.topLevelTransformsRead(copy).forEach((transform) =>
+      solidSerializedTransformSpaceChange(transform, worldToRoot),
+    );
+    return copy;
+  }
+
+  /**
+   * Returns the stored transforms of the top-level nodes of node data: group
+   * nodes themselves and, for brush leaves, their serialized brushes.
+   *
+   * @param data Node data.
+   * @returns Live references to the top-level transforms.
+   */
+  static topLevelTransformsRead(data: SerializedSolidModel): SolidSerializedTransform[] {
+    const brushById = new Map(data.brushes.map((brush) => [brush.id, brush] as const));
+    return this.nodesHierarchyRead(data)
+      .map((node) => (node.kind === 'group' ? node : brushById.get(node.brushId)))
+      .filter((transform): transform is SerializedSolidTreeGroupNode | SerializedSolidBrush => transform !== undefined);
+  }
+
+  /**
+   * Returns the top-level tree nodes of node data, treating every brush as a
+   * top-level node when no hierarchy is stored.
+   *
+   * @param data Node data.
+   * @returns Top-level tree nodes.
+   */
+  private static nodesHierarchyRead(data: SerializedSolidModel): SerializedSolidTreeNode[] {
+    return data.hierarchy ?? data.brushes.map((brush) => ({ kind: 'brush', brushId: brush.id }));
+  }
+
+  /**
+   * Decodes brushes and registers them on a model with preview meshes, marking
+   * nothing for rebuild yet.
+   *
+   * @param model Solid model receiving the brushes.
+   * @param brushes Serialized brushes.
+   * @returns Ids of the registered brushes.
+   */
+  private static brushesDecodeInto(model: SolidModel, brushes: readonly SerializedSolidBrush[]): string[] {
+    const brushIds: string[] = [];
+    for (const brushData of brushes) {
+      const instance = this.decodeBrush(brushData);
+      hierarchyNameAllocator.noteExistingName(instance.name);
+      model.insertBrushInstance(instance, model.getBrushCount(), 2, undefined, false);
+      brushIds.push(instance.id);
+    }
+    return brushIds;
+  }
+
+  /**
+   * Puts the given children back in their saved order at the front of a
+   * parent's child list; children not in the saved list follow in their current
+   * order.
+   *
+   * @param parent Parent whose children are reordered.
+   * @param savedOrder Children in the order to restore.
+   */
+  private static childrenOrderRestore(parent: THREE.Object3D, savedOrder: readonly THREE.Object3D[]): void {
+    const saved = new Set(savedOrder);
+    const restored = savedOrder.filter((child) => child.parent === parent);
+    const added = parent.children.filter((child) => !saved.has(child));
+    parent.children.splice(0, parent.children.length, ...restored, ...added);
   }
 
   /**
@@ -256,17 +439,18 @@ export class SolidModelCodec {
    * @param parent Solid root or solid CSG group.
    * @param node Serialized node.
    * @param brushMeshById Brush meshes by id.
+   * @returns The attached brush mesh or created group, or null when the brush
+   *   is missing.
    */
   private static attachHierarchyNode(
     parent: THREE.Object3D,
     node: SerializedSolidTreeNode,
     brushMeshById: Map<string, THREE.Mesh>,
-  ): void {
+  ): THREE.Object3D | null {
     if (node.kind === 'brush') {
-      this.attachBrushNode(parent, node.brushId, brushMeshById);
-      return;
+      return this.attachBrushNode(parent, node.brushId, brushMeshById);
     }
-    this.attachGroupNode(parent, node, brushMeshById);
+    return this.attachGroupNode(parent, node, brushMeshById);
   }
 
   /**
@@ -275,15 +459,17 @@ export class SolidModelCodec {
    * @param parent Parent object.
    * @param brushId Brush id.
    * @param brushMeshById Brush meshes by id.
+   * @returns The reparented mesh, or null when no mesh has the id.
    */
   private static attachBrushNode(
     parent: THREE.Object3D,
     brushId: string,
     brushMeshById: Map<string, THREE.Mesh>,
-  ): void {
+  ): THREE.Mesh | null {
     const mesh = brushMeshById.get(brushId);
-    if (!mesh) return;
+    if (!mesh) return null;
     parent.add(mesh);
+    return mesh;
   }
 
   /**
@@ -292,12 +478,13 @@ export class SolidModelCodec {
    * @param parent Parent object.
    * @param node Serialized group node.
    * @param brushMeshById Brush meshes by id.
+   * @returns The created group.
    */
   private static attachGroupNode(
     parent: THREE.Object3D,
     node: SerializedSolidTreeGroupNode,
     brushMeshById: Map<string, THREE.Mesh>,
-  ): void {
+  ): THREE.Group {
     const group = new THREE.Group();
     group.name = node.name || 'Group';
     hierarchyNameAllocator.noteExistingName(group.name);
@@ -309,6 +496,7 @@ export class SolidModelCodec {
     for (const child of node.children) {
       this.attachHierarchyNode(group, child, brushMeshById);
     }
+    return group;
   }
 
   /**

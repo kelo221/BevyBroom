@@ -111,4 +111,6 @@ export const Theme = Object.freeze({
   viewportToolbarBorder: 'rgba(255, 255, 255, 0.06)',
   viewportToolbarSeparator: 'rgba(255, 255, 255, 0.12)',
   viewportToolbarButtonHover: 'rgba(255, 255, 255, 0.08)',
+  /** Frame drawn around the viewport pane under the pointer. */
+  viewportFocusBorderColor: '#3e70cd',
 });

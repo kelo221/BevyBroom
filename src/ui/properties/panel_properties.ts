@@ -14,7 +14,12 @@ import {
   SolidBrushPropertyHandlers,
 } from './panel_properties_solid_brush_section.js';
 import { PanelPropertiesColorSession } from './panel_properties_color_session.js';
+import { PanelPropertiesChrome } from './panel_properties_chrome.js';
+import { PanelPropertiesMaterialSection } from './panel_properties_material_section.js';
 import { InputNumeric } from '@/ui/input/input_numeric.js';
+import { hexToRgb } from '@/utils/utils_color.js';
+import { entityScaleAbsorbCommandWrap } from '@/entity/commands/command_entity_scale_absorb.js';
+import { entityScaleAbsorbsAll } from '@/entity/scale/entity_scale_absorb.js';
 import {
   panelPropertiesAreObjectPositionsUnchanged,
   panelPropertiesAreObjectRotationsUnchanged,
@@ -46,7 +51,9 @@ export class PanelProperties {
   private positionInputs: Map<string, InputNumeric>;
   private rotationInputs: Map<string, InputNumeric>;
   private scaleInputs: Map<string, InputNumeric>;
-  private colorInput: HTMLInputElement | null;
+  private scaleSection: HTMLElement | null;
+  private readonly chrome: PanelPropertiesChrome;
+  private readonly materialSection: PanelPropertiesMaterialSection;
   private commandStack: CommandStack | null;
   private textureLock: TextureLockSettings | null;
   private isDisposed: boolean;
@@ -74,24 +81,18 @@ export class PanelProperties {
     this.positionInputs = new Map();
     this.rotationInputs = new Map();
     this.scaleInputs = new Map();
-    this.colorInput = null;
+    this.scaleSection = null;
+    this.chrome = new PanelPropertiesChrome();
     this.commandStack = null;
     this.textureLock = null;
     this.isDisposed = false;
     this.sections = [];
     this.colorSession = new PanelPropertiesColorSession();
+    this.materialSection = new PanelPropertiesMaterialSection(this.chrome, this.colorSession, () =>
+      this.getEditableBoundObjects(),
+    );
     this.afterTransformCommit = null;
-    this.solidBrushSection = new PanelPropertiesSolidBrushSection(
-      this.theme,
-      () => this.createSectionContainer(),
-      (title) => this.createSectionHeader(title),
-      (hex) => this.hexToRgb(hex),
-    );
-    this.solidBrushSection.setEditableBrushMeshProvider(() =>
-      this.getEditableBoundObjects().filter(
-        (object): object is THREE.Mesh => object instanceof THREE.Mesh && SolidBrushVisual.isBrushObject(object),
-      ),
-    );
+    this.solidBrushSection = this.solidBrushSectionCreate();
     this.applyContainerStyles();
     this.createPositionSection();
     this.createRotationSection();
@@ -100,6 +101,27 @@ export class PanelProperties {
     this.mountSolidBrushSection();
     container.appendChild(this.container);
     this.bindSelectionChanges();
+  }
+
+  /**
+   * Creates the solid brush section, editing the bound brush meshes that are
+   * not locked.
+   *
+   * @returns The solid brush section.
+   */
+  private solidBrushSectionCreate(): PanelPropertiesSolidBrushSection {
+    const section = new PanelPropertiesSolidBrushSection(
+      this.theme,
+      () => this.chrome.createSectionContainer(),
+      (title) => this.chrome.createSectionHeader(title),
+      hexToRgb,
+    );
+    section.setEditableBrushMeshProvider(() =>
+      this.getEditableBoundObjects().filter(
+        (object): object is THREE.Mesh => object instanceof THREE.Mesh && SolidBrushVisual.isBrushObject(object),
+      ),
+    );
+    return section;
   }
 
   /**
@@ -199,6 +221,19 @@ export class PanelProperties {
       this.solidBrushSection.updateFromObjects([]);
       return;
     }
+    this.transformInputsWrite(objects);
+    this.materialSection.updateFromObjects(objects);
+    this.scaleSectionVisibilityWrite(objects);
+    this.solidBrushSection.updateFromObjects(objects);
+  }
+
+  /**
+   * Writes the position, rotation and scale inputs from the objects, showing
+   * dashes for mixed fields.
+   *
+   * @param objects Objects in the current selection.
+   */
+  private transformInputsWrite(objects: readonly THREE.Object3D[]): void {
     this.writeVectorInputs(
       this.positionInputs,
       objects.map((object) => object.position),
@@ -214,8 +249,18 @@ export class PanelProperties {
       objects.map((object) => object.scale),
       2,
     );
-    this.updateColorFromObjects(objects);
-    this.solidBrushSection.updateFromObjects(objects);
+  }
+
+  /**
+   * Hides the Scale section when every object turns scale edits into its
+   * settings, such as lights whose scale changes their radius.
+   *
+   * @param objects Objects in the current selection.
+   */
+  private scaleSectionVisibilityWrite(objects: readonly THREE.Object3D[]): void {
+    if (this.scaleSection) {
+      this.scaleSection.style.display = entityScaleAbsorbsAll(objects) ? 'none' : 'block';
+    }
   }
 
   /** Disposes the panel and removes it from the DOM. */
@@ -426,7 +471,7 @@ export class PanelProperties {
       return;
     }
     this.prepareBoundContentMeshesForTextureOps();
-    this.pushOrExecute(new CommandTransformScaleSet(editable, scales));
+    this.pushOrExecute(entityScaleAbsorbCommandWrap(new CommandTransformScaleSet(editable, scales), editable));
     this.applyBoundContentTexturePolicy(false, true);
     this.commitTransformSideEffects(editable);
   }
@@ -564,8 +609,8 @@ export class PanelProperties {
     this.container.style.display = 'flex';
     this.container.style.flexDirection = 'column';
     this.container.style.overflow = 'hidden';
-    this.container.style.background = this.hexToRgb(Theme.propertiesPanelBackground);
-    this.container.style.borderLeft = `2px solid ${this.hexToRgb(Theme.separatorColor)}`;
+    this.container.style.background = hexToRgb(Theme.propertiesPanelBackground);
+    this.container.style.borderLeft = `2px solid ${hexToRgb(Theme.separatorColor)}`;
     this.container.style.width = '200px';
     this.container.style.minWidth = '200px';
     this.container.style.userSelect = 'none';
@@ -612,6 +657,7 @@ export class PanelProperties {
       ],
       this.scaleInputs,
     );
+    this.scaleSection = section;
     this.sections.push(section);
     this.container.appendChild(section);
   }
@@ -626,14 +672,9 @@ export class PanelProperties {
     return '#' + hex.toString(16).padStart(6, '0');
   }
 
-  /** Creates the Material color section for mesh color editing. */
+  /** Mounts the Material color section for mesh color editing. */
   private createMaterialSection(): void {
-    const section = this.createSectionContainer();
-    section.appendChild(this.createSectionHeader('Material'));
-    const content = document.createElement('div');
-    content.style.padding = '6px 8px';
-    content.appendChild(this.createColorPickerRow());
-    section.appendChild(content);
+    const section = this.materialSection.getElement();
     this.sections.push(section);
     this.container.appendChild(section);
   }
@@ -646,144 +687,6 @@ export class PanelProperties {
   }
 
   /**
-   * Builds the color label and picker row for the material section.
-   *
-   * @returns Row element containing the color control.
-   */
-  private createColorPickerRow(): HTMLElement {
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.alignItems = 'center';
-    row.style.gap = '8px';
-    row.appendChild(this.createColorLabel());
-    this.colorInput = this.createColorInput();
-    row.appendChild(this.colorInput);
-    return row;
-  }
-
-  /**
-   * Creates the "Color" label for the material section.
-   *
-   * @returns Styled label element.
-   */
-  private createColorLabel(): HTMLElement {
-    const label = document.createElement('span');
-    label.textContent = 'Color';
-    label.style.color = this.theme.buttonTextColor;
-    label.style.fontFamily = 'monospace';
-    label.style.fontSize = '12px';
-    return label;
-  }
-
-  /**
-   * Creates the color input and binds edit/finalize listeners.
-   *
-   * @returns Configured color input element.
-   */
-  private createColorInput(): HTMLInputElement {
-    const colorInput = document.createElement('input');
-    colorInput.type = 'color';
-    colorInput.value = '#ffffff';
-    colorInput.style.width = '48px';
-    colorInput.style.height = '24px';
-    colorInput.style.border = 'none';
-    colorInput.style.background = 'transparent';
-    colorInput.style.cursor = 'pointer';
-    colorInput.addEventListener('input', () => this.onColorPickerValueEdited());
-    colorInput.addEventListener('change', () => this.onColorPickerValueEdited());
-    colorInput.addEventListener('blur', () => this.colorSession.finalize());
-    return colorInput;
-  }
-
-  /**
-   * Updates the color picker from selected mesh materials.
-   *
-   * @param objects Selected objects.
-   */
-  private updateColorFromObjects(objects: THREE.Object3D[]): void {
-    if (!this.colorInput) return;
-    const colors = this.collectMeshColors(objects);
-    if (colors.length === 0) {
-      this.colorInput.value = '#ffffff';
-      this.colorInput.style.opacity = '1';
-      return;
-    }
-    if (this.areColorsShared(colors)) {
-      this.colorInput.value = `#${colors[0]!.toString(16).padStart(6, '0')}`;
-      this.colorInput.style.opacity = '1';
-      return;
-    }
-    this.colorInput.value = '#ffffff';
-    this.colorInput.style.opacity = '0.55';
-  }
-
-  /**
-   * Collects material color hex values from mesh objects.
-   *
-   * @param objects Selected objects.
-   * @returns Color hex list.
-   */
-  private collectMeshColors(objects: THREE.Object3D[]): number[] {
-    const colors: number[] = [];
-    objects.forEach((object) => {
-      if (!(object instanceof THREE.Mesh)) return;
-      const material = object.material;
-      if (!material || Array.isArray(material) || !('color' in material)) return;
-      colors.push((material as THREE.MeshStandardMaterial).color.getHex());
-    });
-    return colors;
-  }
-
-  /**
-   * Returns whether all colors are identical.
-   *
-   * @param colors Hex colors.
-   * @returns True when shared.
-   */
-  private areColorsShared(colors: number[]): boolean {
-    if (colors.length === 0) return true;
-    return colors.every((color) => color === colors[0]);
-  }
-
-  /** Applies a color picker value with a single coalesced undo command. */
-  private onColorPickerValueEdited(): void {
-    if (!this.colorInput || this.boundObjects.length === 0) return;
-    const colorHex = this.parseColorInputHex(this.colorInput.value);
-    if (colorHex === null) return;
-    this.colorSession.onColorEdited(colorHex, this.collectColorEditableMeshes(this.getEditableBoundObjects()));
-    this.colorInput.style.opacity = '1';
-  }
-
-  /**
-   * Parses a CSS #rrggbb color string into a hex number.
-   *
-   * @param value The color input value (e.g. "#ff0000").
-   * @returns Hex number, or null when invalid.
-   */
-  private parseColorInputHex(value: string): number | null {
-    const trimmed = value.trim();
-    if (!/^#[0-9a-fA-F]{6}$/.test(trimmed)) return null;
-    return parseInt(trimmed.slice(1), 16);
-  }
-
-  /**
-   * Collects bound meshes that expose a writable material color.
-   *
-   * @param objects Selected objects.
-   * @returns Editable meshes.
-   */
-  private collectColorEditableMeshes(objects: THREE.Object3D[]): THREE.Mesh[] {
-    const meshes: THREE.Mesh[] = [];
-    objects.forEach((object) => {
-      if (!(object instanceof THREE.Mesh)) return;
-      const material = object.material;
-      if (!material || Array.isArray(material) || !('color' in material)) return;
-      meshes.push(object);
-    });
-    return meshes;
-  }
-
-  /**
    * Creates a collapsible section with axis inputs.
    *
    * @param title The section title.
@@ -792,43 +695,13 @@ export class PanelProperties {
    * @returns The created section element.
    */
   private createSection(title: string, axes: AxisInputConfig[], inputMap: Map<string, InputNumeric>): HTMLElement {
-    const section = this.createSectionContainer();
-    const header = this.createSectionHeader(title);
+    const section = this.chrome.createSectionContainer();
+    const header = this.chrome.createSectionHeader(title);
     section.appendChild(header);
     const content = this.createSectionContent(axes, inputMap);
     section.appendChild(content);
-    this.bindSectionToggle(header, content);
+    this.chrome.sectionToggleBind(header, content);
     return section;
-  }
-
-  /**
-   * Creates the outer container element for a section.
-   *
-   * @returns The styled section container element.
-   */
-  private createSectionContainer(): HTMLElement {
-    const section = document.createElement('div');
-    section.style.padding = '8px';
-    section.style.borderBottom = `1px solid ${this.hexToRgb(Theme.separatorColor)}`;
-    return section;
-  }
-
-  /**
-   * Creates the clickable header element for a section.
-   *
-   * @param title The text to display in the header.
-   * @returns The styled header element.
-   */
-  private createSectionHeader(title: string): HTMLElement {
-    const header = document.createElement('div');
-    header.textContent = title;
-    header.style.fontWeight = 'bold';
-    header.style.fontSize = '11px';
-    header.style.fontFamily = 'monospace';
-    header.style.color = Theme.buttonTextColor;
-    header.style.marginBottom = '6px';
-    header.style.cursor = 'pointer';
-    return header;
   }
 
   /**
@@ -953,10 +826,8 @@ export class PanelProperties {
     this.clearNumericInputMap(this.positionInputs);
     this.clearNumericInputMap(this.rotationInputs);
     this.clearNumericInputMap(this.scaleInputs);
-    if (this.colorInput) {
-      this.colorInput.value = '#ffffff';
-      this.colorInput.style.opacity = '1';
-    }
+    this.materialSection.clear();
+    this.scaleSectionVisibilityWrite([]);
   }
 
   /**
@@ -968,32 +839,5 @@ export class PanelProperties {
     for (const field of inputMap.values()) {
       field.setText('');
     }
-  }
-
-  /**
-   * Toggles section visibility on header click.
-   *
-   * @param header The header element.
-   * @param content The content element to toggle.
-   */
-  private bindSectionToggle(header: HTMLElement, content: HTMLElement): void {
-    let collapsed = false;
-    header.addEventListener('click', () => {
-      collapsed = !collapsed;
-      content.style.display = collapsed ? 'none' : 'block';
-    });
-  }
-
-  /**
-   * Converts a hex color number to an RGB CSS string.
-   *
-   * @param hex The hex color value.
-   * @returns An RGB CSS color string.
-   */
-  private hexToRgb(hex: number): string {
-    const r = (hex >> 16) & 255;
-    const g = (hex >> 8) & 255;
-    const b = hex & 255;
-    return `rgb(${r}, ${g}, ${b})`;
   }
 }

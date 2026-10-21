@@ -1,11 +1,13 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import {
+  applyFlyingCameraMouseSettings,
   applyFlyingCameraMoveSpeed,
   applyLayoutTextureFilterSettings,
   runEditorFactoryResetAndReload,
 } from '@/layout/setup/layout_settings_system.js';
 import type { Viewport3D } from '@/viewports/core/viewport_3d.js';
 import type { ViewSettings } from '@/settings/store/settings_types.js';
+import { createDefaultMouseSettings } from '@/settings/store/settings_defaults.js';
 import {
   allowEditorStorageWritesForTests,
   areEditorStorageWritesSuppressed,
@@ -27,6 +29,21 @@ describe('layout_settings_system orthographic-only safety', () => {
     const viewport = { setFlyingCameraMoveSpeed } as unknown as Viewport3D;
     applyFlyingCameraMoveSpeed(viewport, 2.25);
     expect(setFlyingCameraMoveSpeed).toHaveBeenCalledWith(2.25);
+  });
+
+  it('forwards the Alt + middle drag mouse settings to the perspective viewport', () => {
+    const setFlyingCameraMoveSpeed = vi.fn();
+    const setFlyingCameraAltMiddleDragDolly = vi.fn();
+    const viewport = { setFlyingCameraMoveSpeed, setFlyingCameraAltMiddleDragDolly } as unknown as Viewport3D;
+    const mouse = {
+      ...createDefaultMouseSettings(),
+      altMiddleMouseDragMovesCamera: true,
+      invertAltMiddleMouseDragZAxis: true,
+    };
+    applyFlyingCameraMouseSettings(viewport, mouse);
+    expect(setFlyingCameraMoveSpeed).toHaveBeenCalledWith(mouse.moveSpeed);
+    expect(setFlyingCameraAltMiddleDragDolly).toHaveBeenCalledWith(true, true);
+    expect(() => applyFlyingCameraMouseSettings(null, mouse)).not.toThrow();
   });
 
   it('does not throw when applying texture filters without a renderer host', () => {

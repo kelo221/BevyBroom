@@ -55,7 +55,7 @@ function assignUniqueHierarchyNamesUnderSolidRoot(solidRoot: THREE.Object3D): vo
  *
  * @param payload Encoded solid model payload mutated in place.
  */
-function remapSerializedSolidBrushIdentities(payload: SerializedSolidModel): void {
+export function remapSerializedSolidBrushIdentities(payload: SerializedSolidModel): void {
   const identityMap = buildBrushIdentityMap(payload);
   applyBrushIdentityMapToBrushes(payload, identityMap);
   if (payload.hierarchy) {

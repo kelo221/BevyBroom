@@ -1,5 +1,6 @@
 import { Theme } from '@/theme.js';
 import { inputNumericFormatWithMinimumDecimals } from '@/ui/input/input_numeric_parse.js';
+import { ConsoleLogForwarder } from '@/info_panel/console/console_log_forwarder.js';
 
 /**
  * Bottom status bar displaying editor state information. Shows undo/redo counts
@@ -19,14 +20,22 @@ export class StatusBar {
   private shadingModeText!: HTMLElement;
   private selectionModeText!: HTMLElement;
   private isDisposed: boolean;
+  private readonly consoleLogForwarder: ConsoleLogForwarder;
 
   /**
    * Creates a new status bar and appends it to the given container.
    *
    * @param container The parent DOM element to append the status bar into.
    * @param theme The theme containing color definitions.
+   * @param consoleLogForwarder Writes action and error messages to the console
+   *   log; defaults to one writing to the shared log.
    */
-  constructor(container: HTMLElement, theme: typeof Theme) {
+  constructor(
+    container: HTMLElement,
+    theme: typeof Theme,
+    consoleLogForwarder: ConsoleLogForwarder = new ConsoleLogForwarder(),
+  ) {
+    this.consoleLogForwarder = consoleLogForwarder;
     this.container = document.createElement('div');
     this.leftPanel = document.createElement('div');
     this.rightPanel = document.createElement('div');
@@ -164,11 +173,23 @@ export class StatusBar {
   }
 
   /**
-   * Updates the last action feedback message.
+   * Updates the last action feedback message and writes it to the console log.
    *
    * @param message The action message to display, or empty string to clear.
    */
   setLastAction(message: string): void {
+    if (this.isDisposed) return;
+    this.lastActionText.textContent = message;
+    this.consoleLogForwarder.messageForward('info', message);
+  }
+
+  /**
+   * Updates the last action feedback message without writing it to the console
+   * log, for live feedback that changes on every frame such as drag deltas.
+   *
+   * @param message The live message to display, or empty string to clear.
+   */
+  setLastActionTransient(message: string): void {
     if (this.isDisposed) return;
     this.lastActionText.textContent = message;
   }
@@ -184,12 +205,14 @@ export class StatusBar {
   }
 
   /**
-   * Updates the status bar with an error message.
+   * Updates the status bar with an error message and writes it to the console
+   * log as an error.
    *
    * @param message The error message to display.
    */
   setErrorText(message: string): void {
     if (this.isDisposed) return;
+    this.consoleLogForwarder.messageForward('error', message);
     this.lastActionText.textContent = message;
     this.lastActionText.style.color = '#ff4444';
     this.clearErrorColor();

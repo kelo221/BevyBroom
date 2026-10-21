@@ -75,7 +75,9 @@ export class EditorApiEntities {
     if (!owner || !current) {
       return failResult(`No ${kind} with id ${args.id}`);
     }
-    const next = this.settingsMerge(entityOwner, current, args.settings);
+    const next = entityOwner.definition.settingsFromUnknown(
+      entityOwner.definition.settingsPatch(current, args.settings ?? {}),
+    );
     if (!next) {
       return failResult(`Invalid ${kind} settings`);
     }

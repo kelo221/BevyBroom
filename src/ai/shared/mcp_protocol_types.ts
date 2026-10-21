@@ -76,7 +76,22 @@ export type McpToolName =
   | 'add_game_entity'
   | 'set_game_components'
   | 'read_data_asset'
-  | 'write_data_asset';
+  | 'write_data_asset'
+  | 'console_read'
+  | 'issues_list'
+  | 'get_main_window'
+  | 'set_main_window'
+  | 'copy_selection'
+  | 'paste_objects'
+  | 'list_layers'
+  | 'create_layer'
+  | 'remove_layer'
+  | 'rename_layer'
+  | 'set_current_layer'
+  | 'set_layer_flags'
+  | 'move_objects_to_layer'
+  | 'viewport_drag'
+  | 'viewport_click';
 
 /** JSON vector DTO used at the MCP / EditorApi boundary. */
 export interface McpVec3 {

@@ -14,7 +14,10 @@ The Perspective viewport uses a first-person fly camera.
 | Right mouse + `Q` / `E`   | Move down / up                           |
 | Right mouse + `Shift`     | Fly faster while using movement keys     |
 | Middle-mouse drag         | Pan across the view plane                |
+| Alt + middle-mouse drag   | Move forward / backward (optional)       |
 | Mouse wheel               | Move along the current viewing direction |
+
+Alt + middle-mouse drag moves the camera only when **Alt + middle mouse drag to move camera** is enabled under **Mouse Move** in **Settings > Mouse**. It is off by default, so Alt + middle-mouse drag pans like a plain middle-mouse drag. **Invert Z axis in Alt + middle mouse drag** reverses the direction.
 
 Fly and play movement use those physical key positions on every layout, including Colemak (W A R S) and AZERTY (Z Q S D). Command shortcuts still follow the typed letter.
 
@@ -26,11 +29,12 @@ Tool shortcuts such as `W`, `E`, `R`, `T`, and `A` are deliberately suppressed w
 
 The three orthographic views use simpler CAD-style navigation.
 
-| Input            | Result   |
-| ---------------- | -------- |
-| Right-mouse drag | Pan      |
-| Mouse wheel up   | Zoom in  |
-| Mouse wheel down | Zoom out |
+| Input             | Result   |
+| ----------------- | -------- |
+| Middle-mouse drag | Pan      |
+| Right-mouse drag  | Pan      |
+| Mouse wheel up    | Zoom in  |
+| Mouse wheel down  | Zoom out |
 
 These views stay aligned to a world plane:
 
@@ -47,6 +51,15 @@ Use framing whenever you become lost or a newly created object is not visible.
 - The Fit icon in a viewport header frames the selection in that individual view.
 
 If nothing is selected, a fit action may use the scene's available bounds or report that there is nothing suitable to frame.
+
+## Switch and maximize views
+
+Both shortcuts act on the view under the pointer:
+
+- `Space` switches that view to the next of Perspective, Top, Front, and Side and frames the selection in it.
+- `Ctrl+Space` maximizes that view; press it again to restore the previous pane layout.
+
+The same commands are in the **View** menu as **Cycle View** and **Maximize View**.
 
 ## A reliable editing rhythm
 
@@ -73,6 +86,7 @@ Open Settings and use the Mouse tab to adjust:
 - Fly movement speed.
 - Movement sensitivity.
 - Mouse-wheel inversion.
+- Alt + middle-mouse drag camera movement and its Z-axis inversion.
 - Optional alternate camera movement behaviors.
 
 If the camera feels wrong, adjust one category at a time. Start with look sensitivity, then movement speed, then inversion preferences.

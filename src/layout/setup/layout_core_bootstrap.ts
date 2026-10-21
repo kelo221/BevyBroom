@@ -19,6 +19,10 @@ import { TerrainGenerator } from '@/terrain/terrain_generator.js';
 import { DEFAULT_COMMAND_STACK_MAX_SIZE, DEFAULT_GRID_SNAP_INTERVAL } from '@/types/editor_config.js';
 import { PolicyEditorOverlay } from '@/tools/overlay/policy_editor_overlay.js';
 import { RegistryModalToolSession } from '@/tools/session/registry_modal_tool_session.js';
+import { EntityHandleSystem } from '@/entity/handles/entity_handle_system.js';
+import { EntitySelectionFollower } from '@/entity/selection/entity_selection_follower.js';
+import { LayerSystem } from '@/layer/layer_system.js';
+import type { LayerManager } from '@/layer/model/layer_manager.js';
 
 /** Core editor services created before the DOM shell exists. */
 export interface LayoutCoreSystems {
@@ -36,6 +40,10 @@ export interface LayoutCoreSystems {
   commandStack: CommandStack;
   transformHandler: HandlerTransform;
   componentTransformHandler: HandlerComponentTransform;
+  entityHandles: EntityHandleSystem;
+  entitySelectionFollower: EntitySelectionFollower;
+  layerSystem: LayerSystem;
+  layerManager: LayerManager;
   textureLock: TextureLockSettings;
   hierarchyReparentHandler: HandlerHierarchyReparent;
   clipPlaneTool: ToolClipPlane;
@@ -59,10 +67,13 @@ export function createLayoutCoreSystems(): LayoutCoreSystems {
   const snapBundle = createSnapAndTransformStack();
   const textureLock = new TextureLockSettings(true, false);
   snapBundle.transformHandler.setTextureLockSettings(textureLock);
+  const sceneRoot = createSceneRootServices(worldObject, snapBundle.commandStack);
   return {
     ...createRuntimeState(),
-    ...createSceneRootServices(worldObject, snapBundle.commandStack),
+    ...sceneRoot,
     ...snapBundle,
+    entityHandles: createEntityHandleSystem(worldObject, sceneRoot.selectionManager, snapBundle),
+    entitySelectionFollower: new EntitySelectionFollower(sceneRoot.selectionManager),
     textureLock,
     clipPlaneTool: new ToolClipPlane(),
     editorOverlayPolicy: new PolicyEditorOverlay(),
@@ -70,6 +81,28 @@ export function createLayoutCoreSystems(): LayoutCoreSystems {
     terrainGenerator: new TerrainGenerator(),
     userSnapEnabled: true,
   };
+}
+
+/**
+ * Creates the handles of selected entities, snapping with the grid snap and
+ * pushing finished drags onto the shared undo stack.
+ *
+ * @param worldObject Scene root group.
+ * @param selectionManager Object selection.
+ * @param snapBundle Snap and transform services.
+ * @returns Entity handle system.
+ */
+function createEntityHandleSystem(
+  worldObject: THREE.Group,
+  selectionManager: ManagerSelection,
+  snapBundle: Pick<LayoutCoreSystems, 'commandStack' | 'gridSnap'>,
+): EntityHandleSystem {
+  return new EntityHandleSystem({
+    worldObject,
+    selection: selectionManager,
+    commandStack: snapBundle.commandStack,
+    snap: snapBundle.gridSnap,
+  });
 }
 
 /**
@@ -92,7 +125,8 @@ function createRuntimeState(): Pick<
 }
 
 /**
- * Creates world root, selection, primitive tool, and hierarchy services.
+ * Creates world root, selection, layers, primitive tool, and hierarchy
+ * services.
  *
  * @param worldObject Scene root group.
  * @param commandStack Shared undo stack.
@@ -101,10 +135,17 @@ function createRuntimeState(): Pick<
 function createSceneRootServices(
   worldObject: THREE.Group,
   commandStack: CommandStack,
-): Pick<LayoutCoreSystems, 'worldObject' | 'selectionManager' | 'primitiveTool' | 'hierarchyReparentHandler'> {
+): Pick<
+  LayoutCoreSystems,
+  'worldObject' | 'selectionManager' | 'layerSystem' | 'layerManager' | 'primitiveTool' | 'hierarchyReparentHandler'
+> {
+  const selectionManager = new ManagerSelection();
+  const layerSystem = new LayerSystem(worldObject, selectionManager);
   return {
     worldObject,
-    selectionManager: new ManagerSelection(),
+    selectionManager,
+    layerSystem,
+    layerManager: layerSystem.layerManager,
     primitiveTool: new ToolPrimitiveCreation(worldObject),
     hierarchyReparentHandler: new HandlerHierarchyReparent(worldObject, commandStack),
   };

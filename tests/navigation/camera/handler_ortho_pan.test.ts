@@ -3,6 +3,43 @@ import * as THREE from 'three';
 import { HandlerOrthoPan } from '@/navigation/camera/handler_ortho_pan.js';
 import { managerPointerLock } from '@/input/manager_pointer_lock.js';
 
+/** Canvas, camera and handler used by one pan scenario. */
+interface OrthoPanRig {
+  canvas: HTMLCanvasElement;
+  camera: THREE.OrthographicCamera;
+  handler: HandlerOrthoPan;
+}
+
+/**
+ * Builds a sized canvas and a tilted orthographic camera with a pan handler.
+ *
+ * @returns Rig ready to receive pointer events.
+ */
+function orthoPanRigCreate(): OrthoPanRig {
+  const canvas = document.createElement('canvas');
+  Object.defineProperty(canvas, 'clientWidth', { value: 800, configurable: true });
+  Object.defineProperty(canvas, 'clientHeight', { value: 600, configurable: true });
+  const camera = new THREE.OrthographicCamera(-8, 8, 6, -6, 0.1, 1000);
+  camera.position.set(2, 30, 1);
+  camera.up.set(0, 0, -1);
+  camera.lookAt(new THREE.Vector3(2, 0, 1));
+  camera.updateMatrixWorld(true);
+  const handler = new HandlerOrthoPan(canvas, camera, vi.fn());
+  return { canvas, camera, handler };
+}
+
+/**
+ * Presses one button, drags diagonally and releases it.
+ *
+ * @param rig Rig whose canvas receives the events.
+ * @param button Mouse button index to drag with.
+ */
+function orthoPanDragApply(rig: OrthoPanRig, button: number): void {
+  rig.canvas.dispatchEvent(new PointerEvent('pointerdown', { button, pointerId: 1 }));
+  rig.canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 15, movementY: -7, pointerId: 1 }));
+  rig.canvas.dispatchEvent(new PointerEvent('pointerup', { button, pointerId: 1 }));
+}
+
 describe('OrthoPanHandler', () => {
   afterEach(() => {
     managerPointerLock.reset();
@@ -74,6 +111,64 @@ describe('OrthoPanHandler', () => {
     canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 2, pointerId: 1 }));
     canvas.dispatchEvent(new PointerEvent('pointerup', { button: 2, pointerId: 1 }));
     expect(exitLockSpy).toHaveBeenCalled();
+  });
+
+  it('pans along the camera right and up axes with a middle mouse drag', () => {
+    const rig = orthoPanRigCreate();
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(rig.camera.quaternion);
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(rig.camera.quaternion);
+    const before = rig.camera.position.clone();
+    rig.canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 1, pointerId: 1, cancelable: true }));
+    rig.canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 20, movementY: 10, pointerId: 1 }));
+    const delta = rig.camera.position.clone().sub(before);
+    expect(delta.dot(right)).toBeLessThan(-1e-4);
+    expect(delta.dot(up)).toBeGreaterThan(1e-4);
+    expect(rig.handler.isNavigating()).toBe(true);
+    rig.canvas.dispatchEvent(new PointerEvent('pointerup', { button: 1, pointerId: 1 }));
+    expect(rig.handler.isNavigating()).toBe(false);
+  });
+
+  it('moves the camera the same way for a middle drag and a right drag', () => {
+    const middleRig = orthoPanRigCreate();
+    const rightRig = orthoPanRigCreate();
+    const start = middleRig.camera.position.clone();
+    orthoPanDragApply(middleRig, 1);
+    orthoPanDragApply(rightRig, 2);
+    expect(middleRig.camera.position.distanceTo(start)).toBeGreaterThan(1e-4);
+    expect(middleRig.camera.position.distanceTo(rightRig.camera.position)).toBeLessThan(1e-9);
+  });
+
+  it('keeps panning until both pan buttons are released', () => {
+    const rig = orthoPanRigCreate();
+    rig.canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 1, pointerId: 1 }));
+    rig.canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 2, pointerId: 1 }));
+    rig.canvas.dispatchEvent(new PointerEvent('pointerup', { button: 1, pointerId: 1 }));
+    expect(rig.handler.isNavigating()).toBe(true);
+    rig.canvas.dispatchEvent(new PointerEvent('pointerup', { button: 2, pointerId: 1 }));
+    expect(rig.handler.isNavigating()).toBe(false);
+  });
+
+  it('stops a middle pan when the release arrives as a document mouseup', () => {
+    const rig = orthoPanRigCreate();
+    rig.canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 1, pointerId: 1 }));
+    document.dispatchEvent(new MouseEvent('mouseup', { button: 1 }));
+    expect(rig.handler.isNavigating()).toBe(false);
+  });
+
+  it('cancels the browser default for middle presses and middle clicks', () => {
+    const rig = orthoPanRigCreate();
+    const press = new PointerEvent('pointerdown', { button: 1, pointerId: 1, cancelable: true });
+    const click = new MouseEvent('auxclick', { button: 1, cancelable: true });
+    rig.canvas.dispatchEvent(press);
+    rig.canvas.dispatchEvent(click);
+    expect(press.defaultPrevented).toBe(true);
+    expect(click.defaultPrevented).toBe(true);
+  });
+
+  it('ignores left button presses', () => {
+    const rig = orthoPanRigCreate();
+    rig.canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 0, pointerId: 1 }));
+    expect(rig.handler.isNavigating()).toBe(false);
   });
 
   it('should stop panning when pointer lock is lost externally', () => {

@@ -7,6 +7,7 @@ import { EntityOwnerRegistry } from '@/entity/registry/entity_owner_registry.js'
 import { LightOwner } from '@/light/model/light_owner.js';
 import { PortalOwner } from '@/portal/model/portal_owner.js';
 import { RoomOwner } from '@/portal/model/room_owner.js';
+import type { IconName } from '@/ui/icons/icon_name.js';
 
 /** Settings of the test entity kind. */
 interface TestBeaconSettings {
@@ -60,6 +61,15 @@ class TestBeaconDefinition extends EntityDefinition<TestBeaconSettings> {
 
   /** Draws nothing. */
   visualsRefresh(): void {}
+
+  /**
+   * Returns the crosshairs icon.
+   *
+   * @returns Icon name.
+   */
+  iconName(): IconName {
+    return 'crosshairs';
+  }
 }
 
 /**

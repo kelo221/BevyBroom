@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { SolidBrush } from '@/solid/brush/solid_brush.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { SolidBrushEdgeMaterials, SOLID_BRUSH_EDGE_USERDATA_KEY } from './solid_brush_edge_materials.js';
+import { solidBoxSizeVectorResolve, type SolidBoxSize } from './solid_box_size.js';
 
 /** UserData key marking a mesh as a solid brush volume helper. */
 export const SOLID_BRUSH_USERDATA_KEY = 'isSolidBrush';
@@ -69,12 +70,13 @@ export class SolidBrushVisual {
    * Creates a box preview mesh sized to match a centered solid brush.
    *
    * @param name Display name.
-   * @param size Edge length of the cube brush.
+   * @param size Cube edge length, or per-axis edge lengths of the box brush.
    * @param operation CSG operation (affects preview tint).
    * @returns Configured mesh with decorative edges.
    */
-  static createBoxPreview(name: string, size: number, operation: SolidOperation): THREE.Mesh {
-    const geometry = new THREE.BoxGeometry(size, size, size);
+  static createBoxPreview(name: string, size: SolidBoxSize, operation: SolidOperation): THREE.Mesh {
+    const edges = solidBoxSizeVectorResolve(size);
+    const geometry = new THREE.BoxGeometry(edges.x, edges.y, edges.z);
     return this.finishPreviewMesh(name, geometry, operation);
   }
 

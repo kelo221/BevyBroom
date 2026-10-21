@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import { PreviewLinkController } from '@/preview/link/preview_link_controller.js';
 import { PreviewLinkTransportHttp } from '@/preview/link/preview_link_transport.js';
 import { PreviewLinkPointerTracker } from '@/preview/link/preview_link_pointer_tracker.js';
+import { PreviewLinkConsoleReporter } from '@/preview/link/preview_link_console_reporter.js';
 import type { PreviewCatalogLoadedCallback } from '@/preview/link/preview_link_catalog_channel.js';
 import { previewGeometryEncodeGlb } from '@/preview/geometry/preview_geometry_encoder_glb.js';
 import { PREVIEW_DEFAULT_ENDPOINT } from '@/preview/protocol/preview_protocol_types.js';
@@ -32,6 +33,7 @@ export class PreviewLinkService {
   private pointerTracker: PreviewLinkPointerTracker | null = null;
   private tickTimer: ReturnType<typeof setInterval> | null = null;
   private removeControllerListener: (() => void) | null = null;
+  private consoleReporter: PreviewLinkConsoleReporter | null = null;
 
   /**
    * Creates a disconnected service.
@@ -67,6 +69,7 @@ export class PreviewLinkService {
     this.disconnect();
     this.controller = this.controllerCreate();
     this.removeControllerListener = this.controller.changeListenerAdd(() => this.changeNotify());
+    this.consoleReporter = new PreviewLinkConsoleReporter(this.controller, this.endpointRead());
     this.pointerTracker = new PreviewLinkPointerTracker(window);
     this.tickTimer = setInterval(() => this.controller?.tick(), PREVIEW_TICK_INTERVAL_MILLISECONDS);
     this.controller.connect();
@@ -81,6 +84,8 @@ export class PreviewLinkService {
     this.pointerTracker?.dispose();
     this.pointerTracker = null;
     this.controller?.disconnect();
+    this.consoleReporter?.dispose();
+    this.consoleReporter = null;
     this.removeControllerListener?.();
     this.removeControllerListener = null;
     this.changeNotify();

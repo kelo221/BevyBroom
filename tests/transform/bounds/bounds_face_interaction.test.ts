@@ -1,47 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { BoundsFace } from '@/types/bounds_face.js';
-import {
-  isBoundsFaceHitNearEdge,
-  pickOrthographicSilhouetteEdgeFace,
-  resolveBoundsFaceInteractionMode,
-} from '@/transform/bounds/bounds_face_interaction.js';
+import { pickOrthographicSilhouetteEdgeFace } from '@/transform/bounds/bounds_face_interaction.js';
 import type { DataOrientedBounds } from '@/transform/bounds/builder_oriented_bounds.js';
-
-describe('bounds face interaction mode', () => {
-  const bounds = createUnitBounds();
-
-  it('treats the face center as a move interaction', () => {
-    const center = new THREE.Vector3(0, 0, 1);
-    expect(resolveBoundsFaceInteractionMode(center, bounds, BoundsFace.POS_Z)).toBe('move');
-    expect(isBoundsFaceHitNearEdge(center, bounds, BoundsFace.POS_Z)).toBe(false);
-  });
-
-  it('treats hits near a face rim as resize', () => {
-    const nearEdge = new THREE.Vector3(0.95, 0, 1);
-    expect(resolveBoundsFaceInteractionMode(nearEdge, bounds, BoundsFace.POS_Z)).toBe('resize');
-    expect(isBoundsFaceHitNearEdge(nearEdge, bounds, BoundsFace.POS_Z)).toBe(true);
-  });
-
-  it('treats hits near a face corner as resize', () => {
-    const nearCorner = new THREE.Vector3(0.9, 0.9, 1);
-    expect(resolveBoundsFaceInteractionMode(nearCorner, bounds, BoundsFace.POS_Z)).toBe('resize');
-  });
-
-  it('works for rotated bounds using world-space face points', () => {
-    const rotated: DataOrientedBounds = {
-      center: new THREE.Vector3(0, 0, 0),
-      quaternion: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2),
-      halfExtents: new THREE.Vector3(1, 1, 1),
-    };
-    const localCenter = new THREE.Vector3(1, 0, 0);
-    const worldCenter = localCenter.clone().applyQuaternion(rotated.quaternion).add(rotated.center);
-    expect(resolveBoundsFaceInteractionMode(worldCenter, rotated, BoundsFace.POS_X)).toBe('move');
-    const localRim = new THREE.Vector3(1, 0.95, 0);
-    const worldRim = localRim.clone().applyQuaternion(rotated.quaternion).add(rotated.center);
-    expect(resolveBoundsFaceInteractionMode(worldRim, rotated, BoundsFace.POS_X)).toBe('resize');
-  });
-});
 
 describe('orthographic silhouette edge pick', () => {
   const bounds = createUnitBounds();

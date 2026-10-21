@@ -1,12 +1,13 @@
 import type * as THREE from 'three';
 import type { CommandStack } from '@/commands/command_stack.js';
+import type { IconName } from '@/ui/icons/icon_name.js';
 
 /** Element factories that give inspector sections the panel's look. */
 export interface PanelPropertiesSectionChrome {
   /** Creates an empty section container. */
   createSectionContainer: () => HTMLElement;
-  /** Creates a section header with the given title. */
-  createSectionHeader: (title: string) => HTMLElement;
+  /** Creates a section header with the given title and optional icon. */
+  createSectionHeader: (title: string, iconName?: IconName) => HTMLElement;
 }
 
 /** Inspector section that shows and edits data of the selected objects. */

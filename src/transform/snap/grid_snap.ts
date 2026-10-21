@@ -301,7 +301,7 @@ export class GridSnap {
    * @param worldVector Source world vector.
    * @param targetLocal Destination local components.
    */
-  private worldVectorToLocal(worldVector: THREE.Vector3, targetLocal: THREE.Vector3): void {
+  worldVectorToLocal(worldVector: THREE.Vector3, targetLocal: THREE.Vector3): void {
     targetLocal.set(
       worldVector.dot(this.planeUAxis),
       worldVector.dot(this.planeNormal),
@@ -315,7 +315,7 @@ export class GridSnap {
    * @param localComponents Local X/Y/Z along U/normal/V.
    * @param targetWorld Destination world vector (written in place).
    */
-  private localToWorldVector(localComponents: THREE.Vector3, targetWorld: THREE.Vector3): void {
+  localToWorldVector(localComponents: THREE.Vector3, targetWorld: THREE.Vector3): void {
     targetWorld.set(0, 0, 0);
     targetWorld.addScaledVector(this.planeUAxis, localComponents.x);
     targetWorld.addScaledVector(this.planeNormal, localComponents.y);
@@ -328,7 +328,7 @@ export class GridSnap {
    * @param worldPosition Source world position.
    * @param targetLocal Destination local components.
    */
-  private worldPositionToLocal(worldPosition: THREE.Vector3, targetLocal: THREE.Vector3): void {
+  worldPositionToLocal(worldPosition: THREE.Vector3, targetLocal: THREE.Vector3): void {
     this.scratchOffset.copy(worldPosition).sub(this.planeOrigin);
     this.worldVectorToLocal(this.scratchOffset, targetLocal);
   }
@@ -339,7 +339,7 @@ export class GridSnap {
    * @param localComponents Local X/Y/Z along U/normal/V.
    * @param targetWorld Destination world position (written in place).
    */
-  private localToWorldPosition(localComponents: THREE.Vector3, targetWorld: THREE.Vector3): void {
+  localToWorldPosition(localComponents: THREE.Vector3, targetWorld: THREE.Vector3): void {
     this.localToWorldVector(localComponents, targetWorld);
     targetWorld.add(this.planeOrigin);
   }

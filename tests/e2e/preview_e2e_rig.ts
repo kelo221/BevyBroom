@@ -4,10 +4,7 @@ import { PreviewLinkTransportHttp } from '@/preview/link/preview_link_transport.
 import { previewGeometryEncodeGlb } from '@/preview/geometry/preview_geometry_encoder_glb.js';
 import { PREVIEW_METHOD, type PreviewBridgeStatus } from '@/preview/protocol/preview_protocol_types.js';
 import type { PreviewCatalogEntries } from '@/preview/catalog/preview_catalog_entries.js';
-import { previewE2eEntityRowsQuery } from './preview_e2e_game_query.js';
-
-/** Type path of the game's light component in Bevy's remote protocol. */
-const PREVIEW_E2E_LIGHT_COMPONENT = 'dynlight::light::component::DynamicLight';
+import { PREVIEW_E2E_DYNAMIC_LIGHT_COMPONENT, previewE2eEntityRowsQuery } from './preview_e2e_game_query.js';
 
 /** Type path of Bevy's transform component in the remote protocol. */
 const PREVIEW_E2E_TRANSFORM_COMPONENT = 'bevy_transform::components::transform::Transform';
@@ -197,7 +194,7 @@ export class PreviewE2eRig {
   private async gameLightPositionsRead(): Promise<THREE.Vector3[]> {
     const rows = await previewE2eEntityRowsQuery(this.transport, [
       PREVIEW_E2E_TRANSFORM_COMPONENT,
-      PREVIEW_E2E_LIGHT_COMPONENT,
+      PREVIEW_E2E_DYNAMIC_LIGHT_COMPONENT,
     ]);
     return rows.map((row) => {
       const transform = row.components[PREVIEW_E2E_TRANSFORM_COMPONENT] as { translation?: number[] } | undefined;

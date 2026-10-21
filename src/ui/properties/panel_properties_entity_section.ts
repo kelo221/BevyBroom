@@ -1,9 +1,12 @@
 import type * as THREE from 'three';
 import type { CommandStack } from '@/commands/command_stack.js';
 import { CommandEntitySettingsSet } from '@/entity/commands/command_entity_settings_set.js';
+import { entityIconOf } from '@/entity/icon/entity_icon.js';
 import type { EntityOwner } from '@/entity/model/entity_owner.js';
 import type { InputNumeric } from '@/ui/input/input_numeric.js';
 import { InputSelect, type InputSelectChoice } from '@/ui/input/input_select.js';
+import { panelPropertiesSectionHeaderIconWrite } from '@/ui/properties/panel_properties_chrome.js';
+import { hexToRgb } from '@/utils/utils_color.js';
 import { panelPropertiesRowCreate, type PanelPropertiesRowField } from '@/ui/properties/panel_properties_row.js';
 
 /** Select value for an enabled boolean. */
@@ -19,6 +22,7 @@ const PANEL_PROPERTIES_ENTITY_SWITCH_OFF = 'off';
  */
 export abstract class PanelPropertiesEntitySection<TSettings extends object> {
   protected readonly section: HTMLElement;
+  private readonly header: HTMLElement;
   protected boundOwners: THREE.Object3D[];
   private readonly entityOwner: EntityOwner<TSettings>;
   private commandStack: CommandStack | null;
@@ -42,7 +46,8 @@ export abstract class PanelPropertiesEntitySection<TSettings extends object> {
     this.boundOwners = [];
     this.section = createSectionContainer();
     this.section.style.display = 'none';
-    this.section.appendChild(createSectionHeader(title));
+    this.header = createSectionHeader(title);
+    this.section.appendChild(this.header);
   }
 
   /** Fills every field from the bound owners. */
@@ -77,7 +82,17 @@ export abstract class PanelPropertiesEntitySection<TSettings extends object> {
     const onlyOwners = objects.length > 0 && this.boundOwners.length === objects.length;
     this.section.style.display = onlyOwners ? 'block' : 'none';
     if (onlyOwners) {
+      this.headerIconWrite();
       this.fieldsWrite();
+    }
+  }
+
+  /** Shows the icon of the first bound owner in the section header. */
+  private headerIconWrite(): void {
+    const firstOwner = this.boundOwners[0];
+    const entityIcon = firstOwner ? entityIconOf(firstOwner) : null;
+    if (entityIcon) {
+      panelPropertiesSectionHeaderIconWrite(this.header, entityIcon.iconName, hexToRgb(entityIcon.colorHex));
     }
   }
 

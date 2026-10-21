@@ -22,6 +22,8 @@ export const UiStackLayers = Object.freeze({
   menuSubmenu: 10001,
   /** Right-click context menus. */
   contextMenu: 10050,
+  /** Ghost images that follow the pointer while dragging items out of panels. */
+  dragGhost: 10100,
   /** About / settings style modal backdrops. */
   modal: 12000,
   /** Blocking confirm dialogs. */

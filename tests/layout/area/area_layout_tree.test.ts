@@ -18,6 +18,7 @@ import {
   DEFAULT_AREA_IDS,
 } from '@/layout/area/area_layout_presets.js';
 import { ViewportKind } from '@/viewports/core/viewport_kind.js';
+import { areaGridPaneAt, areaGridRectOf } from './area_layout_test_grid.js';
 
 /**
  * Sums leaf rect areas; unit square should sum to ~1.
@@ -77,15 +78,18 @@ describe('area_layout_tree', () => {
 
   it('should join full-edge non-sibling neighbors in the quad layout', () => {
     const root = createQuadLayout();
-    // top (upper-left) and side (lower-left) share a full vertical column edge.
-    const joined = joinAreaLeaves(root, DEFAULT_AREA_IDS.top, DEFAULT_AREA_IDS.side);
+    const upperLeft = areaGridPaneAt(root, 'left', 'upper');
+    const upperRight = areaGridPaneAt(root, 'right', 'upper');
+    const firstRect = areaGridRectOf(root, upperLeft);
+    const secondRect = areaGridRectOf(root, upperRight);
+    const joined = joinAreaLeaves(root, upperLeft, upperRight);
     expect(joined).not.toBeNull();
-    expect(countAreaLeaves(joined!)).toBe(3);
-    const placements = listAreaLeafPlacements(joined!);
-    const survivor = placements.find((item) => item.payload.areaId === DEFAULT_AREA_IDS.top)!;
-    expect(survivor.rect.height).toBeCloseTo(1, 6);
-    expect(survivor.rect.width).toBeCloseTo(0.5, 6);
-    expect(totalCoveredArea(joined!)).toBeCloseTo(1, 6);
+    if (joined === null) return;
+    expect(countAreaLeaves(joined)).toBe(3);
+    const survivor = areaGridRectOf(joined, upperLeft);
+    expect(survivor.width).toBeCloseTo(firstRect.width + secondRect.width, 6);
+    expect(survivor.height).toBeCloseTo(firstRect.height, 6);
+    expect(totalCoveredArea(joined)).toBeCloseTo(1, 6);
   });
 
   it('should refuse to join when only one leaf remains', () => {
@@ -96,18 +100,19 @@ describe('area_layout_tree', () => {
 
   it('should resize non-sibling neighbors without moving unrelated panes', () => {
     const root = createQuadLayout();
-    const before = listAreaLeafPlacements(root);
-    const frontBefore = before.find((item) => item.payload.areaId === DEFAULT_AREA_IDS.front)!;
-    const resized = setSplitRatioBetweenAreas(root, DEFAULT_AREA_IDS.top, DEFAULT_AREA_IDS.side, 0.25);
-    const placements = listAreaLeafPlacements(resized);
-    const top = placements.find((item) => item.payload.areaId === DEFAULT_AREA_IDS.top)!;
-    const side = placements.find((item) => item.payload.areaId === DEFAULT_AREA_IDS.side)!;
-    const frontAfter = placements.find((item) => item.payload.areaId === DEFAULT_AREA_IDS.front)!;
-    expect(top.rect.height).toBeCloseTo(0.25, 6);
-    expect(side.rect.y).toBeCloseTo(0.25, 6);
-    expect(side.rect.height).toBeCloseTo(0.75, 6);
-    expect(frontAfter.rect.height).toBeCloseTo(frontBefore.rect.height, 6);
-    expect(frontAfter.rect.y).toBeCloseTo(frontBefore.rect.y, 6);
+    const upperLeft = areaGridPaneAt(root, 'left', 'upper');
+    const upperRight = areaGridPaneAt(root, 'right', 'upper');
+    const lowerLeft = areaGridPaneAt(root, 'left', 'lower');
+    const unrelatedBefore = areaGridRectOf(root, lowerLeft);
+    const resized = setSplitRatioBetweenAreas(root, upperLeft, upperRight, 0.25);
+    const first = areaGridRectOf(resized, upperLeft);
+    const second = areaGridRectOf(resized, upperRight);
+    const unrelatedAfter = areaGridRectOf(resized, lowerLeft);
+    expect(first.width).toBeCloseTo(0.25, 6);
+    expect(second.x).toBeCloseTo(0.25, 6);
+    expect(second.width).toBeCloseTo(0.75, 6);
+    expect(unrelatedAfter.width).toBeCloseTo(unrelatedBefore.width, 6);
+    expect(unrelatedAfter.x).toBeCloseTo(unrelatedBefore.x, 6);
   });
 
   it('keeps the middle|right T-junction border under the pointer without resizing the left pane', () => {

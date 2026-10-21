@@ -13,7 +13,7 @@ import type { ObjectApplyTransformKind } from '@/types/object_apply_transform_ki
 import type { ViewportEditor } from '@/viewports/core/viewport_editor.js';
 import type { PolicyEditorOverlay } from '@/tools/overlay/policy_editor_overlay.js';
 import type { RegistryModalToolSession } from '@/tools/session/registry_modal_tool_session.js';
-import { resolveFloatingPanelAnchorElement } from '@/ui/floating_panel/panel_floating_viewport_anchor.js';
+import type { ViewportToolChromeDocking } from '@/tools/chrome/host/viewport_tool_chrome_docking.js';
 import * as THREE from 'three';
 
 /** Dependencies for per-viewport tool chrome and clip plane wiring. */
@@ -24,8 +24,13 @@ export interface ClipToolsSetupDeps {
   gridSnap: GridSnap;
   clipPlaneTool: ToolClipPlane;
   faceExtrusionController: ControllerFaceExtrusion;
-  toolbarContainer: HTMLElement;
-  getViewports: () => readonly ViewportEditor[];
+  /** Parents of the main window's docked tool buttons and tool options. */
+  toolChromeDocking: ViewportToolChromeDocking;
+  /**
+   * Viewports that show their own floating tool chrome, such as detached
+   * windows.
+   */
+  getFloatingChromeViewports: () => readonly ViewportEditor[];
   keyboardShortcutHandler: HandlerKeyboardShortcut;
   showStatusMessage: (message: string) => void;
   syncPrimitivesToViewports: () => void;
@@ -34,7 +39,7 @@ export interface ClipToolsSetupDeps {
   onToolStateChanged: () => void;
   onClipCancel: () => void;
   onTransformMode: (mode: TransformMode) => void;
-  onOpenUvEditor: () => void;
+  faceInspectorReveal: () => void;
   onExtrudeFaces: () => void;
   editorOverlayPolicy: PolicyEditorOverlay;
   modalToolSessionRegistry: RegistryModalToolSession;
@@ -74,8 +79,9 @@ export interface ClipToolsSetupResult {
 }
 
 /**
- * Creates per-viewport tool chrome (rail + options bar), clip plane handler,
- * and interaction-mode keyboard wiring.
+ * Creates the docked main window tool chrome, the floating tool chrome of
+ * detached viewports, the clip plane handler and interaction-mode keyboard
+ * wiring.
  *
  * @param deps Shared services and viewports for clip/tools setup.
  * @returns Created controller and clip handler.
@@ -84,15 +90,17 @@ export function setupClipToolsAndPalette(deps: ClipToolsSetupDeps): ClipToolsSet
   const clipPlaneHandler = createClipPlaneHandler(deps);
   const toolsPaletteController = createViewportToolChromeController(deps, clipPlaneHandler);
   wireClipPlaneKeyboardShortcuts(deps, clipPlaneHandler);
-  syncToolChromeToViewports(toolsPaletteController, deps.getViewports);
+  toolsPaletteController.dockedChromeAttach(deps.toolChromeDocking);
+  syncToolChromeToViewports(toolsPaletteController, deps.getFloatingChromeViewports);
   return { toolsPaletteController, clipPlaneHandler };
 }
 
 /**
- * Attaches tool chrome to every live viewport pane container.
+ * Attaches floating tool chrome to the pane container of every given viewport
+ * and removes it from panes no longer listed.
  *
  * @param controller Tool chrome controller.
- * @param getViewports Live editor viewports provider.
+ * @param getViewports Provider of the viewports that show floating chrome.
  */
 export function syncToolChromeToViewports(
   controller: ControllerViewportToolChrome,
@@ -146,7 +154,7 @@ function createViewportToolChromeController(
     modalToolSessionRegistry: deps.modalToolSessionRegistry,
     showStatusMessage: deps.showStatusMessage,
     onTransformMode: (mode) => deps.onTransformMode(mode),
-    onOpenUvEditor: () => deps.onOpenUvEditor(),
+    faceInspectorReveal: () => deps.faceInspectorReveal(),
     onExtrudeFaces: () => deps.onExtrudeFaces(),
     ...(deps.isEditorToolBusy !== undefined ? { isEditorToolBusy: deps.isEditorToolBusy } : {}),
     ...(deps.switchToClipTool !== undefined ? { switchToClipTool: deps.switchToClipTool } : {}),
@@ -209,48 +217,4 @@ export function cancelClipAndSelectObject(
 ): void {
   clipPlaneHandler?.cancel();
   toolsPaletteController?.selectTool(EditorToolId.OBJECT);
-}
-
-/** Floating panel surface needed to bind live viewport placement. */
-export interface FloatingPanelViewportBindable {
-  setDefaultAnchor: (anchor: HTMLElement | null) => void;
-  setDefaultAnchorResolver: (resolver: (() => HTMLElement | null) | null) => void;
-  repositionToDefaultAnchor: () => void;
-}
-
-/**
- * Binds a floating panel to live viewport placement rules (largest
- * perspective). Kept for UV editor and other floating panels.
- *
- * @param panel Floating panel with anchor APIs.
- * @param getViewports Live editor viewports provider.
- */
-export function bindFloatingPanelToViewports(
-  panel: Pick<FloatingPanelViewportBindable, 'setDefaultAnchor' | 'setDefaultAnchorResolver'>,
-  getViewports: () => readonly ViewportEditor[],
-): void {
-  const resolveAnchor = (): HTMLElement | null => resolveFloatingPanelAnchorElement(getViewports());
-  panel.setDefaultAnchorResolver(resolveAnchor);
-  panel.setDefaultAnchor(resolveAnchor());
-}
-
-/**
- * Re-resolves the anchor and repositions after pane geometry has been laid out.
- *
- * @param panel Visible floating panel.
- * @param getViewports Live editor viewports provider.
- */
-export function scheduleStartupFloatingPanelLayoutPass(
-  panel: FloatingPanelViewportBindable,
-  getViewports: () => readonly ViewportEditor[],
-): void {
-  const apply = () => {
-    bindFloatingPanelToViewports(panel, getViewports);
-    panel.repositionToDefaultAnchor();
-  };
-  if (typeof requestAnimationFrame !== 'function') {
-    apply();
-    return;
-  }
-  requestAnimationFrame(apply);
 }

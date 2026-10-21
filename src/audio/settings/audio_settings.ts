@@ -11,12 +11,12 @@ export interface AudioSettingsSnapshot {
 }
 
 /**
- * Returns default audio settings (enabled on).
+ * Returns default audio settings: audio off until the user turns it on.
  *
  * @returns Fresh default snapshot.
  */
 export function createDefaultAudioSettings(): AudioSettingsSnapshot {
-  return { enabled: true };
+  return { enabled: false };
 }
 
 /**
@@ -42,7 +42,7 @@ export function loadAudioSettings(storage: SettingsStorage): AudioSettingsSnapsh
 function parseAudioSettingsJson(raw: string): AudioSettingsSnapshot {
   try {
     const parsed = JSON.parse(raw) as Partial<AudioSettingsSnapshot>;
-    return { enabled: parsed.enabled !== false };
+    return typeof parsed.enabled === 'boolean' ? { enabled: parsed.enabled } : createDefaultAudioSettings();
   } catch {
     return createDefaultAudioSettings();
   }

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { findPickSurfaceAtClientPoint } from '@/utils/pointer_client_hit.js';
-import { ViewportLayoutCore } from './viewport_layout_core.js';
+import { ViewportLayoutShellWiring } from './viewport_layout_shell_wiring.js';
 import { createOutlinerShellActions, createToolbarShellActions } from '@/layout/setup/layout_shell_action_builders.js';
 import { buildLayoutShellActionSource } from '@/layout/setup/layout_shell_source.js';
 import { createShellSourceHostFromLayout } from '@/layout/setup/layout_manager_hosts.js';
@@ -8,8 +8,6 @@ import { onCadRulerTransformFeedback as handleCadRulerTransformFeedback } from '
 import { BridgeTransformInteraction } from '@/tools/bridge/bridge_transform_interaction.js';
 import { createAndRegisterKeyboardShortcuts } from '@/layout/setup/layout_keyboard_bindings.js';
 import { createLayoutToolEditorSystem } from '@/layout/setup/layout_tool_editor_setup.js';
-import { setupUvEditorPanel } from '@/texture/layout/layout_uv_editor_setup.js';
-import { setupTextureBrowserPanel } from '@/texture/layout/layout_texture_browser_setup.js';
 import { TransformSpace } from '@/types/transform_space.js';
 import { TransformMode } from '@/types/transform_mode.js';
 import { SelectionMode } from '@/types/selection_mode.js';
@@ -20,12 +18,8 @@ import {
   type ContextHelpersLayoutGizmo,
 } from '@/layout/setup/helpers_layout_gizmo.js';
 import { applyLayoutHistoryChange, handleLayoutSceneLoaded } from '@/layout/setup/layout_scene_io_actions.js';
-import {
-  LayoutViewportFileActions,
-  type LayoutViewportFileActionsContext,
-} from '@/layout/viewport/layout_viewport_file_actions.js';
 import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
-import { applyTransformModeUi } from '@/layout/setup/layout_transform_mode_ui.js';
+import { LayoutTransformModeSwitcher } from '@/layout/setup/layout_transform_mode_switcher.js';
 import { CommandTerrainCreate } from '@/tools/creation/commands/command_terrain_create.js';
 import {
   refreshSceneVisualsAfterMutation,
@@ -38,35 +32,11 @@ import type { Viewport2D } from '@/viewports/core/viewport_2d.js';
 import { disposeLayoutOwnedResources } from '@/layout/setup/helpers_layout_dispose.js';
 import { buildLayoutTestComponents } from '@/layout/setup/layout_testing_accessors.js';
 import { filterUnlockedObjects } from '@/utils/object_lock.js';
-import {
-  computeComponentTransformPivot,
-  expandComponentSelectionToTransformVertices,
-} from '@/edit/transform/component_transform_selection.js';
 import { EditorOverlayId } from '@/tools/overlay/editor_overlay_id.js';
 
 /** Builds the UI shell and dynamic viewports and wires their layout systems. */
-export class ManagerViewportLayout extends ViewportLayoutCore {
-  private readonly fileActions = new LayoutViewportFileActions(() => this.fileActionsContextRead());
-
-  /**
-   * Returns the current editor parts the File menu actions use.
-   *
-   * @returns File actions context.
-   */
-  private fileActionsContextRead(): LayoutViewportFileActionsContext {
-    return {
-      toolbarContainer: this.toolbarContainer,
-      sceneIOHandler: this.sceneIOHandler,
-      worldObject: this.worldObject,
-      commandStack: this.commandStack,
-      statusBar: this.statusBar,
-      solidModelController: this.solidModelController,
-      settingsStore: this.settingsStore,
-      ensureSettingsSystem: () => this.ensureSettingsSystem(),
-      onSceneLoaded: () => this.onSceneLoaded(),
-      refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
-    };
-  }
+export class ManagerViewportLayout extends ViewportLayoutShellWiring {
+  private transformModeSwitcher: LayoutTransformModeSwitcher | null = null;
 
   /**
    * Builds outliner action callbacks for the shell builder.
@@ -134,8 +104,7 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
         refreshAfterWorldMutation: () => layout.refreshAfterWorldMutation(),
         showStatusMessage: (message) => layout.showStatusMessage(message),
         onSelectionChanged: () => layout.onSelectionChanged(),
-        onToggleUvEditor: () => layout.onToggleUvEditor(),
-        onToggleTextureBrowser: () => layout.onToggleTextureBrowser(),
+        faceInspectorReveal: () => layout.faceInspectorReveal(),
         onToggleSolidModelPanel: () => layout.onToggleSolidModelPanel(),
         onToggleSettingsDialog: () => layout.onToggleSettingsDialog(),
         onOpenDocumentation: () => layout.onOpenDocumentation(),
@@ -163,7 +132,6 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
         onExportGlb: () => layout.fileActions.exportGlb(),
         onExportObj: () => layout.fileActions.exportObj(),
         onExportFbx: () => layout.fileActions.exportFbx(),
-        getShortcutLabel: (action) => layout.fileActions.shortcutLabelRead(action),
       },
     );
   }
@@ -212,13 +180,13 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
       worldObject: this.worldObject,
       getUserSnapEnabled: () => this.userSnapEnabled,
       isTransformSpaceLocal: () => this.transformSpace === TransformSpace.Local,
-      onDuplicateSelectedForDrag: () => this.objectActionHandler.onDuplicateSelected(),
       onAfterTransformCommit: (meshes) => this.refreshVisualsAfterTransformCommit(meshes),
       onTransformsLive: (meshes) => this.solidModelController?.onTransformsLive(meshes),
       isInteractionEnabled: () => this.areObjectTransformWidgetsAllowed(),
       onRulerTransformFeedback: (meshes, phase) => this.onCadRulerTransformFeedback(meshes, phase),
       onPermanentGizmoHandleDragBegan: () => this.toolEditorSystem?.editorWindow.onPermanentGizmoHandleDragBegan(),
       onPermanentGizmoHandleDragEnded: () => this.toolEditorSystem?.editorWindow.onPermanentGizmoHandleDragEnded(),
+      entityHandles: this.entityHandles,
     });
     this.transformInteractionBridge.setViewportProbe((clientX, clientY) =>
       this.findInteractiveViewportAtClientPoint(
@@ -332,6 +300,17 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
       getGridOrientationHandler: () => this.gridOrientationHandler ?? null,
       onPermanentGizmoHandleDragBegan: () => this.toolEditorSystem?.editorWindow.onPermanentGizmoHandleDragBegan(),
       onPermanentGizmoHandleDragEnded: () => this.toolEditorSystem?.editorWindow.onPermanentGizmoHandleDragEnded(),
+      objectDragHost: {
+        commandStack: this.commandStack,
+        worldObject: this.worldObject,
+        transformExecutor: this.transformExecutor,
+        helperScene: this.sharedWorldScene,
+        textureLockRead: () => this.textureLock,
+        solidModelControllerRead: () => this.solidModelController,
+        duplicateHierarchyObjects: (objects) => this.objectActionHandler.duplicateHierarchyObjects(objects),
+        isObjectEditingAllowed: () => this.areObjectTransformWidgetsAllowed(),
+        refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
+      },
     });
     this.keyboardShortcutHandler = createAndRegisterKeyboardShortcuts(
       this.inputManager,
@@ -354,12 +333,9 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
       () => this.settingsStore?.getKeyboardShortcutSettings() ?? createDefaultKeyboardShortcutSettings(),
     );
     this.toolEditorSystem.setNavigationBlocksActions(() => this.isEditorNavigationBlockingToolKeys());
-    this.toolEditorSystem.setGlobalKeyDownHandler((event) => {
-      if (this.playerSystem?.tryHandleGlobalKeyDown(event)) {
-        return true;
-      }
-      return this.keyboardShortcutHandler.handleGlobalKeyDown(event);
-    });
+    this.windowShortcutsRegister();
+    this.clipboardSystem = this.clipboardSystemCreate();
+    this.toolEditorSystem.setGlobalKeyDownHandler((event) => this.keyboardShortcutHandler.handleGlobalKeyDown(event));
     this.keyboardShortcutHandler.setOnToolEventRouterKeyDown((event) => this.toolEditorSystem!.handleKeyDown(event));
     this.transformHandler.setModalStatusTextCallback((text) => {
       if (text.length === 0) return;
@@ -443,83 +419,16 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
     return (this.getAllInteractiveViewports()[0] as Viewport3D | Viewport2D | undefined) ?? null;
   }
 
-  /** Creates the floating UV editor panel and controller. */
-  protected setupUvEditor(): void {
-    const result = setupUvEditorPanel({
-      selectionManager: this.selectionManager,
-      faceController: this.faceModeCoordinator.getFaceExtrusionController(),
-      commandStack: this.commandStack,
-      toolbarContainer: this.toolbarContainer,
-      getViewports: () => this.getAllLiveViewports(),
-      statusBar: this.statusBar,
-      afterSurfaceChange: () => this.refreshShadingAfterSurfaceEdit(),
-    });
-    this.uvEditor = result.uvEditor;
-    this.uvEditorController = result.uvEditorController;
-  }
-
-  /** Toggles the UV editor panel. */
-  protected onToggleUvEditor(): void {
-    this.uvEditor?.toggle();
-    if (this.uvEditor?.isOpen()) {
-      this.uvEditorController?.refreshFromSelection();
-      this.statusBar?.setLastAction('UV Editor opened');
-    }
-  }
-
-  /** Creates the floating texture browser, library wiring, and assignment. */
-  protected setupTextureBrowser(): void {
-    const result = setupTextureBrowserPanel({
-      selectionManager: this.selectionManager,
-      faceController: this.faceModeCoordinator.getFaceExtrusionController(),
-      commandStack: this.commandStack,
-      toolbarContainer: this.toolbarContainer,
-      getViewports: () => this.getAllLiveViewports(),
-      statusBar: this.statusBar,
-      afterSurfaceChange: () => this.refreshShadingAfterSurfaceEdit(),
-    });
-    this.textureBrowser = result.textureBrowser;
-    this.textureBrowserController = result.textureBrowserController;
-    this.textureAssignmentController = result.textureAssignmentController;
-    this.textureAssignmentController.setAfterSolidTextureAssign(() => {
-      this.syncPrimitivesToViewports();
-    });
-  }
-
-  /** Keeps viewport shading snapshots aligned after surface materials change. */
-  private refreshShadingAfterSurfaceEdit(): void {
-    this.shadingModeCoordinator?.updateShadingMeshes();
-  }
-
-  /** Toggles the texture browser panel. */
-  private onToggleTextureBrowser(): void {
-    this.textureBrowser?.toggle();
-    if (this.textureBrowser?.isOpen()) {
-      this.statusBar?.setLastAction('Texture browser opened');
-    }
-  }
-
   /**
-   * Updates gizmos, UV editor fields, and CAD rulers when the selection
+   * Updates gizmos, face inspector fields, and CAD rulers when the selection
    * changes.
    */
   private onSelectionChanged(): void {
     this.modalToolSessionRegistry.onSelectionChanged();
     this.updateGizmoVisibility();
     this.updateGizmoPivot();
-    this.refreshUvEditorFromSelectionIfOpen();
+    this.shellPanels?.faceInspectorParts.faceInspector.refreshFromSelection();
     this.refreshCadRulersFromSelection();
-  }
-
-  /**
-   * Refreshes UV editor fields from the current selection when the panel is
-   * open.
-   */
-  private refreshUvEditorFromSelectionIfOpen(): void {
-    if (!this.uvEditor?.isOpen()) {
-      return;
-    }
-    this.uvEditorController?.refreshFromSelection();
   }
 
   /**
@@ -632,16 +541,7 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
     if (!this.isEditModeActive()) {
       return null;
     }
-    const coordinator = this.editModeCoordinator;
-    if (!coordinator || coordinator.getComponentSelectionCount() <= 0) {
-      return null;
-    }
-    const session = coordinator.getSession();
-    const vertices = expandComponentSelectionToTransformVertices(
-      session.getComponentSelection().getSelected(),
-      session.getDomain(),
-    );
-    return computeComponentTransformPivot(vertices);
+    return this.editModeCoordinator?.componentSelectionPivotCompute() ?? null;
   }
 
   /**
@@ -695,79 +595,39 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
   }
 
   /**
-   * Applies a transform mode from toolbar or keyboard, with Edit Mode
-   * toggle-off for the active mode.
+   * Applies a transform mode from toolbar or keyboard.
    *
    * @param mode The transform mode to apply or toggle.
    */
   protected onTransformMode(mode: TransformMode): void {
-    if (this.isEditModeActive()) {
-      this.applyEditModeTransformModeToggle(mode);
-      return;
-    }
-    if (this.toolEditorSystem) {
-      if (!this.toolEditorSystem.switchToTransformMode(mode)) {
-        return;
-      }
-    } else {
-      this.transformGizmo.setMode(mode);
-      this.updateGizmoPivot();
-    }
-    this.updateTransformButtons();
-  }
-
-  /**
-   * Applies or toggles permanent transform widgets while Edit Mode is active.
-   *
-   * @param mode Requested toolbar mode; Bounds is ignored.
-   */
-  private applyEditModeTransformModeToggle(mode: TransformMode): void {
-    if (mode === TransformMode.BOUNDS) {
-      return;
-    }
-    const current = this.transformGizmo.getMode();
-    if (current === mode) {
-      this.applyEditModeTransformModeOnly(TransformMode.BOUNDS);
-      this.showStatusMessage('Transform widgets off');
-      return;
-    }
-    this.applyEditModeTransformModeOnly(mode);
-  }
-
-  /**
-   * Sets gizmo mode, pivot, visibility, and Edit Mode toolbar highlight for the
-   * given mode.
-   *
-   * @param mode Translate, rotate, scale, or Bounds (widgets off).
-   */
-  private applyEditModeTransformModeOnly(mode: TransformMode): void {
-    this.transformGizmo.setMode(mode);
-    this.updateGizmoPivot();
-    this.updateGizmoVisibility();
-    this.updateEditModeTransformButtons(mode);
-  }
-
-  /**
-   * Updates Edit Mode transform toolbar highlight. Bounds clears all T/R/S
-   * highlights so the bar matches the no-widget state.
-   *
-   * @param mode Active mode (Bounds = none selected).
-   */
-  private updateEditModeTransformButtons(mode: TransformMode): void {
-    if (mode === TransformMode.BOUNDS) {
-      this.toolsPaletteController?.setActiveTransformMode(TransformMode.BOUNDS);
-      return;
-    }
-    applyTransformModeUi(this.toolsPaletteController, this.statusBar, mode);
+    this.transformModeSwitcherRead().transformModeApply(mode);
   }
 
   /** Updates tool chrome transform highlights and status bar mode text. */
   protected updateTransformButtons(): void {
-    if (this.isEditModeActive()) {
-      this.updateEditModeTransformButtons(this.transformGizmo.getMode());
-      return;
-    }
-    applyTransformModeUi(this.toolsPaletteController, this.statusBar, this.transformGizmo.getMode());
+    this.transformModeSwitcherRead().transformButtonsUpdate();
+  }
+
+  /**
+   * Returns the transform mode switcher, creating it on first use.
+   *
+   * @returns Transform mode switcher.
+   */
+  private transformModeSwitcherRead(): LayoutTransformModeSwitcher {
+    const layout = this;
+    this.transformModeSwitcher ??= new LayoutTransformModeSwitcher({
+      get transformGizmo() {
+        return layout.transformGizmo;
+      },
+      isEditModeActive: () => layout.isEditModeActive(),
+      toolEditorSystemRead: () => layout.toolEditorSystem,
+      toolsPaletteControllerRead: () => layout.toolsPaletteController,
+      statusBarRead: () => layout.statusBar,
+      gizmoPivotUpdate: () => layout.updateGizmoPivot(),
+      gizmoVisibilityUpdate: () => layout.updateGizmoVisibility(),
+      showStatusMessage: (message) => layout.showStatusMessage(message),
+    });
+    return this.transformModeSwitcher;
   }
 
   /** Handles post-load synchronization and UI refresh. */
@@ -821,6 +681,7 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
    */
   protected refreshAfterWorldMutation(): void {
     refreshSceneVisualsAfterMutation(this.getMutationVisualHost());
+    this.shellPanels?.entityBrowser.usageRefresh();
   }
 
   /**
@@ -895,9 +756,7 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
         viewport.resize(Math.max(1, Math.floor(rect.width)), Math.max(1, Math.floor(rect.height)));
       }
     });
-    this.toolsPaletteController?.syncPaneContainers(
-      this.getAllInteractiveViewports().map((viewport) => viewport.getContainer()),
-    );
+    this.floatingToolChromeSync();
   }
 
   /**
@@ -928,6 +787,8 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
     this.playerSystem?.dispose();
     this.playerSystem = null;
     this.keyboardShortcutHandler?.unregister();
+    this.clipboardSystem?.dispose();
+    this.clipboardSystem = null;
     this.toolEditorSystem?.uninstallFocusPointerRouter();
     this.inputManager?.dispose();
     this.viewportRegistry?.dispose();
@@ -955,14 +816,13 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
       outlinerPanel: this.outlinerPanel,
       toolbar: this.toolbar,
       statusBar: this.statusBar,
-      uvEditor: this.uvEditor,
-      textureBrowserController: this.textureBrowserController,
-      textureBrowser: this.textureBrowser,
+      shellPanels: this.shellPanels,
       toolsPalette: this.toolsPaletteController,
       settingsDialog: this.settingsDialog,
       settingsApplicator: this.settingsApplicator,
       aboutDialog: this.aboutDialog,
       cadRulerSystem: this.cadRulerSystem,
+      layerSystem: this.layerSystem,
     });
     this.settingsUnsubscribe?.();
     this.settingsUnsubscribe = null;

@@ -236,7 +236,7 @@ describe('SettingsDialog', () => {
     expect(clipInput.value).toBe('Enter');
   });
 
-  it('should show fixed reminders for UV smear and 3D fly navigation keys', () => {
+  it('should show fixed reminders for the clipboard, UV smear and 3D fly navigation keys', () => {
     dialog.show();
     dialog.showTab('keyboard');
     const content = dialog.getContentElement();
@@ -252,6 +252,9 @@ describe('SettingsDialog', () => {
     expect(categoryTitles).toContain('Navigation & Modifiers');
     expect(categoryTitles).not.toContain('Navigation & Modifiers (Fixed)');
     expect(reminders).toEqual([
+      { id: 'keyboard-reminder-clipboard-cut', value: 'Ctrl+X', readOnly: true },
+      { id: 'keyboard-reminder-clipboard-copy', value: 'Ctrl+C', readOnly: true },
+      { id: 'keyboard-reminder-clipboard-paste', value: 'Ctrl+V', readOnly: true },
       { id: 'keyboard-reminder-edit-knife', value: 'K', readOnly: true },
       { id: 'keyboard-reminder-edit-loop-cut', value: 'Ctrl+R', readOnly: true },
       { id: 'keyboard-reminder-edit-merge', value: 'M', readOnly: true },
@@ -261,6 +264,8 @@ describe('SettingsDialog', () => {
       { id: 'keyboard-reminder-fly-left-right', value: 'A / D', readOnly: true },
       { id: 'keyboard-reminder-fly-down-up', value: 'Q / E', readOnly: true },
       { id: 'keyboard-reminder-fly-speed-boost', value: 'Shift', readOnly: true },
+      { id: 'keyboard-reminder-view-pan', value: 'Middle Mouse Drag', readOnly: true },
+      { id: 'keyboard-reminder-view-dolly', value: 'Alt + Middle Mouse Drag', readOnly: true },
     ]);
   });
 

@@ -5,9 +5,8 @@ import { MenuContext, MenuContextItem } from '@/ui/menu/menu_context.js';
 import { hexToRgb } from '@/utils/utils_color.js';
 import { OutlinerTree } from './outliner_tree.js';
 import type { OutlinerDropPlacement } from './outliner_drop_placement.js';
-import { collectMeshesUnder } from '@/utils/utils_hierarchy.js';
+import { selectionMeshesFromHierarchyCollect } from '@/selection/object/selection_hierarchy_meshes.js';
 import { collapseToHierarchyRoots } from '@/utils/hierarchy_selection.js';
-import { SolidModel } from '@/solid/model/solid_model.js';
 
 /**
  * Callback type for context menu actions on outliner items.
@@ -142,6 +141,15 @@ export class PanelOutliner {
     this.createTree();
     container.appendChild(this.container);
     this.selectionManager.onSelectionChanged(() => this.onMeshSelectionChanged());
+  }
+
+  /**
+   * Returns the panel root element.
+   *
+   * @returns Outliner panel root.
+   */
+  getElement(): HTMLElement {
+    return this.container;
   }
 
   /**
@@ -487,34 +495,8 @@ export class PanelOutliner {
    * keep the hierarchy root.
    */
   private syncMeshSelectionFromHierarchy(): void {
-    const meshes: THREE.Mesh[] = [];
-    const inspectorObjects: THREE.Object3D[] = [];
-    this.hierarchySelection.forEach((object) => {
-      inspectorObjects.push(object);
-      if (SolidModel.isSolidModelObject(object)) {
-        this.appendSolidModelSelectionProxy(object, meshes);
-        return;
-      }
-      collectMeshesUnder(object).forEach((mesh) => {
-        if (SolidModel.isResultMesh(mesh)) return;
-        if (!meshes.includes(mesh)) meshes.push(mesh);
-      });
-    });
-    this.selectionManager.setSelection(meshes, inspectorObjects);
-  }
-
-  /**
-   * Adds the solid model result mesh as the viewport selection proxy.
-   *
-   * @param solidRoot Solid model root group.
-   * @param meshes Mesh selection accumulator.
-   */
-  private appendSolidModelSelectionProxy(solidRoot: THREE.Object3D, meshes: THREE.Mesh[]): void {
-    const model = SolidModel.fromObject(solidRoot);
-    const resultMesh = model?.getResultMesh();
-    if (resultMesh && !meshes.includes(resultMesh)) {
-      meshes.push(resultMesh);
-    }
+    const meshes = selectionMeshesFromHierarchyCollect(this.hierarchySelection);
+    this.selectionManager.setSelection(meshes, [...this.hierarchySelection]);
   }
 
   /**

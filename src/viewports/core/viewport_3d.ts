@@ -126,6 +126,17 @@ export class Viewport3D extends ViewportBase {
   }
 
   /**
+   * Configures Alt + middle mouse drag dolly for the 3D flying camera.
+   *
+   * @param enabled True when Alt + middle drag moves the camera forward and
+   *   back.
+   * @param inverted True when dragging up moves the camera backward.
+   */
+  setFlyingCameraAltMiddleDragDolly(enabled: boolean, inverted: boolean): void {
+    this.flyingCamera.setAltMiddleDragDolly(enabled, inverted);
+  }
+
+  /**
    * Enables or disables the flying camera controller for this pane.
    *
    * @param enabled True when fly navigation may run.
