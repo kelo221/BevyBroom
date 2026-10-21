@@ -28,6 +28,7 @@ Preview flags (`crates/broom_preview/src/arguments.rs`):
 | `--project FILE` | Project file, `broom.project.json` by default. |
 | `--port N` | Bridge port, 15702 by default. |
 | `--level NAME` | Load a level from its manifest at startup, as the shipped game would. |
+| `--scene FILE` | Spawn a GLB exported from the editor (path under the asset root), with its `broom_components` extras applied. |
 | `--bake` | Request a preview bake once the level is shown. |
 | `--frames N` / `--screenshot FILE` | Exit after N frames, optionally saving the last frame (smoke tests). |
 | `--hidden` | Never show the window; rendering, bakes and the bridge keep running (automated tests). |
@@ -77,6 +78,23 @@ The game's `AssetPlugin` must use the project's asset root. Load a level with a 
 
 A catalog entry can name a `resolver`; register your own with `CatalogResolvers::register` to build game-specific materials. When the catalog file or one of its textures changes on disk, materials and textures are rebuilt in place, so meshes keep their handles. A broken catalog file keeps the previous catalog and is reported.
 
+## Game components
+
+A game registers reflected components the editor may place, with their `Default` as the defaults the editor shows:
+
+```rust
+app.register_data_asset::<DoorStats>("door.ron")
+    .register_placeable::<Door>(PlaceableOptions::point().category("Doors"));
+```
+
+- `register_placeable::<T>` needs `Component + Reflect + Default`. `PlaceableOptions::point()` places it on empty Game Entities; `any()` on every object. Field attributes `FieldRange`, `FieldStep`, `FieldLabel` and `FieldHidden` tune the editor's controls.
+- `register_placeable_asset::<A>(&["ext"])` lets `Handle<A>` fields pick asset files by path. `register_data_asset::<A>("ext")` adds a loader for RON files holding the fields that differ from `A::default()` (`{ "health": 400.0, }`) and lets the editor edit them through `broom.data_asset_write`.
+- `BroomProperties` is a built-in placeable with named text, number and bool values.
+- The editor sends only overridden fields (`components` on each authored object, `{type_path: {field_path: value}}` in a normalized JSON form). The `placeables` slice composes each component from `Default` plus the overrides, inserts, updates or removes it, and puts it back after a geometry swap. Unknown classes and bad fields are reported through `broom.status`; the other components still apply.
+- Shipped levels get the components from the manifest, or from the `broom_components` node extras of a GLB exported by the editor. `BroomGltfComponentsPlugin` reads those extras on its own, without the bridge.
+
+The editor's `documentation/game_components.md` describes the workflow from the editor's side.
+
 ## How live editing works
 
 - **Authored state** (`broom.apply_state`): the editor sends every object's id, parent, transform and visibility, and every light's settings, about 30 times a second while something changes. Snapshots carry a revision; an older or invalid snapshot never replaces a newer one. Lights are DynLight `DynamicLight`s spawned by id at the top level, so geometry swaps never despawn them. Rooms and portals arrive the same way and become DynLight `Room` and `Portal` entities, with `ClosedPortal` added or removed live when a door closes or opens; their world transform, including scale, sizes the cells. The geometry the editor sends for the preview carries no room or portal nodes, so they never exist twice; a GLB exported from the editor for a game carries them as `dynlight_room` / `dynlight_portal` / `dynlight_portal_closed` node extras, which DynLight's glTF import reads without the bridge.
@@ -94,6 +112,9 @@ A catalog entry can name a `resolver`; register your own with `CatalogResolvers:
 | `broom.read_asset` | A file under the asset root, base64, for editor previews. |
 | `broom.bake_preview` | Request a preview bake. |
 | `broom.load_level` | Load a level from its manifest. |
+| `broom.placeable_classes` | The placeable component classes with their fields and defaults, and the asset types with their files. |
+| `broom.data_asset_read` | The overridden fields of a data asset file. |
+| `broom.data_asset_write` | Queue writing a data asset file; `broom.status` reports `data_asset_generation` once it is written and reloaded. |
 
 ## Coordinates
 
@@ -109,7 +130,7 @@ cargo test --workspace
 
 ### End-to-end test with the editor
 
-The editor repository has opt-in acceptance tests that drive its real preview link against this preview program. One covers two rooms with catalog materials, point and spot lights, drags, duplicate / delete / undo / redo, a parent move, a geometry swap, invalid input, save and reopen, a game restart, catalog and texture reloads, and a stale bake. The other covers rooms and portals with culling on, a door closing and opening, a failed geometry load and its resend, a renamed level's cleanup, a stale first bake, a bake without UV1 warnings, and Save As. Each copies the project to a temporary directory and starts its own preview on its own port with `--hidden`, so no window appears; set `BROOM_E2E_SHOW_WINDOWS=1` to watch. A third test drives the built desktop editor over MCP against the preview; see the editor's `documentation/building_and_running.md`.
+The editor repository has opt-in acceptance tests that drive its real preview link against this preview program. One covers two rooms with catalog materials, point and spot lights, drags, duplicate / delete / undo / redo, a parent move, a geometry swap, invalid input, save and reopen, a game restart, catalog and texture reloads, and a stale bake. The other covers rooms and portals with culling on, a door closing and opening, a failed geometry load and its resend, a renamed level's cleanup, a stale first bake, a bake without UV1 warnings, and Save As. A third covers game components: placed defaults, overrides, undo, a component on a brush across a geometry swap, removal, properties, a data asset field and a data asset write, a shipped GLB loaded with `--scene` next to its manifest, and an unknown class. Each copies the project to a temporary directory and starts its own preview on its own port with `--hidden`, so no window appears; set `BROOM_E2E_SHOW_WINDOWS=1` to watch. A fourth test drives the built desktop editor over MCP against the preview; see the editor's `documentation/building_and_running.md`.
 
 ```
 cargo build --release -p broom_preview

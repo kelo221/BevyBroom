@@ -18,6 +18,7 @@ use crate::protocol::{AuthoredState, RevisionGate, RevisionVerdict, StateRejecti
 
 pub use lights::AuthoredLightEntity;
 pub use nodes::AuthoredNode;
+pub(crate) use nodes::tag_authored_nodes;
 pub use portals::AuthoredCellEntity;
 
 /// Ordering of the bridge's own work.
@@ -25,6 +26,8 @@ pub use portals::AuthoredCellEntity;
 pub enum BroomSystems {
     /// The newest snapshot becomes [`AppliedAuthoring`]; lights, rooms and portals follow it.
     ApplyState,
+    /// Game entities and placeable components follow the applied snapshot.
+    Components,
     /// Geometry publications are written, loaded and swapped in.
     Geometry,
 }
@@ -91,11 +94,16 @@ impl Plugin for AuthoringPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<AuthoringInbox>()
             .init_resource::<AppliedAuthoring>()
+            .register_type::<AuthoredNode>()
             .add_message::<DocumentSwitched>()
             .configure_sets(Update, BroomSystems::ApplyState)
             .configure_sets(
                 Update,
-                BroomSystems::Geometry.after(BroomSystems::ApplyState),
+                BroomSystems::Components.after(BroomSystems::ApplyState),
+            )
+            .configure_sets(
+                Update,
+                BroomSystems::Geometry.after(BroomSystems::Components),
             )
             .add_systems(
                 Update,

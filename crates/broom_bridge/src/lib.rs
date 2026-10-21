@@ -12,6 +12,7 @@ pub mod authoring;
 pub mod bake_link;
 pub mod level;
 pub mod materials;
+pub mod placeables;
 pub mod project;
 pub mod protocol;
 pub mod remote;
@@ -30,6 +31,11 @@ pub mod prelude {
     pub use crate::authoring::{AuthoredLightEntity, AuthoredNode, BroomSystems};
     pub use crate::level::{LevelGeometryRoot, LevelLoadRequest};
     pub use crate::materials::{CatalogResolver, CatalogResolvers, CatalogState};
+    pub use crate::placeables::{
+        AppDataAssetExt, AppPlaceableAssetExt, AppPlaceableExt, AuthoredGameEntity,
+        BroomGltfComponentsPlugin, BroomProperties, FieldHidden, FieldLabel, FieldRange, FieldStep,
+        PlaceableOptions, PropertyValue,
+    };
     pub use crate::project::{PROJECT_FILE_NAME, ProjectPaths};
     pub use crate::{BroomBridgePlugin, BroomLevelPlugin};
 }
@@ -47,6 +53,7 @@ impl Plugin for BroomLevelPlugin {
                 authoring::AuthoringPlugin,
                 level::LevelPlugin,
                 materials::MaterialsPlugin,
+                placeables::PlaceablesPlugin,
                 bake_link::BakeLinkPlugin,
                 status::StatusPlugin,
             ));

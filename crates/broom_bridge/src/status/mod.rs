@@ -78,6 +78,13 @@ pub struct BridgeStatus {
     pub bake_message: Option<String>,
     pub catalog_material_count: usize,
     pub catalog_error: Option<String>,
+    /// How many component types the editor may place.
+    pub placeable_class_count: usize,
+    /// How many placeable components are on authored entities.
+    pub placed_component_count: usize,
+    /// The generation of the last data asset write; it reaches the generation a
+    /// `broom.data_asset_write` reply names once that file is written and reloading.
+    pub data_asset_generation: u64,
     pub errors: VecDeque<BridgeError>,
     #[serde(skip)]
     next_error: u64,

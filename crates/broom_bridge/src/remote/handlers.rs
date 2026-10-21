@@ -11,8 +11,15 @@ use crate::authoring::AuthoringInbox;
 use crate::bake_link::BakeLink;
 use crate::level::{LevelGeometry, LevelLoadRequest};
 use crate::materials::CatalogState;
+use crate::placeables::{
+    DataAssetWrites, PlaceableAssetTypes, PlaceableClasses, class_list, data_asset_file_read,
+    data_asset_write_check,
+};
 use crate::project::ProjectPaths;
-use crate::protocol::{AuthoredState, GeometryPublication, RevisionVerdict, is_contained_path};
+use crate::protocol::{
+    AuthoredState, DataAssetReadRequest, DataAssetWriteReply, DataAssetWriteRequest,
+    GeometryPublication, RevisionVerdict, is_contained_path,
+};
 use crate::status::BridgeStatus;
 
 /// The largest file `broom.read_asset` returns.
@@ -129,4 +136,43 @@ pub fn load_level(
     let LoadLevelParams { level_name } = parse(params)?;
     requests.write(LevelLoadRequest { level_name });
     Ok(json!({ "requested": true }))
+}
+
+/// `broom.placeable_classes`: every component type the editor may place, with its fields and
+/// defaults, and the asset types its fields may reference.
+pub fn placeable_classes(
+    In(_): In<Option<Value>>,
+    registry: Res<AppTypeRegistry>,
+    classes: Res<PlaceableClasses>,
+    assets: Res<PlaceableAssetTypes>,
+    paths: Res<ProjectPaths>,
+) -> BrpResult {
+    let list = class_list(&registry.read(), &classes, &assets, &paths.asset_root);
+    serde_json::to_value(list).map_err(|error| invalid(error.to_string()))
+}
+
+/// `broom.data_asset_read`: the type and overrides of a data asset file.
+pub fn data_asset_read(
+    In(params): In<Option<Value>>,
+    assets: Res<PlaceableAssetTypes>,
+    paths: Res<ProjectPaths>,
+) -> BrpResult {
+    let DataAssetReadRequest { path } = parse(params)?;
+    let reply = data_asset_file_read(&paths, &assets, &path).map_err(invalid)?;
+    serde_json::to_value(reply).map_err(|error| invalid(error.to_string()))
+}
+
+/// `broom.data_asset_write`: queues replacing a data asset file with new overrides.
+pub fn data_asset_write(
+    In(params): In<Option<Value>>,
+    registry: Res<AppTypeRegistry>,
+    assets: Res<PlaceableAssetTypes>,
+    mut writes: ResMut<DataAssetWrites>,
+) -> BrpResult {
+    let request: DataAssetWriteRequest = parse(params)?;
+    data_asset_write_check(&registry.read(), &assets, &request).map_err(invalid)?;
+    let path = request.path.clone();
+    let generation = writes.queue(request);
+    serde_json::to_value(DataAssetWriteReply { path, generation })
+        .map_err(|error| invalid(error.to_string()))
 }

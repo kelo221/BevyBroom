@@ -1,14 +1,15 @@
 //! The authored state the editor sends: every object's identity, hierarchy and local transform,
-//! plus light, room and portal definitions. Geometry and material assignments travel in the
-//! published GLB.
+//! plus light, room and portal definitions and placed game components. Geometry and material
+//! assignments travel in the published GLB.
 
 use serde::{Deserialize, Serialize};
 
 use super::light::AuthoredLight;
+use super::placeable::{AuthoredComponents, validate_components};
 use super::portal::{AuthoredPortal, AuthoredRoom};
 
 /// The wire protocol version. Requests with another version are rejected.
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;
 
 /// A complete, lightweight snapshot of one editor document.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
@@ -43,6 +44,8 @@ pub enum AuthoredObjectKind {
     Room,
     /// A DynLight portal between room cells.
     Portal,
+    /// An empty point that exists to carry game components.
+    GameEntity,
 }
 
 /// One object of the editor's hierarchy.
@@ -71,6 +74,9 @@ pub struct AuthoredObject {
     /// Present on portals only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub portal: Option<AuthoredPortal>,
+    /// Game components placed on the object, on any kind.
+    #[serde(default, skip_serializing_if = "AuthoredComponents::is_empty")]
+    pub components: AuthoredComponents,
 }
 
 /// Serde default for [`AuthoredObject::visible`].
@@ -92,6 +98,7 @@ impl Default for AuthoredObject {
             light: None,
             room: None,
             portal: None,
+            components: AuthoredComponents::new(),
         }
     }
 }
@@ -110,6 +117,7 @@ pub enum StateRejection {
     InvalidRoom { id: String, reason: String },
     PortalWithoutSettings(String),
     InvalidPortal { id: String, reason: String },
+    InvalidComponents { id: String, reason: String },
     NonFiniteTransform(String),
 }
 
@@ -132,6 +140,7 @@ impl core::fmt::Display for StateRejection {
             Self::InvalidRoom { id, reason } => write!(f, "room {id}: {reason}"),
             Self::PortalWithoutSettings(id) => write!(f, "portal {id} has no portal settings"),
             Self::InvalidPortal { id, reason } => write!(f, "portal {id}: {reason}"),
+            Self::InvalidComponents { id, reason } => write!(f, "object {id}: {reason}"),
             Self::NonFiniteTransform(id) => write!(f, "object {id} has a non-finite transform"),
         }
     }
@@ -181,13 +190,20 @@ impl AuthoredObject {
         if !finite {
             return Err(StateRejection::NonFiniteTransform(self.id.clone()));
         }
+        validate_components(&self.components).map_err(|reason| {
+            StateRejection::InvalidComponents {
+                id: self.id.clone(),
+                reason,
+            }
+        })?;
         match self.kind {
             AuthoredObjectKind::Light => self.validate_light(),
             AuthoredObjectKind::Room => self.validate_room(),
             AuthoredObjectKind::Portal => self.validate_portal(),
-            AuthoredObjectKind::Mesh | AuthoredObjectKind::Group | AuthoredObjectKind::Solid => {
-                Ok(())
-            }
+            AuthoredObjectKind::Mesh
+            | AuthoredObjectKind::Group
+            | AuthoredObjectKind::Solid
+            | AuthoredObjectKind::GameEntity => Ok(()),
         }
     }
 

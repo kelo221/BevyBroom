@@ -1,9 +1,11 @@
 //! The preview's own entities and conveniences: a free camera, a status title, smoke-test exits.
 
 use bevy::camera_controller::free_camera::FreeCamera;
+use bevy::gltf::GltfAssetLabel;
 use bevy::prelude::*;
 use bevy::render::view::screenshot::{Screenshot, save_to_disk};
 use bevy::window::PrimaryWindow;
+use bevy::world_serialization::WorldAssetRoot;
 use broom_bridge::status::BridgeStatus;
 use dynlight::prelude::LightingViewer;
 
@@ -16,6 +18,23 @@ pub fn spawn_camera(mut commands: Commands) {
         LightingViewer,
         FreeCamera::default(),
         Transform::from_xyz(-6.0, 4.0, 8.0).looking_at(Vec3::new(0.0, 1.0, 0.0), Vec3::Y),
+    ));
+}
+
+/// Spawns the `--scene` GLB's first scene the way a game loads a shipped level, so its
+/// `broom_components` node extras become components.
+pub fn spawn_shipped_scene(
+    mut commands: Commands,
+    arguments: Res<Arguments>,
+    assets: Res<AssetServer>,
+) {
+    let Some(path) = arguments.0.scene.clone() else {
+        return;
+    };
+    commands.spawn((
+        Name::new(format!("Shipped scene {path}")),
+        WorldAssetRoot(assets.load(GltfAssetLabel::Scene(0).from_asset(path))),
+        Transform::default(),
     ));
 }
 

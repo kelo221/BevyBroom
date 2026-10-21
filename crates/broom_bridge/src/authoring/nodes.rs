@@ -10,7 +10,8 @@ use super::AppliedAuthoring;
 use crate::protocol::{AuthoredObject, EXTRAS_OBJECT_ID, local_transform};
 
 /// A glTF node exported from the editor object with this id.
-#[derive(Component, Clone, Debug, PartialEq, Eq)]
+#[derive(Component, Reflect, Clone, Debug, PartialEq, Eq)]
+#[reflect(Component)]
 pub struct AuthoredNode(pub String);
 
 /// The editor id in a node's extras JSON, if it has one.
@@ -21,7 +22,7 @@ pub(crate) fn authored_id_from_extras(json: &str) -> Option<String> {
 }
 
 /// Tags newly spawned glTF nodes that carry an editor id.
-pub(super) fn tag_authored_nodes(
+pub(crate) fn tag_authored_nodes(
     mut commands: Commands,
     nodes: Query<(Entity, &GltfExtras), Added<GltfExtras>>,
 ) {

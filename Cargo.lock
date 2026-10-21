@@ -2067,6 +2067,7 @@ dependencies = [
  "base64",
  "bevy",
  "dynlight",
+ "ron",
  "serde",
  "serde_json",
 ]

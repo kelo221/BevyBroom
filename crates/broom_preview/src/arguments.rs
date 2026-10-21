@@ -11,6 +11,9 @@ pub struct PreviewArguments {
     pub port: u16,
     /// `--level NAME`: load this level from its manifest at startup, as the game would.
     pub level: Option<String>,
+    /// `--scene PATH`: spawn this GLB, an asset path under the asset root, as a shipped level
+    /// exported by the editor would be loaded by a game without the bridge.
+    pub scene: Option<String>,
     /// `--frames N`: exit after N frames (smoke tests).
     pub frames: Option<u32>,
     /// `--screenshot FILE`: with `--frames`, save the last frame there.
@@ -28,6 +31,7 @@ impl PreviewArguments {
             project: PathBuf::from(broom_bridge::project::PROJECT_FILE_NAME),
             port: broom_bridge::remote::DEFAULT_PORT,
             level: None,
+            scene: None,
             frames: None,
             screenshot: None,
             bake: false,
@@ -44,6 +48,7 @@ impl PreviewArguments {
                 "--project" => parsed.project = PathBuf::from(value()?),
                 "--port" => parsed.port = number(&flag, &value()?)?,
                 "--level" => parsed.level = Some(value()?),
+                "--scene" => parsed.scene = Some(value()?),
                 "--frames" => parsed.frames = Some(number(&flag, &value()?)?),
                 "--screenshot" => parsed.screenshot = Some(PathBuf::from(value()?)),
                 "--bake" => parsed.bake = true,
@@ -75,14 +80,16 @@ mod tests {
         let defaults = parse("").expect("no arguments");
         assert_eq!(defaults.port, broom_bridge::remote::DEFAULT_PORT);
         assert!(defaults.level.is_none());
+        assert!(defaults.scene.is_none());
         assert!(!defaults.hidden);
         let full =
-            parse("--project game/p.json --port 1234 --level keep --frames 5 --bake --hidden")
+            parse("--project game/p.json --port 1234 --level keep --scene levels/keep.glb --frames 5 --bake --hidden")
                 .expect("all flags");
         assert_eq!(full.project, PathBuf::from("game/p.json"));
         assert_eq!((full.port, full.frames, full.bake), (1234, Some(5), true));
         assert!(full.hidden);
         assert_eq!(full.level.as_deref(), Some("keep"));
+        assert_eq!(full.scene.as_deref(), Some("levels/keep.glb"));
     }
 
     #[test]
@@ -90,5 +97,6 @@ mod tests {
         assert!(parse("--wat").is_err());
         assert!(parse("--port many").is_err());
         assert!(parse("--level").is_err());
+        assert!(parse("--scene").is_err());
     }
 }

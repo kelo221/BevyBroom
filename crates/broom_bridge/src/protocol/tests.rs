@@ -311,3 +311,42 @@ fn forgotten_revisions_are_accepted_again_but_newer_ones_stay() {
     assert_eq!(gate.revision(), 5);
     assert_eq!(gate.judge("doc", "a", 4), RevisionVerdict::Stale);
 }
+
+/// Components travel on any object kind, and empty component or field names are rejected
+/// with the object's id.
+#[test]
+fn components_need_named_types_and_fields() {
+    let state = sample_state();
+    let carrying: Vec<AuthoredObjectKind> = state
+        .objects
+        .iter()
+        .filter(|object| !object.components.is_empty())
+        .map(|object| object.kind)
+        .collect();
+    assert!(carrying.contains(&AuthoredObjectKind::GameEntity));
+    assert!(
+        carrying
+            .iter()
+            .any(|kind| *kind != AuthoredObjectKind::GameEntity)
+    );
+
+    let mut state = sample_state();
+    let id = state.objects[0].id.clone();
+    object_mut(&mut state, &id)
+        .components
+        .insert(" ".into(), Default::default());
+    assert!(matches!(
+        state.validate(),
+        Err(StateRejection::InvalidComponents { id: rejected, .. }) if rejected == id
+    ));
+
+    let mut state = sample_state();
+    let fields = std::collections::BTreeMap::from([(String::new(), serde_json::Value::Null)]);
+    object_mut(&mut state, &id)
+        .components
+        .insert("game::Door".into(), fields);
+    assert!(matches!(
+        state.validate(),
+        Err(StateRejection::InvalidComponents { .. })
+    ));
+}

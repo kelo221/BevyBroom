@@ -3,9 +3,11 @@
 //! editor has focus. A real game adds `BroomBridgePlugin` to its own app the same way.
 //!
 //! `cargo run -p broom_preview -- --project broom.project.json`; see `arguments.rs` for the
-//! other flags.
+//! other flags. `--scene` loads a GLB exported by the editor without the bridge's level files,
+//! and [`BroomGltfComponentsPlugin`] places the components stored in its node extras.
 
 mod arguments;
+mod placeables;
 mod scene;
 
 use bevy::asset::AssetMetaCheck;
@@ -13,6 +15,7 @@ use bevy::camera_controller::free_camera::FreeCameraPlugin;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use broom_bridge::level::LevelLoadRequest;
+use broom_bridge::placeables::BroomGltfComponentsPlugin;
 use broom_bridge::project::ProjectPaths;
 use broom_bridge::{BroomBridgePlugin, bake_link::BakeLink};
 use dynlight::prelude::*;
@@ -68,7 +71,18 @@ fn build_app(arguments: PreviewArguments, paths: ProjectPaths) -> App {
         port: arguments.port,
         ..BroomBridgePlugin::new(paths)
     })
-    .add_systems(Startup, (scene::spawn_camera, startup_requests))
+    .add_plugins((
+        BroomGltfComponentsPlugin,
+        placeables::SamplePlaceablesPlugin,
+    ))
+    .add_systems(
+        Startup,
+        (
+            scene::spawn_camera,
+            scene::spawn_shipped_scene,
+            startup_requests,
+        ),
+    )
     .add_systems(
         Update,
         (scene::show_status_in_title, scene::exit_after_frames),

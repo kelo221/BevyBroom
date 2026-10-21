@@ -1,5 +1,5 @@
 {
-  "protocol": 2,
+  "protocol": 3,
   "project_id": "broom-sample-project",
   "document_id": "7c1f4e9a-2b6d-4c8e-9f10-5a3b2c1d0e0f",
   "session_id": "session-a",
@@ -24,7 +24,12 @@
       "visible": true,
       "translation": [0.0, 0.0, 0.0],
       "rotation": [0.0, 0.0, 0.0, 1.0],
-      "scale": [1.0, 1.0, 1.0]
+      "scale": [1.0, 1.0, 1.0],
+      "components": {
+        "broom_bridge::placeables::properties::BroomProperties": {
+          "values": { "surface": "stone", "footstep_volume": 0.5, "climbable": false }
+        }
+      }
     },
     {
       "id": "light-lamp",
@@ -91,6 +96,21 @@
       "rotation": [0.0, 0.0, 0.0, 1.0],
       "scale": [1.0, 1.0, 1.0],
       "portal": { "size": [1.2, 2.2], "closed": false }
+    },
+    {
+      "id": "game-spawn",
+      "parent_id": "group-hall",
+      "name": "Spawn Point",
+      "kind": "game_entity",
+      "visible": true,
+      "translation": [1.0, 0.0, -1.0],
+      "rotation": [0.0, 0.0, 0.0, 1.0],
+      "scale": [1.0, 1.0, 1.0],
+      "components": {
+        "broom_bridge::placeables::properties::BroomProperties": {
+          "values": { "team": "red", "lives": 3, "boss": true }
+        }
+      }
     }
   ]
 }
