@@ -71,7 +71,12 @@ export type McpToolName =
   | 'preview_connect'
   | 'preview_status'
   | 'get_scene_document'
-  | 'load_scene_document';
+  | 'load_scene_document'
+  | 'list_game_classes'
+  | 'add_game_entity'
+  | 'set_game_components'
+  | 'read_data_asset'
+  | 'write_data_asset';
 
 /** JSON vector DTO used at the MCP / EditorApi boundary. */
 export interface McpVec3 {

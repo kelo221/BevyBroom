@@ -410,10 +410,7 @@ export class HandlerSceneIo {
         this.showError(statusBar, 'Nothing to export');
         return;
       }
-      const buffer = await this.glbExporter.export(worldGroup, profile, {
-        includeLightmapUvs: true,
-        includeRoomAndPortalNodes: true,
-      });
+      const buffer = await this.glbExporter.exportForFile(worldGroup, profile);
       if (!buffer || buffer.byteLength === 0) {
         this.showError(statusBar, 'Failed to export GLB: empty result');
         return;

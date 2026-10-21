@@ -26,8 +26,18 @@ Rules for work that touches the game:
    `protocol/` module in `../AiWorldEdBevy`; always change both together.
 3. Anything the game must see in a shipped level goes into the exported GLB in a
    form the game reads without the editor (for example DynLight node extras).
-4. Editor-only helpers (light markers, room and portal outlines) are never
-   exported as meshes.
+4. Editor-only helpers (light markers, room and portal outlines, game entity
+   markers) are never exported as meshes.
+5. Game components (`src/game_entity/`) take their fields and defaults from the
+   game's Rust types; the editor stores only overridden fields and keeps
+   classes it does not know. They reach the game as `components` on authored
+   objects and, in exported GLBs, as the `broom_components` node extras.
+6. New object kinds and per-object data plug in through the extensible
+   registries (`src/entity/registry/`, `src/object_data/`,
+   `src/ui/properties/panel_properties_section_registry.ts`,
+   `src/layout/setup/add_menu_section_registry.ts`,
+   `src/preview/link/preview_link_feature_channel_registry.ts`) the way lights,
+   rooms, portals and game entities do, never as new special cases.
 
 ## Testing requirement
 

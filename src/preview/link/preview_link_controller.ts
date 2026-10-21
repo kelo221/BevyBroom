@@ -12,6 +12,8 @@ import {
   type PreviewCatalogLoadedCallback,
 } from '@/preview/link/preview_link_catalog_channel.js';
 import { PreviewStateObjectCollector } from '@/preview/state/preview_state_object_collector.js';
+import type { PreviewLinkFeatureChannel } from '@/preview/link/preview_link_feature_channel.js';
+import { PreviewLinkFeatureChannelRegistry } from '@/preview/link/preview_link_feature_channel_registry.js';
 import { PreviewGeometrySignature } from '@/preview/geometry/preview_geometry_signature.js';
 
 /** Where the link to the game stands. */
@@ -44,8 +46,8 @@ const PREVIEW_GEOMETRY_CHECK_INTERVAL_MILLISECONDS = 120;
 /**
  * Mirrors the open editor document into a running game: authored state on every
  * change, committed geometry after edits settle, the game material catalog when
- * it changes, and a full resend when the game restarts. Call {@link tick}
- * regularly while connected.
+ * it changes, every registered feature channel, and a full resend when the game
+ * restarts. Call {@link tick} regularly while connected.
  */
 export class PreviewLinkController implements PreviewLinkChannelListener {
   private readonly options: PreviewLinkControllerOptions;
@@ -54,6 +56,7 @@ export class PreviewLinkController implements PreviewLinkChannelListener {
   private readonly geometryChannel: PreviewLinkGeometryChannel;
   private readonly statusChannel: PreviewLinkStatusChannel;
   private readonly catalogChannel: PreviewLinkCatalogChannel;
+  private readonly featureChannels: readonly PreviewLinkFeatureChannel[];
   private readonly changeListeners = new Set<() => void>();
   private connectionState: PreviewLinkConnectionState = 'disconnected';
   private lastErrorMessage = '';
@@ -71,7 +74,12 @@ export class PreviewLinkController implements PreviewLinkChannelListener {
     const encoder = (): Promise<string> =>
       options.geometryEncoder((materialIdentifier) => this.catalogChannel.isGameMaterial(materialIdentifier));
     this.geometryChannel = new PreviewLinkGeometryChannel(options.transport, this.sessionIdentifier, encoder, this);
-    this.statusChannel = new PreviewLinkStatusChannel(options.transport, () => this.gameInstanceAdopt(), this);
+    this.statusChannel = new PreviewLinkStatusChannel(
+      options.transport,
+      (status) => this.gameInstanceAdopt(status),
+      this,
+    );
+    this.featureChannels = PreviewLinkFeatureChannelRegistry.channelsCreate(options.transport, this);
   }
 
   /** Starts mirroring; the first status reply makes the link connected. */
@@ -105,6 +113,7 @@ export class PreviewLinkController implements PreviewLinkChannelListener {
         this.stateSend(),
         this.catalogChannel.checkIfDue(nowMilliseconds),
         this.geometryPublishIfDue(nowMilliseconds),
+        ...this.featureChannels.map((channel) => channel.tickIfDue(nowMilliseconds)),
       );
     }
     return started.filter((request): request is Promise<void> => request !== null);
@@ -191,13 +200,16 @@ export class PreviewLinkController implements PreviewLinkChannelListener {
   }
 
   /**
-   * Resends everything and reloads the catalog because a new game process
-   * answered.
+   * Resends everything and reloads the catalog and every feature channel
+   * because a new game process answered.
+   *
+   * @param status First status of the new game process.
    */
-  private gameInstanceAdopt(): void {
+  private gameInstanceAdopt(status: PreviewBridgeStatus): void {
     this.stateChannel.resendRequest();
     this.geometryChannel.republishRequest();
     this.catalogChannel.reloadRequest();
+    this.featureChannels.forEach((channel) => channel.gameInstanceAdopt(status));
   }
 
   /**

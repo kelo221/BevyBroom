@@ -169,6 +169,7 @@ function buildPrimitiveToolbarActions(
   | 'onAddSpotLight'
   | 'onAddRoom'
   | 'onAddPortal'
+  | 'onAddEntityPlaced'
   | 'onToggleUvEditor'
   | 'onToggleTextureBrowser'
   | 'onToggleSolidModelPanel'
@@ -194,6 +195,8 @@ function buildPrimitiveToolbarActions(
     onAddSpotLight: () => host.getPrimitiveCreationHandler().createSpotLight(),
     onAddRoom: () => host.getPrimitiveCreationHandler().createRoom(),
     onAddPortal: () => host.getPrimitiveCreationHandler().createPortal(),
+    onAddEntityPlaced: (factory, objectRadius) =>
+      host.getPrimitiveCreationHandler().entityCreatePlaced(factory, objectRadius),
     onToggleUvEditor: () => host.onToggleUvEditor(),
     onToggleTextureBrowser: () => host.onToggleTextureBrowser(),
     onToggleSolidModelPanel: () => host.onToggleSolidModelPanel(),

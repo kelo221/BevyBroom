@@ -5,6 +5,7 @@ import {
   ENTITY_SETTINGS_USERDATA_KEY,
   type EntityKind,
   entityKindRead,
+  entityKindRegister,
 } from '@/entity/model/entity_owner_keys.js';
 import { EntityVisualBuilder } from '@/entity/visual/entity_visual_builder.js';
 
@@ -16,12 +17,13 @@ export class EntityOwner<TSettings extends object> {
   readonly definition: EntityDefinition<TSettings>;
 
   /**
-   * Creates an owner helper for a definition.
+   * Creates an owner helper for a definition and makes its kind known.
    *
    * @param definition Rules of the entity kind.
    */
   constructor(definition: EntityDefinition<TSettings>) {
     this.definition = definition;
+    entityKindRegister(definition.kind);
   }
 
   /**

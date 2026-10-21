@@ -27,6 +27,7 @@ If the game is not running yet the panel says it is retrying; it connects as soo
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Moving, rotating, scaling, hiding objects     | Updates transforms and visibility immediately.                                                                                                    |
 | Adding, editing, duplicating, deleting lights | Spawns, updates or removes the matching game light.                                                                                               |
+| Adding, editing, removing game components     | Inserts, updates or removes the component on the matching game entity.                                                                            |
 | Moving a parent group                         | Children and lights inside it move with it.                                                                                                       |
 | Editing geometry (brushes, CSG, faces, UVs)   | Rebuilds the level geometry once you release the mouse and the edit settles, then swaps it in. The old geometry stays until the new one is ready. |
 | Undo and redo                                 | Treated like any other change.                                                                                                                    |
@@ -63,6 +64,10 @@ Moving rooms and portals or toggling a door never rebuilds the level geometry; o
 DynLight joins rooms through portals by itself. Each room must reach the middle of the wall at every doorway it touches; if the rooms and portals do not fit together, the game turns culling off and the panel's **Rooms** line says **culling off** followed by DynLight's reason. When everything fits it says **culling active**. With no rooms in the scene culling is simply not used.
 
 Rooms and portals are saved in the scene file and are exported to GLB as empty nodes the game can read (see [Saving, Loading, Importing, and Exporting](files_import_and_export.md)).
+
+## Game components
+
+The game reports the components it registered for placement. They appear under **Add > Game Entities** and in the **Game Components** section of the Properties panel, with the game's own fields and defaults. Adding, editing and removing components updates the game live, also on brushes, and a component stays on a brush when its geometry is rebuilt. Data asset files are edited through the game, which writes and reloads them. See [Game components and data assets](game_components.md).
 
 ## Game materials
 

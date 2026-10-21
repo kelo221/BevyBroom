@@ -65,7 +65,9 @@ Rooms and portals are exported as empty nodes without meshes, carrying glTF node
 | `dynlight_portal`        | A portal: a square from −1 to +1 in local XY, front side along local +Z.    |
 | `dynlight_portal_closed` | Added to a portal that is closed.                                           |
 
-Lights and the editor's room and portal outlines are not exported as meshes.
+Game components are written as node extras too, under `broom_components`: a map from each component's Rust type path to the fields that differ from the game's defaults. Game Entities are exported as empty nodes carrying only that key. A game reads them with the bridge's `BroomGltfComponentsPlugin` (see [Game components and data assets](game_components.md)).
+
+Lights are left out of GLB exports, because the game creates them from the level manifest; components on lights therefore only reach a game through that manifest. Lights, Game Entity markers and the editor's room and portal outlines are not exported as meshes.
 
 ## Target application notes
 

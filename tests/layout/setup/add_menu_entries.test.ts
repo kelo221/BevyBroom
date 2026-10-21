@@ -29,11 +29,21 @@ function getEntryLabels(entries: ToolbarMenuEntry[]): string[] {
   return labels;
 }
 
+/** Number of categories every Add menu starts with. */
+const BUILTIN_CATEGORY_COUNT = 6;
+
 describe('createAddMenuEntries', () => {
   it('groups every creation action into the expected category', () => {
     const actions = createActionSpies();
     const entries = createAddMenuEntries(actions);
-    expect(getEntryLabels(entries)).toEqual(['Geometry', 'Terrain', 'Brushes', 'Lights', 'Portals']);
+    expect(getEntryLabels(entries).slice(0, BUILTIN_CATEGORY_COUNT)).toEqual([
+      'Geometry',
+      'Terrain',
+      'Brushes',
+      'Lights',
+      'Portals',
+      'Game Entities',
+    ]);
     expect(getEntryLabels(getSubmenuChildren(entries[0]!))).toEqual(['Cube', 'Sphere', 'Cylinder', 'Plane']);
     expect(getEntryLabels(getSubmenuChildren(entries[1]!))).toEqual(['Terrain']);
     expect(getEntryLabels(getSubmenuChildren(entries[2]!))).toEqual(['Solid Model', 'Bevel Volume']);
@@ -41,14 +51,16 @@ describe('createAddMenuEntries', () => {
     expect(getEntryLabels(getSubmenuChildren(entries[4]!))).toEqual(['Room', 'Portal']);
   });
 
-  it('routes every categorized item to its existing creation callback', () => {
+  it('routes every built-in category item to its own creation callback', () => {
     const actions = createActionSpies();
-    const entries = createAddMenuEntries(actions);
+    const entries = createAddMenuEntries(actions).slice(0, BUILTIN_CATEGORY_COUNT);
     entries.flatMap(getSubmenuChildren).forEach((entry) => {
       expect(isMenuAction(entry)).toBe(true);
       if (isMenuAction(entry)) entry.onClick();
     });
-    Object.values(actions).forEach((callback) => expect(callback).toHaveBeenCalledTimes(1));
+    Object.entries(actions)
+      .filter(([name]) => name !== 'onAddEntityPlaced')
+      .forEach(([, callback]) => expect(callback).toHaveBeenCalledTimes(1));
   });
 });
 
@@ -70,5 +82,6 @@ function createActionSpies(): AddMenuActions {
     onAddSpotLight: vi.fn(),
     onAddRoom: vi.fn(),
     onAddPortal: vi.fn(),
+    onAddEntityPlaced: vi.fn(),
   };
 }

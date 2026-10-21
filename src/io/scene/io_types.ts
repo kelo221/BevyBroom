@@ -3,10 +3,15 @@
  * used for saving and loading scenes.
  */
 
+import type { EntityKind } from '@/entity/model/entity_owner_keys.js';
 import type { LightSettings } from '@/light/model/light_settings.js';
 import type { PortalSettings } from '@/portal/model/portal_settings.js';
 import type { RoomSettings } from '@/portal/model/room_settings.js';
 import type { FaceTextureMappingSerialized } from '@/texture/uv/face_texture_mapping.js';
+import type {
+  PreviewAuthoredComponents,
+  PreviewPlaceableClass,
+} from '@/preview/protocol/preview_protocol_placeable_types.js';
 
 /**
  * Supported geometry classifications in scene files. Primitive types store
@@ -40,6 +45,8 @@ export interface SceneJSON {
   documentId?: string;
   /** Flat list of all objects in the scene. */
   objects: ObjectEntry[];
+  /** Snapshot of the game component classes the objects use (version 6+). */
+  gameClasses?: PreviewPlaceableClass[];
 }
 
 /** A single object entry in the serialized scene. */
@@ -48,8 +55,8 @@ export interface ObjectEntry {
   uuid: string;
   /** Display name of the object. */
   name: string;
-  /** Object type classification. */
-  type: 'mesh' | 'group' | 'light' | 'room' | 'portal';
+  /** Object type classification: mesh, group, or an entity kind name. */
+  type: 'mesh' | 'group' | EntityKind;
   /** World-local position. */
   position: { x: number; y: number; z: number };
   /** Euler rotation in XYZ order. */
@@ -70,6 +77,11 @@ export interface ObjectEntry {
   materialColor?: number;
   /** Per-face texture projection parameters for UV re-bake. */
   faceTextureMaps?: SerializedFaceTextureMap[];
+  /**
+   * Game component overrides: component type path to field path to value
+   * (version 6+).
+   */
+  gameComponents?: PreviewAuthoredComponents;
   /** Present when the mesh is a bevel volume. Distance is world units. */
   modifierBevel?: {
     distance: number;

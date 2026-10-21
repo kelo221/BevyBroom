@@ -1,7 +1,10 @@
 import type * as THREE from 'three';
 
-/** Editor-only scene object kinds that are owned by a flagged group. */
-export type EntityKind = 'light' | 'room' | 'portal';
+/**
+ * Name of an entity kind, such as `light`, `room`, `portal` or `game_entity`.
+ * Kinds become known when an owner helper of that kind is created.
+ */
+export type EntityKind = string;
 
 /** UserData key holding the kind of an entity owner group. */
 export const ENTITY_KIND_USERDATA_KEY = 'entityKind';
@@ -15,18 +18,27 @@ export const ENTITY_VISUAL_PART_USERDATA_KEY = 'isEntityVisualPart';
 /** UserData flag on the clickable marker mesh of an entity owner. */
 export const ENTITY_PICK_MESH_USERDATA_KEY = 'isEntityPickMesh';
 
-/** Every kind an owner may carry. */
-const ENTITY_KINDS: readonly EntityKind[] = ['light', 'room', 'portal'];
+/** Every kind an owner helper exists for. */
+const ENTITY_KINDS_KNOWN = new Set<EntityKind>();
+
+/**
+ * Makes a kind known so objects stamped with it are recognized as owners.
+ *
+ * @param kind Kind name.
+ */
+export function entityKindRegister(kind: EntityKind): void {
+  ENTITY_KINDS_KNOWN.add(kind);
+}
 
 /**
  * Returns the entity kind stored on an object.
  *
  * @param object Candidate object.
- * @returns The kind, or null when the object is not an entity owner.
+ * @returns The kind, or null when the object is not an owner of a known kind.
  */
 export function entityKindRead(object: THREE.Object3D): EntityKind | null {
   const stored: unknown = object.userData[ENTITY_KIND_USERDATA_KEY];
-  return ENTITY_KINDS.find((kind) => kind === stored) ?? null;
+  return typeof stored === 'string' && ENTITY_KINDS_KNOWN.has(stored) ? stored : null;
 }
 
 /**

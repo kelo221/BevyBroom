@@ -20,8 +20,9 @@ import {
   modifierBevelClampUvSpace,
 } from '@/modifier/volume/modifier_volume_bevel_keys.js';
 import { modifierBevelRefreshScene } from '@/modifier/compile/modifier_bevel_scene_refresh.js';
-import { entityOwnerRegistryFindByKind } from '@/entity/registry/entity_owner_registry.js';
+import { EntityOwnerRegistry } from '@/entity/registry/entity_owner_registry.js';
 import { documentIdentityReset, documentIdentityWrite } from '@/io/document/document_identity.js';
+import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
 
 /**
  * Reconstructs a Three.js scene graph from serialized JSON data. Performs two
@@ -60,6 +61,7 @@ export class SceneDeserializer {
     if (data.documentId) {
       documentIdentityWrite(worldGroup, data.documentId);
     }
+    ObjectDataContributorRegistry.sceneDocumentRead(data);
     const objectMap = new Map<string, THREE.Object3D>();
     const topLevelObjects: THREE.Object3D[] = [];
     this.createObjectsFromEntries(data.objects, objectMap);
@@ -126,7 +128,8 @@ export class SceneDeserializer {
   }
 
   /**
-   * Creates all Three.js objects from entries and stores them in the map.
+   * Creates all Three.js objects from entries, restores the data of every
+   * object data contributor and stores the objects in the map.
    *
    * @param entries The serialized object entries.
    * @param objectMap The map to populate with created objects.
@@ -134,6 +137,7 @@ export class SceneDeserializer {
   private createObjectsFromEntries(entries: ObjectEntry[], objectMap: Map<string, THREE.Object3D>): void {
     entries.forEach((entry) => {
       const object = this.createObjectFromEntry(entry);
+      ObjectDataContributorRegistry.sceneEntryRead(entry, object);
       objectMap.set(entry.uuid, object);
     });
   }
@@ -168,7 +172,7 @@ export class SceneDeserializer {
    *   entry type is not an entity kind.
    */
   private createEntityFromEntry(entry: ObjectEntry): THREE.Object3D | null {
-    const entityOwner = entityOwnerRegistryFindByKind(entry.type);
+    const entityOwner = EntityOwnerRegistry.findByKind(entry.type);
     if (!entityOwner) {
       return null;
     }

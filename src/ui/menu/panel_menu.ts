@@ -283,7 +283,25 @@ export class PanelMenu {
     return this.root.style.display !== 'none';
   }
 
-  /** Re-evaluates enablement and shortcut labels for every bound row. */
+  /**
+   * Replaces every row with new entries. Open flyouts close and their panels
+   * are disposed.
+   *
+   * @param entries Menu rows to render.
+   */
+  entriesSet(entries: ToolbarMenuEntry[]): void {
+    this.closeOpenChild();
+    this.setActiveRow(null);
+    this.rows.forEach((row) => row.submenuPanel?.dispose());
+    this.rows.length = 0;
+    this.root.replaceChildren();
+    entries.forEach((entry) => this.appendEntry(entry));
+  }
+
+  /**
+   * Re-evaluates live submenu children, enablement and shortcut labels for
+   * every bound row.
+   */
   refresh(): void {
     this.rows.forEach((row) => this.refreshRow(row));
     this.syncActiveRowHighlight();
@@ -587,6 +605,7 @@ export class PanelMenu {
    * @param row Bound row state.
    */
   private refreshRow(row: BoundMenuRow): void {
+    this.refreshSubmenuChildren(row);
     const enabled = row.entry.isEnabled ? row.entry.isEnabled() : true;
     applyMenuItemEnabledState(row.button, enabled);
     applyMenuItemTooltip(row.button, row.entry.tooltip);
@@ -594,6 +613,19 @@ export class PanelMenu {
       this.refreshShortcutLabel(row.shortcutElement, row.entry);
     }
     row.submenuPanel?.refresh();
+  }
+
+  /**
+   * Rebuilds the flyout of a submenu row whose children come from a live
+   * source.
+   *
+   * @param row Bound row state.
+   */
+  private refreshSubmenuChildren(row: BoundMenuRow): void {
+    if (!isMenuSubmenu(row.entry) || !row.entry.childrenResolve || !row.submenuPanel) {
+      return;
+    }
+    row.submenuPanel.entriesSet(row.entry.childrenResolve());
   }
 
   /**

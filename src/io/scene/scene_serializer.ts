@@ -8,15 +8,16 @@ import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidModelCodec } from '@/solid/io/solid_model_codec.js';
 import { ModifierVolumeBevel, type ModifierBevelVolumeSettings } from '@/modifier/volume/modifier_volume_bevel.js';
 import { entityOwnerIs } from '@/entity/model/entity_owner_keys.js';
-import { entityOwnerRegistryFind } from '@/entity/registry/entity_owner_registry.js';
+import { EntityOwnerRegistry } from '@/entity/registry/entity_owner_registry.js';
 import { documentIdentityEnsure } from '@/io/document/document_identity.js';
+import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
 
 /**
  * Schema version for serialized scene files. Version 3 adds face texture maps
  * and optional buffer UV channels. Version 4 adds the document identifier and
  * authored light entries. Version 5 adds room and portal entries.
  */
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 /**
  * Serializes a Three.js scene graph into a JSON-compatible structure. Walks the
@@ -39,11 +40,13 @@ export class SceneSerializer {
   serialize(worldGroup: THREE.Group): SceneJSON {
     const entries: ObjectEntry[] = [];
     this.collectEntries(worldGroup, entries);
-    return {
+    const scene: SceneJSON = {
       version: SCHEMA_VERSION,
       documentId: documentIdentityEnsure(worldGroup),
       objects: entries,
     };
+    ObjectDataContributorRegistry.sceneDocumentWrite(worldGroup, scene);
+    return scene;
   }
 
   /**
@@ -81,13 +84,28 @@ export class SceneSerializer {
   }
 
   /**
-   * Creates an ObjectEntry for a single child object.
+   * Creates an ObjectEntry for a single child object, including the data of
+   * every object data contributor.
    *
    * @param child The child object to serialize.
    * @param parentId The UUID of the parent container.
    * @returns A populated ObjectEntry.
    */
   private createEntryForChild(child: THREE.Object3D, parentId: string): ObjectEntry {
+    const entry = this.createEntryForChildOwnData(child, parentId);
+    ObjectDataContributorRegistry.sceneEntryWrite(child, entry);
+    return entry;
+  }
+
+  /**
+   * Creates an ObjectEntry holding the transform, geometry and entity data of
+   * one child object.
+   *
+   * @param child The child object to serialize.
+   * @param parentId The UUID of the parent container.
+   * @returns A populated ObjectEntry.
+   */
+  private createEntryForChildOwnData(child: THREE.Object3D, parentId: string): ObjectEntry {
     const baseEntry = this.buildBaseEntry(child, parentId);
     if (entityOwnerIs(child)) {
       return this.enrichWithEntityData(child, baseEntry);
@@ -112,7 +130,7 @@ export class SceneSerializer {
    * @returns The entity entry.
    */
   private enrichWithEntityData(owner: THREE.Object3D, entry: ObjectEntry): ObjectEntry {
-    const entityOwner = entityOwnerRegistryFind(owner);
+    const entityOwner = EntityOwnerRegistry.find(owner);
     if (!entityOwner) {
       return entry;
     }

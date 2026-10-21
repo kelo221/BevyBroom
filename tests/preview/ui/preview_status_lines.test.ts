@@ -35,6 +35,9 @@ function statusCreate(overrides: Partial<PreviewBridgeStatus> = {}): PreviewBrid
     bake_message: null,
     catalog_material_count: 4,
     catalog_error: null,
+    placeable_class_count: 3,
+    placed_component_count: 5,
+    data_asset_generation: 2,
     errors: [],
     ...overrides,
   };
@@ -63,7 +66,7 @@ describe('previewStatusLinesBuild', () => {
     expect(lines).toEqual(['Not connected']);
   });
 
-  it('describes revisions, lights, bake and materials of a connected game', () => {
+  it('describes revisions, lights, bake, materials and game components of a connected game', () => {
     const snapshot = snapshotCreate();
     const status = snapshot.status;
     const lines = previewStatusLinesBuild(snapshot).join('\n');
@@ -74,6 +77,9 @@ describe('previewStatusLinesBuild', () => {
     expect(lines).toContain(`Lights: ${status?.light_count}`);
     expect(lines).toContain('bake needed');
     expect(lines).toContain(`Game materials: ${status?.catalog_material_count}`);
+    expect(lines).toContain(
+      `Game components: ${status?.placed_component_count} placed, ${status?.placeable_class_count} classes`,
+    );
     expect(lines).toContain(`Rooms: ${status?.room_count}, portals: ${status?.portal_count} (culling active)`);
   });
 

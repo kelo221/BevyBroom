@@ -1,4 +1,6 @@
+import type * as THREE from 'three';
 import type { ToolbarMenuEntry } from '@/ui/toolbar/toolbar.js';
+import { AddMenuSectionRegistry } from '@/layout/setup/add_menu_section_registry.js';
 
 /** Creation callbacks for each supported object type. */
 export interface AddMenuActions {
@@ -13,64 +15,20 @@ export interface AddMenuActions {
   onAddSpotLight: () => void;
   onAddRoom: () => void;
   onAddPortal: () => void;
+  /**
+   * Adds an entity owner built by a factory at the spawn point as one undoable
+   * step and selects it.
+   */
+  onAddEntityPlaced: (factory: () => THREE.Group, objectRadius: number) => void;
 }
 
 /**
- * Creates the ordinary geometry creation entries.
- *
- * @param actions Creation callbacks for supported geometry.
- * @returns Geometry creation menu entries.
- */
-function createGeometryEntries(actions: AddMenuActions): ToolbarMenuEntry[] {
-  return [
-    { label: 'Cube', onClick: () => actions.onAddCube() },
-    { label: 'Sphere', onClick: () => actions.onAddSphere() },
-    { label: 'Cylinder', onClick: () => actions.onAddCylinder() },
-    { label: 'Plane', onClick: () => actions.onAddPlane() },
-  ];
-}
-
-/**
- * Creates the categorized entries shown under the editor's Add menu.
+ * Creates the categorized entries shown under the editor's Add menu: one
+ * submenu per registered Add menu section.
  *
  * @param actions Creation callbacks for each supported object type.
  * @returns Nested Add menu entries grouped by editor object category.
  */
 export function createAddMenuEntries(actions: AddMenuActions): ToolbarMenuEntry[] {
-  return [
-    {
-      kind: 'submenu',
-      label: 'Geometry',
-      children: createGeometryEntries(actions),
-    },
-    {
-      kind: 'submenu',
-      label: 'Terrain',
-      children: [{ label: 'Terrain', onClick: () => actions.onAddTerrain() }],
-    },
-    {
-      kind: 'submenu',
-      label: 'Brushes',
-      children: [
-        { label: 'Solid Model', onClick: () => actions.onAddSolidModel() },
-        { label: 'Bevel Volume', onClick: () => actions.onAddBevelVolume() },
-      ],
-    },
-    {
-      kind: 'submenu',
-      label: 'Lights',
-      children: [
-        { label: 'Point Light', onClick: () => actions.onAddPointLight() },
-        { label: 'Spot Light', onClick: () => actions.onAddSpotLight() },
-      ],
-    },
-    {
-      kind: 'submenu',
-      label: 'Portals',
-      children: [
-        { label: 'Room', onClick: () => actions.onAddRoom() },
-        { label: 'Portal', onClick: () => actions.onAddPortal() },
-      ],
-    },
-  ];
+  return AddMenuSectionRegistry.entriesCreate(actions);
 }

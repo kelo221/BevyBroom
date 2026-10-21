@@ -10,6 +10,13 @@ import { EditorApiSolidWrites } from './editor_api_solid_writes.js';
 import { EditorApiSpatial } from './editor_api_spatial.js';
 import { EditorApiValidation } from './editor_api_validation.js';
 import { EditorApiEntities, type EntityAddArgs, type EntitySettingsSetArgs } from './editor_api_entities.js';
+import {
+  EditorApiGameEntities,
+  type DataAssetReadArgs,
+  type DataAssetWriteArgs,
+  type GameComponentsSetArgs,
+  type GameEntityAddArgs,
+} from './editor_api_game_entities.js';
 import { EditorApiPreview, type PreviewConnectArgs } from './editor_api_preview.js';
 import { EditorApiSceneDocument, type SceneDocumentLoadArgs } from './editor_api_scene_document.js';
 import type {
@@ -67,6 +74,7 @@ export class EditorApi {
   private readonly capture: EditorApiCapture;
   private readonly entities: EditorApiEntities;
   private readonly preview: EditorApiPreview;
+  private readonly gameEntities: EditorApiGameEntities;
   private readonly sceneDocument: EditorApiSceneDocument;
 
   /**
@@ -87,6 +95,7 @@ export class EditorApi {
     this.capture = new EditorApiCapture(host);
     this.entities = new EditorApiEntities(host);
     this.preview = new EditorApiPreview(host);
+    this.gameEntities = new EditorApiGameEntities(host);
     this.sceneDocument = new EditorApiSceneDocument(host);
   }
 
@@ -103,6 +112,41 @@ export class EditorApi {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return { ok: false, message: `Tool failed: ${message}` };
+    }
+  }
+
+  /**
+   * Dispatches a tool by name, including the tools that wait for the running
+   * game.
+   *
+   * @param name MCP tool name.
+   * @param args Tool arguments.
+   * @returns Tool result envelope.
+   */
+  async invokeToolAsync(name: string, args: Record<string, unknown> = {}): Promise<McpToolResult> {
+    try {
+      return await (this.dispatchAsync(name, args) ?? this.dispatch(name, args));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { ok: false, message: `Tool failed: ${message}` };
+    }
+  }
+
+  /**
+   * Routes the tools that wait for the running game.
+   *
+   * @param name Tool name.
+   * @param args Argument object.
+   * @returns Pending tool result, or null when the tool does not wait.
+   */
+  private dispatchAsync(name: string, args: Record<string, unknown>): Promise<McpToolResult> | null {
+    switch (name) {
+      case 'read_data_asset':
+        return this.gameEntities.dataAssetRead(args as unknown as DataAssetReadArgs);
+      case 'write_data_asset':
+        return this.gameEntities.dataAssetWrite(args as unknown as DataAssetWriteArgs);
+      default:
+        return null;
     }
   }
 
@@ -255,6 +299,29 @@ export class EditorApi {
         return this.sceneDocument.sceneDocumentRead();
       case 'load_scene_document':
         return this.sceneDocument.sceneDocumentLoad(args as unknown as SceneDocumentLoadArgs);
+      default:
+        return this.dispatchGameEntityTools(name, args);
+    }
+  }
+
+  /**
+   * Routes the game class, game entity and game component tools.
+   *
+   * @param name Tool name.
+   * @param args Argument object.
+   * @returns Tool result.
+   */
+  private dispatchGameEntityTools(name: string, args: Record<string, unknown>): McpToolResult {
+    switch (name) {
+      case 'list_game_classes':
+        return this.gameEntities.gameClassesList();
+      case 'add_game_entity':
+        return this.gameEntities.gameEntityAdd(args as GameEntityAddArgs);
+      case 'set_game_components':
+        return this.gameEntities.gameComponentsSet(args as unknown as GameComponentsSetArgs);
+      case 'read_data_asset':
+      case 'write_data_asset':
+        return { ok: false, message: `${name} waits for the game; call it through invokeToolAsync` };
       default:
         return { ok: false, message: `Unknown tool: ${name}` };
     }

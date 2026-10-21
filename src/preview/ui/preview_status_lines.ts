@@ -69,6 +69,7 @@ function previewStatusGameLines(snapshot: PreviewStatusSnapshot, status: Preview
     previewStatusPortalLine(status),
     `Bake: ${PREVIEW_BAKE_LABELS[status.bake_state] ?? status.bake_state}${status.bake_message ? ` — ${status.bake_message}` : ''}`,
     `Game materials: ${status.catalog_material_count}${status.catalog_error ? ` — ${status.catalog_error}` : ''}`,
+    `Game components: ${status.placed_component_count} placed, ${status.placeable_class_count} classes`,
   ];
   if (status.geometry_revision_failed > 0 && status.geometry_revision_failed >= status.geometry_revision_applied) {
     lines.push(
