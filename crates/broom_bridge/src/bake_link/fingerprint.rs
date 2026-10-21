@@ -13,24 +13,18 @@ fn hash_floats(hasher: &mut impl Hasher, values: &[f32]) {
     }
 }
 
-/// Hashes the parts of `light` a bake depends on. Realtime lights are never baked, so only that
-/// flag counts for them.
+/// Hashes the parts of `light` a bake depends on, through its serialized
+/// [`AuthoredLight::bake_relevant`] form. Realtime lights are never baked, so only that flag
+/// counts for them.
 fn hash_light(hasher: &mut impl Hasher, light: &AuthoredLight) {
     light.realtime.hash(hasher);
     light.enabled.hash(hasher);
     if light.realtime || !light.enabled {
         return;
     }
-    format!("{:?}{:?}", light.light_type, light.shadows).hash(hasher);
-    hash_floats(
-        hasher,
-        &[
-            light.radius,
-            light.falloff,
-            light.inner_cutoff,
-            light.outer_cutoff,
-        ],
-    );
+    serde_json::to_string(&light.bake_relevant())
+        .unwrap_or_default()
+        .hash(hasher);
 }
 
 /// The bake fingerprint of `state` shown with the geometry in `geometry_file`.

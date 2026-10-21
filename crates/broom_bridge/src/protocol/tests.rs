@@ -105,6 +105,7 @@ fn authored_lights_become_valid_dynamic_lights() {
         realtime: true,
         shadows: AuthoredShadowMode::Realtime,
         enabled: true,
+        ..default()
     };
     let light = authored.to_dynamic_light();
     assert!(light.is_valid());

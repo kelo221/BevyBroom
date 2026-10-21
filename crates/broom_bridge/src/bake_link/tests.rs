@@ -14,7 +14,10 @@ use dynlight::baked_lighting::ActiveBake;
 
 use super::{BakeLink, BakeLinkPlugin, bake_fingerprint};
 use crate::level::{LevelGeometry, ShownGeometry};
-use crate::protocol::{AuthoredObjectKind, AuthoredState, geometry_file_name};
+use crate::protocol::{
+    AuthoredEffectKind, AuthoredIllumination, AuthoredLight, AuthoredLightEffect,
+    AuthoredObjectKind, AuthoredState, geometry_file_name,
+};
 use crate::status::{BakeState, BridgeStatus};
 use crate::test_support::{
     authoring_app, glb_publication, next_revision, object_mut, sample_state, state_send,
@@ -269,4 +272,40 @@ fn rooms_and_portals_do_not_change_the_bake_fingerprint() {
     assert_eq!(bake_fingerprint(&edited, &file), original);
     object_mut(&mut edited, &baked_light_id(&state)).translation[0] += 1.0;
     assert_ne!(bake_fingerprint(&edited, &file), original);
+}
+
+/// The settings of light `id` in `state`, for editing in place.
+fn light_mut<'a>(state: &'a mut AuthoredState, id: &str) -> &'a mut AuthoredLight {
+    object_mut(state, id)
+        .light
+        .as_mut()
+        .expect("the object is a light")
+}
+
+/// Live-only light features such as an effect or fog keep the bake fingerprint, while the
+/// illumination mode, which the bake stores, changes it.
+#[test]
+fn only_bake_relevant_light_settings_change_the_bake_fingerprint() {
+    let state = sample_state();
+    let file = geometry_file_name(state.geometry_revision);
+    let original = bake_fingerprint(&state, &file);
+    let id = baked_light_id(&state);
+    let mut live = next_revision(&state);
+    let light = light_mut(&mut live, &id);
+    light.effect = Some(AuthoredLightEffect {
+        kind: AuthoredEffectKind::Candle,
+        ..default()
+    });
+    light.fog = None;
+    light.intensity += 1.0;
+    assert_eq!(bake_fingerprint(&live, &file), original);
+    light_mut(&mut live, &id).illumination = match state
+        .object(&id)
+        .and_then(|object| object.light.as_ref())
+        .map(|light| light.illumination)
+    {
+        Some(AuthoredIllumination::SingleBounce) => AuthoredIllumination::Direct,
+        _ => AuthoredIllumination::SingleBounce,
+    };
+    assert_ne!(bake_fingerprint(&live, &file), original);
 }

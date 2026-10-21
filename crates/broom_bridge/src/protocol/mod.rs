@@ -6,12 +6,15 @@ mod catalog;
 mod data_asset;
 mod hierarchy;
 mod light;
+mod light_features;
 mod package;
 mod placeable;
 mod portal;
 mod revision;
 mod state;
 
+#[cfg(test)]
+mod light_feature_tests;
 #[cfg(test)]
 mod tests;
 
@@ -25,6 +28,11 @@ pub use data_asset::{
 };
 pub use hierarchy::{AuthoredHierarchy, local_transform};
 pub use light::{AuthoredLight, AuthoredLightType, AuthoredShadowMode};
+pub use light_features::{
+    AuthoredBounce, AuthoredBounceCompression, AuthoredEffectKind, AuthoredFog, AuthoredFogShape,
+    AuthoredIllumination, AuthoredLightEffect, AuthoredShimmer, AuthoredShimmerKind,
+    AuthoredTransparency,
+};
 pub use package::{
     GeometryPublication, LevelManifest, MANIFEST_FILE_NAME, geometry_file_name,
     is_geometry_file_name, sanitize_level_name,

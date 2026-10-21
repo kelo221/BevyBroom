@@ -96,4 +96,16 @@ fn placeable_basics_init(app: &mut App) {
             PlaceableOptions::any().category("Data").label("Properties"),
         );
     }
+    let has_images = app
+        .world()
+        .resource::<PlaceableAssetTypes>()
+        .by_asset_type_path(Image::type_path())
+        .is_some();
+    if !has_images {
+        app.register_placeable_asset::<Image>(IMAGE_EXTENSIONS);
+    }
 }
+
+/// The image files offered for `Handle<Image>` fields and light cookies unless the game
+/// registers `Image` itself.
+const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg"];

@@ -72,7 +72,20 @@
         "outer_cutoff": 35.0,
         "realtime": true,
         "shadows": "realtime",
-        "enabled": true
+        "enabled": true,
+        "effect": {
+          "kind": "flicker",
+          "pulse_speed": 1.0,
+          "pulse_modifier": 0.25,
+          "pulse_offset": 0.5,
+          "timestep": 0.05
+        },
+        "cookie": "textures/gobo.png",
+        "fog": { "shape": "cone_z", "radius": 6.0, "thickness": 1.5, "intensity": 0.6, "visibility": 2.0 },
+        "shimmer": { "kind": "water", "scale": 10.0, "modifier": 0.7 },
+        "illumination": "single_bounce",
+        "transparency": "enabled",
+        "bounce": { "color": [1.0, 0.5, 0.25, 0.5], "modifier": 0.8, "intensity": 1.5, "samples": 48, "compression": "bits6" }
       }
     },
     {

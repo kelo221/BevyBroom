@@ -4,6 +4,7 @@
 //! Remote handlers only queue a validated snapshot in [`AuthoringInbox`]; the systems here apply
 //! the newest one in `Update`, before transforms propagate in `PostUpdate`.
 
+mod light_companions;
 mod lights;
 mod nodes;
 mod portals;
@@ -13,9 +14,11 @@ mod tests;
 use bevy::app::{SceneSpawnerSystems, SpawnScene};
 use bevy::prelude::*;
 use bevy::transform::TransformSystems;
+use dynlight::effects::LightEffect;
 
 use crate::protocol::{AuthoredState, RevisionGate, RevisionVerdict, StateRejection};
 
+pub use light_companions::AuthoredLightCookiePath;
 pub use lights::AuthoredLightEntity;
 pub use nodes::AuthoredNode;
 pub(crate) use nodes::tag_authored_nodes;
@@ -95,6 +98,8 @@ impl Plugin for AuthoringPlugin {
         app.init_resource::<AuthoringInbox>()
             .init_resource::<AppliedAuthoring>()
             .register_type::<AuthoredNode>()
+            .register_type::<AuthoredLightCookiePath>()
+            .register_type::<LightEffect>()
             .add_message::<DocumentSwitched>()
             .configure_sets(Update, BroomSystems::ApplyState)
             .configure_sets(

@@ -186,6 +186,34 @@ fn asset_fields_name_their_type_and_list_matching_files() {
     assert_ne!(classes_of(&app, directory.path()).asset_generation, before);
 }
 
+/// Images are a built-in asset type under the type path the editor's light cookie picker asks
+/// for, listing the image files and nothing else.
+#[test]
+fn images_are_a_built_in_asset_type() {
+    assert_eq!(Image::type_path(), "bevy_image::image::Image");
+    let app = placeables_app();
+    let directory = TemporaryDirectory::new("placeable_images");
+    let nested = directory.path().join("textures");
+    std::fs::create_dir_all(&nested).expect("the textures directory");
+    for name in ["gobo.png", "window.jpg", "notes.txt"] {
+        std::fs::write(nested.join(name), "").expect("a texture file");
+    }
+    let list = classes_of(&app, directory.path());
+    let images = list
+        .asset_types
+        .iter()
+        .find(|asset_type| asset_type.type_path == Image::type_path())
+        .expect("images are described");
+    assert_eq!(
+        images.paths,
+        vec![
+            "textures/gobo.png".to_owned(),
+            "textures/window.jpg".to_owned()
+        ]
+    );
+    assert!(!images.editable);
+}
+
 /// The shared class list fixture, also parsed by the editor's tests, matches the wire types.
 #[test]
 fn class_list_fixture_parses() {

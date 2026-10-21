@@ -4,6 +4,11 @@ use bevy::prelude::*;
 use dynlight::light::{DynamicLight, LightType, ShadowMode};
 use serde::{Deserialize, Serialize};
 
+use super::light_features::{
+    AuthoredBounce, AuthoredFog, AuthoredIllumination, AuthoredLightEffect, AuthoredShimmer,
+    AuthoredTransparency,
+};
+
 /// The light shapes the editor can author.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -49,6 +54,23 @@ pub struct AuthoredLight {
     pub shadows: AuthoredShadowMode,
     #[serde(default = "enabled_by_default")]
     pub enabled: bool,
+    /// Intensity animation; none shines steadily.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effect: Option<AuthoredLightEffect>,
+    /// Spot only: image projected by the light, as a path inside the game's assets folder.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cookie: Option<String>,
+    /// Volumetric fog in the light's color; none draws no fog.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fog: Option<AuthoredFog>,
+    #[serde(default)]
+    pub shimmer: AuthoredShimmer,
+    #[serde(default)]
+    pub illumination: AuthoredIllumination,
+    #[serde(default)]
+    pub transparency: AuthoredTransparency,
+    #[serde(default)]
+    pub bounce: AuthoredBounce,
 }
 
 /// Serde default for [`AuthoredLight::inner_cutoff`].
@@ -80,6 +102,13 @@ impl Default for AuthoredLight {
             realtime: false,
             shadows: AuthoredShadowMode::Raytraced,
             enabled: true,
+            effect: None,
+            cookie: None,
+            fog: None,
+            shimmer: AuthoredShimmer::default(),
+            illumination: AuthoredIllumination::default(),
+            transparency: AuthoredTransparency::default(),
+            bounce: AuthoredBounce::default(),
         }
     }
 }
@@ -110,10 +139,25 @@ impl AuthoredLight {
         if self.intensity < 0.0 {
             return Err(format!("intensity {} must not be negative", self.intensity));
         }
+        self.validate_features()?;
         if self.light_type == AuthoredLightType::Spot {
             return self.validate_cone();
         }
         Ok(())
+    }
+
+    /// Explains the first invalid value of the effect, fog, shimmer or bounce.
+    fn validate_features(&self) -> Result<(), String> {
+        if let Some(effect) = &self.effect {
+            effect.validate()?;
+        }
+        if let Some(fog) = &self.fog {
+            fog.validate()?;
+        }
+        if !self.shimmer.scale.is_finite() || !self.shimmer.modifier.is_finite() {
+            return Err("a shimmer value is not a finite number".into());
+        }
+        self.bounce.validate()
     }
 
     /// Spot cones need `0 < outer <= MAX_CUTOFF` and `0 <= inner <= outer`.
@@ -152,18 +196,37 @@ impl AuthoredLight {
                 AuthoredShadowMode::Raytraced => ShadowMode::Raytraced,
                 AuthoredShadowMode::Realtime => ShadowMode::Realtime,
             },
+            illumination: self.illumination.to_dynlight(),
+            transparency: self.transparency.to_dynlight(),
+            bounce: self.bounce.to_dynlight(),
+            shimmer: self.shimmer.to_dynlight(),
+            shimmer_scale: self.shimmer.scale,
+            shimmer_modifier: self.shimmer.modifier,
             ..default()
         }
     }
 
-    /// Whether changing from `self` to `other` changes what a bake would contain: everything
-    /// except color and intensity, which DynLight evaluates live.
-    pub fn bake_relevant_change(&self, other: &Self) -> bool {
-        let live_only = |light: &Self| Self {
+    /// The part of `self` a bake depends on: everything except what DynLight evaluates live,
+    /// which is color, intensity, effect, cookie, fog, shimmer and the bounce light's runtime
+    /// visibility. Those are reset to fixed values.
+    pub fn bake_relevant(&self) -> Self {
+        Self {
             color: [0.0; 3],
             intensity: 0.0,
-            ..light.clone()
-        };
-        live_only(self) != live_only(other)
+            effect: None,
+            cookie: None,
+            fog: None,
+            shimmer: AuthoredShimmer::default(),
+            bounce: AuthoredBounce {
+                modifier: 0.0,
+                ..self.bounce
+            },
+            ..self.clone()
+        }
+    }
+
+    /// Whether changing from `self` to `other` changes what a bake would contain.
+    pub fn bake_relevant_change(&self, other: &Self) -> bool {
+        self.bake_relevant() != other.bake_relevant()
     }
 }

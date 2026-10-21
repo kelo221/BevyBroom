@@ -7,15 +7,16 @@ use bevy::render::view::screenshot::{Screenshot, save_to_disk};
 use bevy::window::PrimaryWindow;
 use bevy::world_serialization::WorldAssetRoot;
 use broom_bridge::status::BridgeStatus;
-use dynlight::prelude::LightingViewer;
+use dynlight::prelude::{FogPostProcess, LightingViewer};
 
 use crate::arguments::PreviewArguments;
 
-/// Spawns the camera, looking at the origin from above and behind.
+/// Spawns the camera, looking at the origin from above and behind, drawing lights' fog.
 pub fn spawn_camera(mut commands: Commands) {
     commands.spawn((
         Camera3d::default(),
         LightingViewer,
+        FogPostProcess,
         FreeCamera::default(),
         Transform::from_xyz(-6.0, 4.0, 8.0).looking_at(Vec3::new(0.0, 1.0, 0.0), Vec3::Y),
     ));

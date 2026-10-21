@@ -2,6 +2,7 @@
 //! despawned in a headless app as snapshots arrive.
 
 mod cells;
+mod companions;
 mod revisions;
 mod spawning;
 
