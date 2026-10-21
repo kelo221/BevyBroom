@@ -12,6 +12,7 @@ import { ControllerViewportShading } from '@/viewports/shading/controller_viewpo
 import { ShadingMode } from '@/types/shading_mode.js';
 import { resizeOrthoFrustumPreservingZoom, zoomOrthoFrustumTowardPointer } from './ortho_zoom_limits.js';
 import { isEditorHelperObject } from '@/utils/mesh_edge_sync.js';
+import { entityPickMeshIs } from '@/entity/model/entity_owner_keys.js';
 import { DEFAULT_ORTHO_HALF_EXTENT } from '@/types/editor_config.js';
 import { getDefaultSceneFocus } from '@/navigation/placement/default_camera_placement.js';
 import { OrthoDepthRanger } from './ortho_depth_ranger.js';
@@ -101,7 +102,7 @@ export class Viewport2D extends ViewportBase {
     const meshes: THREE.Mesh[] = [];
     this.worldGroup.traverse((child) => {
       if (!(child instanceof THREE.Mesh)) return;
-      if (isEditorHelperObject(child)) return;
+      if (isEditorHelperObject(child) && !entityPickMeshIs(child)) return;
       meshes.push(child);
     });
     return meshes;

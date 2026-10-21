@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { materialIdentityWrite } from '@/materials/identity/material_identity.js';
 import { getFaceTextureMaps, getFaceTextureMapsLive, setFaceTextureMaps } from '@/texture/uv/face_texture_storage.js';
 import { countTriangles } from '@/texture/uv/planar_uv_projector.js';
 import { TextureMapCache, getTextureMapCache } from '@/texture/library/texture_map_cache.js';
@@ -56,7 +57,7 @@ export function rebuildSurfaceMaterials(
   }
   const perTriangle = buildPerTriangleTextureIds(mesh, triangleCount);
   const materialSlots = collectUniqueTextureIds(perTriangle);
-  const materials = materialSlots.map((textureId) => createSurfaceMaterial(color, cache.resolve(textureId)));
+  const materials = materialSlots.map((textureId) => createSurfaceMaterial(color, textureId, cache));
   applyMaterialLayout(mesh, perTriangle, materialSlots, options.preserveTriangleOrder === true);
   disposeOwnedMaterials(mesh);
   mesh.material = pickMaterialAssignment(materials);
@@ -93,7 +94,7 @@ function resolveUniformContentTextureId(mesh: THREE.Mesh): string | null {
  */
 function applyUniformSurfaceMaterial(mesh: THREE.Mesh, textureId: string, color: number, cache: TextureMapCache): void {
   mesh.geometry.clearGroups();
-  const material = createSurfaceMaterial(color, cache.resolve(textureId || DEFAULT_CHECKER_TEXTURE_ID));
+  const material = createSurfaceMaterial(color, textureId || DEFAULT_CHECKER_TEXTURE_ID, cache);
   disposeOwnedMaterials(mesh);
   mesh.material = material;
   publishContentMaterials(mesh);
@@ -142,7 +143,7 @@ export function rebuildSolidResultMaterials(
   if (materialSlots.length > 1) {
     applySlotRunGroups(mesh.geometry, slotPerTriangle, materialSlots.length);
   }
-  const materials = materialSlots.map((textureId) => createSurfaceMaterial(color, cache.resolve(textureId)));
+  const materials = materialSlots.map((textureId) => createSurfaceMaterial(color, textureId, cache));
   disposeOwnedMaterials(mesh);
   mesh.material = pickMaterialAssignment(materials);
   publishContentMaterials(mesh);
@@ -515,14 +516,21 @@ function pickMaterialAssignment(materials: ContentViewLitMaterial[]): THREE.Mate
 }
 
 /**
- * Creates one surface material with the given map and view-direction lighting.
+ * Creates one surface material for a texture id with view-direction lighting
+ * and stamps the id on the material.
  *
  * @param color Hex tint.
- * @param map Diffuse map texture.
+ * @param textureId Texture or game material identity of the surface.
+ * @param cache Texture map cache that resolves the id to a diffuse map.
  * @returns Content view-lit material.
  */
-function createSurfaceMaterial(color: number, map: THREE.Texture): ContentViewLitMaterial {
-  return createContentViewLitMaterial(color, map, { flatShading: true, side: THREE.FrontSide });
+function createSurfaceMaterial(color: number, textureId: string, cache: TextureMapCache): ContentViewLitMaterial {
+  const material = createContentViewLitMaterial(color, cache.resolve(textureId), {
+    flatShading: true,
+    side: THREE.FrontSide,
+  });
+  materialIdentityWrite(material, textureId);
+  return material;
 }
 
 /**

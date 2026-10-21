@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { CommandTextureSurfaceAssign } from '@/texture/commands/command_texture_surface_assign.js';
 import { CommandTextureSolidBrushAssign } from '@/texture/commands/command_texture_solid_brush_assign.js';
@@ -288,6 +289,7 @@ export class ControllerTextureAssignment {
     if (SolidBrushVisual.isBrushObject(mesh)) return false;
     if (SolidModel.isResultMesh(mesh)) return false;
     if (ModifierVolumeBevel.isVolume(mesh)) return false;
+    if (entityVisualPartIs(mesh)) return false;
     return true;
   }
 

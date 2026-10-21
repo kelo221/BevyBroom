@@ -1,6 +1,6 @@
 # Glyph Reference
 
-AiWorldEd uses compact glyphs so the viewports have more room for the world you are building. This reference shows the current glyphs and explains what happens when you select each one.
+BevyBroom uses compact glyphs so the viewports have more room for the world you are building. This reference shows the current glyphs and explains what happens when you select each one.
 
 ![Numbered visual reference showing every toolbar, viewport, tool, UV, and solid-brush glyph](images/editor_glyphs.svg)
 

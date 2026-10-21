@@ -1,4 +1,8 @@
-/** Type-only shim for the `electrobun/view` module under strict type checking. */
+/**
+ * Type-only shim for `electrobun/view`. The Electrobun 2.x SDK is projected by
+ * Hutch into `.hutch/devkit` at build time, which type checks cannot rely on,
+ * so builds resolve the real SDK while type checks use these declarations.
+ */
 
 /** Optional transport setter and request handler map on an RPC client. */
 export type RpcWithTransport = {

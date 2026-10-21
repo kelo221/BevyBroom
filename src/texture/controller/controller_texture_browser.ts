@@ -162,11 +162,23 @@ export class ControllerTextureBrowser {
    */
   private applyListing(listing: PickedDirectoryListing): void {
     const scan = this.scanner.scanListing(listing);
-    this.library.replaceAll(listing.folderName, scan.entries);
+    this.applyEntries(listing.folderName, scan.entries);
+    this.reportLoadResult(scan.entries.length, scan.skippedNonImageCount);
+  }
+
+  /**
+   * Replaces the library textures, refreshes cached maps of ids that stay and
+   * refreshes the browser UI.
+   *
+   * @param folderName Display name of the texture source.
+   * @param entries Texture entries without the built-in checker.
+   */
+  applyEntries(folderName: string, entries: TextureBrowserEntry[]): void {
+    this.library.replaceAll(folderName, entries);
     getTextureMapCache().setLibrary(this.library);
     getTextureMapCache().pruneMissingLibraryEntries();
+    getTextureMapCache().cachedTexturesReloadFromLibrary();
     this.refreshBrowserUi();
-    this.reportLoadResult(scan.entries.length, scan.skippedNonImageCount);
   }
 
   /**

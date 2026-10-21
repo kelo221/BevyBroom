@@ -56,7 +56,7 @@ describe('AboutDialog', () => {
     expect(dialog.isOpen()).toBe(false);
   });
 
-  it('should display the project name AI World Editor', () => {
+  it('should display the project name BevyBroom', () => {
     dialog.show();
     expect(dialog.getPanelElement().textContent).toContain(PROJECT_DISPLAY_NAME);
   });
@@ -149,7 +149,7 @@ describe('AboutDialog', () => {
     expect(panel.classList.contains('about-dialog-panel')).toBe(true);
     expect(title.classList.contains('about-dialog-title')).toBe(true);
     expect(panel.style.background).toContain('linear-gradient');
-    expect(document.getElementById('aiworlded-about-dialog-styles')).toBeTruthy();
+    expect(document.getElementById('bevybroom-about-dialog-styles')).toBeTruthy();
   });
 
   it('should close when Escape is pressed while open', () => {

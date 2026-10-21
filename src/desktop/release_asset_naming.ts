@@ -35,7 +35,7 @@ export function toPublicReleasePlatform(os: ElectrobunArtifactOs): PublicRelease
  * @param os Electrobun OS token.
  * @param arch Architecture token.
  * @param extension Archive extension without a leading dot, default "zip".
- * @returns File name such as "AiWorldEd-1.0.42-Win-x64-Setup.zip".
+ * @returns File name such as "BevyBroom-1.0.42-Win-x64-Setup.zip".
  */
 export function buildPublicSetupFileName(
   version: string,
@@ -43,7 +43,7 @@ export function buildPublicSetupFileName(
   arch: ElectrobunArtifactArch,
   extension: string = 'zip',
 ): string {
-  return `AiWorldEd-${version}-${toPublicReleasePlatform(os)}-${arch}-Setup.${extension}`;
+  return `BevyBroom-${version}-${toPublicReleasePlatform(os)}-${arch}-Setup.${extension}`;
 }
 
 /**
@@ -53,7 +53,7 @@ export function buildPublicSetupFileName(
  * @param os Electrobun OS token.
  * @param arch Architecture token.
  * @param extension Archive extension without a leading dot, default "tar.zst".
- * @returns File name such as "AiWorldEd-1.0.42-Win-x64-Portable.tar.zst".
+ * @returns File name such as "BevyBroom-1.0.42-Win-x64-Portable.tar.zst".
  */
 export function buildPublicPortableFileName(
   version: string,
@@ -61,7 +61,7 @@ export function buildPublicPortableFileName(
   arch: ElectrobunArtifactArch,
   extension: string = 'tar.zst',
 ): string {
-  return `AiWorldEd-${version}-${toPublicReleasePlatform(os)}-${arch}-Portable.${extension}`;
+  return `BevyBroom-${version}-${toPublicReleasePlatform(os)}-${arch}-Portable.${extension}`;
 }
 
 /**
@@ -90,14 +90,14 @@ export function buildElectrobunUpdateJsonFileName(
  * @param channel Build channel such as "stable".
  * @param os Electrobun OS token.
  * @param arch Architecture token.
- * @param appFileName Sanitized app file name such as "AiWorldEd".
- * @returns File name such as "stable-win-x64-AiWorldEd.tar.zst".
+ * @param appFileName Sanitized app file name such as "BevyBroom".
+ * @returns File name such as "stable-win-x64-BevyBroom.tar.zst".
  */
 export function buildElectrobunPortableFileName(
   channel: string,
   os: ElectrobunArtifactOs,
   arch: ElectrobunArtifactArch,
-  appFileName: string = 'AiWorldEd',
+  appFileName: string = 'BevyBroom',
 ): string {
   const bundleSuffix = os === 'macos' ? `${appFileName}.app.tar.zst` : `${appFileName}.tar.zst`;
   return `${channel}-${os}-${arch}-${bundleSuffix}`;

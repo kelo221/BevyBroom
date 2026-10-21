@@ -24,7 +24,7 @@ describe('FbxExporter', () => {
     worldGroup.add(mesh);
     const text = exporter.export(worldGroup);
     expect(text).toContain('; FBX 7.4.0 project file');
-    expect(text).toContain('Created by AI World Editor');
+    expect(text).toContain('Created by BevyBroom');
     expect(text).toContain('FBXVersion: 7400');
     expect(text).toContain('Objects:');
     expect(text).toContain('Geometry:');
@@ -163,7 +163,7 @@ describe('FbxExporter', () => {
     const text = exporter.export(worldGroup);
     expect(text.toLowerCase()).not.toContain('needle');
     expect(text.toLowerCase()).not.toContain('comfy');
-    expect(text).toContain('AI World Editor');
+    expect(text).toContain('BevyBroom');
   });
 });
 

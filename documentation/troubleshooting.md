@@ -2,7 +2,7 @@
 
 Most apparent failures come from the current selection, active tool, locked state, browser permissions, or an operation that requires a more specific kind of geometry.
 
-If you are compiling or packaging AiWorldEd from its source code, use [Building and running AiWorldEd](building_and_running.md) for build-specific setup and error guidance.
+If you are compiling or packaging BevyBroom from its source code, use [Building and running BevyBroom](building_and_running.md) for build-specific setup and error guidance.
 
 ## I cannot find an object
 

@@ -17,6 +17,7 @@ import { HandlerAlignment } from '@/outliner/alignment/handler_alignment.js';
 import { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js';
 import { TextureLockSettings } from '@/texture/lock/texture_lock_settings.js';
 import { audioSettings } from '@/audio/settings/audio_settings.js';
+import type { ShellFileMenuShortcutAction } from '@/layout/shell/shell_file_menu_shortcut_action.js';
 
 /**
  * Host callbacks used when building outliner shell action bindings. Handler
@@ -57,6 +58,7 @@ export interface ToolbarActionHost {
   onOpenDocumentation: () => void;
   onOpenAboutDialog: () => void;
   onOpenMcpDialog: () => void;
+  onToggleGamePreviewPanel: () => void;
   onOpenDetachedViewport: () => void;
   onToggleAiCaptureDebugPanel: () => void;
   onToggleAudio: () => void;
@@ -64,13 +66,14 @@ export interface ToolbarActionHost {
   onGroupSelected: () => void;
   onNewScene: () => void;
   onSaveScene: () => void;
+  onSaveSceneAs: () => void;
   onLoadScene: () => void;
   onImportVmf: () => void;
   onImportObj: () => void;
   onExportGlb: () => void;
   onExportObj: () => void;
   onExportFbx: () => void;
-  getShortcutLabel: (action: 'save' | 'load' | 'export_glb') => string;
+  getShortcutLabel: (action: ShellFileMenuShortcutAction) => string;
   onSetTransformSpaceGlobal: () => void;
   onSetTransformSpaceLocal: () => void;
   isTransformSpaceLocal: () => boolean;
@@ -162,6 +165,10 @@ function buildPrimitiveToolbarActions(
   | 'onAddTerrain'
   | 'onAddSolidModel'
   | 'onAddBevelVolume'
+  | 'onAddPointLight'
+  | 'onAddSpotLight'
+  | 'onAddRoom'
+  | 'onAddPortal'
   | 'onToggleUvEditor'
   | 'onToggleTextureBrowser'
   | 'onToggleSolidModelPanel'
@@ -169,6 +176,7 @@ function buildPrimitiveToolbarActions(
   | 'onOpenDocumentation'
   | 'onOpenAboutDialog'
   | 'onOpenMcpDialog'
+  | 'onToggleGamePreviewPanel'
   | 'onOpenDetachedViewport'
   | 'onToggleAiCaptureDebugPanel'
   | 'onToggleAudio'
@@ -182,6 +190,10 @@ function buildPrimitiveToolbarActions(
     onAddTerrain: () => host.onAddTerrain(),
     onAddSolidModel: () => host.onAddSolidModel(),
     onAddBevelVolume: () => host.getPrimitiveCreationHandler().createBevelVolume(),
+    onAddPointLight: () => host.getPrimitiveCreationHandler().createPointLight(),
+    onAddSpotLight: () => host.getPrimitiveCreationHandler().createSpotLight(),
+    onAddRoom: () => host.getPrimitiveCreationHandler().createRoom(),
+    onAddPortal: () => host.getPrimitiveCreationHandler().createPortal(),
     onToggleUvEditor: () => host.onToggleUvEditor(),
     onToggleTextureBrowser: () => host.onToggleTextureBrowser(),
     onToggleSolidModelPanel: () => host.onToggleSolidModelPanel(),
@@ -189,6 +201,7 @@ function buildPrimitiveToolbarActions(
     onOpenDocumentation: () => host.onOpenDocumentation(),
     onOpenAboutDialog: () => host.onOpenAboutDialog(),
     onOpenMcpDialog: () => host.onOpenMcpDialog(),
+    onToggleGamePreviewPanel: () => host.onToggleGamePreviewPanel(),
     onOpenDetachedViewport: () => host.onOpenDetachedViewport(),
     onToggleAiCaptureDebugPanel: () => host.onToggleAiCaptureDebugPanel(),
     onToggleAudio: () => host.onToggleAudio(),
@@ -285,6 +298,7 @@ function buildIoToolbarActions(
   EditorToolbarActions,
   | 'onNewScene'
   | 'onSaveScene'
+  | 'onSaveSceneAs'
   | 'onLoadScene'
   | 'onImportVmf'
   | 'onImportObj'
@@ -296,6 +310,7 @@ function buildIoToolbarActions(
   return {
     onNewScene: () => host.onNewScene(),
     onSaveScene: () => host.onSaveScene(),
+    onSaveSceneAs: () => host.onSaveSceneAs(),
     onLoadScene: () => host.onLoadScene(),
     onImportVmf: () => host.onImportVmf(),
     onImportObj: () => host.onImportObj(),

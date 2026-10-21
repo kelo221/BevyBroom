@@ -23,6 +23,7 @@ const PRIMARY_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, str
 const EDITOR_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, string]> = [
   ['escape', 'Cancel / Deselect'],
   ['save', 'Save Scene'],
+  ['save_as', 'Save Scene As'],
   ['load', 'Load Scene'],
   ['export_glb', 'Export GLB'],
   ['undo', 'Undo'],

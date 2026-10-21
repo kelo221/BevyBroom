@@ -3,7 +3,7 @@ import { LocalSettingsStorage, MemorySettingsStorage } from '@/settings/storage/
 import { notificationFrameEvents } from '@/audio/notification/notification_frame_events.js';
 
 /** Storage key for audio preference JSON. */
-export const AUDIO_SETTINGS_STORAGE_KEY = 'aiworlded.settings.audio';
+export const AUDIO_SETTINGS_STORAGE_KEY = 'bevybroom.settings.audio';
 
 /** Serializable audio preference snapshot. */
 export interface AudioSettingsSnapshot {

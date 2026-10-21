@@ -112,6 +112,19 @@ export class TextureMapCache {
     staleIds.forEach((id) => this.disposeId(id));
   }
 
+  /**
+   * Loads every cached user texture again from its current library entry, so
+   * materials holding the texture show the new image without being rebuilt.
+   */
+  cachedTexturesReloadFromLibrary(): void {
+    this.textures.forEach((texture, textureId) => {
+      const entry = this.library?.getEntryById(textureId) ?? null;
+      if (entry && !isDefaultCheckerTextureId(entry.id)) {
+        textureImageLoadFromEntry(texture, entry);
+      }
+    });
+  }
+
   /** Disposes all cached user textures. */
   dispose(): void {
     this.textures.forEach((texture) => texture.dispose());
@@ -170,14 +183,26 @@ function createTextureFromBrowserEntry(entry: TextureBrowserEntry, filterPolicy:
     applyTextureFilterPolicy(checker, filterPolicy);
     return checker;
   }
-  const image = new Image();
-  const texture = new THREE.Texture(image);
+  const texture = new THREE.Texture();
   configureUserTexture(texture, filterPolicy);
+  textureImageLoadFromEntry(texture, entry);
+  return texture;
+}
+
+/**
+ * Gives a texture a new image loading from a browser entry and uploads it once
+ * decoded.
+ *
+ * @param texture Texture that receives the image.
+ * @param entry Texture browser entry with a live object URL.
+ */
+function textureImageLoadFromEntry(texture: THREE.Texture, entry: TextureBrowserEntry): void {
+  const image = new Image();
+  texture.image = image;
   image.onload = () => {
     texture.needsUpdate = true;
   };
   image.src = entry.previewObjectUrl;
-  return texture;
 }
 
 /**

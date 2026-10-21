@@ -1,12 +1,13 @@
 {
-  "name": "aiworlded",
+  "name": "bevybroom",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "packageManager": "bun@1.3.14",
+  "packageManager": "bun@1.4.3",
   "scripts": {
     "test": "vitest",
     "testrun": "vitest run",
+    "e2e": "vitest run tests/e2e",
     "dev": "vite --host",
     "build": "prettier --write --log-level silent . && vite build",
     "preview": "vite preview",
@@ -17,23 +18,24 @@
     "typecheck:strict": "tsc --project tsconfig.strict.json --noEmit",
     "audit:agents": "bun scripts/audit_agents_compliance.ts",
     "codemod:at-imports": "bun scripts/codemod_at_imports.ts",
+    "preview:game": "bun scripts/preview_launch.ts",
     "desktop:dev": "electrobun dev",
     "desktop:build": "electrobun build --env=stable",
+    "desktop:build:dev": "electrobun build --env=dev",
     "desktop:run": "electrobun run"
   },
   "devDependencies": {
-    "electrobun": "^1.18.1",
-    "jsdom": "^30.0.1",
-    "pe-library": "^2.0.1",
-    "prettier": "^3.9.6",
+    "@types/node": "24",
+    "electrobun": "^2.0.4",
+    "jsdom": "30.0.1",
+    "prettier": "^3.9.10",
     "prettier-plugin-jsdoc": "^1.8.1",
-    "resedit": "^3.0.2",
     "typescript": "^7.0.2",
-    "vite": "^8.2.0",
-    "vitest": "^4.1.10"
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
   },
   "dependencies": {
-    "@types/three": "^0.185.3",
-    "three": "^0.185.1"
+    "@types/three": "^v0.186.0",
+    "three": "^0.186.1"
   }
 }

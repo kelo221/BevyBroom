@@ -1,29 +1,25 @@
-import type { ElectrobunConfig } from 'electrobun/bun';
 import packageMetadata from './package.json';
-import { createElectrobunBuildPlugins } from './scripts/electrobun_tsconfig_paths_plugin.js';
 
-const electrobunBuildPlugins = createElectrobunBuildPlugins();
-
-const electrobunConfig: ElectrobunConfig = {
+/**
+ * Electrobun 2.x build configuration. Its type lives in the Hutch devkit
+ * (`.hutch/devkit/api/config/ElectrobunConfig.ts`), which type checks cannot
+ * rely on; Hutch validates this object when it builds.
+ */
+const electrobunConfig = {
   app: {
-    name: 'AiWorldEd',
-    identifier: 'com.henry00is.aiworlded',
+    name: 'BevyBroom',
+    identifier: 'com.henry00is.bevybroom',
     version: packageMetadata.version,
     description: 'Three.js 3D world editor for game level design.',
   },
   build: {
+    mainProcess: 'bun',
     bun: {
       entrypoint: 'src/desktop/bun/index.ts',
-      plugins: electrobunBuildPlugins,
-    },
-    views: {
-      main_ui: {
-        entrypoint: 'src/desktop/main_ui/index.ts',
-        plugins: electrobunBuildPlugins,
-      },
+      alias: { '@': './src' },
     },
     copy: {
-      'src/desktop/main_ui/index.html': 'views/main_ui/index.html',
+      desktop_view_dist: 'views/main_ui',
       'public/favicon.ico': 'views/main_ui/favicon.ico',
       'public/favicon-16x16.png': 'views/main_ui/favicon-16x16.png',
       'public/favicon-32x32.png': 'views/main_ui/favicon-32x32.png',
@@ -36,8 +32,6 @@ const electrobunConfig: ElectrobunConfig = {
     win: {
       defaultRenderer: 'native',
       bundleCEF: false,
-      // Electrobun embeds this into launcher.exe, bun.exe, and Setup.exe before
-      // the Setup zip is created (required for GitHub Actions release assets).
       icon: 'public/app_icon.ico',
     },
     mac: {
@@ -56,8 +50,7 @@ const electrobunConfig: ElectrobunConfig = {
     exitOnLastWindowClosed: true,
   },
   scripts: {
-    postBuild: 'scripts/embed_windows_app_icon.ts',
-    postPackage: 'scripts/embed_windows_app_icon.ts',
+    preBuild: 'scripts/desktop_view_build.ts',
   },
   release: {
     baseUrl: 'https://github.com/Henry00IS/AiWorldEd/releases/latest/download',

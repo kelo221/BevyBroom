@@ -1,5 +1,5 @@
 /** Identifier used to keep the view settings stylesheet singular. */
-const VIEW_SETTINGS_STYLE_ID = 'aiworlded-view-settings-styles';
+const VIEW_SETTINGS_STYLE_ID = 'bevybroom-view-settings-styles';
 
 /**
  * Installs the stylesheet that turns View preferences into visible editor
@@ -46,7 +46,7 @@ function buildViewSettingsCss(): string {
 function buildFontSizeCss(): string {
   return `#editor-container, #editor-container button, #editor-container input,
 #editor-container select, #editor-container textarea {
-  font-size: var(--aiworlded-ui-font-size) !important;
+  font-size: var(--bevybroom-ui-font-size) !important;
 }`;
 }
 
@@ -57,10 +57,10 @@ function buildFontSizeCss(): string {
  */
 function buildTextureBrowserCss(): string {
   return `.tb-browser-grid {
-  grid-template-columns: repeat(auto-fill, minmax(calc(96px * var(--aiworlded-material-icon-scale)), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(calc(96px * var(--bevybroom-material-icon-scale)), 1fr));
 }
 .tb-browser-thumb {
-  filter: brightness(var(--aiworlded-viewport-brightness));
+  filter: brightness(var(--bevybroom-viewport-brightness));
 }`;
 }
 
@@ -95,26 +95,26 @@ function buildLightThemeCss(): string {
  * @returns Light theme dropdown CSS rules.
  */
 function buildLightThemeDropdownCss(): string {
-  return `html[data-aiworlded-theme='light'] .editor-toolbar-dropdown-menu,
-html[data-aiworlded-theme='light'] .editor-toolbar-dropdown-submenu {
+  return `html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-menu,
+html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-submenu {
   background: #ffffff !important;
   border-color: #767676 !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
 }
-html[data-aiworlded-theme='light'] .editor-toolbar-dropdown-item {
+html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-item {
   background: transparent !important;
   color: #0a0a0a !important;
   border-color: transparent !important;
 }
-html[data-aiworlded-theme='light'] .editor-toolbar-dropdown-item:hover:not(:disabled) {
+html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-item:hover:not(:disabled) {
   background: #e5f3ff !important;
   border-color: #0078d4 !important;
 }
-html[data-aiworlded-theme='light'] .editor-toolbar-dropdown-shortcut,
-html[data-aiworlded-theme='light'] .editor-toolbar-dropdown-submenu-caret {
+html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-shortcut,
+html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-submenu-caret {
   color: #5a5a5a !important;
 }
-html[data-aiworlded-theme='light'] .editor-toolbar-dropdown-separator {
+html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-separator {
   background: #d0d0d0 !important;
 }`;
 }
@@ -125,9 +125,9 @@ html[data-aiworlded-theme='light'] .editor-toolbar-dropdown-separator {
  * @returns Light theme frame CSS rules.
  */
 function buildLightThemeFrameCss(): string {
-  return `html[data-aiworlded-theme='light'],
-html[data-aiworlded-theme='light'] body,
-html[data-aiworlded-theme='light'] #editor-container {
+  return `html[data-bevybroom-theme='light'],
+html[data-bevybroom-theme='light'] body,
+html[data-bevybroom-theme='light'] #editor-container {
   background: #ffffff !important;
   color: #0a0a0a !important;
 }`;
@@ -139,25 +139,25 @@ html[data-aiworlded-theme='light'] #editor-container {
  * @returns Editor chrome light-theme CSS rules.
  */
 function buildLightThemeChromeCss(): string {
-  return `html[data-aiworlded-theme='light'] .editor-toolbar,
-html[data-aiworlded-theme='light'] .editor-status-bar,
-html[data-aiworlded-theme='light'] .editor-viewport-toolbar {
+  return `html[data-bevybroom-theme='light'] .editor-toolbar,
+html[data-bevybroom-theme='light'] .editor-status-bar,
+html[data-bevybroom-theme='light'] .editor-viewport-toolbar {
   background: #e5e5e5 !important;
   border-color: #c6c6c6 !important;
   color: #0a0a0a !important;
   box-shadow: none !important;
 }
 
-html[data-aiworlded-theme='light'] .editor-toolbar button,
-html[data-aiworlded-theme='light'] .editor-viewport-toolbar button {
+html[data-bevybroom-theme='light'] .editor-toolbar button,
+html[data-bevybroom-theme='light'] .editor-viewport-toolbar button {
   background: transparent !important;
   color: #0a0a0a !important;
   border-color: transparent !important;
 }
-html[data-aiworlded-theme='light'] .editor-viewport-title {
+html[data-bevybroom-theme='light'] .editor-viewport-title {
   color: #0a0a0a !important;
 }
-html[data-aiworlded-theme='light'] .editor-status-bar * {
+html[data-bevybroom-theme='light'] .editor-status-bar * {
   color: #0a0a0a !important;
 }`;
 }
@@ -168,18 +168,18 @@ html[data-aiworlded-theme='light'] .editor-status-bar * {
  * @returns Light theme context-menu CSS rules.
  */
 function buildLightThemeContextMenuCss(): string {
-  return `html[data-aiworlded-theme='light'] .editor-context-menu {
+  return `html[data-bevybroom-theme='light'] .editor-context-menu {
   background: #ffffff !important;
   border-color: #767676 !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
 }
-html[data-aiworlded-theme='light'] .editor-context-menu-item {
+html[data-bevybroom-theme='light'] .editor-context-menu-item {
   color: #0a0a0a !important;
 }
-html[data-aiworlded-theme='light'] .editor-context-menu-item:hover {
+html[data-bevybroom-theme='light'] .editor-context-menu-item:hover {
   background: #e5f3ff !important;
 }
-html[data-aiworlded-theme='light'] .editor-context-menu-item-disabled {
+html[data-bevybroom-theme='light'] .editor-context-menu-item-disabled {
   color: #767676 !important;
 }`;
 }
@@ -190,10 +190,10 @@ html[data-aiworlded-theme='light'] .editor-context-menu-item-disabled {
  * @returns Light theme panel CSS rules.
  */
 function buildLightThemePanelCss(): string {
-  return `html[data-aiworlded-theme='light'] .settings-dialog-panel,
-html[data-aiworlded-theme='light'] .editor-outliner-panel,
-html[data-aiworlded-theme='light'] .editor-properties-panel,
-html[data-aiworlded-theme='light'] .editor-tools-palette {
+  return `html[data-bevybroom-theme='light'] .settings-dialog-panel,
+html[data-bevybroom-theme='light'] .editor-outliner-panel,
+html[data-bevybroom-theme='light'] .editor-properties-panel,
+html[data-bevybroom-theme='light'] .editor-tools-palette {
   background: #f3f3f3 !important;
   color: #0a0a0a !important;
   border-color: #8c8c8c !important;
@@ -207,13 +207,13 @@ html[data-aiworlded-theme='light'] .editor-tools-palette {
  * @returns Editor panel content light-theme CSS rules.
  */
 function buildLightThemePanelContentCss(): string {
-  return `html[data-aiworlded-theme='light'] .editor-outliner-panel *,
-html[data-aiworlded-theme='light'] .editor-properties-panel *,
-html[data-aiworlded-theme='light'] .editor-tools-palette * {
+  return `html[data-bevybroom-theme='light'] .editor-outliner-panel *,
+html[data-bevybroom-theme='light'] .editor-properties-panel *,
+html[data-bevybroom-theme='light'] .editor-tools-palette * {
   color: #0a0a0a !important;
   border-color: #c6c6c6 !important;
 }
-html[data-aiworlded-theme='light'] .editor-tools-palette {
+html[data-bevybroom-theme='light'] .editor-tools-palette {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18) !important;
 }`;
 }
@@ -224,13 +224,13 @@ html[data-aiworlded-theme='light'] .editor-tools-palette {
  * @returns Settings dialog light-theme CSS rules.
  */
 function buildLightThemeSettingsDialogCss(): string {
-  return `html[data-aiworlded-theme='light'] .settings-dialog-panel {
+  return `html[data-bevybroom-theme='light'] .settings-dialog-panel {
   background: #ffffff !important;
   color: #0a0a0a !important;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18) !important;
 }
-html[data-aiworlded-theme='light'] .settings-dialog-header,
-html[data-aiworlded-theme='light'] .settings-dialog-tab-bar {
+html[data-bevybroom-theme='light'] .settings-dialog-header,
+html[data-bevybroom-theme='light'] .settings-dialog-tab-bar {
   background: #e5e5e5 !important;
   border-color: #c6c6c6 !important;
 }`;
@@ -242,7 +242,7 @@ html[data-aiworlded-theme='light'] .settings-dialog-tab-bar {
  * @returns Viewport label light-theme CSS rules.
  */
 function buildLightThemeViewportLabelCss(): string {
-  return `html[data-aiworlded-theme='light'] .editor-viewport-label {
+  return `html[data-bevybroom-theme='light'] .editor-viewport-label {
   background: #f3f3f3 !important;
   color: #0a0a0a !important;
   border: 1px solid #c6c6c6;
@@ -255,7 +255,7 @@ function buildLightThemeViewportLabelCss(): string {
  * @returns Light theme selection CSS rules.
  */
 function buildLightThemeSelectionCss(): string {
-  return `html[data-aiworlded-theme='light'] .tb-browser-tile[aria-selected='true'] {
+  return `html[data-bevybroom-theme='light'] .tb-browser-tile[aria-selected='true'] {
   background: #cce8ff !important;
   border-color: #0078d4 !important;
 }`;
@@ -267,10 +267,10 @@ function buildLightThemeSelectionCss(): string {
  * @returns Light theme control CSS rules.
  */
 function buildLightThemeControlCss(): string {
-  return `html[data-aiworlded-theme='light'] button,
-html[data-aiworlded-theme='light'] input,
-html[data-aiworlded-theme='light'] select,
-html[data-aiworlded-theme='light'] textarea {
+  return `html[data-bevybroom-theme='light'] button,
+html[data-bevybroom-theme='light'] input,
+html[data-bevybroom-theme='light'] select,
+html[data-bevybroom-theme='light'] textarea {
   background: #ffffff !important;
   color: #0a0a0a !important;
   border-color: #767676 !important;
@@ -284,18 +284,18 @@ html[data-aiworlded-theme='light'] textarea {
  * @returns Settings content light-theme CSS rules.
  */
 function buildLightThemeSettingsContentCss(): string {
-  return `html[data-aiworlded-theme='light'] .settings-dialog-content {
+  return `html[data-bevybroom-theme='light'] .settings-dialog-content {
   background: #ffffff !important;
 }
-html[data-aiworlded-theme='light'] .settings-dialog-category {
+html[data-bevybroom-theme='light'] .settings-dialog-category {
   border-color: #c6c6c6 !important;
 }
-html[data-aiworlded-theme='light'] .settings-dialog-category-title,
-html[data-aiworlded-theme='light'] .settings-dialog-control-label,
-html[data-aiworlded-theme='light'] .settings-dialog-title {
+html[data-bevybroom-theme='light'] .settings-dialog-category-title,
+html[data-bevybroom-theme='light'] .settings-dialog-control-label,
+html[data-bevybroom-theme='light'] .settings-dialog-title {
   color: #0a0a0a !important;
 }
-html[data-aiworlded-theme='light'] [data-settings-field='coordinate-space-summary'] {
+html[data-bevybroom-theme='light'] [data-settings-field='coordinate-space-summary'] {
   color: #424242 !important;
 }`;
 }
@@ -306,11 +306,11 @@ html[data-aiworlded-theme='light'] [data-settings-field='coordinate-space-summar
  * @returns Interactive light-theme CSS rules.
  */
 function buildLightThemeInteractionCss(): string {
-  return `html[data-aiworlded-theme='light'] button:hover {
+  return `html[data-bevybroom-theme='light'] button:hover {
   background: #e5f3ff !important;
   border-color: #0078d4 !important;
 }
-html[data-aiworlded-theme='light'] input[type='range'] {
+html[data-bevybroom-theme='light'] input[type='range'] {
   accent-color: #0078d4;
 }`;
 }
@@ -321,10 +321,10 @@ html[data-aiworlded-theme='light'] input[type='range'] {
  * @returns Focus light-theme CSS rules.
  */
 function buildLightThemeFocusCss(): string {
-  return `html[data-aiworlded-theme='light'] button:focus-visible,
-html[data-aiworlded-theme='light'] input:focus-visible,
-html[data-aiworlded-theme='light'] select:focus-visible,
-html[data-aiworlded-theme='light'] textarea:focus-visible {
+  return `html[data-bevybroom-theme='light'] button:focus-visible,
+html[data-bevybroom-theme='light'] input:focus-visible,
+html[data-bevybroom-theme='light'] select:focus-visible,
+html[data-bevybroom-theme='light'] textarea:focus-visible {
   outline: 2px solid #0078d4 !important;
   outline-offset: -1px;
 }`;
@@ -336,7 +336,7 @@ html[data-aiworlded-theme='light'] textarea:focus-visible {
  * @returns Active-tab light-theme CSS rules.
  */
 function buildLightThemeActiveTabCss(): string {
-  return `html[data-aiworlded-theme='light'] .settings-dialog-panel [role='tab'][aria-selected='true'] {
+  return `html[data-bevybroom-theme='light'] .settings-dialog-panel [role='tab'][aria-selected='true'] {
   background: #cce8ff !important;
   border-color: #0078d4 !important;
   color: #0a0a0a !important;

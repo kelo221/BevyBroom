@@ -131,6 +131,7 @@ function createDefaultEditFileShortcuts(): Pick<
   | 'delete_selected'
   | 'escape'
   | 'save'
+  | 'save_as'
   | 'load'
   | 'export_glb'
   | 'undo'
@@ -144,6 +145,7 @@ function createDefaultEditFileShortcuts(): Pick<
     delete_selected: createShortcut('Delete'),
     escape: createShortcut('Escape'),
     save: createShortcut('KeyS', true),
+    save_as: createShortcut('KeyS', true, true),
     load: createShortcut('KeyO', true),
     export_glb: createShortcut('KeyE', true, true),
     undo: createShortcut('KeyZ', true),

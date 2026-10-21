@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { CommandMeshCsgBoolean } from '@/tools/csg/commands/command_mesh_csg_boolean.js';
 import { CsgBooleanOps, CsgOperation } from '@/csg/csg_boolean_ops.js';
@@ -141,6 +142,7 @@ export class HandlerCsgAction {
     if (SolidBrushVisual.isBrushObject(mesh)) return false;
     if (SolidModel.isResultMesh(mesh)) return false;
     if (mesh.userData['isModifierVolume'] === true) return false;
+    if (entityVisualPartIs(mesh)) return false;
     return true;
   }
 

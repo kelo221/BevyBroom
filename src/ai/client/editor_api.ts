@@ -9,6 +9,9 @@ import { EditorApiSolidReads } from './editor_api_solid_reads.js';
 import { EditorApiSolidWrites } from './editor_api_solid_writes.js';
 import { EditorApiSpatial } from './editor_api_spatial.js';
 import { EditorApiValidation } from './editor_api_validation.js';
+import { EditorApiEntities, type EntityAddArgs, type EntitySettingsSetArgs } from './editor_api_entities.js';
+import { EditorApiPreview, type PreviewConnectArgs } from './editor_api_preview.js';
+import { EditorApiSceneDocument, type SceneDocumentLoadArgs } from './editor_api_scene_document.js';
 import type {
   AddBoxBrushArgs,
   AddBoxBrushesArgs,
@@ -62,6 +65,9 @@ export class EditorApi {
   private readonly csgQuery: EditorApiCsgQuery;
   private readonly hierarchy: EditorApiHierarchy;
   private readonly capture: EditorApiCapture;
+  private readonly entities: EditorApiEntities;
+  private readonly preview: EditorApiPreview;
+  private readonly sceneDocument: EditorApiSceneDocument;
 
   /**
    * Creates an editor API bound to live editor systems.
@@ -79,6 +85,9 @@ export class EditorApi {
     this.csgQuery = new EditorApiCsgQuery(host);
     this.hierarchy = new EditorApiHierarchy(host);
     this.capture = new EditorApiCapture(host);
+    this.entities = new EditorApiEntities(host);
+    this.preview = new EditorApiPreview(host);
+    this.sceneDocument = new EditorApiSceneDocument(host);
   }
 
   /**
@@ -212,6 +221,40 @@ export class EditorApi {
         return calculateExpression(stringArg(args, 'expression'));
       case 'capture_view':
         return this.capture.captureView(args as CaptureViewArgs);
+      default:
+        return this.dispatchEntityPreviewAndDocumentTools(name, args);
+    }
+  }
+
+  /**
+   * Routes the light, room, portal, game preview and scene document tools.
+   *
+   * @param name Tool name.
+   * @param args Argument object.
+   * @returns Tool result.
+   */
+  private dispatchEntityPreviewAndDocumentTools(name: string, args: Record<string, unknown>): McpToolResult {
+    switch (name) {
+      case 'add_light':
+        return this.entities.entityAdd('light', args as EntityAddArgs);
+      case 'set_light_settings':
+        return this.entities.entitySettingsSet('light', args as unknown as EntitySettingsSetArgs);
+      case 'add_room':
+        return this.entities.entityAdd('room', args as EntityAddArgs);
+      case 'set_room_settings':
+        return this.entities.entitySettingsSet('room', args as unknown as EntitySettingsSetArgs);
+      case 'add_portal':
+        return this.entities.entityAdd('portal', args as EntityAddArgs);
+      case 'set_portal_settings':
+        return this.entities.entitySettingsSet('portal', args as unknown as EntitySettingsSetArgs);
+      case 'preview_connect':
+        return this.preview.previewConnect(args as PreviewConnectArgs);
+      case 'preview_status':
+        return this.preview.previewStatus();
+      case 'get_scene_document':
+        return this.sceneDocument.sceneDocumentRead();
+      case 'load_scene_document':
+        return this.sceneDocument.sceneDocumentLoad(args as unknown as SceneDocumentLoadArgs);
       default:
         return { ok: false, message: `Unknown tool: ${name}` };
     }

@@ -58,7 +58,7 @@ A game profile defines how authored editor space is converted for export. It inc
 - A coordinate-space basis.
 - Target-style right, up, and forward axes.
 
-AiWorldEd's authored scene remains in its normal editor coordinate system. Switching profiles changes export conversion; it does not rotate or rescale the live scene.
+BevyBroom's authored scene remains in its normal editor coordinate system. Switching profiles changes export conversion; it does not rotate or rescale the live scene.
 
 Built-in or common profile intentions include Godot, Blender, Unity, and Unreal Engine. A custom profile is useful for an engine or pipeline with different axis and unit requirements.
 

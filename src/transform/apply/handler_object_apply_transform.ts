@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { ObjectApplyTransformKind, getObjectApplyTransformKindLabel } from '@/types/object_apply_transform_kind.js';
 import { objectApplyTransformFlagsFromKind } from './object_apply_transform_flags.js';
@@ -196,6 +197,9 @@ export class HandlerObjectApplyTransform {
       return false;
     }
     if (isResultMesh(mesh)) {
+      return false;
+    }
+    if (entityVisualPartIs(mesh)) {
       return false;
     }
     return true;

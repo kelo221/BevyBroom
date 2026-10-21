@@ -14,6 +14,7 @@ import { SelectionClickThrough } from '@/selection/object/selection_click_throug
 import { ControllerViewportShading } from '@/viewports/shading/controller_viewport_shading.js';
 import { CameraHeadlight } from './camera_headlight.js';
 import { isEditorHelperObject } from '@/utils/mesh_edge_sync.js';
+import { entityPickMeshIs } from '@/entity/model/entity_owner_keys.js';
 import {
   getDefaultPerspectiveCameraPosition,
   getDefaultSceneFocus,
@@ -161,7 +162,7 @@ export class Viewport3D extends ViewportBase {
     const meshes: THREE.Mesh[] = [];
     this.worldGroup.traverse((child) => {
       if (!(child instanceof THREE.Mesh)) return;
-      if (isEditorHelperObject(child)) return;
+      if (isEditorHelperObject(child) && !entityPickMeshIs(child)) return;
       meshes.push(child);
     });
     return meshes;

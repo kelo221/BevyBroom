@@ -23,7 +23,7 @@ describe('ObjExporter', () => {
     mesh.name = 'Cube';
     worldGroup.add(mesh);
     const text = exporter.export(worldGroup);
-    expect(text).toContain('# Wavefront OBJ exported by AI World Editor');
+    expect(text).toContain('# Wavefront OBJ exported by BevyBroom');
     expect(text).toContain('mtllib scene.mtl');
     expect(text).toMatch(/^v /m);
     expect(text).toMatch(/^f /m);

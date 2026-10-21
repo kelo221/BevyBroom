@@ -6,6 +6,18 @@ interface ToolbarButtonBuilder {
   createToolbarButtons(toolbar: Toolbar, actions: EditorToolbarActions): void;
 }
 
+/** One declarative File menu entry as the shell builds it. */
+interface FileMenuEntry {
+  label?: string;
+  onClick?: () => void;
+  shortcut?: () => string;
+}
+
+/** Access to the shell's File menu entries. */
+interface FileMenuBuilder {
+  buildFileMenuEntries(actions: EditorToolbarActions): FileMenuEntry[];
+}
+
 afterEach(() => {
   document.body.replaceChildren();
 });
@@ -48,6 +60,19 @@ describe('EditorShellBuilder toolbar', () => {
     toolbar.dispose();
   });
 
+  it('offers Save As right after Save, wired to its action and its own shortcut label', () => {
+    const builder = new BuilderEditorShell() as unknown as FileMenuBuilder;
+    const onSaveSceneAs = vi.fn();
+    const getShortcutLabel = vi.fn((action: string) => `label of ${action}`);
+    const actions = createToolbarActions({ onSaveSceneAs, getShortcutLabel });
+    const labels = builder.buildFileMenuEntries(actions).map((entry) => entry.label);
+    const saveAsEntry = builder.buildFileMenuEntries(actions).find((entry) => entry.label === 'Save As…');
+    expect(labels.indexOf('Save As…')).toBe(labels.indexOf('Save') + 1);
+    saveAsEntry?.onClick?.();
+    expect(onSaveSceneAs).toHaveBeenCalledOnce();
+    expect(saveAsEntry?.shortcut?.()).toBe('label of save_as');
+  });
+
   it('starts the MCP button inactive and can glow orange when running', () => {
     const toolbar = new Toolbar(document.body);
     const builder = new BuilderEditorShell() as unknown as ToolbarButtonBuilder;
@@ -77,12 +102,14 @@ function getButtonLabel(button: Element): string {
 /**
  * Creates inert callbacks for rendering the editor toolbar in isolation.
  *
+ * @param overrides Callbacks to use instead of inert ones.
  * @returns Complete toolbar action implementation.
  */
-function createToolbarActions(): EditorToolbarActions {
+function createToolbarActions(overrides: Record<string, unknown> = {}): EditorToolbarActions {
   return new Proxy(
     {
       isAudioEnabled: () => true,
+      ...overrides,
     },
     {
       get: (target, property, receiver) => {

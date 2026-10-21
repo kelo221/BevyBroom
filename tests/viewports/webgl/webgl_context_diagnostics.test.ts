@@ -67,7 +67,7 @@ describe('WebGL context diagnostics', () => {
     canvas.dispatchEvent(event);
 
     expect(consoleError).toHaveBeenCalledWith(
-      '[AiWorldEd] WebGL context creation failed for viewport:Perspective: GPU process disabled. Check WebGL2 support, GPU drivers, and desktop hardware acceleration.',
+      '[BevyBroom] WebGL context creation failed for viewport:Perspective: GPU process disabled. Check WebGL2 support, GPU drivers, and desktop hardware acceleration.',
     );
     consoleError.mockRestore();
   });

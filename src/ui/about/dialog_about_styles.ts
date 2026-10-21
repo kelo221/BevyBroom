@@ -3,7 +3,7 @@
  * Blender-inspired chrome with orange selection accents.
  */
 
-const STYLE_ELEMENT_ID = 'aiworlded-about-dialog-styles';
+const STYLE_ELEMENT_ID = 'bevybroom-about-dialog-styles';
 
 /** Ensures About dialog keyframe animations exist in the document once. */
 export function ensureAboutDialogStyles(): void {

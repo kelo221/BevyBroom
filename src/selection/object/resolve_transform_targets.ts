@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { SolidModel } from '@/solid/model/solid_model.js';
+import { entityOwnerOfPart, entityPickMeshIs } from '@/entity/model/entity_owner_keys.js';
 import { collapseToHierarchyRoots } from '@/utils/hierarchy_selection.js';
 import { collectMeshesUnder } from '@/utils/utils_hierarchy.js';
 
@@ -156,9 +157,13 @@ function isUnitaryGroupTarget(object: THREE.Object3D): boolean {
  * Resolves one mesh to its transform target.
  *
  * @param mesh Selected mesh.
- * @returns Solid model root when mesh is a solid result; otherwise the mesh.
+ * @returns Solid model root when mesh is a solid result, the light owner when
+ *   mesh is a light marker; otherwise the mesh.
  */
 function resolveOneTransformTarget(mesh: THREE.Mesh): THREE.Object3D {
+  if (entityPickMeshIs(mesh)) {
+    return entityOwnerOfPart(mesh) ?? mesh;
+  }
   if (!SolidModel.isResultMesh(mesh)) {
     return mesh;
   }

@@ -4,7 +4,7 @@ This walkthrough introduces the complete basic workflow: add an object, inspect 
 
 ## Open the editor
 
-AiWorldEd may run in a browser or as a standalone desktop application. The editing workspace is the same in both versions. A browser may ask for permission when you open a texture folder or save a file; approve the request if you want the editor to access that location.
+BevyBroom may run in a browser or as a standalone desktop application. The editing workspace is the same in both versions. A browser may ask for permission when you open a texture folder or save a file; approve the request if you want the editor to access that location.
 
 When the editor opens, you will see four views:
 
@@ -84,7 +84,7 @@ Choose **File > Export GLB** or press `Ctrl+Shift+E`. GLB is the model file inte
 
 Saving and exporting serve different purposes:
 
-- **Save** creates a project that AiWorldEd can reopen for editing.
+- **Save** creates a project that BevyBroom can reopen for editing.
 - **Export GLB** creates an asset for another application.
 
 Before relying on an export in production, read [Saving, loading, importing, and exporting](files_import_and_export.md) and [Settings and game profiles](settings_and_profiles.md).

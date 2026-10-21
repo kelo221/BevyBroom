@@ -39,15 +39,15 @@ describe('SettingsApplicator', () => {
       keyboard: createDefaultKeyboardShortcutSettings(),
     };
     applicator.applySnapshot(snapshot);
-    expect(root.getAttribute('data-aiworlded-theme')).toBe('light');
-    expect(root.style.getPropertyValue('--aiworlded-viewport-brightness')).toBe('1.25');
+    expect(root.getAttribute('data-bevybroom-theme')).toBe('light');
+    expect(root.style.getPropertyValue('--bevybroom-viewport-brightness')).toBe('1.25');
     expect(root.style.fontSize).toBe('16px');
-    expect(root.style.getPropertyValue('--aiworlded-material-icon-scale')).toBe('1.5');
+    expect(root.style.getPropertyValue('--bevybroom-material-icon-scale')).toBe('1.5');
   });
 
   it('should resolve dark theme preference directly', () => {
     applicator.applyTheme('dark');
-    expect(root.getAttribute('data-aiworlded-theme')).toBe('dark');
+    expect(root.getAttribute('data-bevybroom-theme')).toBe('dark');
   });
 
   it('should install the neutral light palette with a Windows-blue interaction accent', () => {
@@ -60,11 +60,11 @@ describe('SettingsApplicator', () => {
       update: { automaticChecks: true },
       keyboard: createDefaultKeyboardShortcutSettings(),
     });
-    const style = document.getElementById('aiworlded-view-settings-styles');
-    expect(style?.textContent).toContain('--aiworlded-ui-font-size');
-    expect(style?.textContent).toContain('--aiworlded-viewport-brightness');
-    expect(style?.textContent).toContain('--aiworlded-material-icon-scale');
-    expect(style?.textContent).toContain("data-aiworlded-theme='light'");
+    const style = document.getElementById('bevybroom-view-settings-styles');
+    expect(style?.textContent).toContain('--bevybroom-ui-font-size');
+    expect(style?.textContent).toContain('--bevybroom-viewport-brightness');
+    expect(style?.textContent).toContain('--bevybroom-material-icon-scale');
+    expect(style?.textContent).toContain("data-bevybroom-theme='light'");
     expect(style?.textContent).toContain('background: #ffffff !important');
     expect(style?.textContent).toContain('background: #f3f3f3 !important');
     expect(style?.textContent).toContain('.editor-toolbar');

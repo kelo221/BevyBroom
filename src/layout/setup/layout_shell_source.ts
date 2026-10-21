@@ -9,6 +9,7 @@ import type { HandlerAlignment } from '@/outliner/alignment/handler_alignment.js
 import type { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js';
 import type { PanelOutliner } from '@/outliner/ui/panel_outliner.js';
 import { mergeLayoutShellActionSourceParts, type LayoutShellActionSource } from './layout_shell_action_builders.js';
+import type { ShellFileMenuShortcutAction } from '@/layout/shell/shell_file_menu_shortcut_action.js';
 
 /**
  * Late-bound layout surface used to assemble shell action callbacks after the
@@ -37,6 +38,7 @@ export interface LayoutShellSourceHost {
   onOpenDocumentation(): void;
   onOpenAboutDialog(): void;
   onOpenMcpDialog(): void;
+  onToggleGamePreviewPanel(): void;
   onOpenDetachedViewport(): void;
   onToggleAiCaptureDebugPanel(): void;
   onToggleAudio(): void;
@@ -51,13 +53,14 @@ export interface LayoutShellSourceHost {
   isTransformSpaceLocal(): boolean;
   onNewScene(): void;
   onSaveScene(): void;
+  onSaveSceneAs(): void;
   onLoadScene(): void;
   onImportVmf(): void;
   onImportObj(): void;
   onExportGlb(): void;
   onExportObj(): void;
   onExportFbx(): void;
-  getShortcutLabel(action: 'save' | 'load' | 'export_glb'): string;
+  getShortcutLabel(action: ShellFileMenuShortcutAction): string;
 }
 
 /**
@@ -168,6 +171,7 @@ function buildShellPanelCallbacks(
   | 'onOpenDocumentation'
   | 'onOpenAboutDialog'
   | 'onOpenMcpDialog'
+  | 'onToggleGamePreviewPanel'
   | 'onOpenDetachedViewport'
   | 'onToggleAiCaptureDebugPanel'
   | 'onToggleAudio'
@@ -184,6 +188,7 @@ function buildShellPanelCallbacks(
     onOpenDocumentation: () => host.onOpenDocumentation(),
     onOpenAboutDialog: () => host.onOpenAboutDialog(),
     onOpenMcpDialog: () => host.onOpenMcpDialog(),
+    onToggleGamePreviewPanel: () => host.onToggleGamePreviewPanel(),
     onOpenDetachedViewport: () => host.onOpenDetachedViewport(),
     onToggleAiCaptureDebugPanel: () => host.onToggleAiCaptureDebugPanel(),
     onToggleAudio: () => host.onToggleAudio(),
@@ -235,6 +240,7 @@ function buildShellIoCallbacks(
   LayoutShellActionSource,
   | 'onNewScene'
   | 'onSaveScene'
+  | 'onSaveSceneAs'
   | 'onLoadScene'
   | 'onImportVmf'
   | 'onImportObj'
@@ -246,6 +252,7 @@ function buildShellIoCallbacks(
   return {
     onNewScene: () => host.onNewScene(),
     onSaveScene: () => host.onSaveScene(),
+    onSaveSceneAs: () => host.onSaveSceneAs(),
     onLoadScene: () => host.onLoadScene(),
     onImportVmf: () => host.onImportVmf(),
     onImportObj: () => host.onImportObj(),

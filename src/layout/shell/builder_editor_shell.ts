@@ -12,6 +12,7 @@ import { GridSnap } from '@/transform/snap/grid_snap.js';
 import { TextureLockSettings } from '@/texture/lock/texture_lock_settings.js';
 import { createAddMenuEntries } from '@/layout/setup/add_menu_entries.js';
 import type { OutlinerDropPlacement } from '@/outliner/ui/outliner_drop_placement.js';
+import type { ShellFileMenuShortcutAction } from '@/layout/shell/shell_file_menu_shortcut_action.js';
 
 /** Outliner action callbacks accepted when building the shell. */
 export interface EditorShellOutlinerActions {
@@ -41,6 +42,10 @@ export interface EditorToolbarActions {
   onAddTerrain: () => void;
   onAddSolidModel: () => void;
   onAddBevelVolume: () => void;
+  onAddPointLight: () => void;
+  onAddSpotLight: () => void;
+  onAddRoom: () => void;
+  onAddPortal: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onToggleUvEditor: () => void;
@@ -50,6 +55,7 @@ export interface EditorToolbarActions {
   onOpenDocumentation: () => void;
   onOpenAboutDialog: () => void;
   onOpenMcpDialog: () => void;
+  onToggleGamePreviewPanel: () => void;
   onOpenDetachedViewport: () => void;
   onToggleAiCaptureDebugPanel: () => void;
   onToggleAudio: () => void;
@@ -73,6 +79,7 @@ export interface EditorToolbarActions {
   onAlignToObject: () => void;
   onNewScene: () => void;
   onSaveScene: () => void;
+  onSaveSceneAs: () => void;
   onLoadScene: () => void;
   onImportVmf: () => void;
   onImportObj: () => void;
@@ -80,7 +87,7 @@ export interface EditorToolbarActions {
   onExportObj: () => void;
   onExportFbx: () => void;
   /** Resolves a live keyboard shortcut label for File menu items. */
-  getShortcutLabel: (action: 'save' | 'load' | 'export_glb') => string;
+  getShortcutLabel: (action: ShellFileMenuShortcutAction) => string;
   onSetTransformSpaceGlobal: () => void;
   onSetTransformSpaceLocal: () => void;
   isUserSnapEnabled: () => boolean;
@@ -381,6 +388,17 @@ export class BuilderEditorShell {
     this.addAddMenu(toolbar, actions);
     this.addCsgMenu(toolbar, actions);
     this.addAlignMenu(toolbar, actions);
+    this.addGameMenu(toolbar, actions);
+  }
+
+  /**
+   * Adds the Game menu that links the editor to the running game preview.
+   *
+   * @param toolbar Toolbar instance to populate.
+   * @param actions Callbacks for each toolbar control.
+   */
+  private addGameMenu(toolbar: Toolbar, actions: EditorToolbarActions): void {
+    toolbar.addDropdown('Game', [{ label: 'Game Preview…', onClick: () => actions.onToggleGamePreviewPanel() }]);
   }
 
   /**
@@ -407,6 +425,11 @@ export class BuilderEditorShell {
         label: 'Save',
         onClick: () => actions.onSaveScene(),
         shortcut: () => actions.getShortcutLabel('save'),
+      },
+      {
+        label: 'Save As…',
+        onClick: () => actions.onSaveSceneAs(),
+        shortcut: () => actions.getShortcutLabel('save_as'),
       },
       {
         label: 'Load',

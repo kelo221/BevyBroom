@@ -61,7 +61,17 @@ export type McpToolName =
   | 'set_inverted_world'
   | 'select'
   | 'calculate'
-  | 'capture_view';
+  | 'capture_view'
+  | 'add_light'
+  | 'set_light_settings'
+  | 'add_room'
+  | 'set_room_settings'
+  | 'add_portal'
+  | 'set_portal_settings'
+  | 'preview_connect'
+  | 'preview_status'
+  | 'get_scene_document'
+  | 'load_scene_document';
 
 /** JSON vector DTO used at the MCP / EditorApi boundary. */
 export interface McpVec3 {

@@ -17,6 +17,8 @@ import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { findSolidModelRoot, isSolidCsgGroup, markAsSolidCsgGroup } from '@/solid/model/solid_group.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
+import { entityOwnerIs, entityOwnerOfPart, entityPickMeshIs } from '@/entity/model/entity_owner_keys.js';
+import { CommandEntityDuplicate } from '@/entity/commands/command_entity_duplicate.js';
 
 /** Callback invoked to sync scene state to all viewports. */
 export type SyncViewportsCallback = () => void;
@@ -135,6 +137,10 @@ export class HandlerObjectAction {
   onDeleteSelected(): void {
     const selected = this.selectionManager.getSelectedObjects();
     if (selected.size === 0) return;
+    if (Array.from(selected).some((mesh) => entityPickMeshIs(mesh))) {
+      this.deleteHierarchyObjects(this.entityPickMeshesResolveToOwners(Array.from(selected)));
+      return;
+    }
     const unlocked = filterUnlockedObjects(Array.from(selected));
     if (unlocked.length === 0) {
       this.showMessage('Cannot delete locked object(s)');
@@ -147,6 +153,16 @@ export class HandlerObjectAction {
       return;
     }
     this.deleteMeshesWithSolidSupport(toRemove);
+  }
+
+  /**
+   * Replaces entity pick meshes with their entity owners, keeping other meshes.
+   *
+   * @param meshes Selected meshes.
+   * @returns Hierarchy objects to delete.
+   */
+  private entityPickMeshesResolveToOwners(meshes: readonly THREE.Mesh[]): THREE.Object3D[] {
+    return meshes.map((mesh) => (entityPickMeshIs(mesh) ? (entityOwnerOfPart(mesh) ?? mesh) : mesh));
   }
 
   /**
@@ -345,7 +361,12 @@ export class HandlerObjectAction {
     }
     const solidNodes: THREE.Object3D[] = [];
     const regularMeshes: THREE.Mesh[] = [];
+    const entityOwners: THREE.Object3D[] = [];
     for (const root of roots) {
+      if (entityOwnerIs(root)) {
+        entityOwners.push(root);
+        continue;
+      }
       if (SolidModel.isSolidModelObject(root)) {
         solidNodes.push(root);
         continue;
@@ -382,6 +403,7 @@ export class HandlerObjectAction {
       clonedMeshes.push(...regularCommand.getClonedMeshes());
       clonedInspector.push(...regularCommand.getClonedMeshes());
     }
+    this.entityOwnersDuplicate(entityOwners, clonedMeshes, clonedInspector);
     this.syncViewportsAndRefresh();
     if (clonedMeshes.length > 0 || clonedInspector.length > 0) {
       this.selectionManager.setSelection(clonedMeshes, clonedInspector);
@@ -391,6 +413,30 @@ export class HandlerObjectAction {
     this.mirrorExpandStateForPairs(solidExpandSources, solidExpandClones);
     this.showDuplicateFeedback(Math.max(clonedInspector.length, clonedMeshes.length));
     this.notifyRefresh();
+  }
+
+  /**
+   * Duplicates entity owners (lights, rooms, portals) as one history entry and
+   * records the copies for selection.
+   *
+   * @param entityOwners Entity owners to duplicate.
+   * @param clonedMeshes Accumulator receiving the copies' pick meshes.
+   * @param clonedInspector Accumulator receiving the copies.
+   */
+  private entityOwnersDuplicate(
+    entityOwners: readonly THREE.Object3D[],
+    clonedMeshes: THREE.Mesh[],
+    clonedInspector: THREE.Object3D[],
+  ): void {
+    if (entityOwners.length === 0) {
+      return;
+    }
+    const entityCommand = new CommandEntityDuplicate(entityOwners);
+    this.commandStack.push(entityCommand);
+    for (const clonedOwner of entityCommand.getClonedOwners()) {
+      clonedInspector.push(clonedOwner);
+      clonedMeshes.push(...collectMeshesUnder(clonedOwner).filter((mesh) => entityPickMeshIs(mesh)));
+    }
   }
 
   /** Handles grouping of selected objects. */

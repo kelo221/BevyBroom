@@ -9,14 +9,15 @@ import { APPLICATION_DISPLAY_NAME, buildDesktopWindowTitle } from '@/application
 interface ElectrobunPackageConfig {
   app: { name: string; version: string };
   build?: {
-    bun?: { entrypoint?: string };
-    views?: { main_ui?: { entrypoint?: string } };
+    mainProcess?: string;
+    bun?: { entrypoint?: string; alias?: Record<string, string>; plugins?: unknown };
+    views?: Record<string, unknown>;
     copy?: Record<string, string | undefined>;
     win?: Record<string, unknown>;
     linux?: Record<string, unknown>;
     mac?: Record<string, unknown>;
   };
-  scripts?: { postBuild?: string; postPackage?: string };
+  scripts?: { preBuild?: string; postBuild?: string; postPackage?: string };
   release?: { baseUrl?: string; generatePatch?: boolean };
 }
 
@@ -25,18 +26,15 @@ const config = electrobunConfig as unknown as ElectrobunPackageConfig;
 
 describe('Electrobun desktop build configuration', () => {
   it('packages the existing editor application as a native desktop window', () => {
-    expect(config.app.name).toBe('AiWorldEd');
+    expect(config.app.name).toBe('BevyBroom');
     expect(config.app.version).toBe(packageMetadata.version);
+    expect(config.build?.mainProcess).toBe('bun');
     expect(config.build?.bun?.entrypoint).toBe('src/desktop/bun/index.ts');
-    expect(config.build?.views?.main_ui?.entrypoint).toBe('src/desktop/main_ui/index.ts');
-    expect(config.build?.copy?.['src/desktop/main_ui/index.html']).toBe('views/main_ui/index.html');
     expect(config.build?.win).toMatchObject({
       defaultRenderer: 'native',
       bundleCEF: false,
       icon: 'public/app_icon.ico',
     });
-    expect(config.scripts?.postBuild).toBe('scripts/embed_windows_app_icon.ts');
-    expect(config.scripts?.postPackage).toBe('scripts/embed_windows_app_icon.ts');
     expect(config.build?.linux).toMatchObject({
       icon: 'public/android-chrome-512x512.png',
     });
@@ -45,6 +43,21 @@ describe('Electrobun desktop build configuration', () => {
     });
     expect(config.release?.baseUrl).toBe('https://github.com/Henry00IS/AiWorldEd/releases/latest/download');
     expect(config.release?.generatePatch).toBe(false);
+  });
+
+  it('bundles the main process with the source alias and no Electrobun 1.x bundler plugins', () => {
+    expect(config.build?.bun?.alias?.['@']).toBe('./src');
+    expect(config.build?.bun?.plugins).toBeUndefined();
+    expect(config.build?.views).toBeUndefined();
+  });
+
+  it('builds the desktop page with Vite before packaging and copies it into the main_ui view', () => {
+    expect(config.scripts?.preBuild).toBe('scripts/desktop_view_build.ts');
+    expect(existsSync(resolve(process.cwd(), 'scripts/desktop_view_build.ts'))).toBe(true);
+    expect(existsSync(resolve(process.cwd(), 'vite.desktop.config.ts'))).toBe(true);
+    expect(config.build?.copy?.['desktop_view_dist']).toBe('views/main_ui');
+    expect(config.scripts?.postBuild).toBeUndefined();
+    expect(config.scripts?.postPackage).toBeUndefined();
   });
 
   it('copies public favicon assets into the desktop main_ui view bundle', () => {
@@ -59,16 +72,14 @@ describe('Electrobun desktop build configuration', () => {
 
   it('keeps platform icon sources on disk for Electrobun packaging', () => {
     expect(existsSync(resolve(process.cwd(), 'public/app_icon.ico'))).toBe(true);
-    expect(existsSync(resolve(process.cwd(), 'node_modules/resedit/package.json'))).toBe(true);
-    expect(existsSync(resolve(process.cwd(), 'node_modules/pe-library/package.json'))).toBe(true);
     expect(existsSync(resolve(process.cwd(), 'public/android-chrome-512x512.png'))).toBe(true);
     expect(existsSync(resolve(process.cwd(), 'public/app_icon.iconset/icon_512x512.png'))).toBe(true);
     expect(existsSync(resolve(process.cwd(), 'public/app_icon.iconset/icon_16x16.png'))).toBe(true);
   });
 
-  it('builds desktop window titles with the AI World Editor display name and version', () => {
-    expect(APPLICATION_DISPLAY_NAME).toBe('AI World Editor');
-    expect(buildDesktopWindowTitle('1.0.42')).toBe('AI World Editor 1.0.42');
-    expect(buildDesktopWindowTitle(packageMetadata.version)).toBe(`AI World Editor ${packageMetadata.version}`);
+  it('builds desktop window titles with the BevyBroom display name and version', () => {
+    expect(APPLICATION_DISPLAY_NAME).toBe('BevyBroom');
+    expect(buildDesktopWindowTitle('1.0.42')).toBe('BevyBroom 1.0.42');
+    expect(buildDesktopWindowTitle(packageMetadata.version)).toBe(`BevyBroom ${packageMetadata.version}`);
   });
 });

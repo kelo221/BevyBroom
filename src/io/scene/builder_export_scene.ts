@@ -6,6 +6,58 @@ import { SELECTION_HIGHLIGHT_USERDATA_KEY } from '@/selection/object/selection_h
 import { CONTENT_METALNESS, CONTENT_ROUGHNESS } from '@/materials/factory_content_material.js';
 import { isContentViewLitMaterial } from '@/materials/factory_content_view_lit_material.js';
 import { isDefaultSurfaceTexture } from '@/texture/library/factory_debug_texture.js';
+import { entityOwnerIs, entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
+import { PortalExportCellBuilder } from '@/portal/export/portal_export_cell_builder.js';
+import { LightmapUvLayout } from '@/io/glb/lightmap/lightmap_uv_layout.js';
+import { MATERIAL_IDENTITY_EXPORT_EXTRAS_KEY, materialIdentityRead } from '@/materials/identity/material_identity.js';
+import {
+  getSharedContentMaterials,
+  meshUsesShadingOverrideMaterials,
+} from '@/viewports/shared/shared_content_material_store.js';
+
+/** Export extras key that carries the stable editor identifier of a node. */
+export const EXPORT_OBJECT_IDENTITY_EXTRAS_KEY = 'broom_id';
+
+/**
+ * Export extras key that marks a mesh node as static level geometry for light
+ * baking.
+ */
+export const EXPORT_STATIC_MESH_EXTRAS_KEY = 'dynlight_static';
+
+/** Optional behavior switches for building an export scene. */
+export interface ExportSceneOptions {
+  /**
+   * Returns true for material identifiers whose texture maps are resolved by
+   * the game and must not be embedded.
+   */
+  isMaterialMapResolvedByGame?: (materialIdentifier: string) => boolean;
+  /**
+   * Keeps hidden objects in the export so a receiver can toggle their
+   * visibility itself.
+   */
+  includeHiddenObjects?: boolean;
+  /**
+   * Writes rooms and portals as empty nodes carrying DynLight room and portal
+   * extras.
+   */
+  includeRoomAndPortalNodes?: boolean;
+  /** Adds a non-overlapping second UV set (`uv1`) to every mesh for lightmaps. */
+  includeLightmapUvs?: boolean;
+}
+
+/**
+ * Returns the content materials of a mesh, looking past temporary viewport
+ * shading overrides such as wireframe materials.
+ *
+ * @param mesh Live content mesh.
+ * @returns The materials the mesh shows in normal shading.
+ */
+export function exportContentMaterialResolve(mesh: THREE.Mesh): THREE.Material | THREE.Material[] {
+  if (!meshUsesShadingOverrideMaterials(mesh)) {
+    return mesh.material;
+  }
+  return getSharedContentMaterials(mesh.uuid)?.materials ?? mesh.material;
+}
 
 /**
  * Builds a temporary scene graph for GLB/export that contains only game
@@ -13,14 +65,15 @@ import { isDefaultSurfaceTexture } from '@/texture/library/factory_debug_texture
  * brush hull helpers, selection outlines, decorative edges, and clip previews.
  *
  * @param worldGroup Live editor world root.
+ * @param options Optional behavior switches.
  * @returns A detached group safe to pass to GLTFExporter (does not mutate the
  *   live scene).
  */
-export function buildExportScene(worldGroup: THREE.Group): THREE.Group {
+export function buildExportScene(worldGroup: THREE.Group, options: ExportSceneOptions = {}): THREE.Group {
   const exportRoot = new THREE.Group();
   exportRoot.name = worldGroup.name || 'ExportRoot';
   worldGroup.children.forEach((child) => {
-    const cloned = cloneObjectForExport(child);
+    const cloned = cloneObjectForExport(child, options);
     if (cloned) exportRoot.add(cloned);
   });
   return exportRoot;
@@ -31,18 +84,22 @@ export function buildExportScene(worldGroup: THREE.Group): THREE.Group {
  * omitted.
  *
  * @param object Live scene object.
+ * @param options Export behavior switches.
  * @returns Detached export clone, or null to skip.
  */
-function cloneObjectForExport(object: THREE.Object3D): THREE.Object3D | null {
+function cloneObjectForExport(object: THREE.Object3D, options: ExportSceneOptions): THREE.Object3D | null {
+  if (options.includeRoomAndPortalNodes === true && entityOwnerIs(object)) {
+    return cloneRoomOrPortalForExport(object);
+  }
   if (shouldOmitFromExport(object)) return null;
   if (SolidModel.isSolidModelObject(object)) {
-    return cloneSolidModelForExport(object);
+    return cloneSolidModelForExport(object, options);
   }
   if (object instanceof THREE.Mesh) {
-    return cloneContentMeshForExport(object);
+    return cloneContentMeshForExport(object, options);
   }
   if (object instanceof THREE.Group) {
-    return cloneGroupForExport(object);
+    return cloneGroupForExport(object, options);
   }
   return null;
 }
@@ -69,22 +126,40 @@ export function shouldOmitFromExport(object: THREE.Object3D): boolean {
   if (object.userData['isSolidBrushPreview'] === true) return true;
   if (object.userData['isModifierVolume'] === true) return true;
   if (object.userData['isModifierVolumeEdge'] === true) return true;
+  if (entityOwnerIs(object) || entityVisualPartIs(object)) return true;
   return false;
+}
+
+/**
+ * Clones a room or portal owner as a group holding its DynLight extras node.
+ *
+ * @param owner Entity owner.
+ * @returns Export group, or null when the owner is neither a room nor a portal.
+ */
+function cloneRoomOrPortalForExport(owner: THREE.Object3D): THREE.Group | null {
+  const cell = PortalExportCellBuilder.cellCreate(owner);
+  if (!cell) return null;
+  const group = new THREE.Group();
+  copyObjectTransformAndIdentity(owner, group);
+  group.name = owner.name;
+  group.add(cell);
+  return group;
 }
 
 /**
  * Clones a solid model as a group containing only the compiled CSG result mesh.
  *
  * @param solidRoot Solid model root group.
+ * @param options Export behavior switches.
  * @returns Export group with result mesh, or null when no result exists.
  */
-function cloneSolidModelForExport(solidRoot: THREE.Object3D): THREE.Group | null {
+function cloneSolidModelForExport(solidRoot: THREE.Object3D, options: ExportSceneOptions): THREE.Group | null {
   const resultMesh = findSolidResultMesh(solidRoot);
   if (!resultMesh) return null;
   const group = new THREE.Group();
-  copyObjectTransform(solidRoot, group);
+  copyObjectTransformAndIdentity(solidRoot, group);
   group.name = solidRoot.name || 'SolidModel';
-  const resultClone = cloneContentMeshForExport(resultMesh);
+  const resultClone = cloneContentMeshForExport(resultMesh, options);
   group.add(resultClone);
   return group;
 }
@@ -108,15 +183,16 @@ function findSolidResultMesh(solidRoot: THREE.Object3D): THREE.Mesh | null {
  * Clones a hierarchy group, keeping only exportable descendants.
  *
  * @param group Live group.
+ * @param options Export behavior switches.
  * @returns Export group, or null when empty after filtering.
  */
-function cloneGroupForExport(group: THREE.Group): THREE.Group | null {
+function cloneGroupForExport(group: THREE.Group, options: ExportSceneOptions): THREE.Group | null {
   const clone = new THREE.Group();
-  copyObjectTransform(group, clone);
+  copyObjectTransformAndIdentity(group, clone);
   clone.name = group.name;
   let childCount = 0;
   group.children.forEach((child) => {
-    const exported = cloneObjectForExport(child);
+    const exported = cloneObjectForExport(child, options);
     if (!exported) return;
     clone.add(exported);
     childCount += 1;
@@ -126,16 +202,20 @@ function cloneGroupForExport(group: THREE.Group): THREE.Group | null {
 }
 
 /**
- * Clones a content mesh without editor helper children. Geometry is shared;
+ * Clones a content mesh without editor helper children. Geometry is shared
+ * unless lightmap UVs are requested, which adds them to a geometry copy;
  * materials are cloned and built-in default surface maps stripped so export
  * stays small and does not embed editor debug textures.
  *
  * @param mesh Live content or solid result mesh.
+ * @param options Export behavior switches.
  * @returns Mesh clone without helper children.
  */
-function cloneContentMeshForExport(mesh: THREE.Mesh): THREE.Mesh {
-  const clone = new THREE.Mesh(mesh.geometry, cloneMaterialsForExport(mesh.material));
-  copyObjectTransform(mesh, clone);
+function cloneContentMeshForExport(mesh: THREE.Mesh, options: ExportSceneOptions): THREE.Mesh {
+  const geometry = options.includeLightmapUvs === true ? LightmapUvLayout.geometryWithLightmapUvs(mesh) : mesh.geometry;
+  const clone = new THREE.Mesh(geometry, cloneMaterialsForExport(exportContentMaterialResolve(mesh), options));
+  copyObjectTransformAndIdentity(mesh, clone);
+  clone.userData[EXPORT_STATIC_MESH_EXTRAS_KEY] = true;
   clone.name = mesh.name;
   clone.visible = mesh.visible;
   clone.renderOrder = mesh.renderOrder;
@@ -146,23 +226,62 @@ function cloneContentMeshForExport(mesh: THREE.Mesh): THREE.Mesh {
  * Clones materials for export and drops non-image canvas maps.
  *
  * @param material Live mesh material or material array.
+ * @param options Export behavior switches.
  * @returns Export-safe material(s).
  */
-function cloneMaterialsForExport(material: THREE.Material | THREE.Material[]): THREE.Material | THREE.Material[] {
+function cloneMaterialsForExport(
+  material: THREE.Material | THREE.Material[],
+  options: ExportSceneOptions,
+): THREE.Material | THREE.Material[] {
   if (Array.isArray(material)) {
-    return material.map((entry) => cloneOneMaterialForExport(entry));
+    return material.map((entry) => cloneOneMaterialForExport(entry, options));
   }
-  return cloneOneMaterialForExport(material);
+  return cloneOneMaterialForExport(material, options);
 }
 
 /**
- * Clones one material for GLB export. Viewport matcaps convert to standard
- * diffuse materials; canvas debug maps are stripped.
+ * Clones one material for GLB export and carries its material identity into
+ * export extras. Game-resolved maps are dropped when the options request it.
+ *
+ * @param material Live material.
+ * @param options Export behavior switches.
+ * @returns Cloned material safe for GLTFExporter.
+ */
+function cloneOneMaterialForExport(material: THREE.Material, options: ExportSceneOptions): THREE.Material {
+  const cloned = cloneOneMaterialWithoutIdentity(material);
+  const materialIdentifier = materialIdentityRead(material);
+  cloned.userData = {};
+  if (materialIdentifier === null) {
+    return cloned;
+  }
+  cloned.userData[MATERIAL_IDENTITY_EXPORT_EXTRAS_KEY] = materialIdentifier;
+  if (options.isMaterialMapResolvedByGame?.(materialIdentifier) === true) {
+    clearMaterialMap(cloned);
+  }
+  return cloned;
+}
+
+/**
+ * Removes the diffuse map from an export material.
+ *
+ * @param material Cloned export material.
+ */
+function clearMaterialMap(material: THREE.Material): void {
+  const mapHost = material as THREE.Material & { map?: THREE.Texture | null };
+  if (mapHost.map) {
+    mapHost.map = null;
+    material.needsUpdate = true;
+  }
+}
+
+/**
+ * Clones one material for export. Viewport matcaps convert to standard diffuse
+ * materials; canvas debug maps are stripped.
  *
  * @param material Live material.
  * @returns Cloned material safe for GLTFExporter.
  */
-function cloneOneMaterialForExport(material: THREE.Material): THREE.Material {
+function cloneOneMaterialWithoutIdentity(material: THREE.Material): THREE.Material {
   if (isContentViewLitMaterial(material) || material instanceof THREE.MeshMatcapMaterial) {
     return createStandardMaterialFromContent(material);
   }
@@ -228,14 +347,16 @@ function isEditorOnlySurfaceMap(map: THREE.Texture | null): boolean {
 }
 
 /**
- * Copies local transform and visibility from source to target.
+ * Copies local transform and visibility from source to target and stores the
+ * source identifier in the target extras.
  *
  * @param source Live object.
  * @param target Export object.
  */
-function copyObjectTransform(source: THREE.Object3D, target: THREE.Object3D): void {
+function copyObjectTransformAndIdentity(source: THREE.Object3D, target: THREE.Object3D): void {
   target.position.copy(source.position);
   target.quaternion.copy(source.quaternion);
   target.scale.copy(source.scale);
   target.visible = source.visible;
+  target.userData[EXPORT_OBJECT_IDENTITY_EXTRAS_KEY] = source.uuid;
 }

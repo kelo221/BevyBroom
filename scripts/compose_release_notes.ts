@@ -52,7 +52,7 @@ function buildReleaseNotesBody(
   ].filter((section) => section.length > 0);
 
   return [
-    `Automated desktop build of **AI World Editor v${releaseVersion}** from commit \`${commitSha}\`.`,
+    `Automated desktop build of **BevyBroom v${releaseVersion}** from commit \`${commitSha}\`.`,
     '',
     ...sections,
   ].join('\n');

@@ -10,7 +10,7 @@ export interface BridgeMcpDesktop {
 
 declare global {
   interface Window {
-    aiworldedMcpBridge?: BridgeMcpDesktop;
+    bevybroomMcpBridge?: BridgeMcpDesktop;
   }
 }
 
@@ -35,5 +35,5 @@ export function createMcpDesktopBridge(rpc: ElectrobunDesktopBunRpcClient): Brid
  */
 export function getMcpDesktopBridge(): BridgeMcpDesktop | null {
   if (typeof window === 'undefined') return null;
-  return window.aiworldedMcpBridge ?? null;
+  return window.bevybroomMcpBridge ?? null;
 }

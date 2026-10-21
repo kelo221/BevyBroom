@@ -5,6 +5,10 @@ import { CommandModifierBevelVolumeCreate } from '@/modifier/volume/command_modi
 import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
+import { EntityVisualBuilder } from '@/entity/visual/entity_visual_builder.js';
+import { LightOwner } from '@/light/model/light_owner.js';
+import { PortalOwner } from '@/portal/model/portal_owner.js';
+import { RoomOwner } from '@/portal/model/room_owner.js';
 import {
   computeOcclusionAwareSpawnPosition,
   DEFAULT_SPAWN_DISTANCE,
@@ -111,6 +115,48 @@ export class HandlerPrimitiveCreation {
     this.selectionManager.selectObject(mesh);
   }
 
+  /** Creates a point light and registers it with the command stack. */
+  createPointLight(): void {
+    this.createEntity(() => LightOwner.createDefault('Point Light', 'point'), 0.25);
+  }
+
+  /** Creates a spot light and registers it with the command stack. */
+  createSpotLight(): void {
+    this.createEntity(() => LightOwner.createDefault('Spot Light', 'spot'), 0.25);
+  }
+
+  /** Creates a room cell and registers it with the command stack. */
+  createRoom(): void {
+    this.createEntity(() => RoomOwner.createDefault('Room'), 0.25);
+  }
+
+  /** Creates a portal and registers it with the command stack. */
+  createPortal(): void {
+    this.createEntity(() => PortalOwner.createDefault('Portal'), 0.25);
+  }
+
+  /**
+   * Entity creation flow with view-ray placement that selects the new entity's
+   * marker.
+   *
+   * @param factory Creates the entity owner group.
+   * @param objectRadius Approximate half-extent used for wall clearance.
+   */
+  private createEntity(factory: () => THREE.Group, objectRadius: number): void {
+    if (this.selectionManager.isSelectionChangeLocked()) {
+      this.selectionManager.notifySelectionChangeBlocked();
+      return;
+    }
+    const owner = factory();
+    this.applySpawnPlacement(owner, objectRadius);
+    this.commandStack.push(new CommandPrimitiveCreate(owner, this.worldObject));
+    this.onPrimitiveCreatedCallback();
+    const marker = EntityVisualBuilder.markerFind(owner);
+    if (marker) {
+      this.selectionManager.selectObject(marker);
+    }
+  }
+
   /**
    * Generic primitive creation flow with view-ray, grid-snapped placement.
    *
@@ -144,11 +190,11 @@ export class HandlerPrimitiveCreation {
    * Positions a mesh in front of the active camera, snapped to the grid, and
    * pulled forward when geometry occludes the preferred spawn distance.
    *
-   * @param mesh Newly created mesh to position.
+   * @param mesh Newly created object to position.
    * @param objectRadius Approximate half-extent for surface clearance.
    * @param ignoreModifierVolumes True when modifier volumes are not blockers.
    */
-  private applySpawnPlacement(mesh: THREE.Mesh, objectRadius: number, ignoreModifierVolumes = false): void {
+  private applySpawnPlacement(mesh: THREE.Object3D, objectRadius: number, ignoreModifierVolumes = false): void {
     const camera = this.getActiveCamera?.() ?? null;
     if (!camera) {
       mesh.position.set(0, 0, 0);
@@ -160,13 +206,13 @@ export class HandlerPrimitiveCreation {
   /**
    * Copies a view-ray spawn into the mesh in parent-local space.
    *
-   * @param mesh Newly created mesh to position.
+   * @param mesh Newly created object to position.
    * @param camera Active view camera.
    * @param objectRadius Approximate half-extent for surface clearance.
    * @param ignoreModifierVolumes True when modifier volumes are not blockers.
    */
   private placeMeshOnViewRay(
-    mesh: THREE.Mesh,
+    mesh: THREE.Object3D,
     camera: THREE.Camera,
     objectRadius: number,
     ignoreModifierVolumes: boolean,

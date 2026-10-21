@@ -49,6 +49,7 @@ export class HandlerKeyboardShortcut {
   private onAlignToOrigin: ActionCallback | null;
   private onSolidOperationToggle: ActionCallback | null;
   private onSaveScene: ActionCallback | null;
+  private onSaveSceneAs: ActionCallback | null;
   private onLoadScene: ActionCallback | null;
   private onExportGlb: ActionCallback | null;
   private onFitToSelection: KeyboardActionCallback | null;
@@ -114,6 +115,7 @@ export class HandlerKeyboardShortcut {
     this.onAlignToOrigin = null;
     this.onSolidOperationToggle = null;
     this.onSaveScene = null;
+    this.onSaveSceneAs = null;
     this.onLoadScene = null;
     this.onExportGlb = null;
     this.onFitToSelection = null;
@@ -330,6 +332,15 @@ export class HandlerKeyboardShortcut {
    */
   setOnSaveScene(callback: ActionCallback): void {
     this.onSaveScene = callback;
+  }
+
+  /**
+   * Registers the callback for the save scene as action.
+   *
+   * @param callback The function to call when the save as shortcut is pressed.
+   */
+  setOnSaveSceneAs(callback: ActionCallback): void {
+    this.onSaveSceneAs = callback;
   }
 
   /**
@@ -559,6 +570,7 @@ export class HandlerKeyboardShortcut {
       onAlignToOrigin: this.onAlignToOrigin,
       onSolidOperationToggle: this.onSolidOperationToggle,
       onSaveScene: this.onSaveScene,
+      onSaveSceneAs: this.onSaveSceneAs,
       onLoadScene: this.onLoadScene,
       onExportGlb: this.onExportGlb,
       onFitToSelection: this.onFitToSelection,

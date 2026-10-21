@@ -14,7 +14,7 @@ describe('buildMtlDocument', () => {
       },
     ];
     const mtl = buildMtlDocument(slots);
-    expect(mtl).toContain('# Wavefront MTL exported by AI World Editor');
+    expect(mtl).toContain('# Wavefront MTL exported by BevyBroom');
     expect(mtl).toContain('newmtl Concrete');
     expect(mtl).toContain('Kd 0.250000 0.500000 0.750000');
     expect(mtl).not.toContain('map_Kd');

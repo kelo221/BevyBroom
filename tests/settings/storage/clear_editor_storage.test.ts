@@ -35,7 +35,7 @@ afterEach(() => {
 });
 
 describe('clearEditorLocalStorage', () => {
-  it('should remove only aiworlded.* keys and leave unrelated keys', () => {
+  it('should remove only bevybroom.* keys and leave unrelated keys', () => {
     const storage = createMapStorage();
     storage.setItem(`${EDITOR_STORAGE_KEY_PREFIX}settings.view`, '{}');
     storage.setItem(`${EDITOR_STORAGE_KEY_PREFIX}settings.workspaces`, '{}');

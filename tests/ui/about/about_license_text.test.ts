@@ -3,7 +3,7 @@ import { HENRYS_TOOLS_DISCORD_URL, PROJECT_DISPLAY_NAME, getAboutLicenseText } f
 
 describe('about_license_text', () => {
   it('should combine third-party MIT licenses with project branding constants', () => {
-    expect(PROJECT_DISPLAY_NAME).toBe('AI World Editor');
+    expect(PROJECT_DISPLAY_NAME).toBe('BevyBroom');
     expect(HENRYS_TOOLS_DISCORD_URL).toBe('https://discord.gg/sKEvrBwHtq');
     const text = getAboutLicenseText();
     expect(text).toContain('=== Chisel Editor (MIT) ===');

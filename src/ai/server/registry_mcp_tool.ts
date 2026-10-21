@@ -1,21 +1,7 @@
-import type { McpToolName } from '@/ai/shared/mcp_protocol_types.js';
+import { MCP_ENTITY_TOOL_DEFINITIONS } from './registry_mcp_tool_entities.js';
+import { emptySchema, tool, vec3Schema, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
-/** JSON Schema-ish tool definition returned by tools/list. */
-export interface McpToolDefinition {
-  name: McpToolName;
-  description: string;
-  inputSchema: Record<string, unknown>;
-}
-
-const vec3Schema = {
-  type: 'object',
-  properties: {
-    x: { type: 'number' },
-    y: { type: 'number' },
-    z: { type: 'number' },
-  },
-  required: ['x', 'y', 'z'],
-};
+export type { McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
 const boundsSchema = {
   type: 'object',
@@ -781,6 +767,7 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
       },
     },
   ),
+  ...MCP_ENTITY_TOOL_DEFINITIONS,
 ];
 
 /**
@@ -800,25 +787,4 @@ export function listMcpTools(): { tools: McpToolDefinition[] } {
  */
 export function findMcpTool(name: string): McpToolDefinition | undefined {
   return MCP_TOOL_DEFINITIONS.find((entry) => entry.name === name);
-}
-
-/**
- * Builds a tool definition entry.
- *
- * @param name Tool name.
- * @param description Tool description for AI clients.
- * @param inputSchema JSON Schema object.
- * @returns Tool definition.
- */
-function tool(name: McpToolName, description: string, inputSchema: Record<string, unknown>): McpToolDefinition {
-  return { name, description, inputSchema };
-}
-
-/**
- * Empty object schema for tools without arguments.
- *
- * @returns JSON Schema object.
- */
-function emptySchema(): Record<string, unknown> {
-  return { type: 'object', properties: {} };
 }

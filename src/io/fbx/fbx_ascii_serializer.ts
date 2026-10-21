@@ -4,7 +4,7 @@ import type { FbxMapRecord, FbxSurfaceRecord } from './fbx_surface_records.js';
 import type { FbxObjectLink } from './fbx_node_id_pool.js';
 
 const FBX_ASCII_VERSION = 7400;
-const CREATOR_LABEL = 'AI World Editor';
+const CREATOR_LABEL = 'BevyBroom';
 const DOCUMENT_ID = 1000000000;
 
 /**

@@ -302,7 +302,7 @@ describe('SettingsDialog', () => {
 
   it('should inject settings dialog styles once', () => {
     dialog.show();
-    expect(document.getElementById('aiworlded-settings-dialog-styles')).toBeTruthy();
+    expect(document.getElementById('bevybroom-settings-dialog-styles')).toBeTruthy();
   });
 
   it('should use editor theme tokens for panel chrome', () => {

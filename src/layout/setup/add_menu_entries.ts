@@ -9,6 +9,10 @@ export interface AddMenuActions {
   onAddTerrain: () => void;
   onAddSolidModel: () => void;
   onAddBevelVolume: () => void;
+  onAddPointLight: () => void;
+  onAddSpotLight: () => void;
+  onAddRoom: () => void;
+  onAddPortal: () => void;
 }
 
 /**
@@ -50,6 +54,22 @@ export function createAddMenuEntries(actions: AddMenuActions): ToolbarMenuEntry[
       children: [
         { label: 'Solid Model', onClick: () => actions.onAddSolidModel() },
         { label: 'Bevel Volume', onClick: () => actions.onAddBevelVolume() },
+      ],
+    },
+    {
+      kind: 'submenu',
+      label: 'Lights',
+      children: [
+        { label: 'Point Light', onClick: () => actions.onAddPointLight() },
+        { label: 'Spot Light', onClick: () => actions.onAddSpotLight() },
+      ],
+    },
+    {
+      kind: 'submenu',
+      label: 'Portals',
+      children: [
+        { label: 'Room', onClick: () => actions.onAddRoom() },
+        { label: 'Portal', onClick: () => actions.onAddPortal() },
       ],
     },
   ];

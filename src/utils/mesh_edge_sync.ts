@@ -6,6 +6,7 @@ import {
   SOLID_BRUSH_EDGE_USERDATA_KEY,
 } from '@/solid/model/solid_brush_edge_materials.js';
 import { getOrBuildMeshDocumentOutlineEdges } from '@/mesh/convert/mesh_document_outline_edges.js';
+import { ENTITY_VISUAL_PART_USERDATA_KEY, entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
 
 /**
  * UserData key set on decorative edge LineSegments parented under content
@@ -14,7 +15,12 @@ import { getOrBuildMeshDocumentOutlineEdges } from '@/mesh/convert/mesh_document
 export const DECORATIVE_EDGE_USERDATA_KEY = 'isDecorativeEdge';
 
 /** UserData keys that cause a mesh to skip content decorative edge rebuild. */
-const SKIP_CONTENT_EDGE_MESH_KEYS = ['isSolidBrush', 'isSolidModelResult', 'isModifierVolume'] as const;
+const SKIP_CONTENT_EDGE_MESH_KEYS = [
+  'isSolidBrush',
+  'isSolidModelResult',
+  'isModifierVolume',
+  ENTITY_VISUAL_PART_USERDATA_KEY,
+] as const;
 
 /**
  * Removes existing decorative edge children, then adds outline LineSegments
@@ -223,8 +229,8 @@ function isEditorOverlayChild(object: THREE.Object3D): boolean {
 /**
  * Returns true when the object is an editor overlay child or has a userData
  * flag for decorative edge, solid brush edge, bounds guide lines, gizmo
- * occluded ghost, bounds face pick, clip plane preview, CAD ruler, or solid
- * model result.
+ * occluded ghost, bounds face pick, clip plane preview, CAD ruler, solid model
+ * result, or entity visual part.
  *
  * @param object The object to test.
  * @returns True when any of those helper flags or overlay checks match.
@@ -241,6 +247,7 @@ export function isEditorHelperObject(object: THREE.Object3D): boolean {
   if (object.userData['isSolidModelResult'] === true) return true;
   if (object.userData['isPlayerFigurine'] === true) return true;
   if (object.userData['isModifierVolumeEdge'] === true) return true;
+  if (entityVisualPartIs(object)) return true;
   return false;
 }
 

@@ -150,6 +150,7 @@ export type KeyboardShortcutAction =
   | 'delete_selected'
   | 'escape'
   | 'save'
+  | 'save_as'
   | 'load'
   | 'export_glb'
   | 'undo'

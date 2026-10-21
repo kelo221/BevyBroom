@@ -1,10 +1,10 @@
 import type { EditorSettingsSnapshot, UiThemePreference } from './settings_types.js';
 import { ensureViewSettingsStyles } from '@/settings/view/view_settings_styles.js';
 
-const ROOT_THEME_ATTRIBUTE = 'data-aiworlded-theme';
-const BRIGHTNESS_CSS_VARIABLE = '--aiworlded-viewport-brightness';
-const FONT_SIZE_CSS_VARIABLE = '--aiworlded-ui-font-size';
-const ICON_SIZE_CSS_VARIABLE = '--aiworlded-material-icon-scale';
+const ROOT_THEME_ATTRIBUTE = 'data-bevybroom-theme';
+const BRIGHTNESS_CSS_VARIABLE = '--bevybroom-viewport-brightness';
+const FONT_SIZE_CSS_VARIABLE = '--bevybroom-ui-font-size';
+const ICON_SIZE_CSS_VARIABLE = '--bevybroom-material-icon-scale';
 
 /** Applies editor settings to the document root for CSS consumers. */
 export class SettingsApplicator {

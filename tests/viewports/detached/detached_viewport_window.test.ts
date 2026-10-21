@@ -186,8 +186,8 @@ describe('DetachedViewportWindow', () => {
     expect(openSpy).toHaveBeenCalledTimes(2);
     const names = openSpy.mock.calls.map((call) => call[1] as string);
     expect(names[0]).not.toBe(names[1]);
-    expect(names[0]).toMatch(/^aiworlded_detached_viewport_/);
-    expect(names[1]).toMatch(/^aiworlded_detached_viewport_/);
+    expect(names[0]).toMatch(/^bevybroom_detached_viewport_/);
+    expect(names[1]).toMatch(/^bevybroom_detached_viewport_/);
     detached.dispose();
     expect(first.fakeWindow.close).toHaveBeenCalled();
     expect(second.fakeWindow.close).toHaveBeenCalled();

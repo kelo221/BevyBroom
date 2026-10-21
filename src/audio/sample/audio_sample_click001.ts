@@ -1,4 +1,5 @@
 import click001Url from '@/audio/raw/click001.wav?url';
+import { base64ToBytes } from '@/utils/utils_base64.js';
 
 /**
  * Loads, decodes, and caches the embedded click001.wav sample as an
@@ -110,13 +111,7 @@ function decodeDataUrlToArrayBuffer(dataUrl: string): ArrayBuffer {
   if (commaIndex < 0) {
     throw new Error('Invalid data URL for click sample');
   }
-  const base64 = dataUrl.slice(commaIndex + 1);
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index++) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-  return bytes.buffer;
+  return base64ToBytes(dataUrl.slice(commaIndex + 1)).buffer;
 }
 
 /** Shared AudioSampleClick001 instance for the embedded click001 sample. */

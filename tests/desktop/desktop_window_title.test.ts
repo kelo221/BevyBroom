@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { APPLICATION_DISPLAY_NAME, buildDesktopWindowTitle } from '@/application_identity.js';
 
 describe('desktop window title', () => {
-  it('uses AI World Editor in the desktop shell HTML title without changing the web index title path', () => {
+  it('uses BevyBroom in the desktop shell HTML title without changing the web index title path', () => {
     const desktopHtml = readFileSync(resolve(process.cwd(), 'src/desktop/main_ui/index.html'), 'utf8');
     const webHtml = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     expect(desktopHtml).toContain(`<title>${APPLICATION_DISPLAY_NAME}</title>`);
@@ -14,6 +14,6 @@ describe('desktop window title', () => {
   });
 
   it('formats the native window title with an embedded version for standalone builds', () => {
-    expect(buildDesktopWindowTitle('2.3.4')).toBe('AI World Editor 2.3.4');
+    expect(buildDesktopWindowTitle('2.3.4')).toBe('BevyBroom 2.3.4');
   });
 });

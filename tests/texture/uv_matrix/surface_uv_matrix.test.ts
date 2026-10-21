@@ -76,6 +76,22 @@ describe('SurfaceUvMatrix', () => {
     expect(matrixUv.v).toBeCloseTo(projected.v, 5);
   });
 
+  it('decomposes exactly ±90° rotations as +90° with unmirrored scale on every axis face', () => {
+    const axisNormals = buildAxisAlignedFaceNormals();
+    for (const normal of axisNormals) {
+      for (const authoredRotationDeg of [90, -90]) {
+        const built = SurfaceUvMatrix.fromTrs(new THREE.Vector2(0.25, -0.5), normal, authoredRotationDeg, 2, 0.5);
+        const trs = built.decompose(normal);
+        const expectedScaleSign = authoredRotationDeg > 0 ? 1 : -1;
+        expect(trs.rotationDeg).toBeCloseTo(90, 4);
+        expect(trs.scaleU).toBeCloseTo(2 * expectedScaleSign, 4);
+        expect(trs.scaleV).toBeCloseTo(0.5 * expectedScaleSign, 4);
+        const rebuilt = SurfaceUvMatrix.fromTrs(trs.translation, normal, trs.rotationDeg, trs.scaleU, trs.scaleV);
+        expect(rebuilt.equals(built, 1e-4)).toBe(true);
+      }
+    }
+  });
+
   it('serializes and deserializes rows', () => {
     const original = SurfaceUvMatrix.fromTrs(new THREE.Vector2(0.1, 0.2), new THREE.Vector3(1, 0, 0), 15, 1.5, 2.5);
     const restored = SurfaceUvMatrix.fromSerialized(original.serialize());
@@ -183,3 +199,19 @@ describe('brush-local UV lock transform', () => {
     expect(b.v).toBeCloseTo(a.v, 4);
   });
 });
+
+/**
+ * Builds the six unit normals of an axis-aligned box face.
+ *
+ * @returns Unit normals for +X, −X, +Y, −Y, +Z and −Z faces.
+ */
+function buildAxisAlignedFaceNormals(): THREE.Vector3[] {
+  return [
+    new THREE.Vector3(1, 0, 0),
+    new THREE.Vector3(-1, 0, 0),
+    new THREE.Vector3(0, 1, 0),
+    new THREE.Vector3(0, -1, 0),
+    new THREE.Vector3(0, 0, 1),
+    new THREE.Vector3(0, 0, -1),
+  ];
+}

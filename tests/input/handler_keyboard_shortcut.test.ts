@@ -187,6 +187,24 @@ describe('KeyboardShortcutHandler', () => {
     expect(onClipFlip).toHaveBeenCalledOnce();
   });
 
+  it('saves on the save shortcut and saves as on the save as shortcut, never both', () => {
+    const shortcuts = createDefaultKeyboardShortcutSettings();
+    const onSave = vi.fn();
+    const onSaveAs = vi.fn();
+    handler.setOnSaveScene(onSave);
+    handler.setOnSaveSceneAs(onSaveAs);
+    const saveEvent = { code: shortcuts.save.code, ctrlKey: shortcuts.save.ctrl, shiftKey: shortcuts.save.shift };
+    const saveAs = shortcuts.save_as;
+    const saveAsEvent = { code: saveAs.code, ctrlKey: saveAs.ctrl, shiftKey: saveAs.shift, altKey: saveAs.alt };
+    expect(saveAsEvent).not.toEqual({ ...saveEvent, altKey: false });
+    window.dispatchEvent(new KeyboardEvent('keydown', saveEvent));
+    expect(onSave).toHaveBeenCalledOnce();
+    expect(onSaveAs).not.toHaveBeenCalled();
+    window.dispatchEvent(new KeyboardEvent('keydown', saveAsEvent));
+    expect(onSaveAs).toHaveBeenCalledOnce();
+    expect(onSave).toHaveBeenCalledOnce();
+  });
+
   it('should extrude on Shift+E rather than plain E', () => {
     const onExtrude = vi.fn();
     const onMode = vi.fn();

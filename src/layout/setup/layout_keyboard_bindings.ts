@@ -16,6 +16,7 @@ export interface LayoutKeyboardBindingHost {
   onRedo: () => void;
   onGroupSelected: () => void;
   onSaveScene: () => void;
+  onSaveSceneAs: () => void;
   onLoadScene: () => void;
   onExportGlb: () => void;
   getObjectActionHandler: () => HandlerObjectAction;
@@ -80,6 +81,7 @@ function bindPrimaryKeyboardShortcuts(handler: HandlerKeyboardShortcut, host: La
  */
 function bindIoKeyboardShortcuts(handler: HandlerKeyboardShortcut, host: LayoutKeyboardBindingHost): void {
   handler.setOnSaveScene(() => host.onSaveScene());
+  handler.setOnSaveSceneAs(() => host.onSaveSceneAs());
   handler.setOnLoadScene(() => host.onLoadScene());
   handler.setOnExportGlb(() => host.onExportGlb());
 }

@@ -18,8 +18,8 @@ import {
 import { PanelFloating } from '@/ui/floating_panel/panel_floating.js';
 
 /**
- * Modal About dialog for AI World Editor credits and licenses. Windowing comes
- * from {@link PanelFloating}.
+ * Modal About dialog for BevyBroom credits and licenses. Windowing comes from
+ * {@link PanelFloating}.
  */
 export class DialogAbout extends PanelFloating {
   private licenseTextArea: HTMLTextAreaElement;
@@ -102,7 +102,7 @@ export class DialogAbout extends PanelFloating {
   private buildDialog(): void {
     this.root.setAttribute('role', 'dialog');
     this.root.setAttribute('aria-modal', 'true');
-    this.root.setAttribute('aria-label', 'About AI World Editor');
+    this.root.setAttribute('aria-label', 'About BevyBroom');
     styleAboutPanel(this.root);
     this.root.style.display = 'none';
     this.root.appendChild(this.buildHeader());

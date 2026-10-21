@@ -8,7 +8,7 @@ The toolbar contains menus followed by quick-access controls.
 
 ### Menus
 
-- **File** saves and loads AiWorldEd scenes, imports VMF maps, and exports GLB models.
+- **File** saves and loads BevyBroom scenes, imports VMF maps, and exports GLB models.
 - **Edit** deletes, duplicates, groups, and ungroups the selection.
 - **Add** organizes creation commands into **Geometry**, **Terrain**, and
   **Brushes** flyout menus. The new object is created using the current

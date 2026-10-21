@@ -3,6 +3,11 @@
  * used for saving and loading scenes.
  */
 
+import type { LightSettings } from '@/light/model/light_settings.js';
+import type { PortalSettings } from '@/portal/model/portal_settings.js';
+import type { RoomSettings } from '@/portal/model/room_settings.js';
+import type { FaceTextureMappingSerialized } from '@/texture/uv/face_texture_mapping.js';
+
 /**
  * Supported geometry classifications in scene files. Primitive types store
  * constructor params; buffer stores raw vertex data.
@@ -21,25 +26,18 @@ export interface BufferGeometryData {
   index?: number[];
 }
 
-/** Serialized planar texture mapping for a coplanar face region. */
+/** Serialized texture mapping (texture id and UV matrix) for a face region. */
 export interface SerializedFaceTextureMap {
   triangleIndices: number[];
-  mapping: {
-    align: string;
-    scaleU: number;
-    scaleV: number;
-    offsetU: number;
-    offsetV: number;
-    rotationDeg: number;
-    /** Stable texture identity for export / rebind (checker id or path). */
-    textureId?: string;
-  };
+  mapping: FaceTextureMappingSerialized;
 }
 
 /** Container for a complete serializable scene. */
 export interface SceneJSON {
   /** Schema version number for compatibility checking. */
   version: number;
+  /** Stable identifier of the document, kept across saves (version 4+). */
+  documentId?: string;
   /** Flat list of all objects in the scene. */
   objects: ObjectEntry[];
 }
@@ -51,7 +49,7 @@ export interface ObjectEntry {
   /** Display name of the object. */
   name: string;
   /** Object type classification. */
-  type: 'mesh' | 'group';
+  type: 'mesh' | 'group' | 'light' | 'room' | 'portal';
   /** World-local position. */
   position: { x: number; y: number; z: number };
   /** Euler rotation in XYZ order. */
@@ -90,6 +88,12 @@ export interface ObjectEntry {
     uvPivot?: string;
     uvSpace?: string;
   };
+  /** Authored light settings for light entries. */
+  light?: LightSettings;
+  /** Authored room cell settings for room entries. */
+  room?: RoomSettings;
+  /** Authored portal settings for portal entries. */
+  portal?: PortalSettings;
   /** Optional solid-model brush tree for CSG solid meshes. */
   solidModel?: {
     brushes: Array<{

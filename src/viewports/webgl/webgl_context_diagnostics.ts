@@ -94,7 +94,7 @@ function getWebGLContextCreationStatus(event: Event): string {
  */
 function logWebGLContextCreationError(error: WebGLContextCreationError): void {
   console.error(
-    `[AiWorldEd] WebGL context creation failed for ${error.ownerName}: ${error.statusMessage}. Check WebGL2 support, GPU drivers, and desktop hardware acceleration.`,
+    `[BevyBroom] WebGL context creation failed for ${error.ownerName}: ${error.statusMessage}. Check WebGL2 support, GPU drivers, and desktop hardware acceleration.`,
   );
 }
 
@@ -104,7 +104,7 @@ function logWebGLContextCreationError(error: WebGLContextCreationError): void {
  * @param change Context owner and new state.
  */
 function logWebGLContextStateChange(change: WebGLContextStateChange): void {
-  const message = `[AiWorldEd] WebGL context ${change.state}: ${change.ownerName}`;
+  const message = `[BevyBroom] WebGL context ${change.state}: ${change.ownerName}`;
   if (change.state === 'lost') {
     console.error(`${message}. Check the desktop WebView or CEF GPU configuration.`);
     return;
