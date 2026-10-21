@@ -18,6 +18,19 @@ export class CommandUndoBatch implements UndoCommand {
     this.executed = false;
   }
 
+  /**
+   * Creates a batch from sub-commands that already ran, so the batch can be
+   * recorded without executing them again and undoes them on the first undo.
+   *
+   * @param commands Already executed steps in execution order.
+   * @returns Batch marked as executed.
+   */
+  static fromExecuted(commands: readonly UndoCommand[]): CommandUndoBatch {
+    const batch = new CommandUndoBatch(commands);
+    batch.executed = true;
+    return batch;
+  }
+
   /** Executes each sub-command in order. */
   execute(): void {
     if (this.executed) {

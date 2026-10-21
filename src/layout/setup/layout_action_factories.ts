@@ -17,7 +17,6 @@ import { HandlerAlignment } from '@/outliner/alignment/handler_alignment.js';
 import { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js';
 import { TextureLockSettings } from '@/texture/lock/texture_lock_settings.js';
 import { audioSettings } from '@/audio/settings/audio_settings.js';
-import type { ShellFileMenuShortcutAction } from '@/layout/shell/shell_file_menu_shortcut_action.js';
 
 /**
  * Host callbacks used when building outliner shell action bindings. Handler
@@ -51,8 +50,7 @@ export interface ToolbarActionHost {
   onAddSolidModel: () => void;
   onUndo: () => void;
   onRedo: () => void;
-  onToggleUvEditor: () => void;
-  onToggleTextureBrowser: () => void;
+  faceInspectorReveal: () => void;
   onToggleSolidModelPanel: () => void;
   onToggleSettingsDialog: () => void;
   onOpenDocumentation: () => void;
@@ -73,7 +71,6 @@ export interface ToolbarActionHost {
   onExportGlb: () => void;
   onExportObj: () => void;
   onExportFbx: () => void;
-  getShortcutLabel: (action: ShellFileMenuShortcutAction) => string;
   onSetTransformSpaceGlobal: () => void;
   onSetTransformSpaceLocal: () => void;
   isTransformSpaceLocal: () => boolean;
@@ -170,8 +167,6 @@ function buildPrimitiveToolbarActions(
   | 'onAddRoom'
   | 'onAddPortal'
   | 'onAddEntityPlaced'
-  | 'onToggleUvEditor'
-  | 'onToggleTextureBrowser'
   | 'onToggleSolidModelPanel'
   | 'onToggleSettingsDialog'
   | 'onOpenDocumentation'
@@ -197,8 +192,6 @@ function buildPrimitiveToolbarActions(
     onAddPortal: () => host.getPrimitiveCreationHandler().createPortal(),
     onAddEntityPlaced: (factory, objectRadius) =>
       host.getPrimitiveCreationHandler().entityCreatePlaced(factory, objectRadius),
-    onToggleUvEditor: () => host.onToggleUvEditor(),
-    onToggleTextureBrowser: () => host.onToggleTextureBrowser(),
     onToggleSolidModelPanel: () => host.onToggleSolidModelPanel(),
     onToggleSettingsDialog: () => host.onToggleSettingsDialog(),
     onOpenDocumentation: () => host.onOpenDocumentation(),
@@ -308,7 +301,6 @@ function buildIoToolbarActions(
   | 'onExportGlb'
   | 'onExportObj'
   | 'onExportFbx'
-  | 'getShortcutLabel'
 > {
   return {
     onNewScene: () => host.onNewScene(),
@@ -320,6 +312,5 @@ function buildIoToolbarActions(
     onExportGlb: () => host.onExportGlb(),
     onExportObj: () => host.onExportObj(),
     onExportFbx: () => host.onExportFbx(),
-    getShortcutLabel: (action) => host.getShortcutLabel(action),
   };
 }

@@ -15,6 +15,12 @@ export type {
 /** Three toolbar presentations available through bottom-edge dragging. */
 export type ToolbarSize = 'small' | 'medium' | 'large';
 
+/** `toolbar` is the resizable icon strip; `menubar` is a slim row of text menus. */
+export type ToolbarVariant = 'toolbar' | 'menubar';
+
+/** Height of the slim menu bar row in CSS pixels. */
+export const TOOLBAR_MENUBAR_HEIGHT_PX = 24;
+
 const TOOLBAR_SIZES: readonly ToolbarSize[] = ['small', 'medium', 'large'];
 const TOOLBAR_MIN_HEIGHTS: Readonly<Record<ToolbarSize, number>> = {
   small: 36,
@@ -40,15 +46,19 @@ export class Toolbar {
   private resizeHandle: HTMLElement;
   private windowMoveListener: (event: PointerEvent) => void;
   private windowUpListener: () => void;
+  private readonly documentPointerDownListener: (event: PointerEvent) => void;
+  private readonly variant: ToolbarVariant;
 
   /**
    * Creates a new toolbar and appends it to the given container.
    *
    * @param container The parent DOM element to append the toolbar into.
+   * @param variant Resizable icon toolbar, or a slim menu bar of text menus.
    */
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, variant: ToolbarVariant = 'toolbar') {
+    this.variant = variant;
     this.container = document.createElement('div');
-    this.container.classList.add('editor-toolbar');
+    this.container.classList.add(variant === 'menubar' ? 'editor-menubar' : 'editor-toolbar');
     this.buttons = [];
     this.openMenuPanel = null;
     this.openMenuButton = null;
@@ -60,14 +70,84 @@ export class Toolbar {
     this.resizeStartIndex = 1;
     this.windowMoveListener = (event) => this.onResizeMove(event);
     this.windowUpListener = () => this.endResize();
+    this.documentPointerDownListener = (event) => this.handleDocumentPointerDown(event);
     this.applyStyles();
     this.resizeHandle = this.createResizeHandle();
     this.container.appendChild(this.resizeHandle);
     this.applyToolbarSize();
     container.appendChild(this.container);
-    document.addEventListener('pointerdown', (event) => {
-      this.handleDocumentPointerDown(event);
-    });
+    document.addEventListener('pointerdown', this.documentPointerDownListener);
+  }
+
+  /**
+   * Returns the toolbar row element.
+   *
+   * @returns Toolbar root element.
+   */
+  getElement(): HTMLElement {
+    return this.container;
+  }
+
+  /** Restyles the row as a slim menu bar without the resize handle. */
+  private menubarVariantApply(): void {
+    if (this.variant !== 'menubar') {
+      return;
+    }
+    this.resizeHandle.remove();
+    this.container.style.minHeight = `${TOOLBAR_MENUBAR_HEIGHT_PX}px`;
+    this.container.style.padding = '0 4px';
+    this.container.style.gap = '0';
+    this.container.style.background = this.hexToRgba(Theme.toolbarBackgroundEnd);
+    this.container.style.boxShadow = 'none';
+    this.container.style.flexWrap = 'nowrap';
+  }
+
+  /**
+   * Restyles a menu header button for the slim menu bar.
+   *
+   * @param button Menu header button.
+   */
+  private menubarHeaderStyle(button: HTMLButtonElement): void {
+    if (this.variant !== 'menubar') {
+      return;
+    }
+    button.style.height = `${TOOLBAR_MENUBAR_HEIGHT_PX - 4}px`;
+    button.style.padding = '0 8px';
+    button.style.borderRadius = '3px';
+    button.style.fontWeight = '400';
+  }
+
+  /**
+   * Adds an empty inline slot that other components fill with their own
+   * controls, keeping the toolbar's order of groups.
+   *
+   * @param className CSS class identifying the slot.
+   * @returns Slot element placed at the end of the toolbar.
+   */
+  addSlot(className: string): HTMLElement {
+    const slot = document.createElement('div');
+    slot.classList.add(className);
+    slot.style.display = 'inline-flex';
+    slot.style.alignItems = 'center';
+    slot.style.gap = '2px';
+    this.container.appendChild(slot);
+    return slot;
+  }
+
+  /**
+   * Replaces the visible text of a dropdown header while keeping its caret.
+   *
+   * @param button Dropdown header button returned by addDropdown.
+   * @param label New header text.
+   */
+  dropdownLabelSet(button: HTMLButtonElement, label: string): void {
+    const labelNode = button.firstChild;
+    if (labelNode && labelNode.nodeType === Node.TEXT_NODE) {
+      labelNode.textContent = label;
+    } else {
+      button.insertBefore(document.createTextNode(label), button.firstChild);
+    }
+    button.title = label;
   }
 
   /**
@@ -155,11 +235,39 @@ export class Toolbar {
    * @returns The header button element.
    */
   addDropdown(label: string, items: ToolbarMenuEntry[]): HTMLButtonElement {
+    const wrapper = this.dropdownWrapperCreate();
+    const button = this.dropdownHeaderCreate(label);
+    const panel = new PanelMenu(items, () => this.closeOpenMenu());
+    this.dropdownPanels.set(button, panel);
+    this.dropdownHeaderBind(button, panel);
+    wrapper.appendChild(button);
+    wrapper.appendChild(panel.getElement());
+    this.container.appendChild(wrapper);
+    this.buttons.push(button);
+    return button;
+  }
+
+  /**
+   * Creates the relative wrapper that anchors one dropdown panel.
+   *
+   * @returns Wrapper element.
+   */
+  private dropdownWrapperCreate(): HTMLElement {
     const wrapper = document.createElement('div');
     wrapper.classList.add('editor-toolbar-dropdown');
     wrapper.style.position = 'relative';
     wrapper.style.display = 'inline-flex';
     wrapper.style.alignItems = 'center';
+    return wrapper;
+  }
+
+  /**
+   * Creates and styles one dropdown header button.
+   *
+   * @param label Header text.
+   * @returns Header button.
+   */
+  private dropdownHeaderCreate(label: string): HTMLButtonElement {
     const button = document.createElement('button');
     button.classList.add('editor-toolbar-menu-button');
     button.type = 'button';
@@ -168,9 +276,21 @@ export class Toolbar {
     button.setAttribute('aria-haspopup', 'menu');
     button.setAttribute('aria-expanded', 'false');
     this.applyButtonStyles(button, false);
-    this.appendDropdownCaret(button);
-    const panel = new PanelMenu(items, () => this.closeOpenMenu());
-    this.dropdownPanels.set(button, panel);
+    this.menubarHeaderStyle(button);
+    if (this.variant !== 'menubar') {
+      this.appendDropdownCaret(button);
+    }
+    return button;
+  }
+
+  /**
+   * Opens the panel on click and switches to it on hover while another menu is
+   * open.
+   *
+   * @param button Header button.
+   * @param panel Menu panel the header owns.
+   */
+  private dropdownHeaderBind(button: HTMLButtonElement, panel: PanelMenu): void {
     button.addEventListener('click', (event) => {
       event.stopPropagation();
       this.toggleDropdownMenu(panel, button);
@@ -178,11 +298,6 @@ export class Toolbar {
     button.addEventListener('mouseenter', () => {
       this.openDropdownOnHover(panel, button);
     });
-    wrapper.appendChild(button);
-    wrapper.appendChild(panel.getElement());
-    this.container.appendChild(wrapper);
-    this.buttons.push(button);
-    return button;
   }
 
   /** Adds a visual separator between toolbar groups. */
@@ -248,7 +363,10 @@ export class Toolbar {
     return this.buttons.findIndex((entry) => this.buttonMatchesPrefix(entry, labelPrefix));
   }
 
-  /** Disposes the toolbar by removing it from the DOM. */
+  /**
+   * Disposes the toolbar by removing it from the DOM and dropping its document
+   * listeners.
+   */
   dispose(): void {
     if (this.container.parentNode) {
       this.container.parentNode.removeChild(this.container);
@@ -260,6 +378,7 @@ export class Toolbar {
     this.iconButtons = [];
     window.removeEventListener('pointermove', this.windowMoveListener);
     window.removeEventListener('pointerup', this.windowUpListener);
+    document.removeEventListener('pointerdown', this.documentPointerDownListener);
   }
 
   /**
@@ -315,14 +434,17 @@ export class Toolbar {
     window.removeEventListener('pointerup', this.windowUpListener);
   }
 
-  /** Applies the snapped presentation without reserving unused toolbar rows. */
+  /**
+   * Applies the snapped presentation without reserving unused toolbar rows,
+   * with equal vertical padding so menu and icon buttons stay centered. The
+   * menu bar keeps its own slim presentation.
+   */
   private applyToolbarSize(): void {
     this.container.style.height = 'auto';
     this.container.style.minHeight = `${TOOLBAR_MIN_HEIGHTS[this.size]}px`;
-    // Equal vertical padding keeps menu and icon buttons centered; the bottom
-    // resize handle overlays the edge and does not need extra padding.
     this.container.style.padding = '6px 8px';
     this.refreshIconButtonAppearance();
+    this.menubarVariantApply();
   }
 
   /** Applies icon and text visibility for the current toolbar state. */

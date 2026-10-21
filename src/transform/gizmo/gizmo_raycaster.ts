@@ -7,6 +7,15 @@ import { GIZMO_FREE_ROTATE_DISC_PICK_USERDATA, GIZMO_FREE_SCALE_DISC_PICK_USERDA
 import { applyGizmoScaleFreeBillboards } from './gizmo_scale_free_billboard.js';
 
 /**
+ * Decides whether one handle ray hit may be picked.
+ *
+ * @param hit Ray hit on a handle mesh.
+ * @param ray World pick ray the hit lies on.
+ * @returns True to keep the hit.
+ */
+export type GizmoHandleHitAcceptance = (hit: THREE.Intersection, ray: THREE.Ray) => boolean;
+
+/**
  * Picks which gizmo handle was clicked using raycasting. Converts mouse events
  * to 3D space for transform operations. Skips picking when the gizmo group is
  * hidden so invisible handles cannot steal object-selection clicks (Three.js
@@ -34,6 +43,8 @@ export class GizmoRaycaster {
    * @param event The mouse event providing the click position.
    * @param gizmoGroup The viewport gizmo group whose meshes are raycast
    *   against.
+   * @param isHitAccepted Optional test that drops hits it rejects (for example
+   *   handles hidden behind the selection); every hit counts when omitted.
    * @returns The clicked handle, or null if no handle was hit.
    */
   pickHandle(
@@ -42,6 +53,7 @@ export class GizmoRaycaster {
     pickElement: HTMLElement,
     event: MouseEvent,
     gizmoGroup: THREE.Group,
+    isHitAccepted: GizmoHandleHitAcceptance | null = null,
   ): GizmoHandle | null {
     if (!this.isGizmoPickable(gizmoGroup)) return null;
     this.prepareCameraAndGroup(camera, gizmoGroup);
@@ -49,7 +61,9 @@ export class GizmoRaycaster {
     const meshes = this.collectHandleMeshes(gizmoGroup);
     if (meshes.length === 0) return null;
     const intersections = this.raycaster.intersectObjects(meshes, false);
-    return this.findPreferredHandleHit(handles, intersections);
+    const ray = this.raycaster.ray;
+    const accepted = isHitAccepted ? intersections.filter((hit) => isHitAccepted(hit, ray)) : intersections;
+    return this.findPreferredHandleHit(handles, accepted);
   }
 
   /**
@@ -90,9 +104,8 @@ export class GizmoRaycaster {
   }
 
   /**
-   * Collects only real handle meshes for picking. Bounds face-pick planes and
-   * other non-handle meshes are excluded so a nearer face plane cannot block a
-   * farther resize handle behind the brush.
+   * Collects only real handle meshes for picking. Meshes without a handleId are
+   * excluded so a nearer non-handle mesh cannot block a farther handle.
    *
    * @param group The group to traverse.
    * @returns Visible handle meshes with a handleId.
@@ -101,7 +114,6 @@ export class GizmoRaycaster {
     const meshes: THREE.Mesh[] = [];
     group.traverse((child) => {
       if (!(child instanceof THREE.Mesh) || !child.visible) return;
-      if (child.userData['isBoundsFacePick'] === true) return;
       if (child.userData['handleId'] === undefined) return;
       meshes.push(child);
     });

@@ -7,7 +7,8 @@ import {
   portalSettingsFromUnknown,
   portalSettingsSanitize,
 } from '@/portal/model/portal_settings.js';
-import { PortalVisualBuilder } from '@/portal/visual/portal_visual_builder.js';
+import { PORTAL_CLOSED_COLOR, PORTAL_OPEN_COLOR, PortalVisualBuilder } from '@/portal/visual/portal_visual_builder.js';
+import type { IconName } from '@/ui/icons/icon_name.js';
 
 /** Rules of authored portals. */
 export class PortalDefinition extends EntityDefinition<PortalSettings> {
@@ -40,6 +41,27 @@ export class PortalDefinition extends EntityDefinition<PortalSettings> {
    */
   settingsFromUnknown(value: unknown): PortalSettings | null {
     return portalSettingsFromUnknown(value);
+  }
+
+  /**
+   * Returns an open door for open portals and a closed door for closed ones.
+   *
+   * @param settings Portal settings.
+   * @returns Icon name.
+   */
+  iconName(settings: PortalSettings): IconName {
+    return settings.closed ? 'door-closed' : 'door-open';
+  }
+
+  /**
+   * Returns the open or closed portal color.
+   *
+   * @param _owner Portal owner group.
+   * @param settings Portal settings.
+   * @returns Icon color as a hex number.
+   */
+  override iconColorHex(_owner: THREE.Object3D, settings: PortalSettings): number {
+    return settings.closed ? PORTAL_CLOSED_COLOR : PORTAL_OPEN_COLOR;
   }
 
   /**

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { entityBoundsLocalOf } from '@/entity/bounds/entity_bounds.js';
 import { BoundsFace } from '@/types/bounds_face.js';
 
 /**
@@ -143,7 +144,7 @@ export class BuilderOrientedBounds {
     this.temporaryBox.makeEmpty();
     meshes.forEach((mesh) => {
       this.ensureWorldMatrixIncludesParents(mesh);
-      this.temporaryBox.expandByObject(mesh);
+      this.expandByMesh(mesh);
     });
     this.temporaryBox.getCenter(this.temporaryCenter);
     this.temporaryBox.getSize(this.temporarySize);
@@ -152,6 +153,21 @@ export class BuilderOrientedBounds {
       quaternion: new THREE.Quaternion(),
       halfExtents: this.temporarySize.clone().multiplyScalar(0.5),
     };
+  }
+
+  /**
+   * Grows the scratch union box by one mesh: by the selection box its entity
+   * kind asks for, or by the mesh and its children otherwise.
+   *
+   * @param mesh Mesh with a current world matrix.
+   */
+  private expandByMesh(mesh: THREE.Mesh): void {
+    const entityLocalBox = entityBoundsLocalOf(mesh);
+    if (entityLocalBox) {
+      this.temporaryBox.union(entityLocalBox.applyMatrix4(mesh.matrixWorld));
+      return;
+    }
+    this.temporaryBox.expandByObject(mesh);
   }
 
   /**
@@ -165,12 +181,17 @@ export class BuilderOrientedBounds {
   }
 
   /**
-   * Computes the local-space AABB of a mesh geometry only (ignores children).
+   * Computes the local-space AABB of a mesh: the selection box its entity kind
+   * asks for, or its geometry only (ignoring children).
    *
    * @param mesh The mesh whose geometry is measured.
    * @returns A local bounding box.
    */
   private computeGeometryLocalBox(mesh: THREE.Mesh): THREE.Box3 {
+    const entityLocalBox = entityBoundsLocalOf(mesh);
+    if (entityLocalBox) {
+      return entityLocalBox;
+    }
     const geometry = mesh.geometry;
     if (!geometry) {
       return this.createUnitLocalBox();

@@ -97,12 +97,33 @@ describe('EditorApiEntities', () => {
     expect(PortalOwner.settingsRead(portal)?.closed).toBe(false);
   });
 
+  it('keeps an added light at scale one and its radius when a scale is given', () => {
+    const rig = entityToolsRigCreate();
+    const requestedRadius = lightSettingsCreateDefault('point').radius + 2;
+    const lightId = createdIdRead(
+      rig.api.invokeTool('add_light', { scale: { x: 3, y: 3, z: 3 }, settings: { radius: requestedRadius } }),
+    );
+    const light = worldObjectFind(rig.world, lightId);
+    expect(light.scale.toArray()).toEqual([1, 1, 1]);
+    expect(LightOwner.settingsRead(light)?.radius).toBe(requestedRadius);
+  });
+
   it('changes light settings and keeps the settings it was not given', () => {
     const rig = entityToolsRigCreate();
     const lightId = createdIdRead(rig.api.invokeTool('add_light', {}));
     rig.api.invokeTool('set_light_settings', { id: lightId, settings: { realtime: true } });
     const settings = LightOwner.settingsRead(worldObjectFind(rig.world, lightId));
     expect(settings).toEqual({ ...lightSettingsCreateDefault(settings?.kind ?? 'point'), realtime: true });
+  });
+
+  it('changes the fog radius with a light radius given without a fog radius', () => {
+    const rig = entityToolsRigCreate();
+    const lightId = createdIdRead(rig.api.invokeTool('add_light', {}));
+    const before = LightOwner.settingsRead(worldObjectFind(rig.world, lightId));
+    if (!before) throw new Error('light settings');
+    rig.api.invokeTool('set_light_settings', { id: lightId, settings: { radius: before.radius * 2 } });
+    const after = LightOwner.settingsRead(worldObjectFind(rig.world, lightId));
+    expect(after?.fogRadius).toBeCloseTo(before.fogRadius * 2);
   });
 
   it('refuses a settings edit when the id names an entity of another kind', () => {

@@ -19,6 +19,11 @@ import {
 } from './editor_api_game_entities.js';
 import { EditorApiPreview, type PreviewConnectArgs } from './editor_api_preview.js';
 import { EditorApiSceneDocument, type SceneDocumentLoadArgs } from './editor_api_scene_document.js';
+import { EditorApiInfoPanel, type ConsoleReadArgs } from './editor_api_info_panel.js';
+import { EditorApiMainWindow } from './editor_api_main_window.js';
+import { EditorApiLayers } from './editor_api_layers.js';
+import { EditorApiClipboard } from './editor_api_clipboard.js';
+import { EditorApiViewportInput } from './editor_api_viewport_input.js';
 import type {
   AddBoxBrushArgs,
   AddBoxBrushesArgs,
@@ -76,6 +81,11 @@ export class EditorApi {
   private readonly preview: EditorApiPreview;
   private readonly gameEntities: EditorApiGameEntities;
   private readonly sceneDocument: EditorApiSceneDocument;
+  private readonly infoPanel: EditorApiInfoPanel;
+  private readonly layers: EditorApiLayers;
+  private readonly mainWindow: EditorApiMainWindow;
+  private readonly clipboard: EditorApiClipboard;
+  private readonly viewportInput: EditorApiViewportInput;
 
   /**
    * Creates an editor API bound to live editor systems.
@@ -97,6 +107,11 @@ export class EditorApi {
     this.preview = new EditorApiPreview(host);
     this.gameEntities = new EditorApiGameEntities(host);
     this.sceneDocument = new EditorApiSceneDocument(host);
+    this.infoPanel = new EditorApiInfoPanel(host);
+    this.layers = new EditorApiLayers(host);
+    this.mainWindow = new EditorApiMainWindow(host);
+    this.clipboard = new EditorApiClipboard(host);
+    this.viewportInput = new EditorApiViewportInput(host, () => this.reads.getSelection());
   }
 
   /**
@@ -305,7 +320,8 @@ export class EditorApi {
   }
 
   /**
-   * Routes the game class, game entity and game component tools.
+   * Routes the game class, game entity, game component, info panel, layer, main
+   * window, clipboard and viewport input tools.
    *
    * @param name Tool name.
    * @param args Argument object.
@@ -322,8 +338,17 @@ export class EditorApi {
       case 'read_data_asset':
       case 'write_data_asset':
         return { ok: false, message: `${name} waits for the game; call it through invokeToolAsync` };
+      case 'console_read':
+        return this.infoPanel.consoleRead(args as ConsoleReadArgs);
+      case 'issues_list':
+        return this.infoPanel.issuesList();
       default:
-        return { ok: false, message: `Unknown tool: ${name}` };
+        return (
+          this.layers.layerToolDispatch(name, args) ??
+          this.mainWindow.mainWindowToolDispatch(name, args) ??
+          this.clipboard.clipboardToolDispatch(name, args) ??
+          this.viewportInput.viewportInputToolDispatch(name, args) ?? { ok: false, message: `Unknown tool: ${name}` }
+        );
     }
   }
 }

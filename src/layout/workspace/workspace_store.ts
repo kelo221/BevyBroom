@@ -1,11 +1,17 @@
 import { createDefaultWorkspaces, type WorkspaceDefinition, WORKSPACE_IDS } from './workspace_definition.js';
 import { deserializeAreaLayout } from '@/layout/area/area_layout_serializer.js';
 import { areEditorStorageWritesSuppressed } from '@/settings/storage/clear_editor_storage.js';
+import {
+  WORKSPACE_BUILTIN_LAYOUT_REVISION,
+  workspaceBuiltinLayoutsMigrate,
+} from './workspace_builtin_layout_migration.js';
 
 /** Persistence shape for workspace preferences. */
 export interface WorkspaceStoreSnapshot {
   workspaces: WorkspaceDefinition[];
   activeWorkspaceId: string;
+  /** Built-in layout revision the saved workspaces were written with. */
+  builtinLayoutRevision: number;
 }
 
 const STORAGE_KEY = 'bevybroom.settings.workspaces';
@@ -27,6 +33,7 @@ export class WorkspaceStore {
     if (loaded) {
       this.workspaces = loaded.workspaces;
       this.activeWorkspaceId = loaded.activeWorkspaceId;
+      this.persist();
     } else {
       this.workspaces = createDefaultWorkspaces();
       this.activeWorkspaceId = WORKSPACE_IDS.quad;
@@ -170,6 +177,7 @@ export class WorkspaceStore {
     return {
       workspaces: this.getWorkspaces() as WorkspaceDefinition[],
       activeWorkspaceId: this.activeWorkspaceId,
+      builtinLayoutRevision: WORKSPACE_BUILTIN_LAYOUT_REVISION,
     };
   }
 
@@ -218,9 +226,25 @@ function sanitizeSnapshot(value: unknown): WorkspaceStoreSnapshot | null {
     const workspace = sanitizeWorkspace(item);
     if (workspace) workspaces.push(workspace);
   }
-  if (workspaces.length === 0) return null;
-  const activeWorkspaceId = workspaces.some((item) => item.id === activeId) ? activeId : workspaces[0]!.id;
-  return { workspaces, activeWorkspaceId };
+  const firstWorkspace = workspaces[0];
+  if (!firstWorkspace) return null;
+  const activeWorkspaceId = workspaces.some((item) => item.id === activeId) ? activeId : firstWorkspace.id;
+  const savedRevision = sanitizeBuiltinLayoutRevision(record['builtinLayoutRevision']);
+  return {
+    workspaces: workspaceBuiltinLayoutsMigrate(workspaces, savedRevision),
+    activeWorkspaceId,
+    builtinLayoutRevision: WORKSPACE_BUILTIN_LAYOUT_REVISION,
+  };
+}
+
+/**
+ * Reads the stored built-in layout revision.
+ *
+ * @param value Stored value.
+ * @returns Revision, or 0 for snapshots written before revisions existed.
+ */
+function sanitizeBuiltinLayoutRevision(value: unknown): number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 0;
 }
 
 /**

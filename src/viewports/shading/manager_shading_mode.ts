@@ -3,6 +3,7 @@ import { ShadingMode } from '@/types/shading_mode.js';
 import { SELECTION_HIGHLIGHT_USERDATA_KEY } from '@/selection/object/selection_highlight.js';
 import { BOUNDS_FACE_USERDATA_KEY } from '@/types/bounds_face.js';
 import { SOLID_BRUSH_USERDATA_KEY } from '@/solid/model/solid_brush_visual.js';
+import { shadingExemptIs } from '@/viewports/shading/shading_exempt.js';
 import {
   captureSharedContentMaterials,
   markShadingOverrideMaterial,
@@ -106,12 +107,12 @@ export class ManagerShadingMode {
    */
   private hasExemptUserData(object: THREE.Object3D): boolean {
     const data = object.userData;
+    if (shadingExemptIs(object)) return true;
     if (data[SELECTION_HIGHLIGHT_USERDATA_KEY] === true) return true;
     if (data['isSelectionHighlight'] === true) return true;
     if (data['isWireframeOverlay'] === true) return true;
     if (data['isFaceSelectionHighlight'] === true) return true;
     if (data['isClipPlanePreview'] === true) return true;
-    if (data['isBoundsFacePick'] === true) return true;
     if (data['isBoundsGuideLines'] === true) return true;
     if (data['isGizmoOccludedGhost'] === true) return true;
     if (data[SOLID_BRUSH_USERDATA_KEY] === true) return true;
@@ -130,7 +131,6 @@ export class ManagerShadingMode {
   private hasExemptName(name: string): boolean {
     if (!name) return false;
     if (name.startsWith('bounds_handle_')) return true;
-    if (name.startsWith('bounds_face_pick_')) return true;
     if (name === 'bounds_wireframe') return true;
     return EXEMPT_GROUP_NAMES.has(name);
   }

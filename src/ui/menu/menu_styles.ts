@@ -73,6 +73,31 @@ export function styleMenuLabel(label: HTMLElement): void {
 }
 
 /**
+ * Styles the icon shown in front of a menu row's label text.
+ *
+ * @param icon Icon element inside the label.
+ */
+export function styleMenuIcon(icon: HTMLElement): void {
+  icon.style.display = 'inline-flex';
+  icon.style.verticalAlign = '-3px';
+  icon.style.marginRight = '8px';
+}
+
+/**
+ * Styles the fixed-width check mark slot in front of a checkable row's label.
+ *
+ * @param check Check mark element.
+ */
+export function styleMenuCheck(check: HTMLElement): void {
+  check.classList.add('editor-toolbar-dropdown-check');
+  check.style.flex = '0 0 16px';
+  check.style.width = '16px';
+  check.style.marginRight = '4px';
+  check.style.textAlign = 'center';
+  check.style.color = Theme.buttonTextColor;
+}
+
+/**
  * Styles the right-aligned keyboard shortcut hint.
  *
  * @param shortcut Shortcut label element.

@@ -15,6 +15,8 @@ import {
   BoundsResizeSnapshot,
 } from '@/transform/commands/command_transform_bounds_resize.js';
 import { CommandTransformTextureLocked } from '@/transform/commands/command_transform_texture_locked.js';
+import { entityScaleAbsorbCommandWrap } from '@/entity/commands/command_entity_scale_absorb.js';
+import { entityScaleIsUnit } from '@/entity/scale/entity_scale_absorb.js';
 import { captureTransformTextureState } from '@/transform/commands/state_transform_texture.js';
 import { TransformDragSession } from './session_transform_drag.js';
 import { TransformProjectionMath } from './transform_projection_math.js';
@@ -70,15 +72,11 @@ export class TransformCommandPusher {
   }
 
   /**
-   * Pushes translate or bounds-resize undo depending on the active bounds drag.
+   * Pushes bounds-resize undo when the bounds drag resized the selection.
    *
    * @param selectedObjects Objects that were transformed.
    */
   private pushBoundsUndoCommand(selectedObjects: THREE.Object3D[]): void {
-    if (this.session.isBoundsFaceMove) {
-      this.pushTranslateCommand(selectedObjects);
-      return;
-    }
     if (this.session.isBoundsResize) {
       this.pushBoundsResizeCommand(selectedObjects);
     }
@@ -125,7 +123,7 @@ export class TransformCommandPusher {
    *
    * @param selectedObjects The objects that were translated.
    */
-  private pushTranslateCommand(selectedObjects: THREE.Object3D[]): void {
+  pushTranslateCommand(selectedObjects: THREE.Object3D[]): void {
     const snapshots = this.buildPositionSnapshotsWithFinals(selectedObjects);
     const moved = snapshots.some((snapshot) => {
       if (!snapshot.finalPosition) return false;
@@ -323,7 +321,8 @@ export class TransformCommandPusher {
     const beforeTexture = this.session.initialTextureState;
     const afterTexture = captureTransformTextureState(this.collectMeshTargets(selectedObjects));
     const command = new CommandTransformTextureLocked(poseCommand, beforeTexture, afterTexture);
-    this.commandStack?.push(command);
+    const scaledObjects = selectedObjects.filter((object) => !entityScaleIsUnit(object));
+    this.commandStack?.push(entityScaleAbsorbCommandWrap(command, scaledObjects));
   }
 
   /**

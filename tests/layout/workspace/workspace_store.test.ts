@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { WorkspaceStore } from '@/layout/workspace/workspace_store.js';
-import { WORKSPACE_IDS } from '@/layout/workspace/workspace_definition.js';
+import { createDefaultWorkspaces, WORKSPACE_IDS } from '@/layout/workspace/workspace_definition.js';
 import { serializeAreaLayout } from '@/layout/area/area_layout_serializer.js';
-import { createSinglePerspectiveLayout } from '@/layout/area/area_layout_presets.js';
+import { createSinglePerspectiveLayout, createTripleLayout } from '@/layout/area/area_layout_presets.js';
 
 /** Creates an in-memory Storage mock for workspace tests. */
 function createMemoryStorage(): Storage {
@@ -65,6 +65,38 @@ describe('WorkspaceStore', () => {
     const reordered = store.getWorkspaces().map((item) => item.id);
     expect(reordered[reordered.length - 1]).toBe(first);
     expect(reordered).not.toEqual(ids);
+  });
+
+  it('replaces an old saved built-in quad layout once and keeps user workspaces', () => {
+    const storage = createMemoryStorage();
+    const seeded = new WorkspaceStore(storage);
+    const oldQuadLayout = serializeAreaLayout(createTripleLayout());
+    const userLayout = serializeAreaLayout(createSinglePerspectiveLayout());
+    const user = seeded.addWorkspace('Mine', userLayout);
+    const snapshot = seeded.getSnapshot();
+    const legacy = {
+      workspaces: snapshot.workspaces.map((item) =>
+        item.id === WORKSPACE_IDS.quad ? { ...item, name: 'Renamed Quad', layout: oldQuadLayout } : item,
+      ),
+      activeWorkspaceId: user.id,
+    };
+    storage.setItem('bevybroom.settings.workspaces', JSON.stringify(legacy));
+    const migrated = new WorkspaceStore(storage);
+    const quad = migrated.getWorkspaces().find((item) => item.id === WORKSPACE_IDS.quad);
+    const expectedQuad = createDefaultWorkspaces().find((item) => item.id === WORKSPACE_IDS.quad);
+    expect(quad?.layout).toEqual(expectedQuad?.layout);
+    expect(quad?.name).toBe('Renamed Quad');
+    expect(migrated.getWorkspaces().find((item) => item.id === user.id)?.layout).toEqual(userLayout);
+    expect(migrated.getActiveWorkspaceId()).toBe(user.id);
+  });
+
+  it('keeps a quad layout the user changed after the migration ran', () => {
+    const storage = createMemoryStorage();
+    const store = new WorkspaceStore(storage);
+    const customQuad = serializeAreaLayout(createTripleLayout());
+    expect(store.updateWorkspaceLayout(WORKSPACE_IDS.quad, customQuad)).toBe(true);
+    const reloaded = new WorkspaceStore(storage);
+    expect(reloaded.getWorkspaces().find((item) => item.id === WORKSPACE_IDS.quad)?.layout).toEqual(customQuad);
   });
 
   it('should swap adjacent tabs when moving one step right', () => {

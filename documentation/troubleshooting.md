@@ -24,10 +24,19 @@ If you are compiling or packaging BevyBroom from its source code, use [Building 
 
 - Release the right mouse button after fly navigation.
 - Unfocus any text or number field.
-- Check the active tool in the Tools palette.
+- Check the active tool: its button is highlighted in the toolbar.
 - Review customized bindings in Settings.
+- Remember that `Space` cycles the view under the pointer and `F5` starts play mode.
 - Remember that Clip Plane reuses `F`, `Enter`, and `X`.
 - Note that `Shift+Tab` enters Face Select while plain `Tab` returns to Object Select in the current defaults.
+
+## A panel or the toolbar is missing
+
+The inspector, the info panel, and the toolbar can be hidden, and the editor remembers that between sessions. Turn them back on in the **View** menu with **Show Inspector** (`Ctrl+5`), **Show Info Panel** (`Ctrl+4`), and **Show Toolbar** (`Ctrl+Alt+T`). The former UV Editor and Texture Browser windows are now the inspector's **Face** tab (`Ctrl+3`).
+
+## A brush or component does not behave as expected
+
+Open the **Issues** tab of the info panel. It lists invalid solid brushes, solid model warnings, and game components whose class the game does not know. Click an issue to select its object and frame it in every view.
 
 ## Transforming affects only some selected objects
 
@@ -65,7 +74,7 @@ The current selection is not compatible with direct mesh boolean operations. Ret
 - Enter Face Select with `Shift+Tab`.
 - Select at least one valid face region.
 - Confirm the source is compatible.
-- Open the Tools palette and read its status message.
+- Hover **Extrude** in the tool options on the view bar to read what it needs, and check the status bar or the **Console** tab of the info panel for a message.
 
 ## Clip buttons are disabled
 
@@ -73,7 +82,7 @@ The clip plane is not ready. Select a target, activate Clip Plane, and place thr
 
 ## Textures are missing
 
-- Reopen the Texture Browser folder.
+- Reopen the folder with **Open Folder…** in the material browser of the inspector's **Face** tab.
 - Grant folder permission.
 - Confirm the image files are supported.
 - Check whether the scene refers to textures from a folder that moved or was renamed.

@@ -11,7 +11,8 @@ import type {
   SolidModelDetailDto,
   SolidModelSummaryDto,
 } from './editor_api_types.js';
-import { boxToDto, computeBrushWorldBounds, computeModelWorldBounds, vec3ToDto } from './editor_api_math.js';
+import { boxToDto, vec3ToDto } from './editor_api_math.js';
+import { computeBrushWorldBounds, computeModelWorldBounds } from '@/solid/model/solid_brush_world_bounds.js';
 import { eulerToDegreesDto } from './editor_api_snap.js';
 import { findBrush, findCsgGroup, findSolidModel, listSolidModels } from './editor_api_lookup.js';
 import { solidOperationToName } from './editor_api_operations.js';

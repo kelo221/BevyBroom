@@ -4,18 +4,23 @@ import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { getSolidGroupOperation, isSolidCsgGroup } from '@/solid/model/solid_group.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
-import { isLightOwner } from '@/light/model/light_owner_keys.js';
-import { LightOwner } from '@/light/model/light_owner.js';
-import { PortalOwner } from '@/portal/model/portal_owner.js';
-import { RoomOwner } from '@/portal/model/room_owner.js';
+import { entityIconOf } from '@/entity/icon/entity_icon.js';
+import type { IconName } from '@/ui/icons/icon_name.js';
+import { hexToRgb } from '@/utils/utils_color.js';
 
 /** Icon configuration for different object types in the outliner. */
 export interface ObjectIcon {
-  /** The display character or emoji for the icon (unused when {@link cssDot}). */
+  /**
+   * The display character or emoji for the icon (unused when {@link cssDot} or
+   * {@link iconName} is set).
+   */
   character: string;
 
-  /** The CSS color string for the icon text or CSS dot fill. */
+  /** The CSS color string for the icon text, SVG icon or CSS dot fill. */
   color: string;
+
+  /** When set, render this SVG icon instead of a text glyph. */
+  iconName?: IconName;
 
   /**
    * When true, render a geometry circle instead of a text glyph so operation
@@ -66,17 +71,17 @@ export class FactoryObjectIcon {
    * @returns The icon configuration with character and color.
    */
   static getIcon(obj: THREE.Object3D): ObjectIcon {
-    const solidIcon = this.getSolidIconOrNull(obj);
-    if (solidIcon) {
-      return solidIcon;
-    }
-    if (isLightOwner(obj)) {
-      return this.getLightOwnerIcon(obj);
-    }
-    const portalIcon = this.getRoomOrPortalIconOrNull(obj);
-    if (portalIcon) {
-      return portalIcon;
-    }
+    return this.getSolidIconOrNull(obj) ?? this.getEntityIconOrNull(obj) ?? this.getObjectTypeIcon(obj);
+  }
+
+  /**
+   * Returns the icon of a plain Three.js object from its object type.
+   *
+   * @param obj The Three.js object that is neither a solid part nor an entity
+   *   owner.
+   * @returns The icon configuration for its type.
+   */
+  private static getObjectTypeIcon(obj: THREE.Object3D): ObjectIcon {
     if (obj instanceof THREE.Group) {
       return this.getGroupIcon();
     }
@@ -117,35 +122,17 @@ export class FactoryObjectIcon {
   }
 
   /**
-   * Returns the point or spot icon for an authored light owner.
+   * Returns the icon an entity owner kind chooses, drawn in its icon color.
    *
-   * @param owner The light owner group.
-   * @returns The icon matching the stored light kind.
+   * @param obj The Three.js object to classify.
+   * @returns The entity icon, or null when the object is not an entity owner.
    */
-  private static getLightOwnerIcon(owner: THREE.Object3D): ObjectIcon {
-    const settings = LightOwner.settingsRead(owner);
-    if (settings?.kind === 'spot') {
-      return this.getSpotLightIcon();
+  private static getEntityIconOrNull(obj: THREE.Object3D): ObjectIcon | null {
+    const entityIcon = entityIconOf(obj);
+    if (!entityIcon) {
+      return null;
     }
-    return this.getPointLightIcon();
-  }
-
-  /**
-   * Returns the room or portal icon for an authored room or portal owner.
-   *
-   * @param obj The object to classify.
-   * @returns A cyan box for rooms, a green or red doorway for open or closed
-   *   portals, or null for other objects.
-   */
-  private static getRoomOrPortalIconOrNull(obj: THREE.Object3D): ObjectIcon | null {
-    if (RoomOwner.isOwner(obj)) {
-      return { character: '⬚', color: '#4fc3f7' };
-    }
-    const portal = PortalOwner.settingsRead(obj);
-    if (portal) {
-      return { character: '⊓', color: portal.closed ? '#ef5350' : '#66bb6a' };
-    }
-    return null;
+    return { character: '', color: hexToRgb(entityIcon.colorHex), iconName: entityIcon.iconName };
   }
 
   /**
@@ -155,12 +142,6 @@ export class FactoryObjectIcon {
    * @returns The icon configuration for the mesh type.
    */
   private static getMeshIcon(mesh: THREE.Mesh): ObjectIcon {
-    if (SolidBrushVisual.isBrushObject(mesh)) {
-      return this.getSolidBrushIcon(mesh);
-    }
-    if (SolidModel.isResultMesh(mesh)) {
-      return this.getSolidResultIcon();
-    }
     const geometry = mesh.geometry;
     const sourceType = resolveGeometrySourceType(geometry);
     if (sourceType === 'box' || geometry instanceof THREE.BoxGeometry) {

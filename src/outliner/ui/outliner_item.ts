@@ -24,6 +24,7 @@ import type {
   ItemSelectCallback,
   ItemVisibilityCallback,
 } from './outliner_item_types.js';
+import { objectInHiddenLayerIs } from '@/layer/model/layer_membership.js';
 
 export type {
   ItemContextMenuCallback,
@@ -159,6 +160,14 @@ export class OutlinerItem {
     this.setDepth(depth);
     this.setHasChildren(hasChildren);
     this.applyIconFromObject();
+    this.layerHiddenAppearanceApply();
+  }
+
+  /** Greys out the name and icon while the row's object is in a hidden layer. */
+  layerHiddenAppearanceApply(): void {
+    const opacity = objectInHiddenLayerIs(this.object) ? '0.4' : '';
+    this.nameElement.style.opacity = opacity;
+    this.iconElement.style.opacity = opacity;
   }
 
   /**
@@ -462,6 +471,7 @@ export class OutlinerItem {
     this.rowElement.appendChild(this.visibilityElement);
     this.rowElement.appendChild(this.lockElement);
     this.bindRowEvents();
+    this.layerHiddenAppearanceApply();
   }
 
   /** Applies base styles to the row element. */

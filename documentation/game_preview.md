@@ -14,7 +14,7 @@ The game side lives in a separate Rust workspace (`AiWorldEdBevy`): the `broom_b
 
    This reads the `preview` section of the project file and runs it (for the sample project that is `cargo run --release -p broom_preview`). You can also start the game yourself.
 
-2. In the editor choose **Game > Game Preview…**.
+2. In the editor choose **Run > Game Preview…**.
 3. Check the endpoint (default `http://127.0.0.1:15702`) and press **Connect**.
 
 The panel shows what the game received and applied: state and geometry revisions, the number of lights, the bake state, how many game materials were loaded and the newest error the game reported.
@@ -36,9 +36,20 @@ Geometry is sent as a GLB file that keeps every object's id and material id, and
 
 ## Lights
 
-Choose **Add > Lights > Point Light** or **Spot Light**. Lights appear as a small diamond marker you can click, select, move and rotate like any object. Thin lines show the light's range; spot lights also show their cone, pointing along the light's local −Z axis.
+Choose **Add > Lights > Point Light** or **Spot Light**. A light shows as a small translucent box in its own color, with its icon inside: a bulb for point lights and a spotlight for spot lights. Click the box to select the light, then move and rotate it like any object; dragging inside the box moves the light in every view, including up and down in the front and side views. While a light is selected, thin lines show its range; spot lights also show their cone, pointing along the light's local −Z axis, at any angle up to 179°, and lights with fog show its outline. Unselected lights show only their box. The box, its icon and the orange balls show in the 3D view and in the top, front and side views.
 
-The Properties panel edits a selected light:
+A selected light shows orange balls you drag to size it:
+
+- **Radius ball**: on the range circle of a point light, always to the right of the light in each view. On a spot light it sits at the tip of the cone's axis, and moves to the right of the light when the axis points straight at you. Drag it to set the **Radius**.
+- **Cone ball** (spot lights): on the rim of the cone. Drag it to set the **Outer** angle; the **Inner** angle keeps its share of the outer one.
+
+With grid snapping on, the radius snaps to the grid step and the cone angle to the rotation step. A drag updates the light and the game while you move, `Esc` cancels it, and one undo restores it. Locked lights show no balls.
+
+Lights are not scaled, and their box has no resize bars. Scaling a light with `S`, the scale gizmo or typed values changes its **Radius** instead, and the light keeps a scale of 1; one undo restores both. The Scale fields are hidden when only lights are selected. Scenes saved with a scaled light load with that scale turned into the radius, which is what the game already showed.
+
+The fog radius follows the light: dragging the radius ball, scaling, or typing a new **Radius** (also through the MCP `set_light_settings` tool) changes the fog radius by the same factor. Set the fog radius on its own in the **Fog** group.
+
+The Properties panel edits a selected light. The main fields are always shown:
 
 - **Type**: point or spot.
 - **Enabled**: disabled lights stay in the scene but give no light.
@@ -49,13 +60,29 @@ The Properties panel edits a selected light:
 - **Realtime**: realtime lights are never baked and can move freely in the game.
 - **Shadows**: raytraced (baked) or realtime.
 
-Lights are saved in the scene file, duplicate with `Ctrl+D`, and are left out of normal GLB exports because the game creates them itself.
+Click a group header to open DynLight's light features:
+
+| Group       | Settings                                                                                                                                                                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Effect**  | An intensity animation: steady, pulse, random, strobe, flicker, three fluorescent tubes, candle, pulsar, fire, generator, lightning, cloudy or overcast, with speed, minimum, offset and step.                     |
+| **Cookie**  | Spot lights only: an image the light projects, like a gobo. When connected, the picker lists the game's image files (png, jpg, jpeg).                                                                              |
+| **Fog**     | Volumetric fog in the light's color: shape (sphere, box, cone along the light, cone along its up axis, or a shaft), radius, thickness, opacity and clear distance. The viewport draws its outline as dashed lines. |
+| **Shimmer** | Moving light patterns: none, water (like caustics) or random (like firelight), with scale and minimum.                                                                                                             |
+| **Baking**  | Illumination (direct, or with one baked bounce), transparency, and the bounce light's tint, strength, samples and storage.                                                                                         |
+
+Things to know:
+
+- A cookie only shows on a spot light whose **Outer** angle is 90° or less; the Cookie group says so when the cone is wider. The image must be inside the game's assets folder.
+- Fog only shows on cameras with DynLight's `FogPostProcess` component. The preview program adds it; add it to your game's camera too.
+- Effect, cookie, fog, shimmer and the bounce light's visibility change live and never make the bake out of date. Illumination, transparency and the other bounce settings are baked, so changing them asks for a new bake.
+
+Lights are saved in the scene file, duplicate with `Ctrl+D`, and are left out of normal GLB exports because the game creates them itself. Shipped levels carry every light setting in the level manifest.
 
 ## Rooms and portals
 
 Rooms and portals let the game skip drawing (and lighting) whatever the camera cannot see through a doorway. DynLight calls this portal culling.
 
-- **Add > Portals > Room** adds a room: a box drawn as a wireframe. Size it in the Properties panel with **Half size X / Y / Z** (meters from its center), then move, rotate and scale it like any object. Cover each walkable space with one room.
+- **Add > Portals > Room** adds a room: a box drawn as a wireframe, with a small box and floor plan icon at its center that you click to select it. A selected room's selection box is the whole room, so its resize bars resize the room. Size it exactly in the Properties panel with **Half size X / Y / Z** (meters from its center), then move, rotate and scale it like any object. Cover each walkable space with one room.
 - **Add > Portals > Portal** adds a portal: a rectangle with an arrow on its front side. Set **Width** and **Height** in the Properties panel and place it in a doorway, in the wall between two rooms.
 - **Closed** on a portal makes it a shut door: the game stops looking through it. Closing and opening doors updates the game live.
 
@@ -71,7 +98,7 @@ The game reports the components it registered for placement. They appear under *
 
 ## Game materials
 
-When connected, the texture browser shows the game's material catalog as **Game materials**. Assigning one of them to a face stores the game material id, and the game uses its own material for that face, including normal and metallic maps the editor does not show. When the catalog file or one of its textures changes on disk, both the game and the editor update in place.
+When connected, the material browser in the inspector's **Face** tab shows the game's material catalog as **Game materials**. Assigning one of them to a face stores the game material id, and the game uses its own material for that face, including normal and metallic maps the editor does not show. When the catalog file or one of its textures changes on disk, both the game and the editor update in place.
 
 ## Preview bake
 

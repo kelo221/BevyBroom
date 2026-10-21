@@ -6,6 +6,7 @@ import { StatusBar } from '@/ui/status/status_bar.js';
 import { ShadingMode } from '@/types/shading_mode.js';
 import { ControllerViewportShading } from '@/viewports/shading/controller_viewport_shading.js';
 import { bindViewportToolbarShadingControls } from '@/ui/viewport_chrome/viewport_toolbar_shading_bind.js';
+import { viewportFocusFrameApply } from '@/viewports/focus/viewport_focus_frame.js';
 
 /** Coordinates per-viewport shading modes, toolbars, and keyboard shortcuts. */
 export class CoordinatorShadingMode {
@@ -77,6 +78,7 @@ export class CoordinatorShadingMode {
       this.statusBar,
     );
     this.bindViewportActivation();
+    viewportFocusFrameApply(this.getViewportElements(), this.activeViewportIndex);
     if (this.onFitViewport) {
       this.bindViewportToolbars(this.onFitViewport);
     }
@@ -145,6 +147,7 @@ export class CoordinatorShadingMode {
     }
     this.activeViewportIndex = index;
     this.shadingModeHandler.setActiveViewportIndex(index);
+    viewportFocusFrameApply(this.getViewportElements(), index);
     this.syncStatusBarShadingMode();
   }
 

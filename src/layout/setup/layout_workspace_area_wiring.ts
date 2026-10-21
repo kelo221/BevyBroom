@@ -17,7 +17,7 @@ import { areEditorStorageWritesSuppressed } from '@/settings/storage/clear_edito
  * Mutable fields are read through getters so snapshots stay live.
  */
 export interface WorkspaceAreaWiringHost {
-  getToolbarContainer(): HTMLElement;
+  getWorkspaceSwitcherSlot(): HTMLElement;
   getViewportArea(): HTMLElement;
   getViewportPaneGrid(): HTMLElement;
   getWorkspaceStore(): WorkspaceStore;
@@ -51,9 +51,8 @@ export function wireWorkspaceSystem(host: WorkspaceAreaWiringHost): void {
   );
   host.setWorkspaceController(controller);
   host.getWorkspaceSwitcherBar()?.dispose();
-  const switcherBar = new WorkspaceSwitcherBar(host.getToolbarContainer(), createSwitcherActions(host));
+  const switcherBar = new WorkspaceSwitcherBar(host.getWorkspaceSwitcherSlot(), createSwitcherActions(host));
   host.setWorkspaceSwitcherBar(switcherBar);
-  insertWorkspaceSwitcherBeforeMainLayout(host);
   controller.applyActiveWorkspace({ restoreCameras: false });
   refreshWorkspaceSwitcherBar(host);
   registerWorkspaceLayoutPageHidePersistence(host);
@@ -108,19 +107,6 @@ function createSwitcherActions(host: WorkspaceAreaWiringHost) {
       refreshWorkspaceSwitcherBar(host);
     },
   };
-}
-
-/**
- * Places the workspace switcher between the toolbar and the main layout row.
- *
- * @param host Layout wiring host.
- */
-export function insertWorkspaceSwitcherBeforeMainLayout(host: WorkspaceAreaWiringHost): void {
-  const bar = host.getWorkspaceSwitcherBar()?.getElement();
-  if (!bar) return;
-  const mainLayout = host.getViewportArea().parentElement;
-  if (!mainLayout || mainLayout.parentElement !== host.getToolbarContainer()) return;
-  host.getToolbarContainer().insertBefore(bar, mainLayout);
 }
 
 /**

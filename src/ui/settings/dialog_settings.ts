@@ -9,10 +9,10 @@ import {
   styleSettingsHeader,
   styleSettingsPanel,
   styleSettingsResetButton,
-  styleSettingsTabBar,
-  styleSettingsTabButton,
+  styleSettingsTabBook,
   styleSettingsTitle,
 } from './dialog_settings_styles.js';
+import { TabBook } from '@/ui/tabs/tab_book.js';
 import { SettingsGamesTab } from './settings_games_tab.js';
 import { SettingsKeyboardTab } from './settings_keyboard_tab.js';
 import { SettingsMouseTab } from './settings_mouse_tab.js';
@@ -33,9 +33,8 @@ export interface SettingsDialogOptions {
  * Windowing comes from {@link PanelFloating}.
  */
 export class DialogSettings extends PanelFloating {
-  private readonly tabBar: HTMLElement;
+  private readonly tabBook: TabBook;
   private readonly contentHost: HTMLElement;
-  private readonly tabButtons: Map<SettingsTabId, HTMLButtonElement>;
   private readonly gamesTab: SettingsGamesTab;
   private readonly viewTab: SettingsViewTab;
   private readonly keyboardTab: SettingsKeyboardTab;
@@ -68,11 +67,10 @@ export class DialogSettings extends PanelFloating {
     this.isDisposed = false;
     this.isResetInProgress = false;
     this.activeTabId = 'games';
-    this.tabButtons = new Map();
     this.onResetAllSettings = options.onResetAllSettings ?? null;
     ensureSettingsDialogStyles();
-    this.tabBar = document.createElement('div');
-    this.contentHost = document.createElement('div');
+    this.tabBook = new TabBook({ ariaLabel: 'Settings sections', variant: 'pill', pageRetention: 'swapped' });
+    this.contentHost = this.tabBook.getContentElement();
     this.gamesTab = new SettingsGamesTab(store);
     this.viewTab = new SettingsViewTab(store);
     this.keyboardTab = new SettingsKeyboardTab(store);
@@ -111,12 +109,21 @@ export class DialogSettings extends PanelFloating {
    * @param tabId Tab to show.
    */
   showTab(tabId: SettingsTabId): void {
+    const isAlreadyActive = this.activeTabId === tabId && this.tabBook.getActiveTabId() === tabId;
+    this.tabBook.tabShow(tabId);
+    if (isAlreadyActive) {
+      this.tabActivated(tabId);
+    }
+  }
+
+  /**
+   * Records the newly visible tab and starts the update check when the Update
+   * tab is shown.
+   *
+   * @param tabId Visible tab.
+   */
+  private tabActivated(tabId: SettingsTabId): void {
     this.activeTabId = tabId;
-    this.tabButtons.forEach((button, id) => {
-      button.setAttribute('aria-selected', id === tabId ? 'true' : 'false');
-    });
-    this.contentHost.replaceChildren(this.resolveTabElement(tabId));
-    this.contentHost.setAttribute('aria-label', SETTINGS_TAB_LABELS[tabId]);
     if (tabId === 'update') {
       this.updaterTab.activate();
     }
@@ -165,9 +172,8 @@ export class DialogSettings extends PanelFloating {
     styleSettingsPanel(this.root);
     this.root.style.display = 'none';
     this.root.appendChild(this.buildHeader());
-    this.root.appendChild(this.buildTabBar());
-    styleSettingsContent(this.contentHost);
-    this.root.appendChild(this.contentHost);
+    this.buildTabBook();
+    this.root.appendChild(this.tabBook.getElement());
   }
 
   /**
@@ -192,20 +198,19 @@ export class DialogSettings extends PanelFloating {
     return header;
   }
 
-  /**
-   * Builds the tab bar buttons with a Reset control on the right.
-   *
-   * @returns Tab bar element.
-   */
-  private buildTabBar(): HTMLElement {
-    styleSettingsTabBar(this.tabBar);
+  /** Adds one tab per settings section, the Reset control and the page styles. */
+  private buildTabBook(): void {
+    styleSettingsTabBook(this.tabBook.getElement());
+    styleSettingsContent(this.contentHost);
     SETTINGS_TAB_ORDER.forEach((tabId) => {
-      const button = this.createTabButton(tabId);
-      this.tabButtons.set(tabId, button);
-      this.tabBar.appendChild(button);
+      this.tabBook.tabAdd({
+        id: tabId,
+        label: SETTINGS_TAB_LABELS[tabId],
+        pageResolve: () => this.resolveTabElement(tabId),
+      });
     });
-    this.tabBar.appendChild(this.createResetButton());
-    return this.tabBar;
+    this.tabBook.getStripElement().appendChild(this.createResetButton());
+    this.tabBook.tabChangeListenerAdd((tabId) => this.tabActivated(tabId as SettingsTabId));
   }
 
   /**
@@ -260,23 +265,6 @@ export class DialogSettings extends PanelFloating {
       confirmLabel: 'Yes',
       cancelLabel: 'No',
     });
-  }
-
-  /**
-   * Creates one tab button.
-   *
-   * @param tabId Tab identifier.
-   * @returns Tab button element.
-   */
-  private createTabButton(tabId: SettingsTabId): HTMLButtonElement {
-    const button = document.createElement('button');
-    styleSettingsTabButton(button);
-    button.textContent = SETTINGS_TAB_LABELS[tabId];
-    button.dataset['settingsTab'] = tabId;
-    button.setAttribute('role', 'tab');
-    button.setAttribute('aria-selected', 'false');
-    button.addEventListener('click', () => this.showTab(tabId));
-    return button;
   }
 
   /**

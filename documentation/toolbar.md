@@ -1,7 +1,16 @@
 # Toolbar
 
-The toolbar provides menus and quick-access controls above the editor
-workspace.
+The toolbar is the row of icon buttons and quick controls between the menu bar
+and the view bar. It holds undo and redo, the tool buttons, snapping and the
+**Grid** size dropdown, the gizmo axes, the texture locks, and the MCP server
+button. The menus are in the separate menu bar above it. See
+[Understanding the interface](understanding_the_interface.md).
+
+## Hide the toolbar
+
+Choose **View > Show Toolbar** or press `Ctrl+Alt+T` to hide or show the
+toolbar. The editor remembers the choice between sessions. Every toolbar action
+is also available in the menus.
 
 ## Resize the toolbar
 
@@ -15,7 +24,7 @@ Controls wrap onto additional rows when the window is too narrow.
 
 ## Show labels in the expanded toolbar
 
-1. Open **Settings**.
+1. Open **Settings** with **File > Preferences…**.
 2. Select the **View** tab.
 3. Find **User Interface**.
 4. Enable **Expanded toolbar button labels**.

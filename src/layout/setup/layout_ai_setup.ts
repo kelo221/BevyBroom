@@ -28,6 +28,12 @@ export interface LayoutAiSetupHost {
   previewLinkServiceEnsure?: EditorApiHost['previewLinkServiceEnsure'];
   /** Replaces the open scene with scene file text as Load does. */
   sceneDocumentLoad?: EditorApiHost['sceneDocumentLoad'];
+  /** Validates the map at once and returns the issues the Issues tab shows. */
+  issuesValidateNow?: EditorApiHost['issuesValidateNow'];
+  /** Returns the control of the main window docks and bars. */
+  mainWindowControlRead?: EditorApiHost['mainWindowControlRead'];
+  /** Returns the interactive views viewport_drag and viewport_click drive. */
+  viewportsInteractiveRead?: EditorApiHost['viewportsInteractiveRead'];
 }
 
 /** Result of AI layout wiring. */
@@ -61,6 +67,9 @@ export function setupLayoutAi(host: LayoutAiSetupHost): LayoutAiSetupResult {
     ...(host.getRenderer ? { getRenderer: host.getRenderer } : {}),
     ...(host.previewLinkServiceEnsure ? { previewLinkServiceEnsure: host.previewLinkServiceEnsure } : {}),
     ...(host.sceneDocumentLoad ? { sceneDocumentLoad: host.sceneDocumentLoad } : {}),
+    ...(host.issuesValidateNow ? { issuesValidateNow: host.issuesValidateNow } : {}),
+    ...(host.mainWindowControlRead ? { mainWindowControlRead: host.mainWindowControlRead } : {}),
+    ...(host.viewportsInteractiveRead ? { viewportsInteractiveRead: host.viewportsInteractiveRead } : {}),
   });
   sharedMcpBridgeHandler.bindEditorApi(editorApi);
   return { editorApi };

@@ -57,13 +57,13 @@ Switch to face mode to select individual faces on any mesh, then extrude them in
 - Coplanar face region grouping for multi-face extrusion
 - Extruded geometry is created as a new mesh (source stays intact)
 
-### Texturing & UV Editor
+### Texturing & Face Inspector
 
-Full texture workflow with per-face control:
+Full texture workflow with per-face control in the inspector's Face tab:
 
-- **Texture browser** — load textures from a local folder using the File System Access API
+- **Material browser** — load textures from a local folder using the File System Access API, filter them by name, and click one to apply it
 - **Per-face texture assignment** — assign different textures to each face of a solid
-- **UV editor** — floating panel with scale (U/V), offset (U/V), and rotation controls
+- **Face attributes** — offset (X/Y), scale (X/Y), and rotation fields with quick nudge buttons, docked above the material browser
 - **Texture alignment** — one-click align to floor, wall, or ceiling orientation
 - **Planar UV projection** — automatic world-aligned UV baking per face
 - **Cylinder side unwrap** — special-case UV unwrapping for cylinder geometry
@@ -106,12 +106,14 @@ Organize your scene with a full object hierarchy:
 
 ### Multi-Viewport Layout
 
-Four-viewport workspace like Blender and Maya:
+Four-viewport Quad View workspace arranged like TrenchBroom:
 
-- **Perspective** — 3D fly camera with orbit and pan controls
-- **Top** — orthographic XZ view
-- **Front** — orthographic XY view
-- **Side** — orthographic YZ view
+- **Perspective** (top left) — 3D fly camera with orbit and pan controls
+- **Top** (top right) — orthographic XZ view
+- **Side** (bottom left) — orthographic YZ view
+- **Front** (bottom right) — orthographic XY view
+- **Cycle and maximize** — `Space` cycles the view under the pointer, `Ctrl+Space` maximizes or restores it
+- **Workspace tabs** — switch between saved arrangements such as Single Perspective, Dual, and Triple
 - **Viewport sync** — 2D viewport selection syncs with the 3D viewport
 - **Camera widget** — navigation indicator in the 3D viewport
 - **Infinite grid** — grid that scales with camera distance
@@ -130,7 +132,8 @@ Toggle viewport rendering modes for any viewport:
 Robust selection system with full multi-select support:
 
 - Click to select, Shift+click to add, Ctrl+click to toggle
-- Drag selection in 2D and 3D viewports
+- TrenchBroom-style dragging: drag a selected object to move it (Alt moves vertically in 3D, Ctrl duplicates first), or drag while nothing is selected to draw a box brush
+- Copy, cut and paste through the system clipboard (Ctrl+C / Ctrl+X / Ctrl+V, Ctrl+Alt+V at the original position)
 - Tab to switch between object and face selection modes
 - Mixed-value display in inspector for multi-select
 
@@ -200,6 +203,10 @@ A       Cycle alignment axis
 F       Fit to selection
 Shift+F Fit all viewports
 Delete  Delete selected
+Ctrl+C  Copy selected
+Ctrl+X  Cut selected
+Ctrl+V  Paste under the mouse pointer
+Ctrl+Alt+V  Paste at the original position
 Ctrl+D  Duplicate selected
 Ctrl+Z  Undo
 Ctrl+Y  Redo
@@ -215,15 +222,32 @@ Tab     Toggle object / face selection
 .       Snap interval forward
 ,       Snap interval backward
 Escape  Deselect / exit tool
+Ctrl+A  Select all
+Ctrl+Shift+A  Select none
+Space   Cycle the view under the pointer
+Ctrl+Space    Maximize / restore the view under the pointer
+F5      Play
+Ctrl+1-3      Show the Map / Entity / Face inspector tab
+Ctrl+4  Toggle the info panel
+Ctrl+5  Toggle the inspector
+Ctrl+Alt+T    Toggle the toolbar
 ```
+
+All shortcuts can be rebound in Settings > Keyboard.
 
 ### UI
 
 - **Blender-inspired dark theme** — dark backgrounds with orange selection highlights
-- **Toolbar** — menu bar with file operations, primitive creation, CSG operations, and shading modes
-- **Floating panels** — draggable, resizable Tools palette, UV editor, and Texture browser
+- **Menu bar** — File, Edit, Add, Tools, View, Run, and Help menus
+- **Toolbar** — undo and redo, tool buttons, snap and grid size, gizmo axes, and texture locks
+- **View bar** — the active tool's options and the workspace tabs above the viewports
+- **Inspector** — docked on the right with Map (layers and outliner), Entity (properties and entity browser), and Face (face attributes and material browser) tabs
 - **Outliner** — collapsible tree view of the scene hierarchy
 - **Properties panel** — transform, material, and brush property editors
+- **Entity browser** — thumbnails of every placeable kind; drag one onto a viewport to place it
+- **Info panel** — docked below the viewports with Console (messages and errors) and Issues (map validation) tabs
+- **Remembered layout** — dock visibility, sizes, and tabs are restored between sessions
+- **Floating panels** — draggable Solid Model, Game Preview, and other tool panels
 - **Status bar** — real-time feedback on tool state, snap settings, and shading mode
 - **Context menus** — right-click actions on objects in the outliner and viewports
 

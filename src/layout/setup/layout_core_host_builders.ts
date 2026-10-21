@@ -31,7 +31,8 @@ import type { ViewportKind } from '@/viewports/core/viewport_kind.js';
 
 /** Field source used to assemble layout host bags without circular imports. */
 export interface LayoutCoreHostSource {
-  toolbarContainer: HTMLElement;
+  /** View bar slot that holds the workspace switcher tabs. */
+  workspaceSwitcherSlot: HTMLElement;
   viewportArea: HTMLElement;
   viewportPaneGrid: HTMLElement;
   workspaceStore: WorkspaceStore;
@@ -119,7 +120,7 @@ export interface LayoutCoreHostSource {
  */
 export function buildWorkspaceAreaWiringHost(source: LayoutCoreHostSource): WorkspaceAreaWiringHost {
   return {
-    getToolbarContainer: () => source.toolbarContainer,
+    getWorkspaceSwitcherSlot: () => source.workspaceSwitcherSlot,
     getViewportArea: () => source.viewportArea,
     getViewportPaneGrid: () => source.viewportPaneGrid,
     getWorkspaceStore: () => source.workspaceStore,

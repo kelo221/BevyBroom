@@ -54,7 +54,7 @@ describe('ControllerViewportToolChrome', () => {
       modalToolSessionRegistry: modalRegistry,
       showStatusMessage: showStatus,
       onTransformMode: () => undefined,
-      onOpenUvEditor: () => undefined,
+      faceInspectorReveal: () => undefined,
       onExtrudeFaces: () => undefined,
     });
     controller.attachPane(pane);
@@ -83,7 +83,7 @@ describe('ControllerViewportToolChrome', () => {
       modalToolSessionRegistry: modalRegistry,
       showStatusMessage: showStatus,
       onTransformMode: () => undefined,
-      onOpenUvEditor: () => undefined,
+      faceInspectorReveal: () => undefined,
       onExtrudeFaces: () => undefined,
       switchToGridTool: switchToGrid,
       onGridReset: () => undefined,
@@ -120,7 +120,7 @@ describe('ControllerViewportToolChrome', () => {
       modalToolSessionRegistry: modalRegistry,
       showStatusMessage: showStatus,
       onTransformMode: () => undefined,
-      onOpenUvEditor: () => undefined,
+      faceInspectorReveal: () => undefined,
       onExtrudeFaces: () => undefined,
       isEditorToolBusy: () => true,
     });
@@ -153,7 +153,7 @@ describe('ControllerViewportToolChrome', () => {
       modalToolSessionRegistry: modalRegistry,
       showStatusMessage: showStatus,
       onTransformMode: () => undefined,
-      onOpenUvEditor: () => undefined,
+      faceInspectorReveal: () => undefined,
       onExtrudeFaces: () => undefined,
       switchToFaceSelect,
     });
@@ -257,7 +257,7 @@ describe('ControllerViewportToolChrome', () => {
       modalToolSessionRegistry: modalRegistry,
       showStatusMessage: showStatus,
       onTransformMode: () => undefined,
-      onOpenUvEditor: () => undefined,
+      faceInspectorReveal: () => undefined,
       onExtrudeFaces: () => undefined,
       onEnterEditMode: () => false,
     });

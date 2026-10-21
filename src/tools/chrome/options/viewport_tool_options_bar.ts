@@ -23,7 +23,7 @@ import {
   TOOL_INSTRUCTION_GRID_ALIGN_Z,
   TOOL_INSTRUCTION_GRID_ORIGIN_VERTEX,
   TOOL_INSTRUCTION_GRID_RESET,
-  TOOL_INSTRUCTION_UV_EDITOR,
+  TOOL_INSTRUCTION_FACE_INSPECTOR,
   toolInstructionForTransformMode,
 } from '@/tools/chrome/instruction/tool_instruction_catalog.js';
 import type { EditorOrientationAxisId } from '@/navigation/orientation/editor_orientation_axis.js';
@@ -55,7 +55,7 @@ export interface ViewportToolOptionsBarHandlers {
   onFlipClipPlane: () => void;
   onCommitClip: () => void;
   onCommitSplit: () => void;
-  onOpenUvEditor: () => void;
+  faceInspectorReveal: () => void;
   onExtrudeFaces: () => void;
   onGridReset: () => void;
   onGridAlignToFace: () => void;
@@ -92,7 +92,7 @@ export class ViewportToolOptionsBar {
   private flipButton: HTMLButtonElement;
   private clipButton: HTMLButtonElement;
   private splitButton: HTMLButtonElement;
-  private uvButton: HTMLButtonElement;
+  private faceInspectorButton: HTMLButtonElement;
   private extrudeButton: HTMLButtonElement;
   private gridResetButton: HTMLButtonElement;
   private gridAlignToFaceButton: HTMLButtonElement;
@@ -151,8 +151,8 @@ export class ViewportToolOptionsBar {
     this.splitButton = this.createTextAction('Split', TOOL_INSTRUCTION_CLIP_SPLIT, () => {
       this.handlers.onCommitSplit();
     });
-    this.uvButton = this.createTextAction('UV Editor', TOOL_INSTRUCTION_UV_EDITOR, () => {
-      this.handlers.onOpenUvEditor();
+    this.faceInspectorButton = this.createTextAction('Face Inspector', TOOL_INSTRUCTION_FACE_INSPECTOR, () => {
+      this.handlers.faceInspectorReveal();
     });
     this.extrudeButton = this.createTextAction('Extrude', TOOL_INSTRUCTION_EXTRUDE, () => {
       this.handlers.onExtrudeFaces();
@@ -389,7 +389,7 @@ export class ViewportToolOptionsBar {
       return;
     }
     if (toolId === EditorToolId.FACE) {
-      this.actionsRow.appendChild(this.uvButton);
+      this.actionsRow.appendChild(this.faceInspectorButton);
       this.actionsRow.appendChild(this.extrudeButton);
       return;
     }

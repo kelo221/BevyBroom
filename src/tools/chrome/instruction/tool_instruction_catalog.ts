@@ -14,7 +14,7 @@ export function toolInstructionForEditorTool(toolId: EditorToolId): ToolInstruct
       title: 'Face Select',
       shortcut: 'Shift+Tab',
       description:
-        'Select individual faces on content meshes and solid results. Use Shift or Ctrl to extend the selection. Open the UV Editor or Extrude from the tool options bar.',
+        'Select individual faces on content meshes and solid results. Use Shift or Ctrl to extend the selection. Open the Face Inspector or Extrude from the tool options bar.',
     };
   }
   if (toolId === EditorToolId.CLIP_PLANE) {
@@ -74,10 +74,10 @@ export function toolInstructionForTransformMode(mode: TransformMode): ToolInstru
   };
 }
 
-/** Instruction for opening the UV editor from face mode. */
-export const TOOL_INSTRUCTION_UV_EDITOR: ToolInstruction = {
-  title: 'UV Editor',
-  description: 'Open the UV panel to scale, offset, and rotate textures on selected faces.',
+/** Instruction for showing the Face Inspector from face mode. */
+export const TOOL_INSTRUCTION_FACE_INSPECTOR: ToolInstruction = {
+  title: 'Face Inspector',
+  description: 'Show the Face tab to set the material, offset, scale, and rotation of the selected faces.',
 };
 
 /** Instruction for face extrude. */

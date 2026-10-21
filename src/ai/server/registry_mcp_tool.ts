@@ -1,5 +1,10 @@
 import { MCP_ENTITY_TOOL_DEFINITIONS } from './registry_mcp_tool_entities.js';
 import { MCP_GAME_ENTITY_TOOL_DEFINITIONS } from './registry_mcp_tool_game_entities.js';
+import { MCP_INFO_PANEL_TOOL_DEFINITIONS } from './registry_mcp_tool_info_panel.js';
+import { MCP_LAYER_TOOL_DEFINITIONS } from './registry_mcp_tool_layers.js';
+import { MCP_MAIN_WINDOW_TOOL_DEFINITIONS } from './registry_mcp_tool_main_window.js';
+import { MCP_VIEWPORT_INPUT_TOOL_DEFINITIONS } from './registry_mcp_tool_viewport_input.js';
+import { MCP_CLIPBOARD_TOOL_DEFINITIONS } from './registry_mcp_tool_clipboard.js';
 import { emptySchema, tool, vec3Schema, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
 export type { McpToolDefinition } from './registry_mcp_tool_helpers.js';
@@ -770,6 +775,11 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ),
   ...MCP_ENTITY_TOOL_DEFINITIONS,
   ...MCP_GAME_ENTITY_TOOL_DEFINITIONS,
+  ...MCP_INFO_PANEL_TOOL_DEFINITIONS,
+  ...MCP_LAYER_TOOL_DEFINITIONS,
+  ...MCP_MAIN_WINDOW_TOOL_DEFINITIONS,
+  ...MCP_CLIPBOARD_TOOL_DEFINITIONS,
+  ...MCP_VIEWPORT_INPUT_TOOL_DEFINITIONS,
 ];
 
 /**

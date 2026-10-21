@@ -7,6 +7,7 @@ import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { SOLID_BRUSH_EDGE_USERDATA_KEY } from '@/solid/model/solid_brush_edge_materials.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
 import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js';
+import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
 
 /**
  * Pure utility for deep-cloning meshes. Handles geometry, material, and content
@@ -33,7 +34,8 @@ export class ObjectDuplicator {
   }
 
   /**
-   * Deep clones a single mesh with geometry, material, and decorative edges.
+   * Deep clones a single mesh with geometry, material, decorative edges and the
+   * data of every object data contributor.
    *
    * @param mesh The source mesh to clone.
    * @returns A new independent mesh with cloned resources.
@@ -50,6 +52,7 @@ export class ObjectDuplicator {
     ModifierVolumeBevel.copyOntoClone(mesh, clone);
     this.cloneFaceTextureMaps(mesh, clone);
     this.cloneEdgeHelpers(mesh, clone);
+    ObjectDataContributorRegistry.duplicateDataCopy(mesh, clone);
     return clone;
   }
 

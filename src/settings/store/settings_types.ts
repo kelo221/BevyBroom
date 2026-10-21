@@ -177,7 +177,19 @@ export type KeyboardShortcutAction =
   | 'clip_split'
   | 'component_vertex'
   | 'component_edge'
-  | 'component_face';
+  | 'component_face'
+  | 'view_cycle'
+  | 'view_maximize'
+  | 'play_start'
+  | 'inspector_map'
+  | 'inspector_entity'
+  | 'inspector_face'
+  | 'info_panel_toggle'
+  | 'inspector_toggle'
+  | 'toolbar_toggle'
+  | 'select_all'
+  | 'select_none'
+  | 'paste_original';
 
 /** Keyboard code and modifier state for one configured shortcut. */
 export interface KeyboardShortcut {

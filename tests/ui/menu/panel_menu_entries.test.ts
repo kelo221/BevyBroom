@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PanelMenu } from '@/ui/menu/panel_menu.js';
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js';
+import { ICON_NAMES } from '@/ui/icons/icon_name.js';
+import { IconRegistry } from '@/ui/icons/icon_registry.js';
 
 /**
  * Returns the labels of the item buttons rendered directly inside a panel
@@ -69,6 +71,48 @@ describe('PanelMenu entries', () => {
     liveLabels.push('Beta');
     panel.open();
     expect(rowLabels(firstFlyout(panel.getElement()))).toEqual(['Alpha', 'Beta']);
+  });
+
+  it('draws an entry icon in front of its label and leaves icon-less rows plain', () => {
+    const iconName = ICON_NAMES[0];
+    const panel = new PanelMenu(
+      [
+        { label: 'With Icon', icon: iconName, iconColor: '#00ff00', onClick: () => {} },
+        { kind: 'submenu', label: 'Sub Icon', icon: iconName, children: [] },
+        { label: 'Plain', onClick: () => {} },
+      ],
+      () => {},
+    );
+    host.appendChild(panel.getElement());
+    const labels = [...panel.getElement().querySelectorAll('.editor-toolbar-dropdown-label')];
+    expect(labels.map((label) => label.textContent)).toEqual(['With Icon', 'Sub Icon', 'Plain']);
+    expect(labels[0]?.querySelector('path')?.getAttribute('d')).toBe(IconRegistry.pathOf(iconName));
+    expect(labels[0]?.querySelector('path')?.getAttribute('fill')).toBe('#00ff00');
+    expect(labels[1]?.querySelector('svg')).not.toBeNull();
+    expect(labels[2]?.querySelector('svg')).toBeNull();
+  });
+
+  it('shows a check mark only on checkable rows whose live state is checked', () => {
+    let isGridVisible = true;
+    const panel = new PanelMenu(
+      [
+        { label: 'Show Grid', onClick: () => {}, isChecked: () => isGridVisible },
+        { label: 'Plain', onClick: () => {} },
+      ],
+      () => {},
+    );
+    host.appendChild(panel.getElement());
+    panel.open();
+    const [gridRow, plainRow] = [...panel.getElement().querySelectorAll<HTMLButtonElement>(':scope > button')];
+    expect(gridRow?.getAttribute('role')).toBe('menuitemcheckbox');
+    expect(gridRow?.getAttribute('aria-checked')).toBe('true');
+    expect(gridRow?.querySelector('.editor-toolbar-dropdown-check')?.textContent).toBe('✓');
+    expect(plainRow?.querySelector('.editor-toolbar-dropdown-check')).toBeNull();
+    panel.close();
+    isGridVisible = false;
+    panel.open();
+    expect(gridRow?.getAttribute('aria-checked')).toBe('false');
+    expect(gridRow?.querySelector('.editor-toolbar-dropdown-check')?.textContent).toBe('');
   });
 
   it('runs the action of a row built from a live source', () => {

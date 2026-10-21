@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { objectInLockedLayerIs } from '@/layer/model/layer_membership.js';
 
 /**
  * UserData key marking an object as locked in the outliner. Locked objects
@@ -27,10 +28,11 @@ export function setObjectLocked(object: THREE.Object3D, locked: boolean): void {
 }
 
 /**
- * Returns whether the object or any ancestor is locked.
+ * Returns whether the object or any ancestor is locked, or the object belongs
+ * to a locked layer.
  *
  * @param object Scene object to test.
- * @returns True when the object is protected by lock inheritance.
+ * @returns True when the object is protected by lock inheritance or its layer.
  */
 export function isObjectOrAncestorLocked(object: THREE.Object3D): boolean {
   let current: THREE.Object3D | null = object;
@@ -38,7 +40,7 @@ export function isObjectOrAncestorLocked(object: THREE.Object3D): boolean {
     if (isObjectLocked(current)) return true;
     current = current.parent;
   }
-  return false;
+  return objectInLockedLayerIs(object);
 }
 
 /**

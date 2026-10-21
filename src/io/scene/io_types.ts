@@ -4,6 +4,7 @@
  */
 
 import type { EntityKind } from '@/entity/model/entity_owner_keys.js';
+import type { LayerDefinition } from '@/layer/model/layer_definition.js';
 import type { LightSettings } from '@/light/model/light_settings.js';
 import type { PortalSettings } from '@/portal/model/portal_settings.js';
 import type { RoomSettings } from '@/portal/model/room_settings.js';
@@ -47,6 +48,10 @@ export interface SceneJSON {
   objects: ObjectEntry[];
   /** Snapshot of the game component classes the objects use (version 6+). */
   gameClasses?: PreviewPlaceableClass[];
+  /** Layers in display order, the default layer first (version 7+). */
+  layers?: LayerDefinition[];
+  /** Identifier of the layer new objects join (version 7+). */
+  currentLayerId?: string;
 }
 
 /** A single object entry in the serialized scene. */
@@ -67,6 +72,8 @@ export interface ObjectEntry {
   visible: boolean;
   /** UUID of the parent group, or null for top-level objects. */
   parentId: string | null;
+  /** Layer identifier of a top-level object (version 7+). */
+  layer?: string;
   /** Geometry type for mesh objects. */
   geometryType?: GeometryType;
   /** Constructor parameters for primitive geometry types. */

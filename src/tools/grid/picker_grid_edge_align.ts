@@ -280,7 +280,6 @@ function hasGridEdgeAlignExemptUserData(mesh: THREE.Mesh): boolean {
   if (data['isWireframeOverlay'] === true) return true;
   if (data['isFaceSelectionHighlight'] === true) return true;
   if (data['isClipPlanePreview'] === true) return true;
-  if (data['isBoundsFacePick'] === true) return true;
   if (data['isGizmoOccludedGhost'] === true) return true;
   if (data['isCadRuler'] === true) return true;
   if (data['handleId'] !== undefined) return true;

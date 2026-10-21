@@ -73,7 +73,9 @@ export class TranslateTool extends BoxSelectTool {
       if (button === 0) {
         this.isSingleUseDone = true;
       }
+      return;
     }
+    super.onMouseDown(button);
   }
 
   /**
@@ -114,13 +116,14 @@ export class TranslateTool extends BoxSelectTool {
   /**
    * Gets whether the tool is busy and has to maintain the input focus.
    *
-   * @returns True while single-use is not yet done.
+   * @returns True while single-use is not yet done, or while a permanent-mode
+   *   object drag runs.
    */
   override isBusy(): boolean {
     if (this.isSingleUse) {
       return !this.isSingleUseDone;
     }
-    return false;
+    return super.isBusy();
   }
 
   /**

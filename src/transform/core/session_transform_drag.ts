@@ -43,20 +43,9 @@ export class TransformDragSession {
   initialDistanceAlongAxis: number;
   rotationPlane: THREE.Plane;
   activeBoundsFace: BoundsFace | null;
-  boundsMovePlane: THREE.Plane;
   startBounds: DataOrientedBounds | null;
   boundsDeltaAlongNormal: number;
-  isBoundsFaceMove: boolean;
   isBoundsResize: boolean;
-  /** Screen X at bounds face pointer-down (for click vs drag). */
-  pointerDownClientX: number;
-  /** Screen Y at bounds face pointer-down (for click vs drag). */
-  pointerDownClientY: number;
-  /**
-   * True once the pointer moved past the click threshold during bounds face
-   * move.
-   */
-  boundsPointerMoved: boolean;
   /** Objects included in the current drag (for keyboard re-apply). */
   dragObjects: THREE.Object3D[];
   /** Last unconstrained pointer translation delta before modal axis lock. */
@@ -109,14 +98,9 @@ export class TransformDragSession {
     this.initialDistanceAlongAxis = 1;
     this.rotationPlane = new THREE.Plane();
     this.activeBoundsFace = null;
-    this.boundsMovePlane = new THREE.Plane();
     this.startBounds = null;
     this.boundsDeltaAlongNormal = 0;
-    this.isBoundsFaceMove = false;
     this.isBoundsResize = false;
-    this.pointerDownClientX = 0;
-    this.pointerDownClientY = 0;
-    this.boundsPointerMoved = false;
     this.dragObjects = [];
     this.lastPointerWorldDelta = new THREE.Vector3();
     this.lastPointerRotationAngle = 0;
@@ -191,7 +175,6 @@ export class TransformDragSession {
     this.activeAxis = null;
     this.activeBoundsFace = null;
     this.startBounds = null;
-    this.isBoundsFaceMove = false;
     this.isBoundsResize = false;
     this.boundsDeltaAlongNormal = 0;
     this.dragCamera = null;
@@ -200,9 +183,6 @@ export class TransformDragSession {
     this.initialRotationDirection = null;
     this.initialScreenPosition = null;
     this.useScreenSpaceRotation = false;
-    this.pointerDownClientX = 0;
-    this.pointerDownClientY = 0;
-    this.boundsPointerMoved = false;
     this.dragObjects = [];
     this.lastPointerWorldDelta.set(0, 0, 0);
     this.lastPointerRotationAngle = 0;

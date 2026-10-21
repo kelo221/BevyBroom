@@ -743,7 +743,16 @@ export interface UvEditorTrsFieldState {
   offsetV: number | null;
   rotationDeg: number | null;
   align: FaceTextureAlign | null;
+  /** Shared texture id of every region, or null when empty or mixed. */
+  textureId: string | null;
   targetCount: number;
+}
+
+/** One region's mapping values read for the shared field state. */
+interface TrsFieldStateSample {
+  trs: FaceTextureMappingTrs;
+  align: FaceTextureAlign;
+  textureId: string;
 }
 
 /**
@@ -753,26 +762,7 @@ export interface UvEditorTrsFieldState {
  * @returns Per-field shared or mixed state.
  */
 export function getCommonTrsFieldState(targets: TextureApplyTarget[]): UvEditorTrsFieldState {
-  if (targets.length === 0) {
-    return {
-      scaleU: null,
-      scaleV: null,
-      offsetU: null,
-      offsetV: null,
-      rotationDeg: null,
-      align: null,
-      targetCount: 0,
-    };
-  }
-  const samples = targets.map((target) => {
-    const mapping = resolveTargetMapping(target);
-    const normal = computeRegionWorldNormal(target.mesh, target.triangleIndices);
-    return {
-      trs: readMappingTrs(mapping, normal),
-      align: mapping.align ?? 'auto',
-    };
-  });
-  const first = samples[0]!;
+  const samples = targets.map((target) => trsFieldStateSampleRead(target));
   return {
     scaleU: sharedNumber(samples.map((sample) => sample.trs.scaleU)),
     scaleV: sharedNumber(samples.map((sample) => sample.trs.scaleV)),
@@ -782,9 +772,53 @@ export function getCommonTrsFieldState(targets: TextureApplyTarget[]): UvEditorT
       samples.map((sample) => sample.trs.rotationDeg),
       1e-3,
     ),
-    align: samples.every((sample) => sample.align === first.align) ? first.align : null,
+    align: sharedValue(samples.map((sample) => sample.align)),
+    textureId: sharedValue(samples.map((sample) => sample.textureId)),
     targetCount: targets.length,
   };
+}
+
+/**
+ * Reads the TRS, align and texture id of one target region.
+ *
+ * @param target Selection target.
+ * @returns Values of the region's effective mapping.
+ */
+function trsFieldStateSampleRead(target: TextureApplyTarget): TrsFieldStateSample {
+  const mapping = resolveTargetMapping(target);
+  const normal = computeRegionWorldNormal(target.mesh, target.triangleIndices);
+  return {
+    trs: readMappingTrs(mapping, normal),
+    align: mapping.align ?? 'auto',
+    textureId: targetTextureIdRead(target, mapping),
+  };
+}
+
+/**
+ * Reads the texture id shown for a target: free content meshes carry one
+ * mesh-level texture, solid meshes carry it on the region mapping.
+ *
+ * @param target Selection target.
+ * @param mapping Effective mapping of the target region.
+ * @returns Texture identity, the checker when none is assigned.
+ */
+function targetTextureIdRead(target: TextureApplyTarget, mapping: FaceTextureMapping): string {
+  if (isFreeContentTextureMesh(target.mesh)) {
+    return readContentMeshTextureId(target.mesh);
+  }
+  return mapping.textureId || DEFAULT_CHECKER_TEXTURE_ID;
+}
+
+/**
+ * Returns the shared value when every entry is identical, otherwise null.
+ *
+ * @param values Values to compare.
+ * @returns Shared value, or null when empty or mixed.
+ */
+function sharedValue<Value>(values: readonly Value[]): Value | null {
+  if (values.length === 0) return null;
+  const first = values[0] as Value;
+  return values.every((value) => value === first) ? first : null;
 }
 
 /**

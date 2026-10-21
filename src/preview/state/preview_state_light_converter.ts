@@ -1,5 +1,7 @@
 import type { LightSettings } from '@/light/model/light_settings.js';
 import type { PreviewAuthoredLight } from '@/preview/protocol/preview_protocol_types.js';
+import { previewLightColorChannels } from '@/preview/state/preview_state_light_converter_color.js';
+import { previewLightFeaturesFromSettings } from '@/preview/state/preview_state_light_features_converter.js';
 
 /**
  * Converts editor light settings into the game preview light definition.
@@ -19,18 +21,6 @@ export function previewLightFromSettings(settings: LightSettings): PreviewAuthor
     realtime: settings.realtime,
     shadows: settings.shadows,
     enabled: settings.enabled,
+    ...previewLightFeaturesFromSettings(settings),
   };
-}
-
-/**
- * Splits a 0xRRGGBB color into sRGB channels from 0 to 1.
- *
- * @param colorHex Color number.
- * @returns Red, green and blue channels.
- */
-export function previewLightColorChannels(colorHex: number): [number, number, number] {
-  const red = (colorHex >> 16) & 0xff;
-  const green = (colorHex >> 8) & 0xff;
-  const blue = colorHex & 0xff;
-  return [red / 255, green / 255, blue / 255];
 }

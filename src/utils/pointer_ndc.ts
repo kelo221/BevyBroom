@@ -4,14 +4,15 @@ import * as THREE from 'three';
  * Converts a pointer event position into normalized device coordinates relative
  * to a DOM element (typically a WebGL canvas).
  *
- * @param event The mouse or pointer event providing client coordinates.
+ * @param event The mouse or pointer event, or any client point, providing
+ *   client coordinates.
  * @param element The element whose bounds define the NDC origin and scale.
  * @param target Optional Vector2 to write into; a new one is created when
  *   omitted.
  * @returns NDC coordinates in the range approximately [-1, 1] for both axes.
  */
 export function pointerEventToNdc(
-  event: MouseEvent,
+  event: Pick<MouseEvent, 'clientX' | 'clientY'>,
   element: HTMLElement,
   target: THREE.Vector2 = new THREE.Vector2(),
 ): THREE.Vector2 {

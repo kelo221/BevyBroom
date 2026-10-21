@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import type { EditorApiHost } from './editor_api_host.js';
 import type { AlignBrushArgs, PreviewTransformArgs } from './editor_api_types.js';
-import { boxToDto, computeBrushWorldBounds, vec3ToDto } from './editor_api_math.js';
+import { boxToDto, vec3ToDto } from './editor_api_math.js';
+import { computeBrushWorldBounds } from '@/solid/model/solid_brush_world_bounds.js';
 import { findBrush } from './editor_api_lookup.js';
 import {
   resolveEulerFromArgs,

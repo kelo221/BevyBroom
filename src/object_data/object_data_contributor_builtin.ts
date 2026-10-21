@@ -1,4 +1,5 @@
 import { ObjectDataContributorGameComponents } from '@/game_entity/contributors/object_data_contributor_game_components.js';
+import { ObjectDataContributorLayers } from '@/layer/persistence/object_data_contributor_layers.js';
 import type { ObjectDataContributor } from '@/object_data/object_data_contributor.js';
 import { ObjectDataContributorPortalCells } from '@/portal/export/object_data_contributor_portal_cells.js';
 import { ObjectDataContributorPreviewEntitySettings } from '@/preview/state/object_data_contributor_preview_entity_settings.js';
@@ -14,5 +15,6 @@ export function objectDataContributorsBuiltinCreate(): readonly ObjectDataContri
     new ObjectDataContributorPreviewEntitySettings(),
     new ObjectDataContributorPortalCells(),
     new ObjectDataContributorGameComponents(),
+    new ObjectDataContributorLayers(),
   ];
 }

@@ -34,7 +34,7 @@ export class PanelPropertiesGameComponentsSection implements PanelPropertiesSect
   constructor(chrome: PanelPropertiesSectionChrome) {
     this.section = chrome.createSectionContainer();
     this.section.style.display = 'none';
-    this.section.appendChild(chrome.createSectionHeader('Game Components'));
+    this.section.appendChild(chrome.createSectionHeader('Game Components', GameEntityOwner.definition.iconName({})));
     this.body = document.createElement('div');
     this.section.appendChild(this.body);
     GameEntityClassRegistry.changeListenerAdd(() => this.renderIfShown());

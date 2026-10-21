@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { EditorComponentMode } from '@/types/editor_component_mode.js';
 import { EditSession } from '@/edit/session/edit_session.js';
+import {
+  computeComponentTransformPivot,
+  expandComponentSelectionToTransformVertices,
+} from '@/edit/transform/component_transform_selection.js';
 import { readBoundMeshEditDocument } from '@/edit/mesh/mesh_edit_binding.js';
 import {
   ComponentEditCageOverlay,
@@ -210,6 +214,22 @@ export class CoordinatorEditMode {
       return 0;
     }
     return this.session.getComponentSelection().getSelectedCount();
+  }
+
+  /**
+   * Returns the world centroid of the vertices the selected components move.
+   *
+   * @returns World pivot, or null when nothing is selected.
+   */
+  componentSelectionPivotCompute(): THREE.Vector3 | null {
+    if (this.getComponentSelectionCount() <= 0) {
+      return null;
+    }
+    const vertices = expandComponentSelectionToTransformVertices(
+      this.session.getComponentSelection().getSelected(),
+      this.session.getDomain(),
+    );
+    return computeComponentTransformPivot(vertices);
   }
 
   /**

@@ -15,10 +15,15 @@ import { filterUnlockedObjects, isObjectOrAncestorLocked } from '@/utils/object_
 import { collectMeshesUnder } from '@/utils/utils_hierarchy.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
-import { findSolidModelRoot, isSolidCsgGroup, markAsSolidCsgGroup } from '@/solid/model/solid_group.js';
+import { findSolidModelRoot, markAsSolidCsgGroup } from '@/solid/model/solid_group.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
-import { entityOwnerIs, entityOwnerOfPart, entityPickMeshIs } from '@/entity/model/entity_owner_keys.js';
+import { entityPickMeshIs } from '@/entity/model/entity_owner_keys.js';
 import { CommandEntityDuplicate } from '@/entity/commands/command_entity_duplicate.js';
+import {
+  selectionEntityPickMeshesResolveToOwners,
+  selectionRootsClassify,
+  selectionRootsCollect,
+} from '@/selection/object/selection_roots_classify.js';
 
 /** Callback invoked to sync scene state to all viewports. */
 export type SyncViewportsCallback = () => void;
@@ -55,6 +60,14 @@ export type ObjectDeleteProtectionGuard = (object: THREE.Object3D) => boolean;
  * ungroup. Coordinates command execution, viewport sync, outliner refresh, and
  * feedback.
  */
+/** Copies made by one duplicate, gathered for selection. */
+interface HandlerObjectActionDuplicateClones {
+  /** Pick meshes of the copies. */
+  meshes: THREE.Mesh[];
+  /** Hierarchy nodes of the copies. */
+  inspectorObjects: THREE.Object3D[];
+}
+
 export class HandlerObjectAction {
   private worldObject: THREE.Group;
   private commandStack: CommandStack;
@@ -138,7 +151,7 @@ export class HandlerObjectAction {
     const selected = this.selectionManager.getSelectedObjects();
     if (selected.size === 0) return;
     if (Array.from(selected).some((mesh) => entityPickMeshIs(mesh))) {
-      this.deleteHierarchyObjects(this.entityPickMeshesResolveToOwners(Array.from(selected)));
+      this.deleteHierarchyObjects(selectionEntityPickMeshesResolveToOwners(Array.from(selected)));
       return;
     }
     const unlocked = filterUnlockedObjects(Array.from(selected));
@@ -156,16 +169,6 @@ export class HandlerObjectAction {
   }
 
   /**
-   * Replaces entity pick meshes with their entity owners, keeping other meshes.
-   *
-   * @param meshes Selected meshes.
-   * @returns Hierarchy objects to delete.
-   */
-  private entityPickMeshesResolveToOwners(meshes: readonly THREE.Mesh[]): THREE.Object3D[] {
-    return meshes.map((mesh) => (entityPickMeshIs(mesh) ? (entityOwnerOfPart(mesh) ?? mesh) : mesh));
-  }
-
-  /**
    * Deletes hierarchy roots (meshes, groups, empty groups) from the scene.
    * Solid brushes under those roots are unregistered from their solid models so
    * CSG and geometry stay in sync with the outliner.
@@ -173,9 +176,7 @@ export class HandlerObjectAction {
    * @param objects Hierarchy nodes to remove.
    */
   deleteHierarchyObjects(objects: THREE.Object3D[]): void {
-    const unlockedRoots = filterUnlockedObjects(
-      collapseToHierarchyRoots(objects).filter((object) => object !== this.worldObject),
-    );
+    const unlockedRoots = filterUnlockedObjects(selectionRootsCollect(objects, this.worldObject));
     if (unlockedRoots.length === 0) {
       this.showMessage('Cannot delete locked object(s)');
       return;
@@ -245,14 +246,11 @@ export class HandlerObjectAction {
    * @param steps Ordered delete sub-commands.
    */
   private commandStackPushDeleteSteps(steps: readonly UndoCommand[]): void {
-    if (steps.length === 0) {
+    const firstStep = steps[0];
+    if (firstStep === undefined) {
       return;
     }
-    if (steps.length === 1) {
-      this.commandStack.push(steps[0]!);
-      return;
-    }
-    this.commandStack.push(new CommandUndoBatch(steps));
+    this.commandStack.push(steps.length === 1 ? firstStep : new CommandUndoBatch(steps));
   }
 
   /**
@@ -352,67 +350,92 @@ export class HandlerObjectAction {
    * @param objects Selected hierarchy nodes.
    */
   duplicateHierarchyObjects(objects: THREE.Object3D[]): void {
-    const roots = filterUnlockedObjects(
-      collapseToHierarchyRoots(objects).filter((object) => object !== this.worldObject),
-    );
+    const roots = filterUnlockedObjects(selectionRootsCollect(objects, this.worldObject));
     if (roots.length === 0) {
       this.showMessage('Cannot duplicate locked object(s)');
       return;
     }
-    const solidNodes: THREE.Object3D[] = [];
-    const regularMeshes: THREE.Mesh[] = [];
-    const entityOwners: THREE.Object3D[] = [];
-    for (const root of roots) {
-      if (entityOwnerIs(root)) {
-        entityOwners.push(root);
-        continue;
-      }
-      if (SolidModel.isSolidModelObject(root)) {
-        solidNodes.push(root);
-        continue;
-      }
-      if (isSolidCsgGroup(root)) {
-        solidNodes.push(root);
-        continue;
-      }
-      if (root instanceof THREE.Mesh && SolidBrushVisual.isBrushObject(root)) {
-        solidNodes.push(root);
-        continue;
-      }
-      if (root instanceof THREE.Mesh) {
-        regularMeshes.push(root);
-      }
-    }
-    const clonedMeshes: THREE.Mesh[] = [];
-    const clonedInspector: THREE.Object3D[] = [];
-    const solidExpandSources: THREE.Object3D[] = [];
-    const solidExpandClones: THREE.Object3D[] = [];
-    if (solidNodes.length > 0) {
-      const solidCommand = new CommandSolidBrushesDuplicate(solidNodes, new THREE.Vector3(0, 0, 0));
-      this.commandStack.push(solidCommand);
-      clonedMeshes.push(...solidCommand.getClonedMeshes());
-      const solidClones = solidCommand.getClonedInspectorRoots();
-      clonedInspector.push(...solidClones);
-      solidExpandSources.push(...solidNodes);
-      solidExpandClones.push(...solidClones);
-      this.mirrorExpandStateForPairs(solidExpandSources, solidExpandClones);
-    }
-    if (regularMeshes.length > 0) {
-      const regularCommand = new CommandObjectDuplicate(regularMeshes, this.worldObject, new THREE.Vector3(0, 0, 0));
-      this.commandStack.push(regularCommand);
-      clonedMeshes.push(...regularCommand.getClonedMeshes());
-      clonedInspector.push(...regularCommand.getClonedMeshes());
-    }
-    this.entityOwnersDuplicate(entityOwners, clonedMeshes, clonedInspector);
+    const { solidNodes, regularMeshes, entityOwners } = selectionRootsClassify(roots);
+    const clones: HandlerObjectActionDuplicateClones = { meshes: [], inspectorObjects: [] };
+    const solidClones = this.solidNodesDuplicate(solidNodes, clones);
+    this.regularMeshesDuplicate(regularMeshes, clones);
+    this.entityOwnersDuplicate(entityOwners, clones.meshes, clones.inspectorObjects);
     this.syncViewportsAndRefresh();
-    if (clonedMeshes.length > 0 || clonedInspector.length > 0) {
-      this.selectionManager.setSelection(clonedMeshes, clonedInspector);
-    }
-    // Selection reveal expands ancestors of focused rows; re-apply so a closed
-    // source group does not leave its clone open after child brushes are selected.
-    this.mirrorExpandStateForPairs(solidExpandSources, solidExpandClones);
-    this.showDuplicateFeedback(Math.max(clonedInspector.length, clonedMeshes.length));
+    this.duplicateClonesSelect(clones);
+    this.solidCloneExpandStateRestoreAfterSelection(solidNodes, solidClones);
+    this.showDuplicateFeedback(Math.max(clones.inspectorObjects.length, clones.meshes.length));
     this.notifyRefresh();
+  }
+
+  /**
+   * Duplicates solid models, CSG groups and brushes in place as one history
+   * entry, records the copies, and copies the hierarchy expand state of each
+   * source onto its copy.
+   *
+   * @param solidNodes Solid hierarchy roots to duplicate.
+   * @param clones Accumulator receiving the copies.
+   * @returns Copies in the order of their sources.
+   */
+  private solidNodesDuplicate(
+    solidNodes: readonly THREE.Object3D[],
+    clones: HandlerObjectActionDuplicateClones,
+  ): THREE.Object3D[] {
+    if (solidNodes.length === 0) {
+      return [];
+    }
+    const solidCommand = new CommandSolidBrushesDuplicate([...solidNodes], new THREE.Vector3(0, 0, 0));
+    this.commandStack.push(solidCommand);
+    clones.meshes.push(...solidCommand.getClonedMeshes());
+    const solidClones = solidCommand.getClonedInspectorRoots();
+    clones.inspectorObjects.push(...solidClones);
+    this.mirrorExpandStateForPairs([...solidNodes], solidClones);
+    return solidClones;
+  }
+
+  /**
+   * Duplicates regular meshes in place as one history entry and records the
+   * copies.
+   *
+   * @param regularMeshes Meshes to duplicate.
+   * @param clones Accumulator receiving the copies.
+   */
+  private regularMeshesDuplicate(
+    regularMeshes: readonly THREE.Mesh[],
+    clones: HandlerObjectActionDuplicateClones,
+  ): void {
+    if (regularMeshes.length === 0) {
+      return;
+    }
+    const regularCommand = new CommandObjectDuplicate([...regularMeshes], this.worldObject, new THREE.Vector3(0, 0, 0));
+    this.commandStack.push(regularCommand);
+    clones.meshes.push(...regularCommand.getClonedMeshes());
+    clones.inspectorObjects.push(...regularCommand.getClonedMeshes());
+  }
+
+  /**
+   * Selects the copies made by a duplicate when there are any.
+   *
+   * @param clones Copies made by the duplicate.
+   */
+  private duplicateClonesSelect(clones: HandlerObjectActionDuplicateClones): void {
+    if (clones.meshes.length > 0 || clones.inspectorObjects.length > 0) {
+      this.selectionManager.setSelection(clones.meshes, clones.inspectorObjects);
+    }
+  }
+
+  /**
+   * Copies the hierarchy expand state of each solid source onto its copy again
+   * after the copies were selected, because selecting them expands the
+   * hierarchy rows above them.
+   *
+   * @param solidNodes Duplicated solid hierarchy roots.
+   * @param solidClones Their copies, in the same order.
+   */
+  private solidCloneExpandStateRestoreAfterSelection(
+    solidNodes: readonly THREE.Object3D[],
+    solidClones: THREE.Object3D[],
+  ): void {
+    this.mirrorExpandStateForPairs([...solidNodes], solidClones);
   }
 
   /**

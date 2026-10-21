@@ -1,6 +1,6 @@
 # Settings and Game Profiles
 
-Open Settings from the gear icon in the top toolbar. Settings are divided into user-facing categories, including View, Mouse, Keyboard, Games, and Update.
+Open Settings with **File > Preferences…** in the menu bar. Settings are divided into user-facing categories, including View, Mouse, Keyboard, Games, and Update.
 
 ## View settings
 
@@ -31,14 +31,16 @@ The Mouse tab controls camera behavior:
 - Fly movement speed.
 - Movement sensitivity.
 - Invert the mouse wheel.
-- Alternate middle-mouse camera behavior.
+- **Alt + middle mouse drag to move camera**, which makes Alt + middle-mouse drag move the Perspective camera forward and back instead of panning, and **Invert Z axis in Alt + middle mouse drag**, which reverses that direction. Both are off by default.
 - Move camera toward the cursor where supported.
+
+A plain middle-mouse drag always pans, in the 2D views and in Perspective.
 
 Change one preference at a time and test it in both Perspective and an orthographic view.
 
 ## Keyboard settings
 
-The Keyboard tab displays editable bindings for tool, selection, file, view, snapping, extrusion, and clipping actions.
+The Keyboard tab displays editable bindings for tool, selection, file, view, snapping, extrusion, and clipping actions. Its **Window and Views** category holds the bindings for cycling and maximizing the view under the pointer, Play, the inspector tabs, the info panel, the inspector, the toolbar, and Select All and Select None. The menus show each command's current binding.
 
 When assigning a shortcut:
 

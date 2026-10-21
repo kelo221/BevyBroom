@@ -9,7 +9,6 @@ import type { HandlerAlignment } from '@/outliner/alignment/handler_alignment.js
 import type { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js';
 import type { PanelOutliner } from '@/outliner/ui/panel_outliner.js';
 import { mergeLayoutShellActionSourceParts, type LayoutShellActionSource } from './layout_shell_action_builders.js';
-import type { ShellFileMenuShortcutAction } from '@/layout/shell/shell_file_menu_shortcut_action.js';
 
 /**
  * Late-bound layout surface used to assemble shell action callbacks after the
@@ -31,8 +30,7 @@ export interface LayoutShellSourceHost {
   refreshAfterWorldMutation(): void;
   showStatusMessage(message: string): void;
   onSelectionChanged(): void;
-  onToggleUvEditor(): void;
-  onToggleTextureBrowser(): void;
+  faceInspectorReveal(): void;
   onToggleSolidModelPanel(): void;
   onToggleSettingsDialog(): void;
   onOpenDocumentation(): void;
@@ -60,7 +58,6 @@ export interface LayoutShellSourceHost {
   onExportGlb(): void;
   onExportObj(): void;
   onExportFbx(): void;
-  getShortcutLabel(action: ShellFileMenuShortcutAction): string;
 }
 
 /**
@@ -164,8 +161,7 @@ function buildShellPanelCallbacks(
   | 'syncPrimitivesToViewports'
   | 'showStatusMessage'
   | 'onSelectionChanged'
-  | 'onToggleUvEditor'
-  | 'onToggleTextureBrowser'
+  | 'faceInspectorReveal'
   | 'onToggleSolidModelPanel'
   | 'onToggleSettingsDialog'
   | 'onOpenDocumentation'
@@ -181,8 +177,7 @@ function buildShellPanelCallbacks(
     syncPrimitivesToViewports: () => host.refreshAfterWorldMutation(),
     showStatusMessage: (message) => host.showStatusMessage(message),
     onSelectionChanged: () => host.onSelectionChanged(),
-    onToggleUvEditor: () => host.onToggleUvEditor(),
-    onToggleTextureBrowser: () => host.onToggleTextureBrowser(),
+    faceInspectorReveal: () => host.faceInspectorReveal(),
     onToggleSolidModelPanel: () => host.onToggleSolidModelPanel(),
     onToggleSettingsDialog: () => host.onToggleSettingsDialog(),
     onOpenDocumentation: () => host.onOpenDocumentation(),
@@ -247,7 +242,6 @@ function buildShellIoCallbacks(
   | 'onExportGlb'
   | 'onExportObj'
   | 'onExportFbx'
-  | 'getShortcutLabel'
 > {
   return {
     onNewScene: () => host.onNewScene(),
@@ -259,6 +253,5 @@ function buildShellIoCallbacks(
     onExportGlb: () => host.onExportGlb(),
     onExportObj: () => host.onExportObj(),
     onExportFbx: () => host.onExportFbx(),
-    getShortcutLabel: (action) => host.getShortcutLabel(action),
   };
 }

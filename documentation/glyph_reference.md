@@ -8,24 +8,36 @@ The orange number above each visual example matches the tables below. In the edi
 
 ## Main toolbar glyphs
 
-| No. | Glyph           | What it does                                                                                                                                                                |
-| --- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Undo            | Reverses the most recent undoable edit. The bottom status bar shows how many undo steps are available.                                                                      |
-| 2   | Redo            | Reapplies the most recently undone edit. It is unavailable when there is no redo history.                                                                                   |
-| 9   | Snap            | Turns grid snapping on or off. When highlighted, compatible transforms use the interval shown in the status bar; the nearby `−` and `+` text controls change that interval. |
-| 10  | UV Editor       | Opens or closes the floating UV Editor. Select one or more face regions before using its surface-mapping controls.                                                          |
-| 11  | Texture Browser | Opens or closes the floating Texture Browser, where you can choose a local texture folder and assign images.                                                                |
-| 12  | Tools           | Opens or closes the Tools palette containing selection, transform, extrusion, and clip-plane controls.                                                                      |
-| 13  | Settings        | Opens the Settings dialog for view, mouse, keyboard, game profile, and update preferences.                                                                                  |
-| 14  | Documentation   | Opens the web-hosted user guide in a separate browser tab.                                                                                                                  |
-| 15  | About           | Opens application information, version, license, and contributor details.                                                                                                   |
+| No. | Glyph | What it does                                                                                                                                              |
+| --- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Undo  | Reverses the most recent undoable edit. The bottom status bar shows how many undo steps are available.                                                    |
+| 2   | Redo  | Reapplies the most recently undone edit. It is unavailable when there is no redo history.                                                                 |
+| 9   | Snap  | Turns grid snapping on or off. When highlighted, compatible transforms use the grid size shown in the **Grid** dropdown next to it and in the status bar. |
+
+The toolbar also holds the tool buttons described under
+[Tool glyphs](#tool-glyphs), the **Grid** size dropdown, the **Global** and
+**Local** gizmo axes, the **Pos Lock** and **Stretch Lock** toggles, and the
+**MCP** server button.
+
+### Glyphs that moved into the menus
+
+The numbered plate still shows glyphs 10 to 15, but these actions no longer
+have toolbar buttons:
+
+| No. | Former glyph    | Where the action lives now                                                                                                      |
+| --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 10  | UV Editor       | The face attributes at the top of the inspector's **Face** tab (`Ctrl+3`). See [Face attribute glyphs](#face-attribute-glyphs). |
+| 11  | Texture Browser | The material browser at the bottom of the inspector's **Face** tab (`Ctrl+3`).                                                  |
+| 12  | Tools           | The tool buttons in the toolbar and the tool options in the view bar above the viewports. See [Tool glyphs](#tool-glyphs).      |
+| 13  | Settings        | **File > Preferences…** opens the Settings dialog for view, mouse, keyboard, game profile, and update preferences.              |
+| 14  | Documentation   | **Help > Documentation** opens the web-hosted user guide in a separate browser tab.                                             |
+| 15  | About           | **Help > About BevyBroom…** opens application information, version, license, and contributor details.                           |
 
 Cube, sphere, cylinder, plane, terrain, and solid-model creation live in the
-categorized **Add** dropdown instead of occupying separate toolbar glyphs.
+categorized **Add** menu instead of occupying separate toolbar glyphs.
 Choose **Geometry**, **Terrain**, or **Brushes**, then select the object type;
-the editor creates and selects it. The
-**Solid Model** toolbar glyph opens the Solid Model panel rather than creating
-one.
+the editor creates and selects it. **Tools > Solid Model…** opens the Solid
+Model panel rather than creating one.
 
 ## Viewport header glyphs
 
@@ -40,9 +52,9 @@ Each viewport has its own shading and framing controls. A change made here appli
 
 Wireframe Overlay is available through the `4` shortcut but does not have a dedicated header glyph. It shows shaded surfaces and their wire edges together.
 
-## Tools palette glyphs
+## Tool glyphs
 
-The first row chooses what kind of editing the pointer performs. The context area beneath it changes to match the selected tool.
+Glyphs 20 to 22 are tool buttons in the toolbar; they choose what kind of editing the pointer performs. The tool options on the left of the view bar above the viewports change to match the selected tool. With Object Select active they show glyphs 23 to 26.
 
 | No. | Glyph         | What it does                                                                                                                                    |
 | --- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -54,11 +66,11 @@ The first row chooses what kind of editing the pointer performs. The context are
 | 25  | Rotate        | Shows rotation handles for turning the selection around an axis; default shortcut `E`.                                                          |
 | 26  | Scale         | Shows scale handles for proportional or per-axis resizing; default shortcut `R`.                                                                |
 
-The Face Select context also contains text actions for **UV Editor** and **Extrude**, while Clip Plane uses text buttons for **Flip**, **Clip**, and **Split**. Their visible words are the glyphs' labels, so they are not repeated in the numbered visual plate.
+The toolbar also has a **Grid** tool button after Clip Plane; it is not part of the numbered plate. The Face Select options contain text actions for **Face Inspector**, which shows the inspector's Face tab, and **Extrude**, while Clip Plane uses text buttons for **Flip**, **Clip**, and **Split**. Their visible words are the glyphs' labels, so they are not repeated in the numbered visual plate.
 
-## UV Editor glyphs
+## Face attribute glyphs
 
-These controls establish a sensible surface orientation before you refine scale, offset, or rotation. They affect the currently selected face regions.
+These buttons sit in the face attributes at the top of the inspector's **Face** tab. They establish a sensible surface orientation before you refine scale, offset, or rotation, and they affect the currently selected face regions. Their tooltips read **Align to Floor**, **Align to Wall**, **Align to Ceiling**, and **Reset UVs**.
 
 | No. | Glyph   | What it does                                                                                               |
 | --- | ------- | ---------------------------------------------------------------------------------------------------------- |
@@ -108,11 +120,33 @@ Object-type glyphs identify what an item represents; selecting one selects the c
 | `⬡`            | Teal                | Cylinder mesh.                                                     |
 | `◇`            | Gray                | Mesh whose source shape has no more specific glyph.                |
 | `☀`            | Orange              | Directional light.                                                 |
-| `✦`            | Yellow              | Point light.                                                       |
-| `◎`            | Red                 | Spot light.                                                        |
 | `✧`            | Yellow              | Other light type.                                                  |
 | `📷`           | Red                 | Camera object.                                                     |
 | `○`            | Gray                | Other or unrecognized object type.                                 |
+
+## Entity icons
+
+Lights, rooms, portals and game entities share one icon set, taken from
+Material Design Icons. The same icon marks the object in the **Add** menu, its
+hierarchy row, the header of its Properties section and the 3D and 2D
+viewports.
+
+![Entity icons for point lights, spot lights, rooms, open and closed portals, and game entities](images/entity_icons.svg)
+
+| No. | Icon         | Color                         | Meaning                                                                |
+| --- | ------------ | ----------------------------- | ---------------------------------------------------------------------- |
+| 1   | Light bulb   | The light's color             | Point light.                                                           |
+| 2   | Spotlight    | The light's color             | Spot light. Its cone shows the inner and outer angles.                 |
+| 3   | Floor plan   | Cyan                          | Room (a DynLight cell). The box outline shows its size.                |
+| 4   | Open door    | Green                         | Open portal between two rooms.                                         |
+| 5   | Closed door  | Red                           | Closed portal; light and visibility do not pass through it.            |
+| 6   | Puzzle piece | The marker color of its class | Game entity. The Add menu shows each component class in its own color. |
+
+In the viewports lights, rooms and game entities are drawn as a small
+translucent box in the icon's color, with the icon inside. The icon always faces
+the camera. Click the box to select the object; the icon itself is never
+picked. A disabled light draws its box and icon faded. A selected light also
+shows its range, cone and fog outline and orange balls for its radius and, on spot lights, its cone angle. The boxes, icons and balls draw in every view, including the wireframe top, front and side views.
 
 ## Common non-icon controls
 
@@ -120,10 +154,9 @@ Some compact controls are typographic symbols rather than drawn glyphs:
 
 | Visual example                    | What it does                                                                                     |
 | --------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `▾` beside a menu name            | Opens the menu. If another menu is already open, moving across menu names switches between them. |
-| **Add** `▾`                       | Opens categorized Geometry, Terrain, and Brushes menus for creating scene objects.               |
-| `−` beside Snap                   | Chooses the previous or smaller snap interval.                                                   |
-| `+` beside Snap                   | Chooses the next or larger snap interval.                                                        |
+| A menu name in the menu bar       | Opens the menu. If another menu is already open, moving across menu names switches between them. |
+| **Add**                           | Opens categorized menus such as Geometry, Terrain, and Brushes for creating scene objects.       |
+| **Grid** `▾` beside Snap          | Shows the current grid size and opens the list of preset grid sizes.                             |
 | `×` in a floating-panel title bar | Closes that panel without deleting scene content or undoing edits already applied.               |
 | `+ Box Brush`                     | Adds a new box brush to the active solid model.                                                  |
 

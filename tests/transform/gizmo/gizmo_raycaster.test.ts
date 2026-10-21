@@ -124,8 +124,8 @@ describe('GizmoRaycaster', () => {
     expect(result).toBe(setup.handles[0]);
   });
 
-  it('should pick a far handle through a nearer bounds face pick plane', () => {
-    const setup = createFarHandleBehindFacePickSetup();
+  it('should pick a far handle through a nearer mesh that is not a handle', () => {
+    const setup = createFarHandleBehindNonHandleMeshSetup();
     const event = new MouseEvent('pointerdown', { clientX: 400, clientY: 300 });
     const result = raycaster.pickHandle(setup.handles, setup.camera, setup.pickElement, event, setup.gizmoGroup);
     expect(result).toBe(setup.handles[0]);
@@ -331,29 +331,28 @@ function createPickableGizmoSetup(): {
 }
 
 /**
- * Places a face-pick plane in front of a far handle so a center ray hits both.
- * Verifies handle picking ignores bounds face pick meshes.
+ * Places a plane without a handleId in front of a far handle so a center ray
+ * hits both.
  *
- * @returns Fixtures with a far handle behind a face pick plane.
+ * @returns Fixtures with a far handle behind a non-handle plane.
  */
-function createFarHandleBehindFacePickSetup(): {
+function createFarHandleBehindNonHandleMeshSetup(): {
   handles: GizmoHandle[];
   camera: THREE.PerspectiveCamera;
   pickElement: HTMLElement;
   gizmoGroup: THREE.Group;
 } {
-  const facePick = new THREE.Mesh(
+  const nonHandlePlane = new THREE.Mesh(
     new THREE.PlaneGeometry(4, 4),
     new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }),
   );
-  facePick.position.set(0, 0, 1);
-  facePick.userData['isBoundsFacePick'] = true;
+  nonHandlePlane.position.set(0, 0, 1);
   const handleMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial());
   handleMesh.position.set(0, 0, -2);
   const handle = new GizmoHandle(GizmoAxis.Z, 0x00ff00, handleMesh);
   handleMesh.userData['handleId'] = handle.getHandleId();
   const gizmoGroup = new THREE.Group();
-  gizmoGroup.add(facePick);
+  gizmoGroup.add(nonHandlePlane);
   gizmoGroup.add(handleMesh);
   gizmoGroup.visible = true;
   gizmoGroup.updateMatrixWorld(true);

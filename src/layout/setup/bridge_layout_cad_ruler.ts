@@ -179,5 +179,5 @@ export function updateCadRulerDrag(host: LayoutCadRulerHost, meshes: THREE.Mesh[
 export function publishCadRulerStatus(host: LayoutCadRulerHost): void {
   const status = host.cadRulerSystem.getStatusText();
   if (status.length === 0) return;
-  host.statusBar?.setLastAction(status);
+  host.statusBar?.setLastActionTransient(status);
 }

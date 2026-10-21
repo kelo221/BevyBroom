@@ -22,7 +22,7 @@ function createHostHandlers(
     onFlipClipPlane: () => undefined,
     onCommitClip: () => undefined,
     onCommitSplit: () => undefined,
-    onOpenUvEditor: () => undefined,
+    faceInspectorReveal: () => undefined,
     onExtrudeFaces: () => undefined,
     onGridReset: () => undefined,
     onGridAlignToFace: () => undefined,

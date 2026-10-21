@@ -28,4 +28,11 @@ describe('settings_keyboard_helpers', () => {
     expect(merged.rotate).toEqual(defaults.rotate);
     expect(areShortcutsEqual(merged.rotate, defaults.rotate)).toBe(true);
   });
+
+  it('binds paste at original position to Ctrl+Alt+V by default and keeps a stored rebinding', () => {
+    const defaults = createDefaultKeyboardShortcutSettings();
+    expect(defaults.paste_original).toEqual({ code: 'KeyV', ctrl: true, shift: false, alt: true, meta: false });
+    const rebound = { code: 'KeyB', ctrl: true, shift: true, alt: false, meta: false };
+    expect(mergeKeyboardShortcutSettings(defaults, { paste_original: rebound }).paste_original).toEqual(rebound);
+  });
 });

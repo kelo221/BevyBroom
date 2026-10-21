@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { CommandStack } from '@/commands/command_stack.js';
 import { LightOwner } from '@/light/model/light_owner.js';
+import { lightSettingsCreateDefault } from '@/light/model/light_settings.js';
+import { IconRegistry } from '@/ui/icons/icon_registry.js';
 import { PanelPropertiesLightSection } from '@/ui/properties/panel_properties_light_section.js';
 
 /**
@@ -110,5 +112,18 @@ describe('light inspector section', () => {
     const intensity = LightOwner.settingsRead(light)?.intensity;
     fieldCommit(section, 'Light intensity', 'not a number');
     expect(LightOwner.settingsRead(light)?.intensity).toBe(intensity);
+  });
+
+  it('shows the icon of the inspected light kind in its header', () => {
+    const section = createSection();
+    const headerIconPath = (): string | null | undefined =>
+      section.getElement().querySelector('h3 svg path')?.getAttribute('d');
+    section.updateFromObjects([LightOwner.createDefault('Spot', 'spot')]);
+    const spotIcon = LightOwner.definition.iconName(lightSettingsCreateDefault('spot'));
+    expect(headerIconPath()).toBe(IconRegistry.pathOf(spotIcon));
+    section.updateFromObjects([LightOwner.createDefault('Point', 'point')]);
+    const pointIcon = LightOwner.definition.iconName(lightSettingsCreateDefault('point'));
+    expect(headerIconPath()).toBe(IconRegistry.pathOf(pointIcon));
+    expect(section.getElement().querySelectorAll('h3 svg')).toHaveLength(1);
   });
 });

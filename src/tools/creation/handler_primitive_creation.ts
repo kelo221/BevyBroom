@@ -30,6 +30,7 @@ export class HandlerPrimitiveCreation {
   private onPrimitiveCreated: PrimitiveCreatedCallback | null;
   private getActiveCamera: (() => THREE.Camera | null) | null;
   private getGridInterval: (() => number) | null;
+  private spawnCameraOverride: THREE.Camera | null = null;
 
   /**
    * Creates a new primitive creation handler.
@@ -79,6 +80,25 @@ export class HandlerPrimitiveCreation {
    */
   setGridIntervalProvider(callback: (() => number) | null): void {
     this.getGridInterval = callback;
+  }
+
+  /**
+   * Runs an action while every spawn placement uses the given camera instead of
+   * the active view camera, so objects created by the action land on that
+   * camera's view ray.
+   *
+   * @param spawnCamera Camera whose position and look direction define the
+   *   spawn ray.
+   * @param action Action that creates objects.
+   */
+  spawnCameraOverrideRun(spawnCamera: THREE.Camera, action: () => void): void {
+    const previousOverride = this.spawnCameraOverride;
+    this.spawnCameraOverride = spawnCamera;
+    try {
+      action();
+    } finally {
+      this.spawnCameraOverride = previousOverride;
+    }
   }
 
   /** Creates a cube primitive and registers it with the command stack. */
@@ -195,7 +215,7 @@ export class HandlerPrimitiveCreation {
    * @param ignoreModifierVolumes True when modifier volumes are not blockers.
    */
   private applySpawnPlacement(mesh: THREE.Object3D, objectRadius: number, ignoreModifierVolumes = false): void {
-    const camera = this.getActiveCamera?.() ?? null;
+    const camera = this.spawnCameraOverride ?? this.getActiveCamera?.() ?? null;
     if (!camera) {
       mesh.position.set(0, 0, 0);
       return;

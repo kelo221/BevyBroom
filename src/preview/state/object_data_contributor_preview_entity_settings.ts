@@ -1,4 +1,5 @@
 import type * as THREE from 'three';
+import { entityScaleSettingsShown } from '@/entity/scale/entity_scale_absorb.js';
 import { LightOwner } from '@/light/model/light_owner.js';
 import { PortalOwner } from '@/portal/model/portal_owner.js';
 import { RoomOwner } from '@/portal/model/room_owner.js';
@@ -12,13 +13,14 @@ export class ObjectDataContributorPreviewEntitySettings extends ObjectDataContri
   readonly contributorName = 'preview_entity_settings';
 
   /**
-   * Attaches the light, room or portal definition of an entity owner.
+   * Attaches the light, room or portal definition of an entity owner. A light
+   * that is being scaled sends the radius the scale stands for.
    *
    * @param object Scene object.
    * @param authored Preview object to complete.
    */
   override previewPayloadAttach(object: THREE.Object3D, authored: PreviewAuthoredObject): void {
-    const light = LightOwner.settingsRead(object);
+    const light = entityScaleSettingsShown(LightOwner, object);
     if (light) {
       authored.light = previewLightFromSettings(light);
     }

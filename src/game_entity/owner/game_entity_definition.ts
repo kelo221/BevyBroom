@@ -1,7 +1,8 @@
 import type * as THREE from 'three';
 import { EntityDefinition } from '@/entity/model/entity_definition.js';
 import type { EntityKind } from '@/entity/model/entity_owner_keys.js';
-import { GameEntityVisualBuilder } from '@/game_entity/visual/game_entity_visual_builder.js';
+import { GAME_ENTITY_ICON_NAME, GameEntityVisualBuilder } from '@/game_entity/visual/game_entity_visual_builder.js';
+import type { IconName } from '@/ui/icons/icon_name.js';
 
 /**
  * Settings of a game entity. A game entity is an empty point; everything the
@@ -40,6 +41,27 @@ export class GameEntityDefinition extends EntityDefinition<GameEntitySettings> {
    */
   settingsFromUnknown(value: unknown): GameEntitySettings | null {
     return typeof value === 'object' && value !== null ? {} : null;
+  }
+
+  /**
+   * Returns the puzzle piece icon every game entity uses.
+   *
+   * @param _settings Game entity settings.
+   * @returns Icon name.
+   */
+  iconName(_settings: GameEntitySettings): IconName {
+    return GAME_ENTITY_ICON_NAME;
+  }
+
+  /**
+   * Returns the marker color of the entity's first known component class.
+   *
+   * @param owner Game entity owner group.
+   * @param _settings Game entity settings.
+   * @returns Icon color as a hex number.
+   */
+  override iconColorHex(owner: THREE.Object3D, _settings: GameEntitySettings): number {
+    return GameEntityVisualBuilder.colorOf(owner);
   }
 
   /**

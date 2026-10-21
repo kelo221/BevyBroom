@@ -14,13 +14,20 @@ import { SelectionClickThrough } from '@/selection/object/selection_click_throug
  */
 type ZoomCallback = (factor: number, pointerU: number, pointerV: number) => void;
 
+/** Mouse button index of the middle (wheel) button. */
+const ORTHO_PAN_BUTTON_MIDDLE = 1;
+
+/** Mouse button index of the secondary (right) button. */
+const ORTHO_PAN_BUTTON_SECONDARY = 2;
+
 /**
- * Right-button pan and wheel zoom for orthographic 2D viewports. Uses the
- * shared pointer-lock counter while the secondary button is held for continuous
- * pan.
+ * Middle-button and right-button pan plus wheel zoom for orthographic 2D
+ * viewports. Uses the shared pointer-lock counter while a pan button is held
+ * for continuous pan.
  */
 export class HandlerOrthoPan {
   private isPanning: boolean;
+  private readonly heldPanButtons: Set<number>;
   private holdsPointerLock: boolean;
   private canvas: HTMLElement;
   private camera: THREE.OrthographicCamera;
@@ -33,6 +40,8 @@ export class HandlerOrthoPan {
   private readonly onPointerDownBound: (event: PointerEvent) => void;
   private readonly onPointerMoveBound: (event: PointerEvent) => void;
   private readonly onPointerUpBound: (event: PointerEvent) => void;
+  private readonly onMouseUpBound: (event: MouseEvent) => void;
+  private readonly onAuxClickBound: (event: MouseEvent) => void;
   private readonly onWheelBound: (event: WheelEvent) => void;
   private readonly onPointerLockChangeBound: () => void;
 
@@ -47,6 +56,7 @@ export class HandlerOrthoPan {
     this.canvas = canvas;
     this.camera = camera;
     this.isPanning = false;
+    this.heldPanButtons = new Set();
     this.holdsPointerLock = false;
     this.isDisposed = false;
     this.zoomCallback = zoomCallback;
@@ -57,6 +67,8 @@ export class HandlerOrthoPan {
     this.onPointerDownBound = (event) => this.onPointerDown(event);
     this.onPointerMoveBound = (event) => this.onPointerMove(event);
     this.onPointerUpBound = (event) => this.onPointerUp(event);
+    this.onMouseUpBound = (event) => this.panButtonRelease(event.button);
+    this.onAuxClickBound = (event) => this.onAuxClick(event);
     this.onWheelBound = (event) => this.onWheel(event);
     this.onPointerLockChangeBound = () => this.onPointerLockChange();
     this.bindEvents();
@@ -68,7 +80,9 @@ export class HandlerOrthoPan {
     this.canvas.addEventListener('pointerdown', this.onPointerDownBound);
     this.canvas.addEventListener('pointermove', this.onPointerMoveBound);
     this.canvas.addEventListener('pointerup', this.onPointerUpBound);
+    this.canvas.addEventListener('auxclick', this.onAuxClickBound);
     this.canvas.addEventListener('wheel', this.onWheelBound, { passive: false });
+    this.canvas.ownerDocument.addEventListener('mouseup', this.onMouseUpBound);
     this.canvas.ownerDocument.addEventListener('pointerlockchange', this.onPointerLockChangeBound);
   }
 
@@ -76,40 +90,62 @@ export class HandlerOrthoPan {
   dispose(): void {
     if (this.isDisposed) return;
     this.isDisposed = true;
-    this.isPanning = false;
-    this.dropPointerLock();
+    this.panStateClear();
     this.canvas.removeEventListener('contextmenu', this.onContextMenu);
     this.canvas.removeEventListener('pointerdown', this.onPointerDownBound);
     this.canvas.removeEventListener('pointermove', this.onPointerMoveBound);
     this.canvas.removeEventListener('pointerup', this.onPointerUpBound);
+    this.canvas.removeEventListener('auxclick', this.onAuxClickBound);
     this.canvas.removeEventListener('wheel', this.onWheelBound);
+    this.canvas.ownerDocument.removeEventListener('mouseup', this.onMouseUpBound);
     this.canvas.ownerDocument.removeEventListener('pointerlockchange', this.onPointerLockChangeBound);
   }
 
   /**
-   * Returns whether secondary-button pan is currently active.
+   * Returns whether middle-button or right-button pan is currently active.
    *
-   * @returns True while right-mouse pan is held.
+   * @returns True while a pan button is held.
    */
   isNavigating(): boolean {
     return this.isPanning;
   }
 
   /**
-   * Starts panning when the secondary mouse button is pressed.
+   * Returns whether a mouse button pans the orthographic view.
+   *
+   * @param button Mouse button index from the DOM event.
+   * @returns True for the middle and the right button.
+   */
+  private static panButtonIs(button: number): boolean {
+    return button === ORTHO_PAN_BUTTON_MIDDLE || button === ORTHO_PAN_BUTTON_SECONDARY;
+  }
+
+  /**
+   * Starts panning when the middle or the secondary mouse button is pressed.
    *
    * @param event Pointer down event from the canvas.
    */
   private onPointerDown(event: PointerEvent): void {
-    if (event.button !== 2) return;
+    if (!HandlerOrthoPan.panButtonIs(event.button)) return;
+    if (event.button === ORTHO_PAN_BUTTON_MIDDLE) event.preventDefault();
     blurActiveFormField();
+    this.heldPanButtons.add(event.button);
     this.isPanning = true;
     SelectionClickThrough.resetClickThrough();
     this.takePointerLock();
   }
 
   /**
-   * Applies camera pan while the secondary button drag is active.
+   * Suppresses the browser's middle-click action (auto-scroll, link opening).
+   *
+   * @param event Auxiliary click event from the canvas.
+   */
+  private onAuxClick(event: MouseEvent): void {
+    if (event.button === ORTHO_PAN_BUTTON_MIDDLE) event.preventDefault();
+  }
+
+  /**
+   * Applies camera pan while a pan button drag is active.
    *
    * @param event Pointer move event with movement deltas.
    */
@@ -119,15 +155,30 @@ export class HandlerOrthoPan {
   }
 
   /**
-   * Ends panning when the secondary button is released.
+   * Ends panning for a released pan button.
    *
    * @param event Pointer up event from the canvas.
    */
   private onPointerUp(event: PointerEvent): void {
-    if (event.button === 2) {
-      this.isPanning = false;
-      this.dropPointerLock();
-    }
+    this.panButtonRelease(event.button);
+  }
+
+  /**
+   * Forgets one held pan button and stops panning once no pan button is held.
+   *
+   * @param button Mouse button index that was released.
+   */
+  private panButtonRelease(button: number): void {
+    if (!this.heldPanButtons.delete(button)) return;
+    if (this.heldPanButtons.size > 0) return;
+    this.panStateClear();
+  }
+
+  /** Stops panning, forgets every held pan button and drops pointer lock. */
+  private panStateClear(): void {
+    this.isPanning = false;
+    this.heldPanButtons.clear();
+    this.dropPointerLock();
   }
 
   /**
@@ -159,8 +210,7 @@ export class HandlerOrthoPan {
     if (managerPointerLock.isBrowserLocked()) {
       return;
     }
-    this.isPanning = false;
-    this.dropPointerLock();
+    this.panStateClear();
   }
 
   /**

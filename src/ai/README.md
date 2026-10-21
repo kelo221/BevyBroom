@@ -259,6 +259,13 @@ Solid mutations (including hierarchy create/reparent/rename/ungroup) are **undoa
 | `set_light_settings` / `set_room_settings` / `set_portal_settings` | Merge `settings` into the entity with `id`, as one undoable edit                  |
 
 - **Light settings:** `kind` (`point` / `spot`), `colorHex`, `intensity`, `radius`, `falloff`, `innerCutoffDegrees`, `outerCutoffDegrees`, `realtime`, `shadows` (`raytraced` / `realtime`), `enabled`.
+  - **Effect:** `effectKind` (`steady`, `pulse`, `random`, `strobe`, `flicker`, `fluorescent_starter`, `fluorescent_clicker`, `fluorescent_random`, `candle`, `pulsar`, `fire`, `generator`, `lightning`, `cloudy`, `overcast`), `effectPulseSpeed`, `effectPulseModifier`, `effectPulseOffset`, `effectTimestep`.
+  - **Cookie** (spot lights with an outer cutoff of 90° or less): `cookieTexture`, an image path inside the game's assets folder, `""` for none.
+  - **Fog:** `fogEnabled`, `fogShape` (`sphere`, `box`, `cone_z`, `cone_y`, `frustum`), `fogRadius`, `fogThickness`, `fogIntensity`, `fogVisibility`.
+  - **Shimmer:** `shimmer` (`none`, `water`, `random`), `shimmerScale`, `shimmerModifier`.
+  - **Baking:** `illumination` (`direct`, `single_bounce`), `transparency` (`disabled`, `enabled`, `enabled_max`), `bounceColorHex`, `bounceColorAlpha`, `bounceModifier`, `bounceIntensity`, `bounceSamples`, `bounceCompression` (`default`, `bits8`, `bits6`, `bits5`, `bits4`).
+  - Lights ignore `scale`; set `radius` instead.
+  - A `radius` given to `set_light_settings` without `fogRadius` changes the fog radius by the same factor.
 - **Room settings:** `halfSizeX`, `halfSizeY`, `halfSizeZ` in meters; the box is centered on the room and follows its rotation and scale.
 - **Portal settings:** `width`, `height`, `closed`. The portal is a rectangle in its local XY plane facing local +Z. Closing it (a door) hides what is behind it in the game.
 - A room must reach the middle of the wall at each doorway, otherwise the game turns portal culling off; `preview_status` shows the reason.
@@ -272,6 +279,67 @@ Solid mutations (including hierarchy create/reparent/rename/ungroup) are **undoa
 | `preview_status`      | `connection`, the `revisions` this editor sent, the newest `game` status, and `lastError`       |
 | `get_scene_document`  | The open scene as scene file text (`json`) and its `documentId`, exactly as Save would write it |
 | `load_scene_document` | Open scene file text (`json`) the way File > Load does, without a file dialog                   |
+
+## Console and issues
+
+| Tool           | What it does                                                                                                                |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `console_read` | Recent console lines (`lines`: `level`, `time`, `text`), oldest first; optional `limit` (default 100, at most 1000)         |
+| `issues_list`  | Validates the map now; `issues` with `id`, `severity`, `objectId`, `objectName`, `description`, `provider`, and their count |
+
+- The console collects status bar messages and errors, game preview connection changes and request errors.
+- Built-in issue checks: invalid brushes, empty or inverted solid models, subtractive brushes that overlap no additive brush, and game components whose class the game does not know.
+
+## Layers
+
+| Tool                    | What it does                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `list_layers`           | `layers` in display order (default first) with `id`, `name`, `hidden`, `locked`, `omitFromExport`, `current`, `objectIds` |
+| `create_layer`          | Add a layer at the end; optional `name` (default `Layer N`); returns its id                                               |
+| `remove_layer`          | Remove the layer `id`; its objects move to the default layer                                                              |
+| `rename_layer`          | Rename the layer `id` to `name`                                                                                           |
+| `set_current_layer`     | Make the layer `id` current; new objects join it (not undoable)                                                           |
+| `set_layer_flags`       | Set `hidden`, `locked` and/or `omitFromExport` of the layer `id` as one edit                                              |
+| `move_objects_to_layer` | Move the objects `ids` into the layer `layerId`; nested objects move with their top-level ancestor                        |
+
+- The default layer always exists, comes first and cannot be renamed or removed.
+- Hidden layers are not drawn or pickable in the editor and are sent to the game preview as hidden; they are still exported.
+- Locked layers cannot be selected or edited. Layers omitted from export are left out of GLB exports and the game preview.
+- Every edit except `set_current_layer` is undoable.
+
+## Main window
+
+| Tool              | What it does                                                                                                                                                      |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_main_window` | `inspectorVisible`, `inspectorTab` (`map`, `entity`, `face`), `infoPanelVisible`, `infoPanelTab` (`console`, `issues`), `toolbarVisible` and the menu bar `menus` |
+| `set_main_window` | Change any of those fields except `menus`; returns the arrangement afterwards                                                                                     |
+
+- Choosing a tab does not show a hidden dock; set `inspectorVisible` or `infoPanelVisible` too.
+- The arrangement is remembered between sessions, the same as when it is changed from the View menu.
+
+## Clipboard
+
+| Tool             | What it does                                                                                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `copy_selection` | Copy the selection as clipboard text like Ctrl+C; returns `text` and `count` (copied top-level objects); the scene does not change  |
+| `paste_objects`  | Paste `text` (default: the text copied last) like Ctrl+V as one undo step; `atOriginalPosition: true` pastes at the copied position |
+
+- `paste_objects` returns `ids`: object uuids, brush ids or CSG group uuids. Pasted objects get new ids, join the current layer and become the selection.
+- Pasted brushes join the active solid model, or a new `World` model when the scene has none.
+- Without a view under the mouse pointer a paste lands at the copied position. Text that holds no BevyBroom objects is rejected.
+
+## Viewport input
+
+| Tool             | What it does                                                                                                                            |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `viewport_drag`  | Left-drag in a visible `view` (`perspective`, `top`, `front`, `side`) from world point `from` to `to`, with optional `keys` and `steps` |
+| `viewport_click` | Left-click in a visible `view` at world point `at`, with optional `keys` (`ctrl`, `shift`, `alt`)                                       |
+
+- Both tools project the world points through the view camera and dispatch real pointer events, so the active tool reacts exactly as it does to the mouse. Both return `selection` like `get_selection`.
+- With the Object tool, dragging a selected object moves the selection (grid snapped; `shift` turns snapping off, `alt` moves vertically in the perspective view, `ctrl` duplicates first). Dragging empty space while nothing is selected draws a box brush (`shift` square, `alt` sets the height in the perspective view). Dragging empty space while something is selected does nothing.
+- Visible gizmo handles win over moving: the bounds resize arrows sit at the center of each face of the selection (arrows hidden behind the selection do not take the press), and in 2D views its outline edges resize too. To move a selected box, press on a visible face away from its center and edges (for example halfway between the face center and a corner).
+- A click selects what is under the point: `shift` adds, `ctrl` toggles, empty space deselects.
+- The call fails when no view of that kind is visible.
 
 ## Not in this build
 

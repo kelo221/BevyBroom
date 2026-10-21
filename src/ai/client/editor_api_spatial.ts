@@ -1,15 +1,8 @@
 import * as THREE from 'three';
 import type { EditorApiHost } from './editor_api_host.js';
 import type { MeasureArgs, QueryNeighborsArgs, QueryOverlapsArgs, QueryPointArgs } from './editor_api_types.js';
-import {
-  boundsCenter,
-  boxToDto,
-  computeBrushWorldBounds,
-  distanceSquared,
-  dtoToBox,
-  dtoToVec3,
-  vec3ToDto,
-} from './editor_api_math.js';
+import { boundsCenter, boxToDto, distanceSquared, dtoToBox, dtoToVec3, vec3ToDto } from './editor_api_math.js';
+import { computeBrushWorldBounds } from '@/solid/model/solid_brush_world_bounds.js';
 import { findBrush, findSolidModel, listSolidModels } from './editor_api_lookup.js';
 import { solidOperationToName } from './editor_api_operations.js';
 import { classifyBrushShape } from './editor_api_shape.js';

@@ -19,7 +19,7 @@ export function buildViewportToolModeMenuEntries(
 }
 
 /**
- * Builds one mode action row with an active checkmark when selected.
+ * Builds one mode action row that is checked while its mode is active.
  *
  * @param mode Mode for the row.
  * @param activeMode Currently active mode.
@@ -32,23 +32,9 @@ function createModeMenuEntry(
   onSelect: (mode: EditorInteractionMode) => void,
 ): ToolbarMenuEntry {
   return {
-    label: formatModeMenuLabel(mode, activeMode),
+    label: getEditorInteractionModeLabel(mode),
     shortcut: 'Tab',
     onClick: () => onSelect(mode),
+    isChecked: () => mode === activeMode,
   };
-}
-
-/**
- * Formats a mode label, marking the active selection.
- *
- * @param mode Menu mode.
- * @param activeMode Active interaction mode.
- * @returns Display label for the row.
- */
-function formatModeMenuLabel(mode: EditorInteractionMode, activeMode: EditorInteractionMode): string {
-  const label = getEditorInteractionModeLabel(mode);
-  if (mode === activeMode) {
-    return `✓ ${label}`;
-  }
-  return label;
 }

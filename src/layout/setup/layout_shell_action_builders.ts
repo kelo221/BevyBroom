@@ -9,7 +9,6 @@ import { HandlerAlignment } from '@/outliner/alignment/handler_alignment.js';
 import { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js';
 import { buildOutlinerActions, buildToolbarActions } from './layout_action_factories.js';
 import { PanelOutliner } from '@/outliner/ui/panel_outliner.js';
-import type { ShellFileMenuShortcutAction } from '@/layout/shell/shell_file_menu_shortcut_action.js';
 
 /** Layout surface used to build outliner and toolbar shell actions. */
 export interface LayoutShellActionSource {
@@ -32,8 +31,7 @@ export interface LayoutShellActionSource {
   onAddSolidModel: () => void;
   onUndo: () => void;
   onRedo: () => void;
-  onToggleUvEditor: () => void;
-  onToggleTextureBrowser: () => void;
+  faceInspectorReveal: () => void;
   onToggleSolidModelPanel: () => void;
   onToggleSettingsDialog: () => void;
   onOpenDocumentation: () => void;
@@ -54,7 +52,6 @@ export interface LayoutShellActionSource {
   onExportGlb: () => void;
   onExportObj: () => void;
   onExportFbx: () => void;
-  getShortcutLabel: (action: ShellFileMenuShortcutAction) => string;
   onSetTransformSpaceGlobal: () => void;
   onSetTransformSpaceLocal: () => void;
   isTransformSpaceLocal: () => boolean;
@@ -117,8 +114,7 @@ export function createToolbarShellActions(source: LayoutShellActionSource) {
     onAddSolidModel: () => source.onAddSolidModel(),
     onUndo: () => source.onUndo(),
     onRedo: () => source.onRedo(),
-    onToggleUvEditor: () => source.onToggleUvEditor(),
-    onToggleTextureBrowser: () => source.onToggleTextureBrowser(),
+    faceInspectorReveal: () => source.faceInspectorReveal(),
     onToggleSolidModelPanel: () => source.onToggleSolidModelPanel(),
     onToggleSettingsDialog: () => source.onToggleSettingsDialog(),
     onOpenDocumentation: () => source.onOpenDocumentation(),
@@ -139,7 +135,6 @@ export function createToolbarShellActions(source: LayoutShellActionSource) {
     onExportGlb: () => source.onExportGlb(),
     onExportObj: () => source.onExportObj(),
     onExportFbx: () => source.onExportFbx(),
-    getShortcutLabel: (action) => source.getShortcutLabel(action),
     onSetTransformSpaceGlobal: () => source.onSetTransformSpaceGlobal(),
     onSetTransformSpaceLocal: () => source.onSetTransformSpaceLocal(),
     isTransformSpaceLocal: () => source.isTransformSpaceLocal(),

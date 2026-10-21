@@ -15,9 +15,10 @@ import { ObjectDataContributorRegistry } from '@/object_data/object_data_contrib
 /**
  * Schema version for serialized scene files. Version 3 adds face texture maps
  * and optional buffer UV channels. Version 4 adds the document identifier and
- * authored light entries. Version 5 adds room and portal entries.
+ * authored light entries. Version 5 adds room and portal entries. Version 6
+ * adds game components. Version 7 adds layers.
  */
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 /**
  * Serializes a Three.js scene graph into a JSON-compatible structure. Walks the
@@ -50,23 +51,48 @@ export class SceneSerializer {
   }
 
   /**
+   * Writes the entries of the given objects and their content descendants. The
+   * given objects become top-level entries without a parent; their transforms
+   * stay as stored on the objects.
+   *
+   * @param roots Objects to serialize; objects that are not scene content are
+   *   skipped.
+   * @returns Entries of the roots, each followed by its descendants.
+   */
+  serializeRoots(roots: readonly THREE.Object3D[]): ObjectEntry[] {
+    const entries: ObjectEntry[] = [];
+    roots.forEach((root) => this.entriesAppendForObject(root, null, entries));
+    return entries;
+  }
+
+  /**
    * Recursively collects object entries from the group hierarchy.
    *
    * @param object The current object being processed.
    * @param entries The accumulating array of object entries.
    */
   private collectEntries(object: THREE.Object3D, entries: ObjectEntry[]): void {
-    object.children.forEach((child) => {
-      if (!this.shouldSerializeChild(child)) return;
-      const entry = this.createEntryForChild(child, object.uuid);
-      entries.push(entry);
-      if (SolidModel.isSolidModelObject(child) || entityOwnerIs(child)) {
-        return;
-      }
-      if (child instanceof THREE.Group) {
-        this.collectEntries(child, entries);
-      }
-    });
+    object.children.forEach((child) => this.entriesAppendForObject(child, object.uuid, entries));
+  }
+
+  /**
+   * Appends the entry of one content object and, for plain groups, the entries
+   * of its children. Solid models and entity owners store their own content.
+   *
+   * @param object Object to serialize.
+   * @param parentId UUID of the parent container, or null for a top-level
+   *   entry.
+   * @param entries The accumulating array of object entries.
+   */
+  private entriesAppendForObject(object: THREE.Object3D, parentId: string | null, entries: ObjectEntry[]): void {
+    if (!this.shouldSerializeChild(object)) return;
+    entries.push(this.createEntryForChild(object, parentId));
+    if (SolidModel.isSolidModelObject(object) || entityOwnerIs(object)) {
+      return;
+    }
+    if (object instanceof THREE.Group) {
+      this.collectEntries(object, entries);
+    }
   }
 
   /**
@@ -88,10 +114,11 @@ export class SceneSerializer {
    * every object data contributor.
    *
    * @param child The child object to serialize.
-   * @param parentId The UUID of the parent container.
+   * @param parentId The UUID of the parent container, or null for a top-level
+   *   entry.
    * @returns A populated ObjectEntry.
    */
-  private createEntryForChild(child: THREE.Object3D, parentId: string): ObjectEntry {
+  private createEntryForChild(child: THREE.Object3D, parentId: string | null): ObjectEntry {
     const entry = this.createEntryForChildOwnData(child, parentId);
     ObjectDataContributorRegistry.sceneEntryWrite(child, entry);
     return entry;
@@ -102,10 +129,11 @@ export class SceneSerializer {
    * one child object.
    *
    * @param child The child object to serialize.
-   * @param parentId The UUID of the parent container.
+   * @param parentId The UUID of the parent container, or null for a top-level
+   *   entry.
    * @returns A populated ObjectEntry.
    */
-  private createEntryForChildOwnData(child: THREE.Object3D, parentId: string): ObjectEntry {
+  private createEntryForChildOwnData(child: THREE.Object3D, parentId: string | null): ObjectEntry {
     const baseEntry = this.buildBaseEntry(child, parentId);
     if (entityOwnerIs(child)) {
       return this.enrichWithEntityData(child, baseEntry);
@@ -146,10 +174,11 @@ export class SceneSerializer {
    * Builds the base entry fields shared by all object types.
    *
    * @param object The Three.js object to extract data from.
-   * @param parentId The UUID of the parent group.
+   * @param parentId The UUID of the parent group, or null for a top-level
+   *   entry.
    * @returns A partially filled ObjectEntry.
    */
-  private buildBaseEntry(object: THREE.Object3D, parentId: string): ObjectEntry {
+  private buildBaseEntry(object: THREE.Object3D, parentId: string | null): ObjectEntry {
     const euler = this.buildEulerFromObject(object);
     return {
       uuid: object.uuid,

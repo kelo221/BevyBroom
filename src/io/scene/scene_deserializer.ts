@@ -21,6 +21,7 @@ import {
 } from '@/modifier/volume/modifier_volume_bevel_keys.js';
 import { modifierBevelRefreshScene } from '@/modifier/compile/modifier_bevel_scene_refresh.js';
 import { EntityOwnerRegistry } from '@/entity/registry/entity_owner_registry.js';
+import { entityScaleUnitEnsure } from '@/entity/scale/entity_scale_absorb.js';
 import { documentIdentityReset, documentIdentityWrite } from '@/io/document/document_identity.js';
 import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
 
@@ -38,13 +39,15 @@ export class SceneDeserializer {
 
   /**
    * Removes and disposes scene content while preserving editor helpers such as
-   * the clip-plane preview, and assigns the world a fresh document identifier.
+   * the clip-plane preview, assigns the world a fresh document identifier and
+   * lets every object data contributor forget its document-wide data.
    *
    * @param worldGroup The group to clear.
    */
   clearContent(worldGroup: THREE.Group): void {
     this.disposeExistingChildren(worldGroup);
     documentIdentityReset(worldGroup);
+    ObjectDataContributorRegistry.sceneDocumentClear(worldGroup);
   }
 
   /**
@@ -61,14 +64,39 @@ export class SceneDeserializer {
     if (data.documentId) {
       documentIdentityWrite(worldGroup, data.documentId);
     }
-    ObjectDataContributorRegistry.sceneDocumentRead(data);
-    const objectMap = new Map<string, THREE.Object3D>();
-    const topLevelObjects: THREE.Object3D[] = [];
-    this.createObjectsFromEntries(data.objects, objectMap);
-    this.resolveParentChildRelationships(data.objects, objectMap);
-    topLevelObjects.push(...this.attachToGroup(worldGroup, objectMap));
-    modifierBevelRefreshScene(worldGroup);
+    ObjectDataContributorRegistry.sceneDocumentRead(data, worldGroup);
+    return this.deserializeEntriesInto(data.objects, worldGroup);
+  }
+
+  /**
+   * Creates objects from entries and adds the top-level ones to an existing
+   * parent without clearing anything already under it, then refreshes bevel
+   * volumes of the parent's scene.
+   *
+   * @param entries Serialized object entries.
+   * @param parent Object receiving the top-level objects.
+   * @returns Top-level objects that were added.
+   */
+  deserializeEntriesInto(entries: ObjectEntry[], parent: THREE.Object3D): THREE.Object3D[] {
+    const topLevelObjects = this.objectsCreateFromEntries(entries);
+    topLevelObjects.forEach((object) => parent.add(object));
+    modifierBevelRefreshScene(parent);
     return topLevelObjects;
+  }
+
+  /**
+   * Creates objects from entries and links children to their parents without
+   * adding anything to a scene. Entries whose parent is not among the entries
+   * become top-level objects.
+   *
+   * @param entries Serialized object entries.
+   * @returns Parentless top-level objects in entry order.
+   */
+  objectsCreateFromEntries(entries: ObjectEntry[]): THREE.Object3D[] {
+    const objectMap = new Map<string, THREE.Object3D>();
+    this.createObjectsFromEntries(entries, objectMap);
+    this.resolveParentChildRelationships(entries, objectMap);
+    return [...objectMap.values()].filter((object) => object.parent === null);
   }
 
   /**
@@ -165,7 +193,9 @@ export class SceneDeserializer {
   /**
    * Creates an authored entity owner (light, room or portal) from entry data.
    * Settings are read from the entry field named after its type; missing or
-   * invalid settings fall back to the kind's defaults.
+   * invalid settings fall back to the kind's defaults. Kinds that turn scale
+   * into settings, such as lights, load with a unit scale and their stored
+   * settings.
    *
    * @param entry The serialized entry.
    * @returns The owner with transform and settings applied, or null when the
@@ -181,6 +211,7 @@ export class SceneDeserializer {
     const settings = definition.settingsFromUnknown(stored) ?? definition.settingsCreateDefault();
     const owner = entityOwner.create(entry.name, settings);
     this.applyTransformToObject(owner, entry);
+    entityScaleUnitEnsure(owner);
     return owner;
   }
 
@@ -299,7 +330,16 @@ export class SceneDeserializer {
       rebuildSurfaceMaterials(mesh);
       return;
     }
-    // No authored maps: always Checker — never the browser paint selection.
+    this.checkerTextureApplyWithoutAuthoredMaps(mesh);
+  }
+
+  /**
+   * Gives a mesh without authored face texture maps the checker texture, never
+   * the texture currently chosen in the texture browser.
+   *
+   * @param mesh Mesh read without face texture maps.
+   */
+  private checkerTextureApplyWithoutAuthoredMaps(mesh: THREE.Mesh): void {
     initializeMeshTextureUVs(mesh, DEFAULT_CHECKER_TEXTURE_ID);
   }
 
@@ -471,32 +511,5 @@ export class SceneDeserializer {
         }
       }
     });
-  }
-
-  /**
-   * Attaches top-level objects to the world group.
-   *
-   * @param worldGroup The target group.
-   * @param objectMap The map of created objects.
-   * @returns Array of objects added to the group.
-   */
-  private attachToGroup(worldGroup: THREE.Group, objectMap: Map<string, THREE.Object3D>): THREE.Object3D[] {
-    const topLevelObjects: THREE.Object3D[] = [];
-    const attachedUuids = new Set<string>();
-
-    objectMap.forEach((obj, uuid) => {
-      if (obj.parent && obj.parent !== worldGroup) {
-        attachedUuids.add(uuid);
-      }
-    });
-
-    objectMap.forEach((obj, uuid) => {
-      if (!attachedUuids.has(uuid)) {
-        worldGroup.add(obj);
-        topLevelObjects.push(obj);
-      }
-    });
-
-    return topLevelObjects;
   }
 }

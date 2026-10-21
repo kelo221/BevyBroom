@@ -3,12 +3,6 @@ import { BoundsFace } from '@/types/bounds_face.js';
 import { getBoundsFaceLocalNormal, type DataOrientedBounds } from './builder_oriented_bounds.js';
 import { getHiddenBoundsAxesForViewPlane, type CadViewPlane } from '@/rulers/view/cad_view_plane.js';
 
-/**
- * CSS cursor when hovering the bounds body for move. Regular pointer — not the
- * four-way drag (`move`) cursor.
- */
-export const BOUNDS_MOVE_CURSOR = 'default';
-
 /** Default viewport cursor when not over a bounds control. */
 export const BOUNDS_DEFAULT_CURSOR = 'default';
 

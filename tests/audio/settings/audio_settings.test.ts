@@ -18,10 +18,18 @@ afterEach(() => {
 });
 
 describe('AudioSettings', () => {
-  it('defaults to enabled', () => {
-    expect(createDefaultAudioSettings().enabled).toBe(true);
+  it('starts disabled until the user turns audio on', () => {
+    expect(createDefaultAudioSettings().enabled).toBe(false);
     const settings = new AudioSettings(new MemorySettingsStorage());
-    expect(settings.isEnabled()).toBe(true);
+    expect(settings.isEnabled()).toBe(false);
+  });
+
+  it('keeps a saved choice and treats a stored value without the flag as off', () => {
+    const storage = new MemorySettingsStorage();
+    new AudioSettings(storage).setEnabled(true);
+    expect(new AudioSettings(storage).isEnabled()).toBe(true);
+    storage.setItem(AUDIO_SETTINGS_STORAGE_KEY, '{}');
+    expect(loadAudioSettings(storage).enabled).toBe(false);
   });
 
   it('persists toggle across reload from storage', () => {
@@ -35,13 +43,14 @@ describe('AudioSettings', () => {
 
   it('toggle flips enabled and returns the new state', () => {
     const settings = new AudioSettings(new MemorySettingsStorage());
-    expect(settings.toggle()).toBe(false);
-    expect(settings.isEnabled()).toBe(false);
     expect(settings.toggle()).toBe(true);
+    expect(settings.isEnabled()).toBe(true);
+    expect(settings.toggle()).toBe(false);
   });
 
   it('clears frame-event flags when disabled or re-enabled', () => {
     const settings = new AudioSettings(new MemorySettingsStorage());
+    settings.setEnabled(true);
     notificationFrameEvents.raiseSelectionMovedWithSnapping();
     notificationFrameEvents.beginFrame();
     expect(notificationFrameEvents.hasAnySnapFeedbackSnapshot()).toBe(true);

@@ -40,6 +40,18 @@ const KEYBOARD_SHORTCUT_ACTIONS = [
   'component_vertex',
   'component_edge',
   'component_face',
+  'view_cycle',
+  'view_maximize',
+  'play_start',
+  'inspector_map',
+  'inspector_entity',
+  'inspector_face',
+  'info_panel_toggle',
+  'inspector_toggle',
+  'toolbar_toggle',
+  'select_all',
+  'select_none',
+  'paste_original',
 ] as const satisfies ReadonlyArray<keyof KeyboardShortcutSettings>;
 
 /**

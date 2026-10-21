@@ -18,6 +18,9 @@ export const ENTITY_VISUAL_PART_USERDATA_KEY = 'isEntityVisualPart';
 /** UserData flag on the clickable marker mesh of an entity owner. */
 export const ENTITY_PICK_MESH_USERDATA_KEY = 'isEntityPickMesh';
 
+/** UserData flag on visual parts that keep their identity across refreshes. */
+export const ENTITY_VISUAL_PERSISTENT_USERDATA_KEY = 'isEntityVisualPersistent';
+
 /** Every kind an owner helper exists for. */
 const ENTITY_KINDS_KNOWN = new Set<EntityKind>();
 
@@ -59,6 +62,17 @@ export function entityOwnerIs(object: THREE.Object3D): boolean {
  */
 export function entityVisualPartIs(object: THREE.Object3D): boolean {
   return object.userData[ENTITY_VISUAL_PART_USERDATA_KEY] === true;
+}
+
+/**
+ * Returns whether the object is a visual part kept across refreshes, such as
+ * the marker or its icon.
+ *
+ * @param object Candidate object.
+ * @returns True for persistent visual parts.
+ */
+export function entityVisualPersistentIs(object: THREE.Object3D): boolean {
+  return object.userData[ENTITY_VISUAL_PERSISTENT_USERDATA_KEY] === true;
 }
 
 /**

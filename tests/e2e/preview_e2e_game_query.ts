@@ -9,6 +9,18 @@ export const PREVIEW_E2E_PORTAL_COMPONENT = 'dynlight::portals::authoring::Porta
 /** Type path of DynLight's closed door marker in Bevy's remote protocol. */
 export const PREVIEW_E2E_CLOSED_PORTAL_COMPONENT = 'dynlight::portals::authoring::ClosedPortal';
 
+/** Type path of DynLight's light component in Bevy's remote protocol. */
+export const PREVIEW_E2E_DYNAMIC_LIGHT_COMPONENT = 'dynlight::light::component::DynamicLight';
+
+/** Type path of DynLight's light intensity effect in Bevy's remote protocol. */
+export const PREVIEW_E2E_LIGHT_EFFECT_COMPONENT = 'dynlight::effects::effect::LightEffect';
+
+/** Type path of DynLight's light fog volume in Bevy's remote protocol. */
+export const PREVIEW_E2E_VOLUMETRIC_LIGHT_COMPONENT = 'dynlight::fog::volumetric::VolumetricLight';
+
+/** Type path of DynLight's spot light cookie in Bevy's remote protocol. */
+export const PREVIEW_E2E_LIGHT_COOKIE_COMPONENT = 'dynlight::cookies::LightCookie';
+
 /** One entity row of a Bevy remote protocol query. */
 export interface PreviewE2eEntityRow {
   entity: number;

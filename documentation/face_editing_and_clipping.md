@@ -4,7 +4,7 @@ Face tools let you work with visible surface regions rather than whole objects. 
 
 ## Enter Face Select
 
-Press `Shift+Tab` or open the Tools palette and choose **Face Select**. The status bar changes to Face selection and reports how many faces are selected.
+Press `Shift+Tab` or click the **Face Select** tool button in the toolbar. The status bar changes to Face selection and reports how many faces are selected.
 
 Click a surface to select its face region. Selection modifiers and drag selection can add more regions. Work from a clear view so you do not accidentally select a front-facing surface when you intended one behind it.
 
@@ -26,7 +26,7 @@ Press `Tab` again to return to Object Mode.
 
 1. Enter Face Select.
 2. Select one or more suitable coplanar face regions.
-3. Press `Shift+E` or click the Extrude action in the Tools palette.
+3. Press `Shift+E` or click **Extrude** in the tool options on the view bar.
 4. Drag to choose the extrusion depth.
 5. Commit the interaction.
 
@@ -39,11 +39,10 @@ If extrusion is unavailable, confirm that at least one compatible face is select
 The Clip Plane tool slices selected geometry along a plane established with three points.
 
 1. Select the object you want to cut.
-2. Open the Tools palette.
-3. Choose **Clip Plane**.
-4. Place three points in a viewport to define the cutting plane.
-5. Inspect the preview to see which side will remain.
-6. Choose **Flip**, **Clip**, or **Split**.
+2. Click the **Clip Plane** tool button in the toolbar, or choose **Tools > Clip Plane**.
+3. Place three points in a viewport to define the cutting plane.
+4. Inspect the preview to see which side will remain.
+5. Choose **Flip**, **Clip**, or **Split** in the tool options on the view bar.
 
 The clip actions remain disabled until a valid plane is ready.
 
@@ -67,4 +66,4 @@ The three points define both the plane and its orientation. For a clean result:
 
 ## Face selection for texturing
 
-Face selection is also the basis for per-face texture assignment and UV editing. Select the intended face regions first, then use the Texture Browser or UV Editor. See [Textures and UV mapping](textures_and_uvs.md).
+Face selection is also the basis for per-face texture assignment and UV editing. Select the intended face regions first, then use the material browser or the face attributes in the inspector's **Face** tab (`Ctrl+3`, or **Face Inspector** in the Face Select tool options). See [Textures and UV mapping](textures_and_uvs.md).

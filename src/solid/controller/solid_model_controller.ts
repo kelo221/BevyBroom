@@ -913,7 +913,7 @@ export class SolidModelController {
    * @param model Active solid model.
    * @returns Solid root or solid CSG group.
    */
-  private resolveBrushInsertParent(model: SolidModel): THREE.Object3D {
+  resolveBrushInsertParent(model: SolidModel): THREE.Object3D {
     const fromSelection = this.resolveBrushInsertParentFromSelection(model);
     if (fromSelection) {
       this.lastBrushInsertParent = fromSelection;
@@ -1008,7 +1008,7 @@ export class SolidModelController {
    *
    * @returns Solid model or null.
    */
-  private resolveActiveModel(): SolidModel | null {
+  resolveActiveModel(): SolidModel | null {
     const selected = this.findSelectedSolidModel();
     if (selected) {
       this.rememberActiveModel(selected);
@@ -1066,7 +1066,7 @@ export class SolidModelController {
    *
    * @returns Solid model or null when none exist.
    */
-  private findFirstSolidModelInWorld(): SolidModel | null {
+  findFirstSolidModelInWorld(): SolidModel | null {
     let found: SolidModel | null = null;
     this.worldObject.traverse((object) => {
       if (found) return;

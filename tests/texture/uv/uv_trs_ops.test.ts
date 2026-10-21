@@ -198,6 +198,19 @@ describe('UV TRS ops and smart align', () => {
     expect(state.scaleV).toBe(1);
   });
 
+  it('reports the shared texture id in getCommonTrsFieldState and null when empty', () => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), createContentMaterial(0x888888));
+    mesh.updateMatrixWorld(true);
+    initializeMeshTextureUVs(mesh, DEFAULT_CHECKER_TEXTURE_ID);
+    const state = getCommonTrsFieldState(buildTargetsFromMeshes([mesh]));
+    expect(state.textureId).toBe(DEFAULT_CHECKER_TEXTURE_ID);
+    const emptyState = getCommonTrsFieldState([]);
+    expect(emptyState.textureId).toBeNull();
+    expect(emptyState.targetCount).toBe(0);
+    expect(emptyState.scaleU).toBeNull();
+    expect(emptyState.align).toBeNull();
+  });
+
   it('nudges offset and rotates by 90 degrees', () => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), createContentMaterial(0x888888));
     mesh.position.set(0, 1, 0);

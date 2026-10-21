@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { pointerEventToNdc } from '@/utils/pointer_ndc.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { getOrBuildFacePickBvh } from '@/selection/pick/mesh_pick_acceleration.js';
+import { objectInHiddenLayerIs } from '@/layer/model/layer_membership.js';
 
 /** Result of a face picking operation. */
 export interface FacePickResult {
@@ -33,7 +34,8 @@ export class RaycasterFaceSelection {
 
   /**
    * Picks a face from a set of meshes at the given mouse position. Returns the
-   * closest front-facing face intersection with the triangle index.
+   * closest front-facing face intersection with the triangle index. Hidden
+   * meshes and meshes in hidden layers are skipped.
    *
    * @param event The mouse event providing click coordinates.
    * @param camera The camera to cast the ray from.
@@ -57,7 +59,7 @@ export class RaycasterFaceSelection {
     let bestNormal: THREE.Vector3 | null = null;
     for (const mesh of meshes) {
       if (SolidBrushVisual.shouldSkipFacePick(mesh)) continue;
-      if (!mesh.visible) continue;
+      if (!mesh.visible || objectInHiddenLayerIs(mesh)) continue;
       const candidate = this.pickFrontFaceOnMesh(mesh, bestDistance);
       if (!candidate) continue;
       bestMesh = mesh;

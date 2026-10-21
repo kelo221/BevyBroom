@@ -14,6 +14,7 @@ import {
   getSharedContentMaterials,
   meshUsesShadingOverrideMaterials,
 } from '@/viewports/shared/shared_content_material_store.js';
+import { objectInOmittedLayerIs } from '@/layer/model/layer_membership.js';
 
 /** Export extras key that carries the stable editor identifier of a node. */
 export const EXPORT_OBJECT_IDENTITY_EXTRAS_KEY = 'broom_id';
@@ -86,13 +87,14 @@ export function buildExportScene(worldGroup: THREE.Group, options: ExportSceneOp
 
 /**
  * Clones one scene object for export, or returns null when it should be
- * omitted.
+ * omitted, including objects in layers left out of exports.
  *
  * @param object Live scene object.
  * @param options Export behavior switches.
  * @returns Detached export clone, or null to skip.
  */
 function cloneObjectForExport(object: THREE.Object3D, options: ExportSceneOptions): THREE.Object3D | null {
+  if (objectInOmittedLayerIs(object)) return null;
   if (entityOwnerIs(object)) {
     return cloneEntityOwnerForExport(object, options);
   }
@@ -126,7 +128,6 @@ export function shouldOmitFromExport(object: THREE.Object3D): boolean {
   if (object.userData['isClipPlanePreview'] === true) return true;
   if (object.userData['isBoundsGuideLines'] === true) return true;
   if (object.userData['isGizmoOccludedGhost'] === true) return true;
-  if (object.userData['isBoundsFacePick'] === true) return true;
   if (object.userData['isCadRuler'] === true) return true;
   if (object.userData['isSolidBrushPreview'] === true) return true;
   if (object.userData['isModifierVolume'] === true) return true;

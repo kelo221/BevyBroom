@@ -9,7 +9,6 @@ import type { HandlerAlignment } from '@/outliner/alignment/handler_alignment.js
 import type { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js';
 import type { PanelOutliner } from '@/outliner/ui/panel_outliner.js';
 import type { LayoutShellSourceHost } from './layout_shell_source.js';
-import type { ShellFileMenuShortcutAction } from '@/layout/shell/shell_file_menu_shortcut_action.js';
 
 /**
  * Callback surface required to build a late-bound shell source host without
@@ -31,8 +30,7 @@ export interface LayoutShellHostCallbacks {
   refreshAfterWorldMutation(): void;
   showStatusMessage(message: string): void;
   onSelectionChanged(): void;
-  onToggleUvEditor(): void;
-  onToggleTextureBrowser(): void;
+  faceInspectorReveal(): void;
   onToggleSolidModelPanel(): void;
   onToggleSettingsDialog(): void;
   onOpenDocumentation(): void;
@@ -60,7 +58,6 @@ export interface LayoutShellHostCallbacks {
   onExportGlb(): void;
   onExportObj(): void;
   onExportFbx(): void;
-  getShortcutLabel(action: ShellFileMenuShortcutAction): string;
 }
 
 /**
@@ -138,8 +135,7 @@ export function createShellSourceHostFromLayout(
     refreshAfterWorldMutation: () => actions.refreshAfterWorldMutation(),
     showStatusMessage: (message) => actions.showStatusMessage(message),
     onSelectionChanged: () => actions.onSelectionChanged(),
-    onToggleUvEditor: () => actions.onToggleUvEditor(),
-    onToggleTextureBrowser: () => actions.onToggleTextureBrowser(),
+    faceInspectorReveal: () => actions.faceInspectorReveal(),
     onToggleSolidModelPanel: () => actions.onToggleSolidModelPanel(),
     onToggleSettingsDialog: () => actions.onToggleSettingsDialog(),
     onOpenDocumentation: () => actions.onOpenDocumentation(),
@@ -167,6 +163,5 @@ export function createShellSourceHostFromLayout(
     onExportGlb: () => actions.onExportGlb(),
     onExportObj: () => actions.onExportObj(),
     onExportFbx: () => actions.onExportFbx(),
-    getShortcutLabel: (action) => actions.getShortcutLabel(action),
   };
 }

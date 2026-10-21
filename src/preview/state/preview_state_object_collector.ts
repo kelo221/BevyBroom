@@ -9,6 +9,7 @@ import {
   type PreviewObjectKind,
 } from '@/preview/protocol/preview_protocol_types.js';
 import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
+import { objectInOmittedLayerIs } from '@/layer/model/layer_membership.js';
 
 /**
  * Collects the authored hierarchy of an editor world as preview objects:
@@ -61,11 +62,14 @@ export class PreviewStateObjectCollector {
    * Classifies a scene object.
    *
    * @param object Scene object.
-   * @returns The authored kind, or null for editor helpers and other
-   *   non-content objects. Entity kinds the game does not know are sent as
-   *   groups.
+   * @returns The authored kind, or null for editor helpers, objects in layers
+   *   left out of exports and other non-content objects. Entity kinds the game
+   *   does not know are sent as groups.
    */
   private static kindResolve(object: THREE.Object3D): PreviewObjectKind | null {
+    if (objectInOmittedLayerIs(object)) {
+      return null;
+    }
     const entityKind = entityKindRead(object);
     if (entityKind !== null) {
       return previewObjectKindIs(entityKind) ? entityKind : 'group';

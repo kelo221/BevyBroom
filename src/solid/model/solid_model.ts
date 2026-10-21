@@ -5,6 +5,7 @@ import { SolidBrushFactory } from '@/solid/brush/solid_brush_factory.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { NotificationGlobal } from '@/audio/notification/notification_global.js';
 import { SolidBrushVisual } from './solid_brush_visual.js';
+import { solidBoxSizeVectorResolve, type SolidBoxSize } from './solid_box_size.js';
 import { FaceTextureMapping } from '@/texture/uv/face_texture_mapping.js';
 import { getFaceTextureMaps } from '@/texture/uv/face_texture_storage.js';
 import {
@@ -264,7 +265,7 @@ export class SolidModel {
   /**
    * Adds a centered box brush as a selectable child mesh and rebuilds.
    *
-   * @param size Cube edge length.
+   * @param size Cube edge length, or per-axis width, height and depth.
    * @param operation CSG operation.
    * @param parent Optional solid root or solid CSG group to append under.
    *   Defaults to the solid root when omitted or invalid.
@@ -273,14 +274,15 @@ export class SolidModel {
    * @returns Created brush instance.
    */
   addBoxBrush(
-    size: number = 1,
+    size: SolidBoxSize = 1,
     operation: SolidOperation = SolidOperation.Additive,
     parent: THREE.Object3D | null = null,
     rebuildAfter: boolean = true,
   ): SolidBrushInstance {
     this.brushes.nextBrushCounter();
     const name = hierarchyNameAllocator.allocate('Brush');
-    const brush = SolidBrushFactory.createCenteredBox(size, size, size);
+    const edges = solidBoxSizeVectorResolve(size);
+    const brush = SolidBrushFactory.createCenteredBox(edges.x, edges.y, edges.z);
     const instance = new SolidBrushInstance(this.brushes.allocateBrushId(), name, brush, operation);
     const preview = SolidBrushVisual.createBoxPreview(name, size, operation);
     instance.attachMesh(preview);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { PreviewStateObjectCollector } from '@/preview/state/preview_state_object_collector.js';
-import { previewLightColorChannels } from '@/preview/state/preview_state_light_converter.js';
+import { previewLightColorChannels } from '@/preview/state/preview_state_light_converter_color.js';
 import { LightOwner } from '@/light/model/light_owner.js';
 import { lightSettingsCreateDefault } from '@/light/model/light_settings.js';
 import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js';
@@ -33,6 +33,18 @@ describe('PreviewStateObjectCollector', () => {
     expect(new THREE.Quaternion(...rotation).angleTo(hall.quaternion)).toBeLessThan(1e-6);
     expect(objects[2]?.light?.light_type).toBe('spot');
     expect(objects[2]?.light?.color).toEqual(previewLightColorChannels(0xff8000));
+  });
+
+  it('sends the radius a scaled light stands for while it is being scaled', () => {
+    const world = new THREE.Group();
+    const settings = lightSettingsCreateDefault('point');
+    const lamp = LightOwner.create('Lamp', settings);
+    const scaleFactor = 2.5;
+    lamp.scale.setScalar(scaleFactor);
+    world.add(lamp);
+    const objects = PreviewStateObjectCollector.collect(world);
+    expect(objects[0]?.light?.radius).toBeCloseTo(settings.radius * scaleFactor, 5);
+    expect(LightOwner.settingsRead(lamp)?.radius).toBe(settings.radius);
   });
 
   it('leaves out light visuals and modifier volumes', () => {

@@ -5,6 +5,17 @@ import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { markAsSolidCsgGroup, setSolidGroupOperation } from '@/solid/model/solid_group.js';
+import { LightOwner } from '@/light/model/light_owner.js';
+import { lightSettingsCreateDefault } from '@/light/model/light_settings.js';
+import { RoomOwner } from '@/portal/model/room_owner.js';
+import { roomSettingsCreateDefault } from '@/portal/model/room_settings.js';
+import { PortalOwner } from '@/portal/model/portal_owner.js';
+import { portalSettingsCreateDefault } from '@/portal/model/portal_settings.js';
+import { GameEntityOwner } from '@/game_entity/owner/game_entity_owner.js';
+import { outlinerItemApplyIconFromObject } from '@/outliner/ui/outliner_item_icon.js';
+import type { IconName } from '@/ui/icons/icon_name.js';
+import { IconRegistry } from '@/ui/icons/icon_registry.js';
+import { hexToRgb } from '@/utils/utils_color.js';
 
 describe('ObjectIconFactory.getIcon', () => {
   it('should return group icon for THREE.Group', () => {
@@ -144,6 +155,39 @@ describe('ObjectIconFactory.getIcon', () => {
     const icon = FactoryObjectIcon.getIcon(obj);
     expect(icon.character).toBe('○');
     expect(icon.color).toBe('#7f8c8d');
+  });
+
+  it('takes the icon and color of every authored entity kind from its definition', () => {
+    const spotSettings = { ...lightSettingsCreateDefault('spot'), colorHex: 0x3366ff };
+    const spot = LightOwner.create('Spot', spotSettings);
+    const point = LightOwner.createDefault('Point', 'point');
+    const room = RoomOwner.createDefault('Room');
+    const closedPortal = PortalOwner.create('Closed', { ...portalSettingsCreateDefault(), closed: true });
+    const gameEntity = GameEntityOwner.createDefault('Thing');
+    const cases: [THREE.Object3D, IconName][] = [
+      [spot, LightOwner.definition.iconName(spotSettings)],
+      [point, LightOwner.definition.iconName(lightSettingsCreateDefault('point'))],
+      [room, RoomOwner.definition.iconName(roomSettingsCreateDefault())],
+      [closedPortal, PortalOwner.definition.iconName({ ...portalSettingsCreateDefault(), closed: true })],
+      [gameEntity, GameEntityOwner.definition.iconName({})],
+    ];
+    for (const [owner, expectedIcon] of cases) {
+      expect(FactoryObjectIcon.getIcon(owner).iconName).toBe(expectedIcon);
+    }
+    expect(FactoryObjectIcon.getIcon(spot).iconName).not.toBe(FactoryObjectIcon.getIcon(point).iconName);
+    expect(FactoryObjectIcon.getIcon(spot).color).toBe(hexToRgb(spotSettings.colorHex));
+  });
+
+  it('renders an entity icon as SVG in the outliner glyph slot', () => {
+    const glyph = document.createElement('span');
+    const badge = document.createElement('span');
+    outlinerItemApplyIconFromObject(LightOwner.createDefault('Lamp', 'spot'), glyph, badge);
+    expect(glyph.querySelector('svg path')?.getAttribute('d')).toBe(
+      IconRegistry.pathOf(LightOwner.definition.iconName(lightSettingsCreateDefault('spot'))),
+    );
+    outlinerItemApplyIconFromObject(new THREE.Group(), glyph, badge);
+    expect(glyph.querySelector('svg')).toBeNull();
+    expect(glyph.textContent).toBe('📁');
   });
 
   it('should return ambient light icon for AmbientLight', () => {

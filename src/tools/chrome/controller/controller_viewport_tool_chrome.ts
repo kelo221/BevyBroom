@@ -20,6 +20,7 @@ import {
   type ViewportToolChromeHandlers,
 } from '@/tools/chrome/host/viewport_tool_chrome_host.js';
 import { ViewportToolChromeHoverOwner } from '@/tools/chrome/focus/viewport_tool_chrome_hover_owner.js';
+import type { ViewportToolChromeDocking } from '@/tools/chrome/host/viewport_tool_chrome_docking.js';
 import type { ObjectApplyTransformKind } from '@/types/object_apply_transform_kind.js';
 import type { GridAlignPickMode } from '@/tools/grid/grid_align_pick_mode.js';
 
@@ -33,7 +34,7 @@ export interface ControllerViewportToolChromeDependencies {
   modalToolSessionRegistry: RegistryModalToolSession;
   showStatusMessage: (message: string) => void;
   onTransformMode: (mode: TransformMode) => void;
-  onOpenUvEditor: () => void;
+  faceInspectorReveal: () => void;
   onExtrudeFaces: () => void;
   isEditorToolBusy?: () => boolean;
   switchToClipTool?: () => boolean;
@@ -90,7 +91,8 @@ export interface ControllerViewportToolChromeDependencies {
 
 /**
  * Coordinates Object / Face / Clip tools and Object Mode / Edit Mode across
- * per-pane viewport tool chrome hosts (rail and options bar).
+ * viewport tool chrome hosts (rail and options bar): per-pane floating hosts
+ * and at most one host docked into bars.
  */
 export class ControllerViewportToolChrome {
   private deps: ControllerViewportToolChromeDependencies;
@@ -102,6 +104,7 @@ export class ControllerViewportToolChrome {
   private readonly hosts: Set<ViewportToolChromeHost>;
   private readonly hostsByContainer: Map<HTMLElement, ViewportToolChromeHost>;
   private readonly hoverOwner: ViewportToolChromeHoverOwner;
+  private dockedHost: ViewportToolChromeHost | null;
 
   /**
    * Creates a viewport tool chrome controller.
@@ -118,6 +121,7 @@ export class ControllerViewportToolChrome {
     this.hosts = new Set();
     this.hostsByContainer = new Map();
     this.hoverOwner = new ViewportToolChromeHoverOwner();
+    this.dockedHost = null;
     this.enableObjectToolOverlays();
   }
 
@@ -171,6 +175,34 @@ export class ControllerViewportToolChrome {
     this.hoverOwner.register(host);
     this.pushStateToHost(host);
     return host;
+  }
+
+  /**
+   * Attaches one chrome host docked into bars, replacing an earlier docked
+   * host. It receives the same broadcasts as pane chrome and is always shown.
+   *
+   * @param docking Parents of the tool buttons strip and the tool options
+   *   strip.
+   * @returns Docked chrome host.
+   */
+  dockedChromeAttach(docking: ViewportToolChromeDocking): ViewportToolChromeHost {
+    this.dockedChromeDetach();
+    const host = ViewportToolChromeHost.dockedCreate(docking, this.buildHandlers());
+    this.dockedHost = host;
+    this.hosts.add(host);
+    this.pushStateToHost(host);
+    return host;
+  }
+
+  /** Removes and disposes the docked chrome host when one is attached. */
+  dockedChromeDetach(): void {
+    const host = this.dockedHost;
+    if (!host) {
+      return;
+    }
+    this.dockedHost = null;
+    this.hosts.delete(host);
+    host.dispose();
   }
 
   /**
@@ -367,6 +399,7 @@ export class ControllerViewportToolChrome {
     this.hosts.clear();
     this.hostsByContainer.clear();
     this.hoverOwner.clear();
+    this.dockedHost = null;
   }
 
   /** Activates object selection mode. */
@@ -529,7 +562,7 @@ export class ControllerViewportToolChrome {
       onFlipClipPlane: () => this.deps.clipPlaneHandler.flipPlane(),
       onCommitClip: () => this.deps.clipPlaneHandler.commitClip(),
       onCommitSplit: () => this.deps.clipPlaneHandler.commitSplit(),
-      onOpenUvEditor: () => this.deps.onOpenUvEditor(),
+      faceInspectorReveal: () => this.deps.faceInspectorReveal(),
       onExtrudeFaces: () => this.deps.onExtrudeFaces(),
       onGridReset: () => this.deps.onGridReset?.(),
       onGridAlignToFace: () => this.deps.onGridAlignToFace?.(),

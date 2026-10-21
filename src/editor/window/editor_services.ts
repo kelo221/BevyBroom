@@ -2,6 +2,8 @@ import type { Camera, Mesh, Object3D, Vector3 } from 'three';
 import type { TransformMode } from '@/types/transform_mode.js';
 import type { ISelectable } from '../i_selectable.js';
 import type { EditorViewportPickContext } from './editor_viewport_pick_context.js';
+import type { ObjectDragPointerSample } from '@/tools/object_drag/object_drag_pointer_sample.js';
+import type { ObjectDragSession } from '@/tools/object_drag/object_drag_session.js';
 
 /**
  * Service methods for selection, transform, viewport picking, and interaction
@@ -234,22 +236,14 @@ export interface EditorServices {
   applyObjectClickSelectionAtClientPoint(clientX: number, clientY: number, additive: boolean, toggle: boolean): void;
 
   /**
-   * Selects or deselects meshes whose projected screen centers fall inside a
-   * marquee rectangle in client coordinates.
+   * Starts the object drag a viewport press implies (moving the selection or
+   * drawing a new brush). Optional so hosts without object editing can omit
+   * it.
    *
-   * @param clientMinX Marquee min X.
-   * @param clientMinY Marquee min Y.
-   * @param clientMaxX Marquee max X.
-   * @param clientMaxY Marquee max Y.
-   * @param subtractive True when the marquee removes from selection.
+   * @param press Press client position and the modifier keys held at the press.
+   * @returns Running drag session, or null when the drag does nothing.
    */
-  applyObjectMarqueeSelection(
-    clientMinX: number,
-    clientMinY: number,
-    clientMaxX: number,
-    clientMaxY: number,
-    subtractive: boolean,
-  ): void;
+  beginObjectDragAtClientPoint?: (press: ObjectDragPointerSample) => ObjectDragSession | null;
 
   /**
    * Probes and begins a permanent gizmo or bounds handle drag under a client

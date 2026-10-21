@@ -224,7 +224,7 @@ describe('GizmoTransform', () => {
     expect(countGuideSegments(geometry!)).toBe(24);
   });
 
-  it('hides bounds resize grips on master and clones during body-move suppression only', () => {
+  it('hides bounds resize grips on master and clones only while resizing is forbidden', () => {
     const clone = gizmo.getHandleGroupClone('xyz');
     const selected = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1));
     selected.updateMatrixWorld(true);
@@ -232,10 +232,10 @@ describe('GizmoTransform', () => {
     gizmo.updateBoundsFromMeshes([selected]);
     expect(countVisibleBoundsPickHandles(gizmo.getHandleGroup())).toBe(6);
     expect(countVisibleBoundsPickHandles(clone)).toBe(6);
-    gizmo.setBoundsResizeHandlesVisible(false);
+    gizmo.setBoundsResizeAllowed(false);
     expect(countVisibleBoundsPickHandles(gizmo.getHandleGroup())).toBe(0);
     expect(countVisibleBoundsPickHandles(clone)).toBe(0);
-    gizmo.setBoundsResizeHandlesVisible(true);
+    gizmo.setBoundsResizeAllowed(true);
     expect(countVisibleBoundsPickHandles(gizmo.getHandleGroup())).toBe(6);
     expect(countVisibleBoundsPickHandles(clone)).toBe(6);
   });

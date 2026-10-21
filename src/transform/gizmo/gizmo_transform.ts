@@ -10,7 +10,6 @@ import { BuilderOrientedBounds, DataOrientedBounds } from '@/transform/bounds/bu
 import type { BoundsFace } from '@/types/bounds_face.js';
 import type { CadViewPlane } from '@/rulers/view/cad_view_plane.js';
 import { setGizmoWantedVisible } from './gizmo_viewport_visibility.js';
-import type { BoundsFaceHighlightMode } from '@/transform/bounds/bounds_face_highlight.js';
 import {
   computeBoundsCubeVisualWorldSize,
   computeBoundsCubeWorldSize,
@@ -322,31 +321,39 @@ export class GizmoTransform {
   }
 
   /**
-   * Shows or hides bounds mid-face resize grips (2D CAD ears and 3D arrows) in
-   * all viewports. Used while a bounds body-move (position) drag is active;
-   * resize drags leave grips visible.
+   * Allows or forbids resizing the selection bounds in all viewports. Forbidden
+   * resizing hides the resize grips and turns resize picking off.
    *
-   * @param visible Whether resize grips should be drawn.
+   * @param allowed Whether the selection may be resized.
    */
-  setBoundsResizeHandlesVisible(visible: boolean): void {
-    this.gizmoBounds.setResizeHandlesVisible(visible);
+  setBoundsResizeAllowed(allowed: boolean): void {
+    if (this.gizmoBounds.isResizeAllowed() === allowed) return;
+    this.gizmoBounds.setResizeAllowed(allowed);
     this.lastBoundsPoseSignature = '';
     this.syncMasterTransformToClones();
   }
 
   /**
-   * Highlights a bounds face for resize (orange) or body-move (white, 3D only)
-   * hover on master and all viewport clones.
+   * Returns whether the selection bounds may be resized.
+   *
+   * @returns False when resizing was forbidden for the selection.
+   */
+  isBoundsResizeAllowed(): boolean {
+    return this.gizmoBounds.isResizeAllowed();
+  }
+
+  /**
+   * Highlights a bounds face for resize hover on master and all viewport
+   * clones.
    *
    * @param face Face to highlight, or null to clear.
-   * @param mode Resize vs body-move styling.
    */
-  setHighlightedBoundsFace(face: BoundsFace | null, mode: BoundsFaceHighlightMode = 'resize'): void {
+  setHighlightedBoundsFace(face: BoundsFace | null): void {
     if (this.currentMode !== TransformMode.BOUNDS) return;
-    if (this.gizmoBounds.getHighlightedFace() === face && this.gizmoBounds.getHighlightMode() === mode) {
+    if (this.gizmoBounds.getHighlightedFace() === face) {
       return;
     }
-    this.gizmoBounds.setHighlightedFace(face, mode);
+    this.gizmoBounds.setHighlightedFace(face);
     this.applyBoundsFaceHighlightToAllGroups();
   }
 
@@ -359,21 +366,11 @@ export class GizmoTransform {
     return this.gizmoBounds.getHighlightedFace();
   }
 
-  /**
-   * Returns whether the active bounds face highlight is resize or body-move.
-   *
-   * @returns Highlight mode (defaults to resize when nothing is highlighted).
-   */
-  getHighlightedBoundsFaceMode(): BoundsFaceHighlightMode {
-    return this.gizmoBounds.getHighlightMode();
-  }
-
   /** Re-applies face highlight materials on master and every viewport clone. */
   private applyBoundsFaceHighlightToAllGroups(): void {
-    this.gizmoBounds.applyHighlightToRoot(this.handleGroup, true);
-    this.viewportGroups.forEach((group, index) => {
-      const allowMoveHighlight = (this.viewportPlanes[index] ?? 'xyz') === 'xyz';
-      this.gizmoBounds.applyHighlightToRoot(group, allowMoveHighlight);
+    this.gizmoBounds.applyHighlightToRoot(this.handleGroup);
+    this.viewportGroups.forEach((group) => {
+      this.gizmoBounds.applyHighlightToRoot(group);
     });
   }
 
@@ -561,7 +558,7 @@ export class GizmoTransform {
       this.copyMasterIntoGroup(group);
       const viewPlane = this.viewportPlanes[index] ?? 'xyz';
       this.applyViewPlaneFilters(group, viewPlane);
-      this.gizmoBounds.applyHighlightToRoot(group, viewPlane === 'xyz');
+      this.gizmoBounds.applyHighlightToRoot(group);
     });
   }
 
@@ -583,7 +580,7 @@ export class GizmoTransform {
    */
   private buildBoundsPoseSignature(bounds: DataOrientedBounds | null): string {
     const guides = this.gizmoBounds.areGuideLinesVisible() ? '1' : '0';
-    const grips = this.gizmoBounds.areResizeHandlesVisible() ? '1' : '0';
+    const grips = this.gizmoBounds.isResizeAllowed() ? '1' : '0';
     if (!bounds) return `empty|${guides}|${grips}`;
     const quantizePose = (value: number): string => (Math.round(value * 10000) / 10000).toFixed(4);
     const c = bounds.center;

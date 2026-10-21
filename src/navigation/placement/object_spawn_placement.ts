@@ -367,7 +367,6 @@ function ignoresSpawnOcclusion(object: THREE.Object3D, ignoreModifierVolumes: bo
   if (object.userData[DECORATIVE_EDGE_USERDATA_KEY] === true) return true;
   if (object.userData[SOLID_BRUSH_EDGE_USERDATA_KEY] === true) return true;
   if (object.userData['isWireframeOverlay'] === true) return true;
-  if (object.userData['isBoundsFacePick'] === true) return true;
   if (object.userData['isBoundsGuideLines'] === true) return true;
   if (object.userData['isClipPlanePreview'] === true) return true;
   if (object.userData['isCadRuler'] === true) return true;

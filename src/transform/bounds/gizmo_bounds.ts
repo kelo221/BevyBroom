@@ -9,7 +9,6 @@ import {
   applyBoundsFaceEdgeHighlight,
   BOUNDS_FACE_EDGE_HIGHLIGHT_KEY,
   createUnitFaceEdgeHighlightGeometry,
-  type BoundsFaceHighlightMode,
 } from './bounds_face_highlight.js';
 import {
   BOUNDS_HANDLE_FACE_HALF_KEY,
@@ -43,8 +42,7 @@ export {
 
 /**
  * CAD-style bounds gizmo: cyan wire OBB, axis-tinted resize arrows in 3D,
- * screen-space ears in 2D, full-face pick planes for move, and edge outlines
- * for resize (orange) or 3D body-move (white) hover.
+ * screen-space ears in 2D, and orange edge outlines for resize hover.
  */
 export class GizmoBounds {
   private theme: typeof Theme;
@@ -52,7 +50,6 @@ export class GizmoBounds {
   private rootGroup: THREE.Group;
   private wireframe: THREE.LineSegments | null;
   private handleMeshes: Map<BoundsFace, THREE.Mesh>;
-  private facePickMeshes: Map<BoundsFace, THREE.Mesh>;
   private edgeHighlightMeshes: Map<BoundsFace, THREE.LineSegments>;
   private guideLines: BoundsGuideLines | null;
   private currentBounds: DataOrientedBounds | null;
@@ -60,9 +57,8 @@ export class GizmoBounds {
   private cubeVisualWorldSize: number;
   private earWorldSize: number;
   private guideLinesWanted: boolean;
-  private resizeHandlesWanted: boolean;
+  private resizeAllowed = true;
   private highlightedFace: BoundsFace | null;
-  private highlightMode: BoundsFaceHighlightMode;
   private readonly screenStyle: GizmoBoundsScreenStyle;
 
   /**
@@ -77,7 +73,6 @@ export class GizmoBounds {
     this.rootGroup.name = 'gizmo_bounds';
     this.wireframe = null;
     this.handleMeshes = new Map();
-    this.facePickMeshes = new Map();
     this.edgeHighlightMeshes = new Map();
     this.guideLines = null;
     this.currentBounds = null;
@@ -85,14 +80,11 @@ export class GizmoBounds {
     this.cubeVisualWorldSize = 0.12;
     this.earWorldSize = 0.18;
     this.guideLinesWanted = false;
-    this.resizeHandlesWanted = true;
     this.highlightedFace = null;
-    this.highlightMode = 'resize';
     this.screenStyle = new GizmoBoundsScreenStyle({
       getCurrentBounds: () => this.currentBounds,
-      areResizeHandlesWanted: () => this.resizeHandlesWanted,
+      isResizeAllowed: () => this.resizeAllowed,
       getHighlightedFace: () => this.highlightedFace,
-      getHighlightMode: () => this.highlightMode,
       getTheme: () => this.theme,
       subtleAxisTintColor: (face) => this.subtleAxisTintColor(face),
       getEarWorldSize: () => this.earWorldSize,
@@ -100,8 +92,8 @@ export class GizmoBounds {
   }
 
   /**
-   * Builds wireframe, face picks, mid-face resize handles, edge highlights, and
-   * guide lines.
+   * Builds wireframe, mid-face resize handles, edge highlights, and guide
+   * lines.
    *
    * @returns Gizmo handles for raycast id matching.
    */
@@ -109,15 +101,13 @@ export class GizmoBounds {
     this.disposeInternalResources();
     this.handles = [];
     this.highlightedFace = null;
-    this.highlightMode = 'resize';
     this.rootGroup = new THREE.Group();
     this.rootGroup.name = 'gizmo_bounds';
     this.createWireframe();
-    this.createFacePickMeshes();
     this.createResizeHandles();
     this.createEdgeHighlightMeshes();
     this.createGuideLines();
-    this.showInteractiveParts();
+    this.applyResizeHandleVisibility();
     return this.handles;
   }
 
@@ -169,22 +159,19 @@ export class GizmoBounds {
     this.rootGroup.scale.set(1, 1, 1);
     this.updateWireframeGeometry(bounds.halfExtents);
     this.updateHandlePositions(bounds.halfExtents);
-    this.updateFacePickGeometry(bounds.halfExtents);
     this.updateEdgeHighlightGeometry(bounds.halfExtents);
     this.updateGuideLines(bounds.halfExtents);
-    this.showInteractiveParts();
+    this.applyResizeHandleVisibility();
     this.applyHighlightedFace();
   }
 
   /**
-   * Highlights a bounds face via edge outline (orange resize or white move).
+   * Highlights a bounds face for resize hover via an orange edge outline.
    *
    * @param face Face to outline, or null to clear.
-   * @param mode Resize vs body-move hover styling.
    */
-  setHighlightedFace(face: BoundsFace | null, mode: BoundsFaceHighlightMode = 'resize'): void {
+  setHighlightedFace(face: BoundsFace | null): void {
     this.highlightedFace = face;
-    this.highlightMode = face ? mode : 'resize';
     this.applyHighlightedFace();
   }
 
@@ -198,29 +185,18 @@ export class GizmoBounds {
   }
 
   /**
-   * Returns whether the active outline is resize or body-move.
-   *
-   * @returns Highlight mode.
-   */
-  getHighlightMode(): BoundsFaceHighlightMode {
-    return this.highlightMode;
-  }
-
-  /**
    * Re-applies edge-outline highlight on an arbitrary gizmo root.
    *
    * @param root Group tree containing bounds edge highlight objects.
-   * @param allowMoveHighlight When false, white move outlines are suppressed
-   *   (2D).
    */
-  applyHighlightToRoot(root: THREE.Object3D, allowMoveHighlight: boolean = true): void {
-    applyBoundsFaceEdgeHighlight(root, this.highlightedFace, this.highlightMode, this.theme, allowMoveHighlight);
+  applyHighlightToRoot(root: THREE.Object3D): void {
+    applyBoundsFaceEdgeHighlight(root, this.highlightedFace, this.theme);
     this.screenStyle.applyEarHighlightColors(root);
   }
 
   /** Applies the stored edge highlight on the master root. */
   private applyHighlightedFace(): void {
-    this.applyHighlightToRoot(this.rootGroup, true);
+    this.applyHighlightToRoot(this.rootGroup);
   }
 
   /**
@@ -244,25 +220,23 @@ export class GizmoBounds {
   }
 
   /**
-   * Shows or hides mid-face resize grips (2D CAD ears and 3D face arrows).
-   * Hidden during bounds body-move (position) drags where extents do not
-   * change; kept visible during resize so the active grip stays on the face.
-   * Face pick planes stay so the drag can continue.
+   * Allows or forbids resizing the current selection and shows or hides the
+   * mid-face resize grips (2D CAD ears and 3D face arrows) to match.
    *
-   * @param visible Whether resize grips should be drawn.
+   * @param allowed Whether the selection may be resized.
    */
-  setResizeHandlesVisible(visible: boolean): void {
-    this.resizeHandlesWanted = visible;
+  setResizeAllowed(allowed: boolean): void {
+    this.resizeAllowed = allowed;
     this.applyResizeHandleVisibility();
   }
 
   /**
-   * Returns whether resize grips are requested to be shown.
+   * Returns whether the current selection may be resized.
    *
-   * @returns True when 2D ears / 3D arrows should draw.
+   * @returns False when resizing was forbidden for the selection.
    */
-  areResizeHandlesVisible(): boolean {
-    return this.resizeHandlesWanted;
+  isResizeAllowed(): boolean {
+    return this.resizeAllowed;
   }
 
   /**
@@ -314,46 +288,6 @@ export class GizmoBounds {
     this.wireframe.renderOrder = 999;
     this.wireframe.name = 'bounds_wireframe';
     this.rootGroup.add(this.wireframe);
-  }
-
-  /** Creates six full-face pick planes for move (interior drag). */
-  private createFacePickMeshes(): void {
-    getAllBoundsFaces().forEach((face) => {
-      const mesh = this.createFacePickMesh(face);
-      this.facePickMeshes.set(face, mesh);
-      this.rootGroup.add(mesh);
-    });
-  }
-
-  /**
-   * Creates one nearly-invisible pick plane for a bounds face.
-   *
-   * @param face The face this plane represents.
-   * @returns A configured mesh.
-   */
-  private createFacePickMesh(face: BoundsFace): THREE.Mesh {
-    const geometry = new THREE.PlaneGeometry(2, 2);
-    // Invisible to the renderer (material.visible false) but still raycastable.
-    // Never join the transparent sort list with opacity 0.001 quads — that path
-    // scales poorly with thousands of transparent brush edges in large maps.
-    const material = new THREE.MeshBasicMaterial({
-      color: this.theme.boundsWireColor,
-      transparent: false,
-      opacity: 1,
-      depthTest: false,
-      depthWrite: false,
-      colorWrite: false,
-      side: THREE.DoubleSide,
-      toneMapped: false,
-    });
-    material.visible = false;
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.userData[BOUNDS_FACE_USERDATA_KEY] = face;
-    mesh.userData['isBoundsFacePick'] = true;
-    mesh.name = `bounds_face_pick_${face}`;
-    mesh.renderOrder = 998;
-    this.orientFaceMesh(mesh, face);
-    return mesh;
   }
 
   /**
@@ -483,8 +417,8 @@ export class GizmoBounds {
 
   /**
    * Styles a viewport gizmo clone for its view plane: arrows stay in 3D; 2D
-   * panes get flat CAD ears on in-plane faces and hide depth-axis resize grips.
-   * Face pick planes remain so body-drag still works.
+   * panes get flat CAD ears on in-plane faces and hide depth-axis resize
+   * grips.
    *
    * @param root Viewport gizmo clone root.
    * @param viewPlane Plane for this viewport (`xyz` = perspective).
@@ -571,17 +505,6 @@ export class GizmoBounds {
   }
 
   /**
-   * Sizes and places face pick planes on each OBB face.
-   *
-   * @param halfExtents Local half extents of the OBB.
-   */
-  private updateFacePickGeometry(halfExtents: THREE.Vector3): void {
-    this.facePickMeshes.forEach((mesh, face) => {
-      this.placeAndScaleFaceOverlay(mesh, face, halfExtents);
-    });
-  }
-
-  /**
    * Sizes and places edge highlight loops on each OBB face.
    *
    * @param halfExtents Local half extents of the OBB.
@@ -593,7 +516,7 @@ export class GizmoBounds {
   }
 
   /**
-   * Positions and scales a face-aligned overlay (pick plane or edge loop).
+   * Positions and scales a face-aligned edge loop overlay.
    *
    * @param object Face-aligned object.
    * @param face Bounds face.
@@ -629,7 +552,7 @@ export class GizmoBounds {
   /**
    * Orients an object so local +Z matches the bounds face normal.
    *
-   * @param object The plane or edge object.
+   * @param object The face-aligned object.
    * @param face The target face.
    */
   private orientFaceMesh(object: THREE.Object3D, face: BoundsFace): void {
@@ -639,21 +562,13 @@ export class GizmoBounds {
     object.quaternion.copy(quaternion);
   }
 
-  /** Shows face picks and applies the current resize-grip visibility policy. */
-  private showInteractiveParts(): void {
-    this.applyResizeHandleVisibility();
-    this.facePickMeshes.forEach((mesh) => {
-      mesh.visible = true;
-    });
-  }
-
   /**
-   * Applies {@link resizeHandlesWanted} to every mid-face resize grip root
-   * (including nested 3D arrow visuals).
+   * Shows every mid-face resize grip root (including nested 3D arrow visuals)
+   * when resizing is allowed, and hides them otherwise.
    */
   private applyResizeHandleVisibility(): void {
     this.handleMeshes.forEach((mesh) => {
-      mesh.visible = this.resizeHandlesWanted;
+      mesh.visible = this.resizeAllowed;
     });
   }
 
@@ -704,11 +619,9 @@ export class GizmoBounds {
     this.disposeObjectTree(this.rootGroup);
     this.wireframe = null;
     this.handleMeshes.clear();
-    this.facePickMeshes.clear();
     this.edgeHighlightMeshes.clear();
     this.currentBounds = null;
     this.guideLinesWanted = false;
-    this.resizeHandlesWanted = true;
     this.highlightedFace = null;
   }
 

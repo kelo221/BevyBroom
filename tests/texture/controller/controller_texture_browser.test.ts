@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ControllerTextureBrowser } from '@/texture/controller/controller_texture_browser.js';
-import { TextureBrowser } from '@/texture/ui/browser/texture_browser.js';
+import { MaterialBrowser } from '@/texture/ui/material_browser/material_browser.js';
 import { TextureLibrary } from '@/texture/library/texture_library.js';
 import { LocalDirectoryAccess, PickedDirectoryListing } from '@/texture/library/local_directory_access.js';
 import { mockObjectUrlApis } from '../../texture/library/utils_object_url_test.js';
 
-describe('TextureBrowserController', () => {
+describe('ControllerTextureBrowser', () => {
   let host: HTMLElement;
-  let browser: TextureBrowser;
+  let browser: MaterialBrowser;
   let library: TextureLibrary;
   let directoryAccess: LocalDirectoryAccess;
   let controller: ControllerTextureBrowser;
@@ -18,12 +18,13 @@ describe('TextureBrowserController', () => {
     host = document.createElement('div');
     document.body.appendChild(host);
     mockObjectUrlApis('blob:ctrl');
-    browser = new TextureBrowser(host, {
+    browser = new MaterialBrowser({
       onOpenFolder: () => {
         void controller.openFolder();
       },
-      onSelectTexture: (entryId) => controller.selectTexture(entryId),
+      onSelectTexture: (entryId: string) => controller.selectTexture(entryId),
     });
+    host.appendChild(browser.getElement());
     library = new TextureLibrary();
     directoryAccess = createMockDirectoryAccess(null);
     statusMessages = [];
@@ -75,7 +76,6 @@ describe('TextureBrowserController', () => {
     await controller.openFolder();
     expect(controller.getLibrary().getEntryCount()).toBe(2);
     expect(controller.getLibrary().getFolderName()).toBe('Walls');
-    browser.show();
     expect(host.textContent).toContain('Checker');
     expect(host.textContent).toContain('brick');
     expect(host.textContent).toContain('Folder: Walls');
@@ -107,7 +107,6 @@ describe('TextureBrowserController', () => {
     controller.refreshBrowserUi();
     await controller.openFolder();
     expect(controller.getLibrary().getEntryCount()).toBe(2);
-    browser.show();
     expect(host.textContent).toContain('2 texture(s)');
   });
 

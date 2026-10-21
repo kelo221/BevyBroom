@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { exportContentMaterialResolve, shouldOmitFromExport } from '@/io/scene/builder_export_scene.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { CLIP_PREVIEW_USERDATA_KEY } from '@/tools/clip_plane/clip_plane_preview.js';
+import { objectInOmittedLayerIs } from '@/layer/model/layer_membership.js';
 
 /**
  * Builds a cheap text signature of everything that ends up inside exported
@@ -26,13 +27,17 @@ export class PreviewGeometrySignature {
   }
 
   /**
-   * Appends the signature of one object and its exported descendants.
+   * Appends the signature of one object and its exported descendants. Objects
+   * in layers left out of exports add nothing.
    *
    * @param object Scene object.
    * @param parts Output signature parts.
    */
   private static objectAppend(object: THREE.Object3D, parts: string[]): void {
     if (object.userData[CLIP_PREVIEW_USERDATA_KEY] === true || shouldOmitFromExport(object)) {
+      return;
+    }
+    if (objectInOmittedLayerIs(object)) {
       return;
     }
     if (SolidModel.isSolidModelObject(object)) {

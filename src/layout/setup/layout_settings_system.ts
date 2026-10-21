@@ -3,7 +3,7 @@ import { DialogSettings } from '@/ui/settings/dialog_settings.js';
 import { EditorSettingsStore } from '@/settings/store/editor_settings_store.js';
 import { SettingsApplicator } from '@/settings/store/settings_applicator.js';
 import { performEditorFactoryReset } from '@/settings/storage/clear_editor_storage.js';
-import type { ViewSettings } from '@/settings/store/settings_types.js';
+import type { MouseSettings, ViewSettings } from '@/settings/store/settings_types.js';
 import { getTextureMapCache } from '@/texture/library/texture_map_cache.js';
 import { createTextureFilterPolicy } from '@/texture/library/policy_texture_filter.js';
 import type { Viewport3D } from '@/viewports/core/viewport_3d.js';
@@ -64,7 +64,7 @@ export function createLayoutSettingsSystem(deps: LayoutSettingsCreateDeps): Layo
     deps.onVisibleSlots,
     deps.onViewportPaneCount,
   );
-  applyFlyingCameraMoveSpeed(deps.getPerspectiveViewport(), settingsStore.getMouseSettings().moveSpeed);
+  applyFlyingCameraMouseSettings(deps.getPerspectiveViewport(), settingsStore.getMouseSettings());
   applyLayoutTextureFilterSettings(deps.getRendererHost(), settingsStore.getViewSettings());
   const settingsUnsubscribe = settingsStore.subscribe((snapshot) => {
     settingsApplicator.applySnapshot(snapshot);
@@ -76,7 +76,7 @@ export function createLayoutSettingsSystem(deps: LayoutSettingsCreateDeps): Layo
       deps.onVisibleSlots,
       deps.onViewportPaneCount,
     );
-    applyFlyingCameraMoveSpeed(deps.getPerspectiveViewport(), snapshot.mouse.moveSpeed);
+    applyFlyingCameraMouseSettings(deps.getPerspectiveViewport(), snapshot.mouse);
     applyLayoutTextureFilterSettings(deps.getRendererHost(), snapshot.view);
   });
   return { settingsStore, settingsApplicator, settingsUnsubscribe };
@@ -115,6 +115,18 @@ export function runEditorFactoryResetAndReload(): void {
  */
 export function applyFlyingCameraMoveSpeed(viewport: Viewport3D | null, moveSpeed: number): void {
   viewport?.setFlyingCameraMoveSpeed(moveSpeed);
+}
+
+/**
+ * Applies the mouse settings that drive the 3D flying camera when a perspective
+ * viewport is present.
+ *
+ * @param viewport Perspective viewport or null.
+ * @param mouse Current mouse settings snapshot.
+ */
+export function applyFlyingCameraMouseSettings(viewport: Viewport3D | null, mouse: MouseSettings): void {
+  applyFlyingCameraMoveSpeed(viewport, mouse.moveSpeed);
+  viewport?.setFlyingCameraAltMiddleDragDolly(mouse.altMiddleMouseDragMovesCamera, mouse.invertAltMiddleMouseDragZAxis);
 }
 
 /**

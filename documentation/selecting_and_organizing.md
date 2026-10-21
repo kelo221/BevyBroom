@@ -9,7 +9,8 @@ Use Object Select when you want to transform complete objects or scene groups.
 - Click an object to replace the selection.
 - `Shift+click` adds another object.
 - `Ctrl+click` toggles an object in or out.
-- Drag across a viewport to select multiple visible objects.
+- Drag a selected object to move the selection; dragging elsewhere does not
+  change the selection.
 - Click an item in the hierarchy when objects overlap or are difficult to reach.
 
 Press `Tab` to return to Object Select from another selection tool. The status bar should read **Selection: Object**.
@@ -18,7 +19,7 @@ Press `Tab` to return to Object Select from another selection tool. The status b
 
 Use Face Select for surface-level work such as extrusion and per-face textures.
 
-1. Press `Shift+Tab` or choose **Face Select** in the Tools panel.
+1. Press `Shift+Tab` or click the **Face Select** tool button in the toolbar.
 2. Click a visible face.
 3. Add more faces with selection modifiers or a drag selection.
 4. Watch the face count in the status bar.
@@ -79,12 +80,28 @@ Lock completed or reference objects so that normal edits do not move or alter th
 
 If a multi-object change affects only part of the selection, check whether some items are locked.
 
+## Copy, cut and paste
+
+- `Ctrl+C` copies the selected objects and brushes to the clipboard as text.
+- `Ctrl+X` cuts: it copies the selection and deletes it as one undo step.
+- `Ctrl+V` pastes under the mouse pointer. In Perspective the copy rests
+  against the surface under the pointer; in a 2D view it lands under the
+  pointer at its original depth. The placement snaps to the grid.
+- `Ctrl+Alt+V` pastes at the position the objects were copied from.
+- Pasted objects get new ids, join the current layer and become the
+  selection. Pasted brushes join the active solid model, or a new `World`
+  solid model when the scene has none. One undo removes a paste.
+- The clipboard holds plain text, so you can paste into another BevyBroom
+  window. Text that holds no BevyBroom objects is ignored, and copying and
+  pasting inside a text field works as usual.
+- The same commands are in the Edit menu.
+
 ## Duplicate and delete
 
-- `Ctrl+D` duplicates the selection.
-- Hold `Alt` while dragging a selected object with a viewport transform handle
-  or bounds face to create a duplicate and move the copy in one gesture. The
-  original stays in place and the new copy becomes selected.
+- `Ctrl+D` duplicates the selection in place.
+- Hold `Ctrl` when you start dragging a selected object in a viewport to
+  create a duplicate and move the copy in one gesture. The original stays in
+  place, the new copy becomes selected, and one undo removes both steps.
 - `Delete` removes the selection.
 - The Edit menu and hierarchy context menu provide the same actions.
 
