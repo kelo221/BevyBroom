@@ -38,6 +38,7 @@ export class PreviewE2eGameProcess {
   private readonly projectDirectory: string;
   private readonly port: number;
   private readonly isWindowShown: boolean;
+  private readonly extraArguments: readonly string[];
   private child: ChildProcess | null = null;
   private readonly logFile: string;
 
@@ -49,12 +50,21 @@ export class PreviewE2eGameProcess {
    * @param port Bridge port the game listens on.
    * @param isWindowShown Shows the game window; otherwise the game runs with a
    *   hidden window.
+   * @param extraArguments More command line arguments, such as `--scene` or
+   *   `--level`.
    */
-  constructor(executable: string, projectDirectory: string, port: number, isWindowShown: boolean) {
+  constructor(
+    executable: string,
+    projectDirectory: string,
+    port: number,
+    isWindowShown: boolean,
+    extraArguments: readonly string[] = [],
+  ) {
     this.executable = executable;
     this.projectDirectory = projectDirectory;
     this.port = port;
     this.isWindowShown = isWindowShown;
+    this.extraArguments = extraArguments;
     this.logFile = join(projectDirectory, 'preview_e2e_game.log');
   }
 
@@ -77,7 +87,13 @@ export class PreviewE2eGameProcess {
    * shown.
    */
   start(): void {
-    const projectArguments = ['--project', PREVIEW_E2E_PROJECT_FILE_NAME, '--port', String(this.port)];
+    const projectArguments = [
+      '--project',
+      PREVIEW_E2E_PROJECT_FILE_NAME,
+      '--port',
+      String(this.port),
+      ...this.extraArguments,
+    ];
     if (!this.isWindowShown) {
       projectArguments.push('--hidden');
     }

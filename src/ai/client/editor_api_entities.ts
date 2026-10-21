@@ -1,19 +1,16 @@
-import * as THREE from 'three';
 import type { EditorApiHost } from './editor_api_host.js';
+import { editorApiTransformApply, type EditorApiTransformArgs } from './editor_api_transform.js';
 import { failResult, okResult } from './editor_api_result.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 import type { EntityKind } from '@/entity/model/entity_owner_keys.js';
 import type { EntityOwner } from '@/entity/model/entity_owner.js';
-import { entityOwnerRegistryFindByKind } from '@/entity/registry/entity_owner_registry.js';
+import { EntityOwnerRegistry } from '@/entity/registry/entity_owner_registry.js';
 import { CommandEntitySettingsSet } from '@/entity/commands/command_entity_settings_set.js';
 import { CommandPrimitiveCreate } from '@/tools/creation/commands/command_primitive_create.js';
 
 /** Arguments of the add_light, add_room and add_portal tools. */
-export interface EntityAddArgs {
+export interface EntityAddArgs extends EditorApiTransformArgs {
   name?: string;
-  position?: { x: number; y: number; z: number };
-  rotationDegrees?: { x: number; y: number; z: number };
-  scale?: { x: number; y: number; z: number };
   settings?: Record<string, unknown>;
 }
 
@@ -57,7 +54,7 @@ export class EditorApiEntities {
       return failResult(`Invalid ${kind} settings`);
     }
     const owner = entityOwner.create(args.name ?? this.entityDefaultName(kind), settings);
-    this.entityTransformApply(owner, args);
+    editorApiTransformApply(owner, args);
     this.host.commandStack.push(new CommandPrimitiveCreate(owner, this.host.worldObject));
     this.host.refreshAfterWorldMutation();
     return okResult(`Added ${kind} ${owner.name}`, { id: owner.uuid, settings }, { createdIds: [owner.uuid] });
@@ -94,7 +91,7 @@ export class EditorApiEntities {
    * @returns Owner helper.
    */
   private entityOwnerOfKind(kind: EntityKind): EntityOwner<object> {
-    const entityOwner = entityOwnerRegistryFindByKind(kind);
+    const entityOwner = EntityOwnerRegistry.findByKind(kind);
     if (!entityOwner) {
       throw new Error(`Entity kind ${kind} is not registered`);
     }
@@ -115,30 +112,6 @@ export class EditorApiEntities {
     partial: Record<string, unknown> | undefined,
   ): object | null {
     return entityOwner.definition.settingsFromUnknown({ ...base, ...(partial ?? {}) });
-  }
-
-  /**
-   * Places a new entity owner at the requested position, rotation and scale.
-   *
-   * @param owner New entity owner.
-   * @param args Transform arguments; missing parts keep the defaults.
-   */
-  private entityTransformApply(owner: THREE.Object3D, args: EntityAddArgs): void {
-    if (args.position) {
-      owner.position.set(args.position.x, args.position.y, args.position.z);
-    }
-    if (args.rotationDegrees) {
-      const radians = THREE.MathUtils.degToRad;
-      owner.rotation.set(
-        radians(args.rotationDegrees.x),
-        radians(args.rotationDegrees.y),
-        radians(args.rotationDegrees.z),
-      );
-    }
-    if (args.scale) {
-      owner.scale.set(args.scale.x, args.scale.y, args.scale.z);
-    }
-    owner.updateMatrixWorld(true);
   }
 
   /**

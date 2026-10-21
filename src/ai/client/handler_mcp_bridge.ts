@@ -23,14 +23,14 @@ export class HandlerMcpBridge {
    * Invokes a named tool with JSON arguments.
    *
    * @param params Tool name and arguments from the MCP host.
-   * @returns Tool result envelope.
+   * @returns Tool result envelope once the tool finished.
    */
-  invokeEditorTool(params: McpInvokeEditorToolParams): McpToolResult {
+  async invokeEditorTool(params: McpInvokeEditorToolParams): Promise<McpToolResult> {
     if (!this.editorApi) {
       return { ok: false, message: 'Editor API is not ready' };
     }
     const args = params.arguments && typeof params.arguments === 'object' ? params.arguments : {};
-    return this.editorApi.invokeTool(params.name, args);
+    return this.editorApi.invokeToolAsync(params.name, args);
   }
 }
 

@@ -3,8 +3,10 @@
  * the game bridge reads them with serde.
  */
 
+import type { PreviewAuthoredComponents } from '@/preview/protocol/preview_protocol_placeable_types.js';
+
 /** Wire protocol version spoken by this editor. */
-export const PREVIEW_PROTOCOL_VERSION = 2;
+export const PREVIEW_PROTOCOL_VERSION = 3;
 
 /** Default game preview endpoint of the Bevy remote server. */
 export const PREVIEW_DEFAULT_ENDPOINT = 'http://127.0.0.1:15702';
@@ -18,10 +20,27 @@ export const PREVIEW_METHOD = {
   readAsset: 'broom.read_asset',
   bakePreview: 'broom.bake_preview',
   loadLevel: 'broom.load_level',
+  placeableClasses: 'broom.placeable_classes',
+  dataAssetRead: 'broom.data_asset_read',
+  dataAssetWrite: 'broom.data_asset_write',
 } as const;
 
+/** Every authored object kind the game bridge understands. */
+export const PREVIEW_OBJECT_KINDS = ['mesh', 'group', 'solid', 'light', 'room', 'portal', 'game_entity'] as const;
+
 /** What an authored object is. */
-export type PreviewObjectKind = 'mesh' | 'group' | 'solid' | 'light' | 'room' | 'portal';
+export type PreviewObjectKind = (typeof PREVIEW_OBJECT_KINDS)[number];
+
+/**
+ * Returns whether a kind name is an authored object kind the game bridge
+ * understands.
+ *
+ * @param kind Candidate kind name.
+ * @returns True for wire object kinds.
+ */
+export function previewObjectKindIs(kind: string): kind is PreviewObjectKind {
+  return (PREVIEW_OBJECT_KINDS as readonly string[]).includes(kind);
+}
 
 /** One authored light in game units. */
 export interface PreviewAuthoredLight {
@@ -64,6 +83,7 @@ export interface PreviewAuthoredObject {
   light?: PreviewAuthoredLight;
   room?: PreviewAuthoredRoom;
   portal?: PreviewAuthoredPortal;
+  components?: PreviewAuthoredComponents;
 }
 
 /** Complete authored snapshot of one document. */
@@ -128,6 +148,9 @@ export interface PreviewBridgeStatus {
   bake_message: string | null;
   catalog_material_count: number;
   catalog_error: string | null;
+  placeable_class_count: number;
+  placed_component_count: number;
+  data_asset_generation: number;
   errors: PreviewBridgeError[];
 }
 

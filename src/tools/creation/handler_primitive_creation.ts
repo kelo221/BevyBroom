@@ -117,32 +117,32 @@ export class HandlerPrimitiveCreation {
 
   /** Creates a point light and registers it with the command stack. */
   createPointLight(): void {
-    this.createEntity(() => LightOwner.createDefault('Point Light', 'point'), 0.25);
+    this.entityCreatePlaced(() => LightOwner.createDefault('Point Light', 'point'), 0.25);
   }
 
   /** Creates a spot light and registers it with the command stack. */
   createSpotLight(): void {
-    this.createEntity(() => LightOwner.createDefault('Spot Light', 'spot'), 0.25);
+    this.entityCreatePlaced(() => LightOwner.createDefault('Spot Light', 'spot'), 0.25);
   }
 
   /** Creates a room cell and registers it with the command stack. */
   createRoom(): void {
-    this.createEntity(() => RoomOwner.createDefault('Room'), 0.25);
+    this.entityCreatePlaced(() => RoomOwner.createDefault('Room'), 0.25);
   }
 
   /** Creates a portal and registers it with the command stack. */
   createPortal(): void {
-    this.createEntity(() => PortalOwner.createDefault('Portal'), 0.25);
+    this.entityCreatePlaced(() => PortalOwner.createDefault('Portal'), 0.25);
   }
 
   /**
-   * Entity creation flow with view-ray placement that selects the new entity's
-   * marker.
+   * Places a new entity owner at the view-ray spawn point as one undoable step
+   * and selects its marker.
    *
    * @param factory Creates the entity owner group.
    * @param objectRadius Approximate half-extent used for wall clearance.
    */
-  private createEntity(factory: () => THREE.Group, objectRadius: number): void {
+  entityCreatePlaced(factory: () => THREE.Group, objectRadius: number): void {
     if (this.selectionManager.isSelectionChangeLocked()) {
       this.selectionManager.notifySelectionChangeBlocked();
       return;

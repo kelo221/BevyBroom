@@ -7,6 +7,12 @@ import type { PreviewBridgeStatus } from '@/preview/protocol/preview_protocol_ty
 import { PreviewE2eGameProcess, previewE2eProjectCopy, previewE2eProjectRemove } from '../preview_e2e_game_process.js';
 import { e2eWindowsShownRead, previewE2eEnvironmentRead } from '../preview_e2e_environment.js';
 import { previewE2eOnlyPortalClosedIs } from '../preview_e2e_game_query.js';
+import {
+  PREVIEW_E2E_DOOR_COMPONENT,
+  PREVIEW_E2E_DOOR_STATS_ASSET,
+  PREVIEW_E2E_GAME_ENTITY_COMPONENT,
+  previewE2eObjectComponentRead,
+} from '../preview_e2e_game_components.js';
 import { DesktopE2eAppProcess } from './desktop_e2e_app_process.js';
 import { DesktopE2eMcpClient } from './desktop_e2e_mcp_client.js';
 import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
@@ -250,6 +256,62 @@ describe.skipIf(desktopExecutable === '')('desktop app end to end', () => {
       }
     },
     STEP_TIMEOUT_MILLISECONDS * 2,
+  );
+
+  it.skipIf(!previewEnvironment.isConfigured)(
+    'places a game entity through MCP that the running game receives with its overrides',
+    async () => {
+      await desktopE2eWaitUntil(
+        'the game classes to reach the editor',
+        async () => {
+          const listed = toolDataRead<{ classes: Array<{ type_path: string }> }>(
+            await client.toolCallExpectOk('list_game_classes'),
+          );
+          return listed.classes.some((gameClass) => gameClass.type_path === PREVIEW_E2E_DOOR_COMPONENT) ? true : null;
+        },
+        STEP_TIMEOUT_MILLISECONDS,
+      );
+      const added = await client.toolCallExpectOk('add_game_entity', {
+        class: PREVIEW_E2E_DOOR_COMPONENT,
+        position: { x: 0, y: 0, z: HALL_SIZE.z / 4 },
+        fields: { key_name: 'desktop' },
+      });
+      const entityId = toolDataRead<{ id: string }>(added).id;
+      const transport = new PreviewLinkTransportHttp(previewEnvironment.endpoint);
+      await desktopE2eWaitUntil(
+        'the door to reach the game',
+        async () => {
+          const door = await previewE2eObjectComponentRead(
+            transport,
+            PREVIEW_E2E_GAME_ENTITY_COMPONENT,
+            entityId,
+            PREVIEW_E2E_DOOR_COMPONENT,
+          ).catch(() => null);
+          return door?.['key_name'] === 'desktop' ? true : null;
+        },
+        STEP_TIMEOUT_MILLISECONDS,
+      );
+    },
+    STEP_TIMEOUT_MILLISECONDS * 2,
+  );
+
+  it.skipIf(!previewEnvironment.isConfigured)(
+    'reads a data asset file of the running game through MCP',
+    async () => {
+      const listed = toolDataRead<{ assetTypes: Array<{ type_path: string; paths: string[] }> }>(
+        await client.toolCallExpectOk('list_game_classes'),
+      );
+      const path = listed.assetTypes.find((assetType) => assetType.type_path === PREVIEW_E2E_DOOR_STATS_ASSET)
+        ?.paths[0];
+      expect(path).toBeDefined();
+      const read = toolDataRead<{ path: string; typePath: string; values: Record<string, unknown> }>(
+        await client.toolCallExpectOk('read_data_asset', { path }),
+      );
+      expect(read.path).toBe(path);
+      expect(read.typePath).toBe(PREVIEW_E2E_DOOR_STATS_ASSET);
+      expect(typeof read.values).toBe('object');
+    },
+    STEP_TIMEOUT_MILLISECONDS,
   );
 
   it(

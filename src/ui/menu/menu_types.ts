@@ -41,6 +41,11 @@ export interface ToolbarMenuSubmenu {
   /** Nested entries shown in the flyout. */
   children: ToolbarMenuEntry[];
   /**
+   * Optional live source of the nested entries, evaluated whenever the menu
+   * opens or refreshes. When present it replaces {@link children}.
+   */
+  childrenResolve?: () => ToolbarMenuEntry[];
+  /**
    * Optional live enablement check for the parent row. When false, the submenu
    * cannot open.
    */

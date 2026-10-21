@@ -7,7 +7,7 @@ import { CONTENT_METALNESS, CONTENT_ROUGHNESS } from '@/materials/factory_conten
 import { isContentViewLitMaterial } from '@/materials/factory_content_view_lit_material.js';
 import { isDefaultSurfaceTexture } from '@/texture/library/factory_debug_texture.js';
 import { entityOwnerIs, entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
-import { PortalExportCellBuilder } from '@/portal/export/portal_export_cell_builder.js';
+import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
 import { LightmapUvLayout } from '@/io/glb/lightmap/lightmap_uv_layout.js';
 import { MATERIAL_IDENTITY_EXPORT_EXTRAS_KEY, materialIdentityRead } from '@/materials/identity/material_identity.js';
 import {
@@ -41,6 +41,11 @@ export interface ExportSceneOptions {
    * extras.
    */
   includeRoomAndPortalNodes?: boolean;
+  /**
+   * Writes game entities as empty nodes and every object's game components as
+   * `broom_components` extras.
+   */
+  includeGameComponents?: boolean;
   /** Adds a non-overlapping second UV set (`uv1`) to every mesh for lightmaps. */
   includeLightmapUvs?: boolean;
 }
@@ -88,8 +93,8 @@ export function buildExportScene(worldGroup: THREE.Group, options: ExportSceneOp
  * @returns Detached export clone, or null to skip.
  */
 function cloneObjectForExport(object: THREE.Object3D, options: ExportSceneOptions): THREE.Object3D | null {
-  if (options.includeRoomAndPortalNodes === true && entityOwnerIs(object)) {
-    return cloneRoomOrPortalForExport(object);
+  if (entityOwnerIs(object)) {
+    return cloneEntityOwnerForExport(object, options);
   }
   if (shouldOmitFromExport(object)) return null;
   if (SolidModel.isSolidModelObject(object)) {
@@ -131,18 +136,20 @@ export function shouldOmitFromExport(object: THREE.Object3D): boolean {
 }
 
 /**
- * Clones a room or portal owner as a group holding its DynLight extras node.
+ * Clones an entity owner as a group holding the export children an object data
+ * contributor builds for it.
  *
  * @param owner Entity owner.
- * @returns Export group, or null when the owner is neither a room nor a portal.
+ * @param options Export behavior switches.
+ * @returns Export group, or null when no contributor exports the owner.
  */
-function cloneRoomOrPortalForExport(owner: THREE.Object3D): THREE.Group | null {
-  const cell = PortalExportCellBuilder.cellCreate(owner);
-  if (!cell) return null;
+function cloneEntityOwnerForExport(owner: THREE.Object3D, options: ExportSceneOptions): THREE.Group | null {
+  const children = ObjectDataContributorRegistry.exportEntityChildrenCreate(owner, options);
+  if (children === null) return null;
   const group = new THREE.Group();
-  copyObjectTransformAndIdentity(owner, group);
+  copyObjectTransformAndIdentity(owner, group, options);
   group.name = owner.name;
-  group.add(cell);
+  children.forEach((child) => group.add(child));
   return group;
 }
 
@@ -157,7 +164,7 @@ function cloneSolidModelForExport(solidRoot: THREE.Object3D, options: ExportScen
   const resultMesh = findSolidResultMesh(solidRoot);
   if (!resultMesh) return null;
   const group = new THREE.Group();
-  copyObjectTransformAndIdentity(solidRoot, group);
+  copyObjectTransformAndIdentity(solidRoot, group, options);
   group.name = solidRoot.name || 'SolidModel';
   const resultClone = cloneContentMeshForExport(resultMesh, options);
   group.add(resultClone);
@@ -188,7 +195,7 @@ function findSolidResultMesh(solidRoot: THREE.Object3D): THREE.Mesh | null {
  */
 function cloneGroupForExport(group: THREE.Group, options: ExportSceneOptions): THREE.Group | null {
   const clone = new THREE.Group();
-  copyObjectTransformAndIdentity(group, clone);
+  copyObjectTransformAndIdentity(group, clone, options);
   clone.name = group.name;
   let childCount = 0;
   group.children.forEach((child) => {
@@ -214,7 +221,7 @@ function cloneGroupForExport(group: THREE.Group, options: ExportSceneOptions): T
 function cloneContentMeshForExport(mesh: THREE.Mesh, options: ExportSceneOptions): THREE.Mesh {
   const geometry = options.includeLightmapUvs === true ? LightmapUvLayout.geometryWithLightmapUvs(mesh) : mesh.geometry;
   const clone = new THREE.Mesh(geometry, cloneMaterialsForExport(exportContentMaterialResolve(mesh), options));
-  copyObjectTransformAndIdentity(mesh, clone);
+  copyObjectTransformAndIdentity(mesh, clone, options);
   clone.userData[EXPORT_STATIC_MESH_EXTRAS_KEY] = true;
   clone.name = mesh.name;
   clone.visible = mesh.visible;
@@ -347,16 +354,23 @@ function isEditorOnlySurfaceMap(map: THREE.Texture | null): boolean {
 }
 
 /**
- * Copies local transform and visibility from source to target and stores the
- * source identifier in the target extras.
+ * Copies local transform and visibility from source to target, stores the
+ * source identifier in the target extras and lets every object data contributor
+ * add its extras.
  *
  * @param source Live object.
  * @param target Export object.
+ * @param options Export behavior switches.
  */
-function copyObjectTransformAndIdentity(source: THREE.Object3D, target: THREE.Object3D): void {
+function copyObjectTransformAndIdentity(
+  source: THREE.Object3D,
+  target: THREE.Object3D,
+  options: ExportSceneOptions,
+): void {
   target.position.copy(source.position);
   target.quaternion.copy(source.quaternion);
   target.scale.copy(source.scale);
   target.visible = source.visible;
   target.userData[EXPORT_OBJECT_IDENTITY_EXTRAS_KEY] = source.uuid;
+  ObjectDataContributorRegistry.exportExtrasWrite(source, target, options);
 }

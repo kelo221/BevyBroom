@@ -32,6 +32,22 @@ export class GlbExporter {
   }
 
   /**
+   * Exports the given group the way File > Export GLB writes it for games: with
+   * lightmap UVs, room and portal nodes and game components in node extras.
+   *
+   * @param worldGroup The live editor world root to export.
+   * @param profile Active game profile, or null to skip the conversion.
+   * @returns A promise resolving to the GLB ArrayBuffer.
+   */
+  exportForFile(worldGroup: THREE.Group, profile: GameProfile | null = null): Promise<ArrayBuffer> {
+    return this.export(worldGroup, profile, {
+      includeLightmapUvs: true,
+      includeRoomAndPortalNodes: true,
+      includeGameComponents: true,
+    });
+  }
+
+  /**
    * Builds a filtered export graph and applies the optional profile transform.
    * The original world group remains untouched.
    *

@@ -26,6 +26,7 @@ These guides explain the editor from a user's point of view. You do not need to 
 
 - [Saving, loading, importing, and exporting](files_import_and_export.md)
 - [Game preview and lights](game_preview.md) — mirror the scene into your running Bevy game.
+- [Game components and data assets](game_components.md) — place your game's own components and edit shared data files.
 - [Settings and game profiles](settings_and_profiles.md)
 - [Building and running from source](building_and_running.md)
 - [Build command reference](build_command_reference.md)

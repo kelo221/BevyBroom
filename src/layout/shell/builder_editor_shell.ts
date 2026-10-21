@@ -46,6 +46,11 @@ export interface EditorToolbarActions {
   onAddSpotLight: () => void;
   onAddRoom: () => void;
   onAddPortal: () => void;
+  /**
+   * Adds an entity owner built by a factory at the spawn point as one undoable
+   * step and selects it.
+   */
+  onAddEntityPlaced: (factory: () => THREE.Group, objectRadius: number) => void;
   onUndo: () => void;
   onRedo: () => void;
   onToggleUvEditor: () => void;

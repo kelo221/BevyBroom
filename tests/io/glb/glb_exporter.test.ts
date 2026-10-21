@@ -10,6 +10,9 @@ import { createDefaultGameProfile } from '@/settings/store/settings_defaults.js'
 import { getBuiltInCoordinateSpace } from '@/settings/coordinate/coordinate_space_presets.js';
 import { buildExportRootTransform } from '@/io/coordinates/coordinate_space_transform.js';
 import type { GameProfile } from '@/settings/store/settings_types.js';
+import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
+import { GameEntityOwner } from '@/game_entity/owner/game_entity_owner.js';
+import { glbJsonRead } from './glb_json_read.js';
 
 /** GLB file format magic number (little-endian 'glTF'). */
 const GLB_MAGIC_NUMBER = 0x46546c67;
@@ -29,6 +32,23 @@ describe('GlbExporter', () => {
     const buffer = await exporter.export(worldGroup);
     expect(buffer).toBeInstanceOf(ArrayBuffer);
     expect(buffer.byteLength).toBeGreaterThan(0);
+  });
+
+  it('writes game components into node extras and game entities as empty nodes for file export', async () => {
+    const typePath = 'test_game::doors::Door';
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial());
+    mesh.name = 'Pad';
+    GameEntityComponentStore.write(mesh, { [typePath]: { speed: 3 } });
+    const entity = GameEntityOwner.createDefault('Spawn');
+    GameEntityComponentStore.write(entity, { [typePath]: {} });
+    worldGroup.add(mesh, entity);
+    const nodes = glbJsonRead(await exporter.exportForFile(worldGroup)).nodes ?? [];
+    const extrasOf = (name: string): unknown => nodes.find((node) => node.name === name)?.extras?.['broom_components'];
+    expect(extrasOf('Pad')).toEqual({ [typePath]: { speed: 3 } });
+    expect(extrasOf('Spawn')).toEqual({ [typePath]: {} });
+    expect(nodes.find((node) => node.name === 'Spawn')?.mesh).toBeUndefined();
+    const plainNodes = glbJsonRead(await exporter.export(worldGroup)).nodes ?? [];
+    expect(plainNodes.some((node) => node.extras?.['broom_components'] !== undefined)).toBe(false);
   });
 
   it('should produce valid GLB header for empty group', async () => {

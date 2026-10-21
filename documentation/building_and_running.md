@@ -195,7 +195,7 @@ set BROOM_E2E_PROJECT_DIR=..\AiWorldEdBevy
 bun run e2e
 ```
 
-The preview tests mirror scenes into the game through the editor's real preview link: lights, rooms and portals, doors opening and closing, failed geometry loads, bakes, renamed levels and Save As. The desktop test starts the app with its MCP server on, builds two rooms joined by a door through MCP tools the way an AI client would, checks them in the game, then relaunches the app and reopens the scene. Without the desktop variable only the preview tests run; without the preview variables the desktop test runs without a game. `bun run testrun` skips all of them unless the variables are set.
+The preview tests mirror scenes into the game through the editor's real preview link: lights, rooms and portals, doors opening and closing, failed geometry loads, bakes, renamed levels, Save As, and game components with their data assets, including a shipped GLB loaded by a second game. The desktop test starts the app with its MCP server on, builds two rooms joined by a door through MCP tools the way an AI client would, checks them in the game, places a game entity and reads a data asset through MCP, then relaunches the app and reopens the scene. Without the desktop variable only the preview tests run; without the preview variables the desktop test runs without a game. `bun run testrun` skips all of them unless the variables are set.
 
 The tests run without showing any window: the game is started with `--hidden` and the desktop app with `BEVYBROOM_DESKTOP_HIDDEN=1`. Both still render with the GPU, so they need a normal desktop session rather than a server without graphics. Set `BROOM_E2E_SHOW_WINDOWS=1` to see them in action.
 

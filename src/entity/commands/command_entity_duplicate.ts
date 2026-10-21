@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
 import type { UndoCommand } from '@/commands/command_undo.js';
-import { entityOwnerRegistryFind } from '@/entity/registry/entity_owner_registry.js';
+import { EntityOwnerRegistry } from '@/entity/registry/entity_owner_registry.js';
+import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
 
 /** One duplicated entity with the source it is inserted after. */
 interface EntityDuplicatePlacement {
@@ -11,9 +12,9 @@ interface EntityDuplicatePlacement {
 
 /**
  * Undoable duplication of entity owners of any kind. Each copy keeps the source
- * transform, settings, visibility and parent and is placed directly after its
- * source. The same copies are reused across undo and redo so their identifiers
- * stay stable.
+ * transform, settings, visibility, parent and the data features store on it,
+ * and is placed directly after its source. The same copies are reused across
+ * undo and redo so their identifiers stay stable.
  */
 export class CommandEntityDuplicate implements UndoCommand {
   private readonly placements: EntityDuplicatePlacement[];
@@ -65,7 +66,7 @@ export class CommandEntityDuplicate implements UndoCommand {
    */
   private placementAppend(sourceOwner: THREE.Object3D): void {
     const parent = sourceOwner.parent;
-    const entityOwner = entityOwnerRegistryFind(sourceOwner);
+    const entityOwner = EntityOwnerRegistry.find(sourceOwner);
     const settings = entityOwner?.settingsRead(sourceOwner) ?? null;
     if (parent === null || entityOwner === null || settings === null) {
       return;
@@ -75,6 +76,7 @@ export class CommandEntityDuplicate implements UndoCommand {
     clone.quaternion.copy(sourceOwner.quaternion);
     clone.scale.copy(sourceOwner.scale);
     clone.visible = sourceOwner.visible;
+    ObjectDataContributorRegistry.duplicateDataCopy(sourceOwner, clone);
     this.placements.push({ clone, source: sourceOwner, parent });
   }
 

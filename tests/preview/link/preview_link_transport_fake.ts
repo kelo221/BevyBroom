@@ -24,6 +24,9 @@ export class PreviewLinkTransportFake extends PreviewLinkTransport {
     generation: 1,
     texture_generation: 0,
   };
+  placeableClassesReply: unknown = { generation: 1, asset_generation: 0, classes: [], asset_types: [] };
+  readonly dataAssetFiles = new Map<string, { type_path: string; values: unknown }>();
+  dataAssetGeneration = 0;
 
   /**
    * Answers one call.
@@ -69,8 +72,14 @@ export class PreviewLinkTransportFake extends PreviewLinkTransport {
     if (method === PREVIEW_METHOD.catalog) {
       return this.catalogReply;
     }
+    if (method === PREVIEW_METHOD.placeableClasses) {
+      return this.placeableClassesReply;
+    }
     if (method === PREVIEW_METHOD.readAsset) {
       return { path: (params as { path: string }).path, base64: 'iVBORw0KGgo=' };
+    }
+    if (method === PREVIEW_METHOD.dataAssetRead || method === PREVIEW_METHOD.dataAssetWrite) {
+      return this.dataAssetReplyCreate(method, params as { path: string; type_path: string; values: unknown });
     }
     if (method === PREVIEW_METHOD.applyState) {
       const revision = (params as { revision: number }).revision;
@@ -79,5 +88,25 @@ export class PreviewLinkTransportFake extends PreviewLinkTransport {
       return { accepted, verdict: accepted ? 'newer' : 'stale', revision };
     }
     return { accepted: true, verdict: 'newer', revision: 1 };
+  }
+
+  /**
+   * Reads or writes a data asset file of the in-memory game.
+   *
+   * @param method Data asset read or write method.
+   * @param params Path, and for writes the type path and values.
+   * @returns Read reply or write reply.
+   */
+  private dataAssetReplyCreate(method: string, params: { path: string; type_path: string; values: unknown }): unknown {
+    if (method === PREVIEW_METHOD.dataAssetWrite) {
+      this.dataAssetFiles.set(params.path, { type_path: params.type_path, values: params.values });
+      this.dataAssetGeneration += 1;
+      return { path: params.path, generation: this.dataAssetGeneration };
+    }
+    const file = this.dataAssetFiles.get(params.path);
+    if (!file) {
+      throw new PreviewLinkTransportError(`${params.path}: file not found`, false);
+    }
+    return { path: params.path, ...file };
   }
 }

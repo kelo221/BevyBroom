@@ -1,4 +1,5 @@
 import { MCP_ENTITY_TOOL_DEFINITIONS } from './registry_mcp_tool_entities.js';
+import { MCP_GAME_ENTITY_TOOL_DEFINITIONS } from './registry_mcp_tool_game_entities.js';
 import { emptySchema, tool, vec3Schema, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
 export type { McpToolDefinition } from './registry_mcp_tool_helpers.js';
@@ -768,6 +769,7 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   ),
   ...MCP_ENTITY_TOOL_DEFINITIONS,
+  ...MCP_GAME_ENTITY_TOOL_DEFINITIONS,
 ];
 
 /**
