@@ -33,10 +33,12 @@ describe('createAddMenuEntries', () => {
   it('groups every creation action into the expected category', () => {
     const actions = createActionSpies();
     const entries = createAddMenuEntries(actions);
-    expect(getEntryLabels(entries)).toEqual(['Geometry', 'Terrain', 'Brushes']);
+    expect(getEntryLabels(entries)).toEqual(['Geometry', 'Terrain', 'Brushes', 'Lights', 'Portals']);
     expect(getEntryLabels(getSubmenuChildren(entries[0]!))).toEqual(['Cube', 'Sphere', 'Cylinder', 'Plane']);
     expect(getEntryLabels(getSubmenuChildren(entries[1]!))).toEqual(['Terrain']);
     expect(getEntryLabels(getSubmenuChildren(entries[2]!))).toEqual(['Solid Model', 'Bevel Volume']);
+    expect(getEntryLabels(getSubmenuChildren(entries[3]!))).toEqual(['Point Light', 'Spot Light']);
+    expect(getEntryLabels(getSubmenuChildren(entries[4]!))).toEqual(['Room', 'Portal']);
   });
 
   it('routes every categorized item to its existing creation callback', () => {
@@ -64,5 +66,9 @@ function createActionSpies(): AddMenuActions {
     onAddTerrain: vi.fn(),
     onAddSolidModel: vi.fn(),
     onAddBevelVolume: vi.fn(),
+    onAddPointLight: vi.fn(),
+    onAddSpotLight: vi.fn(),
+    onAddRoom: vi.fn(),
+    onAddPortal: vi.fn(),
   };
 }

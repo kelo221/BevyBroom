@@ -17,7 +17,7 @@ export interface StandaloneUpdaterBridge {
 
 declare global {
   interface Window {
-    aiworldedStandaloneUpdater?: StandaloneUpdaterBridge;
+    bevybroomStandaloneUpdater?: StandaloneUpdaterBridge;
   }
 }
 
@@ -28,7 +28,7 @@ declare global {
  */
 export function getStandaloneUpdaterBridge(): StandaloneUpdaterBridge | null {
   if (typeof window === 'undefined') return null;
-  const bridge = window.aiworldedStandaloneUpdater;
+  const bridge = window.bevybroomStandaloneUpdater;
   return bridge && typeof bridge.installUpdate === 'function' ? bridge : null;
 }
 

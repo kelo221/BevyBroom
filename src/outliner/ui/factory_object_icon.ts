@@ -4,6 +4,10 @@ import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { getSolidGroupOperation, isSolidCsgGroup } from '@/solid/model/solid_group.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
+import { isLightOwner } from '@/light/model/light_owner_keys.js';
+import { LightOwner } from '@/light/model/light_owner.js';
+import { PortalOwner } from '@/portal/model/portal_owner.js';
+import { RoomOwner } from '@/portal/model/room_owner.js';
 
 /** Icon configuration for different object types in the outliner. */
 export interface ObjectIcon {
@@ -62,17 +66,16 @@ export class FactoryObjectIcon {
    * @returns The icon configuration with character and color.
    */
   static getIcon(obj: THREE.Object3D): ObjectIcon {
-    if (SolidModel.isSolidModelObject(obj)) {
-      return this.getSolidModelIcon();
+    const solidIcon = this.getSolidIconOrNull(obj);
+    if (solidIcon) {
+      return solidIcon;
     }
-    if (SolidBrushVisual.isBrushObject(obj)) {
-      return this.getSolidBrushIcon(obj);
+    if (isLightOwner(obj)) {
+      return this.getLightOwnerIcon(obj);
     }
-    if (SolidModel.isResultMesh(obj)) {
-      return this.getSolidResultIcon();
-    }
-    if (isSolidCsgGroup(obj)) {
-      return this.getSolidCsgGroupIcon(obj);
+    const portalIcon = this.getRoomOrPortalIconOrNull(obj);
+    if (portalIcon) {
+      return portalIcon;
     }
     if (obj instanceof THREE.Group) {
       return this.getGroupIcon();
@@ -88,6 +91,61 @@ export class FactoryObjectIcon {
       return this.getCameraIcon();
     }
     return this.getGenericIcon();
+  }
+
+  /**
+   * Returns the solid-model, brush, result, or CSG group icon for an object.
+   *
+   * @param obj The Three.js object to classify.
+   * @returns The solid icon, or null when the object is not part of a solid
+   *   model.
+   */
+  private static getSolidIconOrNull(obj: THREE.Object3D): ObjectIcon | null {
+    if (SolidModel.isSolidModelObject(obj)) {
+      return this.getSolidModelIcon();
+    }
+    if (SolidBrushVisual.isBrushObject(obj)) {
+      return this.getSolidBrushIcon(obj);
+    }
+    if (SolidModel.isResultMesh(obj)) {
+      return this.getSolidResultIcon();
+    }
+    if (isSolidCsgGroup(obj)) {
+      return this.getSolidCsgGroupIcon(obj);
+    }
+    return null;
+  }
+
+  /**
+   * Returns the point or spot icon for an authored light owner.
+   *
+   * @param owner The light owner group.
+   * @returns The icon matching the stored light kind.
+   */
+  private static getLightOwnerIcon(owner: THREE.Object3D): ObjectIcon {
+    const settings = LightOwner.settingsRead(owner);
+    if (settings?.kind === 'spot') {
+      return this.getSpotLightIcon();
+    }
+    return this.getPointLightIcon();
+  }
+
+  /**
+   * Returns the room or portal icon for an authored room or portal owner.
+   *
+   * @param obj The object to classify.
+   * @returns A cyan box for rooms, a green or red doorway for open or closed
+   *   portals, or null for other objects.
+   */
+  private static getRoomOrPortalIconOrNull(obj: THREE.Object3D): ObjectIcon | null {
+    if (RoomOwner.isOwner(obj)) {
+      return { character: '⬚', color: '#4fc3f7' };
+    }
+    const portal = PortalOwner.settingsRead(obj);
+    if (portal) {
+      return { character: '⊓', color: portal.closed ? '#ef5350' : '#66bb6a' };
+    }
+    return null;
   }
 
   /**

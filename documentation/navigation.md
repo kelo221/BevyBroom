@@ -1,6 +1,6 @@
 # Navigation
 
-Good navigation in AiWorldEd means using the Perspective view to understand the space and the orthographic views to place things accurately.
+Good navigation in BevyBroom means using the Perspective view to understand the space and the orthographic views to place things accurately.
 
 ## Perspective view
 

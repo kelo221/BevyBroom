@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
 import { rebakeStoredFaceTextureMaps } from '@/texture/uv/planar_uv_projector.js';
 import { isResultMesh, isSolidModelObject } from '@/solid/model/solid_model_keys.js';
 import { SOLID_BRUSH_USERDATA_KEY } from '@/solid/model/solid_brush_visual.js';
@@ -244,5 +245,6 @@ export function isContentMeshEligibleForTextureLockRebake(mesh: THREE.Mesh): boo
   if (isResultMesh(mesh)) return false;
   if (isSolidModelObject(mesh)) return false;
   if (mesh.userData[SOLID_BRUSH_USERDATA_KEY] === true) return false;
+  if (entityVisualPartIs(mesh)) return false;
   return true;
 }

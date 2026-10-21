@@ -6,6 +6,13 @@ export const SURFACE_UV_MIN_SCALE = 1e-4;
 /** Quantization step for decomposed rotation (degrees). */
 const ROTATION_SNAP_STEP = 1e-4;
 
+/**
+ * Tolerance (degrees) for the ±90° fold boundary. Half the rotation snap step,
+ * so any rotation that quantizes to exactly 90° stays at +90° instead of
+ * folding to −90° with mirrored scale because of floating-point noise.
+ */
+const ROTATION_FOLD_TOLERANCE_DEG = ROTATION_SNAP_STEP / 2;
+
 /** Quantization step for decomposed translation. */
 const TRANSLATION_SNAP_STEP = 1 / 32768;
 
@@ -176,8 +183,8 @@ export class SurfaceUvMatrix {
   /**
    * Returns the UV plane normal oriented onto the same side as a preferred face
    * normal. Mirroring (negative scale) flips U×V; TRS extract must stay on the
-   * authored face side so scale signs round-trip (Chisel UVMatrix Decompose
-   * recovers signed scale against a stable orientation).
+   * authored face side so scale signs round-trip (signed scale is recovered
+   * against a stable orientation).
    *
    * @param preferredNormal Geometric face or projection normal.
    * @returns Unit normal for TRS decompose.
@@ -197,8 +204,8 @@ export class SurfaceUvMatrix {
   /**
    * Decomposes this matrix into translation, rotation, and signed scale
    * relative to a face normal. Scale is UV units per world unit (inverse of
-   * meters-per-tile). Negative scale mirrors that axis (Chisel UVMatrix sign
-   * recovery: prefer rotation in (−90°, 90°] and put 180° flips into scale).
+   * meters-per-tile). Negative scale mirrors that axis (sign recovery prefers
+   * rotation in (−90°, 90°] and puts 180° flips into scale).
    *
    * @param faceNormal Face normal used for the plane orientation.
    * @returns Decomposed TRS parameters.
@@ -387,8 +394,9 @@ function measureUAxisRotationDegrees(uDirection: THREE.Vector3, faceNormal: THRE
 
 /**
  * Folds 180° U flips into negative scale so rotation stays in (−90°, 90°],
- * matching Chisel UVMatrix intent to recover negative scale instead of
- * absorbing it into rotation.
+ * recovering negative scale instead of absorbing it into rotation. Rotations
+ * within {@link ROTATION_FOLD_TOLERANCE_DEG} of either boundary resolve to the
+ * +90° side so floating-point noise cannot flip the result.
  *
  * @param fullRotationDeg Full U-axis rotation (−180°, 180°].
  * @param positiveScaleU Positive U magnitude.
@@ -398,16 +406,13 @@ function foldRotationIntoSignedScale(
   fullRotationDeg: number,
   positiveScaleU: number,
 ): { rotationDeg: number; scaleU: number } {
-  let rotationDeg = fullRotationDeg;
-  let scaleU = positiveScaleU;
-  if (rotationDeg > 90) {
-    rotationDeg -= 180;
-    scaleU = -scaleU;
-  } else if (rotationDeg <= -90) {
-    rotationDeg += 180;
-    scaleU = -scaleU;
+  if (fullRotationDeg > 90 + ROTATION_FOLD_TOLERANCE_DEG) {
+    return { rotationDeg: fullRotationDeg - 180, scaleU: -positiveScaleU };
   }
-  return { rotationDeg, scaleU };
+  if (fullRotationDeg <= -90 + ROTATION_FOLD_TOLERANCE_DEG) {
+    return { rotationDeg: fullRotationDeg + 180, scaleU: -positiveScaleU };
+  }
+  return { rotationDeg: fullRotationDeg, scaleU: positiveScaleU };
 }
 
 /**

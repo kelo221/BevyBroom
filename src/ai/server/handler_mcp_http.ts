@@ -29,7 +29,7 @@ export async function handleMcpHttpRequest(request: Request, invoker: EditorTool
     return jsonResponse({ error: 'Origin not allowed' }, 403);
   }
   if (request.method === 'GET') {
-    return jsonResponse({ ok: true, message: 'AiWorldEd MCP endpoint. Use POST for JSON-RPC.' });
+    return jsonResponse({ ok: true, message: 'BevyBroom MCP endpoint. Use POST for JSON-RPC.' });
   }
   if (request.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405);

@@ -17,8 +17,8 @@ describe('package_desktop_release script', () => {
     const outputDir = join(root, 'release_dist');
     mkdirSync(inputDir, { recursive: true });
     writeFileSync(join(inputDir, 'stable-win-x64-update.json'), '{"version":"1.0.99","hash":"abc"}');
-    writeFileSync(join(inputDir, 'stable-win-x64-AiWorldEd.tar.zst'), 'portable-bytes');
-    writeFileSync(join(inputDir, 'stable-win-x64-AiWorldEd-Setup.zip'), 'setup-bytes');
+    writeFileSync(join(inputDir, 'stable-win-x64-BevyBroom.tar.zst'), 'portable-bytes');
+    writeFileSync(join(inputDir, 'stable-win-x64-BevyBroom-Setup.zip'), 'setup-bytes');
     writeFileSync(join(inputDir, 'stable-win-x64-1a42wpx0i4p0k.patch'), 'patch-bytes');
 
     const result = spawnSync(
@@ -30,12 +30,12 @@ describe('package_desktop_release script', () => {
     expect(result.status, result.stderr || result.stdout).toBe(0);
     const files = readdirSync(outputDir).sort();
     expect(files).toEqual([
-      'AiWorldEd-1.0.99-Win-x64-Setup.zip',
-      'stable-win-x64-AiWorldEd.tar.zst',
+      'BevyBroom-1.0.99-Win-x64-Setup.zip',
+      'stable-win-x64-BevyBroom.tar.zst',
       'stable-win-x64-update.json',
     ]);
-    expect(readFileSync(join(outputDir, 'AiWorldEd-1.0.99-Win-x64-Setup.zip'), 'utf8')).toBe('setup-bytes');
-    expect(readFileSync(join(outputDir, 'stable-win-x64-AiWorldEd.tar.zst'), 'utf8')).toBe('portable-bytes');
+    expect(readFileSync(join(outputDir, 'BevyBroom-1.0.99-Win-x64-Setup.zip'), 'utf8')).toBe('setup-bytes');
+    expect(readFileSync(join(outputDir, 'stable-win-x64-BevyBroom.tar.zst'), 'utf8')).toBe('portable-bytes');
   });
 
   it('packages linux setup and macos portable updater pairs without duplicates', () => {
@@ -44,10 +44,10 @@ describe('package_desktop_release script', () => {
     const outputDir = join(root, 'release_dist');
     mkdirSync(inputDir, { recursive: true });
     writeFileSync(join(inputDir, 'stable-linux-x64-update.json'), '{"version":"1.0.99","hash":"linux"}');
-    writeFileSync(join(inputDir, 'stable-linux-x64-AiWorldEd.tar.zst'), 'linux-portable');
-    writeFileSync(join(inputDir, 'stable-linux-x64-AiWorldEd-Setup.tar.gz'), 'linux-setup');
+    writeFileSync(join(inputDir, 'stable-linux-x64-BevyBroom.tar.zst'), 'linux-portable');
+    writeFileSync(join(inputDir, 'stable-linux-x64-BevyBroom-Setup.tar.gz'), 'linux-setup');
     writeFileSync(join(inputDir, 'stable-macos-arm64-update.json'), '{"version":"1.0.99","hash":"mac"}');
-    writeFileSync(join(inputDir, 'stable-macos-arm64-AiWorldEd.app.tar.zst'), 'mac-portable');
+    writeFileSync(join(inputDir, 'stable-macos-arm64-BevyBroom.app.tar.zst'), 'mac-portable');
 
     const result = spawnSync(
       'bun',
@@ -58,10 +58,10 @@ describe('package_desktop_release script', () => {
     expect(result.status, result.stderr || result.stdout).toBe(0);
     const files = readdirSync(outputDir).sort();
     expect(files).toEqual([
-      'AiWorldEd-1.0.99-Linux-x64-Setup.tar.gz',
-      'stable-linux-x64-AiWorldEd.tar.zst',
+      'BevyBroom-1.0.99-Linux-x64-Setup.tar.gz',
+      'stable-linux-x64-BevyBroom.tar.zst',
       'stable-linux-x64-update.json',
-      'stable-macos-arm64-AiWorldEd.app.tar.zst',
+      'stable-macos-arm64-BevyBroom.app.tar.zst',
       'stable-macos-arm64-update.json',
     ]);
     expect(files.filter((name) => name.includes('Portable'))).toHaveLength(0);
@@ -72,7 +72,7 @@ describe('package_desktop_release script', () => {
     const inputDir = join(root, 'desktop_artifacts');
     const outputDir = join(root, 'release_dist');
     mkdirSync(inputDir, { recursive: true });
-    writeFileSync(join(inputDir, 'stable-linux-x64-AiWorldEd.tar.zst'), 'portable-bytes');
+    writeFileSync(join(inputDir, 'stable-linux-x64-BevyBroom.tar.zst'), 'portable-bytes');
 
     const result = spawnSync(
       'bun',
@@ -98,7 +98,7 @@ describe('package_desktop_release script', () => {
  * @returns Absolute temporary workspace path.
  */
 function createTempWorkspace(): string {
-  const directory = mkdtempSync(join(tmpdir(), 'aiworlded-release-'));
+  const directory = mkdtempSync(join(tmpdir(), 'bevybroom-release-'));
   temporaryDirectories.push(directory);
   return directory;
 }

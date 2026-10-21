@@ -4,7 +4,7 @@ import type { GitHubRelease, StandaloneUpdateInstallRequest } from '@/updater/up
 
 describe('StandaloneUpdateService', () => {
   it('finds and installs a newer compatible executable through the host bridge', async () => {
-    const release = createRelease('v1.2.0', 'AiWorldEd-windows-installer.exe');
+    const release = createRelease('v1.2.0', 'BevyBroom-windows-installer.exe');
     const installUpdate = vi.fn<(request: StandaloneUpdateInstallRequest) => Promise<void>>();
     const service = createService(release, { platform: 'windows', installUpdate });
 
@@ -15,7 +15,7 @@ describe('StandaloneUpdateService', () => {
     expect(installUpdate).toHaveBeenCalledWith({
       version: 'v1.2.0',
       downloadUrl: release.assets[0]!.browserDownloadUrl,
-      fileName: 'AiWorldEd-windows-installer.exe',
+      fileName: 'BevyBroom-windows-installer.exe',
       releasePageUrl: release.releasePageUrl,
     });
   });
@@ -28,7 +28,7 @@ describe('StandaloneUpdateService', () => {
   });
 
   it('does not call GitHub from a browser build that lacks an install bridge', async () => {
-    const fetchLatestRelease = vi.fn(async () => createRelease('v9.0.0', 'AiWorldEd-windows.exe'));
+    const fetchLatestRelease = vi.fn(async () => createRelease('v9.0.0', 'BevyBroom-windows.exe'));
     const service = new StandaloneUpdateService({
       client: { fetchLatestRelease },
       bridge: null,
@@ -48,7 +48,7 @@ describe('StandaloneUpdateService', () => {
       updateAvailable: true,
     }));
     const installUpdate = vi.fn(async () => undefined);
-    const fetchLatestRelease = vi.fn(async () => createRelease('v9.0.0', 'AiWorldEd-windows.exe'));
+    const fetchLatestRelease = vi.fn(async () => createRelease('v9.0.0', 'BevyBroom-windows.exe'));
     const service = new StandaloneUpdateService({
       client: { fetchLatestRelease },
       bridge: { kind: 'electrobun', checkForUpdate, installUpdate },
@@ -107,7 +107,7 @@ function createService(
 function createRelease(version: string, assetName: string): GitHubRelease {
   return {
     tagName: version,
-    title: `AiWorldEd ${version}`,
+    title: `BevyBroom ${version}`,
     releasePageUrl: 'https://github.com/Henry00IS/AiWorldEd/releases/tag/v1.2.0',
     notes: 'Test release notes',
     assets: [

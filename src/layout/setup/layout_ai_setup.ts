@@ -6,6 +6,7 @@ import type { GridSnap } from '@/transform/snap/grid_snap.js';
 import type { ManagerSnap } from '@/transform/snap/manager_snap.js';
 import { EditorApi } from '@/ai/client/editor_api.js';
 import { sharedMcpBridgeHandler } from '@/ai/client/handler_mcp_bridge.js';
+import type { EditorApiHost } from '@/ai/client/editor_api_host.js';
 
 /** Host fields required to wire the AI EditorApi bridge. */
 export interface LayoutAiSetupHost {
@@ -23,6 +24,10 @@ export interface LayoutAiSetupHost {
   getScene?: () => THREE.Scene | null;
   /** Shared WebGL renderer for offline AI capture_view. */
   getRenderer?: () => THREE.WebGLRenderer | null;
+  /** Returns the game preview link, creating it on first use. */
+  previewLinkServiceEnsure?: EditorApiHost['previewLinkServiceEnsure'];
+  /** Replaces the open scene with scene file text as Load does. */
+  sceneDocumentLoad?: EditorApiHost['sceneDocumentLoad'];
 }
 
 /** Result of AI layout wiring. */
@@ -54,6 +59,8 @@ export function setupLayoutAi(host: LayoutAiSetupHost): LayoutAiSetupResult {
     showStatus: host.showStatusMessage,
     ...(host.getScene ? { getScene: host.getScene } : {}),
     ...(host.getRenderer ? { getRenderer: host.getRenderer } : {}),
+    ...(host.previewLinkServiceEnsure ? { previewLinkServiceEnsure: host.previewLinkServiceEnsure } : {}),
+    ...(host.sceneDocumentLoad ? { sceneDocumentLoad: host.sceneDocumentLoad } : {}),
   });
   sharedMcpBridgeHandler.bindEditorApi(editorApi);
   return { editorApi };

@@ -6,7 +6,7 @@ import { hexToRgb } from '@/utils/utils_color.js';
  * panels/toolbar: flat dark greys, orange selection accents.
  */
 
-const STYLE_ELEMENT_ID = 'aiworlded-settings-dialog-styles';
+const STYLE_ELEMENT_ID = 'bevybroom-settings-dialog-styles';
 
 /** Ensures settings dialog animation styles exist once in the document. */
 export function ensureSettingsDialogStyles(): void {

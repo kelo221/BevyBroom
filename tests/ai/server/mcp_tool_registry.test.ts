@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { findMcpTool, listMcpTools } from '@/ai/server/registry_mcp_tool.js';
 import { dispatchMcpToolCall } from '@/ai/server/mcp_tool_dispatch.js';
+import { EditorApi } from '@/ai/client/editor_api.js';
+import { editorApiTestHostCreate } from '../client/editor_api_test_host.js';
 
 /** Unit tests for MCP tool catalog and dispatch. */
 describe('mcp_tool_registry', () => {
@@ -43,6 +45,32 @@ describe('mcp_tool_registry', () => {
     expect(findMcpTool('capture_view')).toBeDefined();
     expect(findMcpTool('capture_view')?.description.toLowerCase()).toContain('picture');
     expect(findMcpTool('capture_view')?.description.toLowerCase()).toContain('jpeg');
+  });
+
+  it('lists the light, room, portal, preview and scene document tools', () => {
+    const entityToolNames = [
+      'add_light',
+      'set_light_settings',
+      'add_room',
+      'set_room_settings',
+      'add_portal',
+      'set_portal_settings',
+      'preview_connect',
+      'preview_status',
+      'get_scene_document',
+      'load_scene_document',
+    ];
+    const listedNames = listMcpTools().tools.map((listed) => listed.name);
+    expect(listedNames).toEqual(expect.arrayContaining(entityToolNames));
+    expect(findMcpTool('set_portal_settings')?.description.toLowerCase()).toContain('open and close');
+  });
+
+  it('routes every listed tool to an editor API handler', () => {
+    const api = new EditorApi(editorApiTestHostCreate().host);
+    const unroutedNames = listMcpTools()
+      .tools.map((listed) => listed.name)
+      .filter((name) => api.invokeTool(name, {}).message.startsWith('Unknown tool'));
+    expect(unroutedNames).toEqual([]);
   });
 
   it('dispatches known tools through the invoker', async () => {

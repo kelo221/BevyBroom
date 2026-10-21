@@ -7,7 +7,7 @@ import { createContentMaterial } from '@/materials/factory_content_material.js';
 import { setFaceTextureMaps } from '@/texture/uv/face_texture_storage.js';
 import { rebakeStoredFaceTextureMaps } from '@/texture/uv/planar_uv_projector.js';
 import { initializeMeshTextureUVs } from '@/texture/uv/face_texture_applier.js';
-import { FaceTextureMapEntry } from '@/texture/uv/face_texture_mapping.js';
+import { deserializeFaceTextureMapping } from '@/texture/uv/face_texture_mapping.js';
 import { rebuildSurfaceMaterials } from '@/texture/material/builder_surface_material.js';
 import { DEFAULT_CHECKER_TEXTURE_ID } from '@/texture/library/texture_id.js';
 import { CLIP_PREVIEW_USERDATA_KEY } from '@/tools/clip_plane/clip_plane_preview.js';
@@ -20,6 +20,8 @@ import {
   modifierBevelClampUvSpace,
 } from '@/modifier/volume/modifier_volume_bevel_keys.js';
 import { modifierBevelRefreshScene } from '@/modifier/compile/modifier_bevel_scene_refresh.js';
+import { entityOwnerRegistryFindByKind } from '@/entity/registry/entity_owner_registry.js';
+import { documentIdentityReset, documentIdentityWrite } from '@/io/document/document_identity.js';
 
 /**
  * Reconstructs a Three.js scene graph from serialized JSON data. Performs two
@@ -35,17 +37,19 @@ export class SceneDeserializer {
 
   /**
    * Removes and disposes scene content while preserving editor helpers such as
-   * the clip-plane preview.
+   * the clip-plane preview, and assigns the world a fresh document identifier.
    *
    * @param worldGroup The group to clear.
    */
   clearContent(worldGroup: THREE.Group): void {
     this.disposeExistingChildren(worldGroup);
+    documentIdentityReset(worldGroup);
   }
 
   /**
    * Deserializes scene data into Three.js objects and adds them to the group.
-   * Clears existing children before loading.
+   * Clears existing children before loading and adopts the stored document
+   * identifier when present.
    *
    * @param data The serialized scene JSON.
    * @param worldGroup The target group to populate with deserialized objects.
@@ -53,6 +57,9 @@ export class SceneDeserializer {
    */
   deserialize(data: SceneJSON, worldGroup: THREE.Group): THREE.Object3D[] {
     this.clearContent(worldGroup);
+    if (data.documentId) {
+      documentIdentityWrite(worldGroup, data.documentId);
+    }
     const objectMap = new Map<string, THREE.Object3D>();
     const topLevelObjects: THREE.Object3D[] = [];
     this.createObjectsFromEntries(data.objects, objectMap);
@@ -141,10 +148,36 @@ export class SceneDeserializer {
     if (entry.solidModel) {
       return this.createSolidModelFromEntry(entry);
     }
+    const entity = this.createEntityFromEntry(entry);
+    if (entity) {
+      return entity;
+    }
     if (entry.type === 'mesh') {
       return this.createMeshFromEntry(entry);
     }
     return this.createGroupFromEntry(entry);
+  }
+
+  /**
+   * Creates an authored entity owner (light, room or portal) from entry data.
+   * Settings are read from the entry field named after its type; missing or
+   * invalid settings fall back to the kind's defaults.
+   *
+   * @param entry The serialized entry.
+   * @returns The owner with transform and settings applied, or null when the
+   *   entry type is not an entity kind.
+   */
+  private createEntityFromEntry(entry: ObjectEntry): THREE.Object3D | null {
+    const entityOwner = entityOwnerRegistryFindByKind(entry.type);
+    if (!entityOwner) {
+      return null;
+    }
+    const stored: unknown = (entry as unknown as Record<string, unknown>)[entry.type];
+    const definition = entityOwner.definition;
+    const settings = definition.settingsFromUnknown(stored) ?? definition.settingsCreateDefault();
+    const owner = entityOwner.create(entry.name, settings);
+    this.applyTransformToObject(owner, entry);
+    return owner;
   }
 
   /**
@@ -253,12 +286,9 @@ export class SceneDeserializer {
    */
   private applyFaceTextureData(mesh: THREE.Mesh, entry: ObjectEntry): void {
     if (entry.faceTextureMaps && entry.faceTextureMaps.length > 0) {
-      const maps = (entry.faceTextureMaps as unknown as FaceTextureMapEntry[]).map((mapEntry) => ({
+      const maps = entry.faceTextureMaps.map((mapEntry) => ({
         triangleIndices: mapEntry.triangleIndices.slice(),
-        mapping: {
-          ...mapEntry.mapping,
-          textureId: mapEntry.mapping.textureId || DEFAULT_CHECKER_TEXTURE_ID,
-        },
+        mapping: deserializeFaceTextureMapping(mapEntry.mapping),
       }));
       setFaceTextureMaps(mesh, maps);
       rebakeStoredFaceTextureMaps(mesh);

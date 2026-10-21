@@ -8,7 +8,7 @@ export interface WorkspaceStoreSnapshot {
   activeWorkspaceId: string;
 }
 
-const STORAGE_KEY = 'aiworlded.settings.workspaces';
+const STORAGE_KEY = 'bevybroom.settings.workspaces';
 
 /** Loads and saves named workspaces. Falls back to built-in defaults. */
 export class WorkspaceStore {

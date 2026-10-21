@@ -7,11 +7,7 @@ import type { ObjMaterialSlot } from './obj_material_collector.js';
  * @returns MTL file contents.
  */
 export function buildMtlDocument(slots: readonly ObjMaterialSlot[]): string {
-  const lines: string[] = [
-    '# Wavefront MTL exported by AI World Editor',
-    '# https://github.com/henrydejongh/AiWorldEd',
-    '',
-  ];
+  const lines: string[] = ['# Wavefront MTL exported by BevyBroom', '# https://github.com/henrydejongh/AiWorldEd', ''];
   slots.forEach((slot) => {
     lines.push(...buildOneMaterialBlock(slot));
     lines.push('');

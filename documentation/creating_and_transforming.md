@@ -1,6 +1,6 @@
 # Creating and Transforming Objects
 
-AiWorldEd provides ordinary primitives for free-standing scene geometry and solid models for brush-based architecture.
+BevyBroom provides ordinary primitives for free-standing scene geometry and solid models for brush-based architecture.
 
 ## Create ordinary primitives
 

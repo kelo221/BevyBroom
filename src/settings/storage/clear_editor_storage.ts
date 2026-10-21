@@ -1,5 +1,5 @@
 /** String prefix that identifies editor-owned storage keys. */
-export const EDITOR_STORAGE_KEY_PREFIX = 'aiworlded.';
+export const EDITOR_STORAGE_KEY_PREFIX = 'bevybroom.';
 
 /** When true, editor-owned storage writes are blocked. */
 let editorStorageWritesSuppressed = false;

@@ -13,3 +13,7 @@ release_dist/
 reference/
 .vite/
 docs/index.js
+# Electrobun 2.x / Hutch toolchain and desktop page build
+.hutch/
+.cottontail-tmp/
+desktop_view_dist/

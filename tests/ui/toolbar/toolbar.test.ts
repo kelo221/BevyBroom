@@ -218,7 +218,7 @@ describe('Toolbar', () => {
   it('should expose light-theme dropdown selectors for readable menu surfaces', async () => {
     const { ensureViewSettingsStyles } = await import('@/settings/view/view_settings_styles.js');
     ensureViewSettingsStyles();
-    const stylesheet = document.getElementById('aiworlded-view-settings-styles');
+    const stylesheet = document.getElementById('bevybroom-view-settings-styles');
 
     expect(stylesheet?.textContent).toContain('.editor-toolbar-dropdown-menu');
     expect(stylesheet?.textContent).toContain('.editor-toolbar-dropdown-item:hover');

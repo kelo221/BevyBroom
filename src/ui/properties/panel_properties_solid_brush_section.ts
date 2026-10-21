@@ -7,6 +7,9 @@ import { SolidOperation, solidOperationLabel } from '@/solid/types/solid_operati
 import { SolidCsgOperationIcons } from '@/ui/properties/solid_csg_operation_icons.js';
 import type { CommandStack } from '@/commands/command_stack.js';
 import { PanelPropertiesBevelVolumeSection } from './panel_properties_bevel_volume_section.js';
+import { PanelPropertiesLightSection } from './panel_properties_light_section.js';
+import { PanelPropertiesPortalSection } from './panel_properties_portal_section.js';
+import { PanelPropertiesRoomSection } from './panel_properties_room_section.js';
 
 /** Handlers for solid-brush context controls in the inspector. */
 export interface SolidBrushPropertyHandlers {
@@ -43,6 +46,9 @@ export class PanelPropertiesSolidBrushSection {
   private invertedWorldCheckbox: HTMLInputElement | null;
   private readonly root: HTMLElement;
   private readonly bevelSection: PanelPropertiesBevelVolumeSection;
+  private readonly lightSection: PanelPropertiesLightSection;
+  private readonly roomSection: PanelPropertiesRoomSection;
+  private readonly portalSection: PanelPropertiesPortalSection;
 
   /**
    * Creates the solid brush section UI.
@@ -71,9 +77,15 @@ export class PanelPropertiesSolidBrushSection {
     const content = this.createContent();
     this.section.appendChild(content);
     this.bevelSection = new PanelPropertiesBevelVolumeSection(createSectionContainer, createSectionHeader);
+    this.lightSection = new PanelPropertiesLightSection(createSectionContainer, createSectionHeader);
+    this.roomSection = new PanelPropertiesRoomSection(createSectionContainer, createSectionHeader);
+    this.portalSection = new PanelPropertiesPortalSection(createSectionContainer, createSectionHeader);
     this.root = document.createElement('div');
     this.root.appendChild(this.section);
     this.root.appendChild(this.bevelSection.getElement());
+    this.root.appendChild(this.lightSection.getElement());
+    this.root.appendChild(this.roomSection.getElement());
+    this.root.appendChild(this.portalSection.getElement());
   }
 
   /**
@@ -86,12 +98,15 @@ export class PanelPropertiesSolidBrushSection {
   }
 
   /**
-   * Forwards the undo stack to the bevel volume section.
+   * Forwards the undo stack to the bevel volume and light sections.
    *
    * @param stack Command stack, or null.
    */
   setCommandStack(stack: CommandStack | null): void {
     this.bevelSection.setCommandStack(stack);
+    this.lightSection.setCommandStack(stack);
+    this.roomSection.setCommandStack(stack);
+    this.portalSection.setCommandStack(stack);
   }
 
   /**
@@ -113,12 +128,16 @@ export class PanelPropertiesSolidBrushSection {
   }
 
   /**
-   * Shows or hides the section and highlights the shared active operation.
+   * Forwards the selection to the bevel volume and light sections, then shows
+   * or hides the solid section and highlights the shared active operation.
    *
    * @param objects Currently bound selection.
    */
   updateFromObjects(objects: THREE.Object3D[]): void {
     this.bevelSection.updateFromObjects(objects);
+    this.lightSection.updateFromObjects(objects);
+    this.roomSection.updateFromObjects(objects);
+    this.portalSection.updateFromObjects(objects);
     this.boundObjects = objects.slice();
     const brushMeshes = this.collectBrushMeshes(objects);
     const solidGroups = this.collectSolidGroups(objects);

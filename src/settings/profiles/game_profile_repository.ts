@@ -4,10 +4,10 @@ import type { GameProfile } from '@/settings/store/settings_types.js';
 import type { SettingsStorage } from '@/settings/storage/settings_storage.js';
 
 /** Storage key prefix for individual game profile JSON documents. */
-export const GAME_PROFILE_STORAGE_PREFIX = 'aiworlded.game_profile.';
+export const GAME_PROFILE_STORAGE_PREFIX = 'bevybroom.game_profile.';
 
 /** Storage key for the ordered profile id index and active selection. */
-export const GAME_PROFILE_INDEX_KEY = 'aiworlded.game_profiles.index';
+export const GAME_PROFILE_INDEX_KEY = 'bevybroom.game_profiles.index';
 
 /** Index document listing profile ids and the active profile. */
 interface GameProfileIndexDocument {

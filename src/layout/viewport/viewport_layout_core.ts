@@ -127,6 +127,7 @@ import { AreaLayoutInteraction } from '@/layout/area/area_layout_interaction.js'
 import { WorkspaceStore } from '@/layout/workspace/workspace_store.js';
 import { ControllerWorkspace } from '@/layout/workspace/controller_workspace.js';
 import { WorkspaceSwitcherBar } from '@/ui/workspace/workspace_switcher_bar.js';
+import { LayoutGamePreview } from '@/preview/layout/layout_game_preview.js';
 import {
   type WorkspaceAreaWiringHost,
   wireWorkspaceSystem,
@@ -228,6 +229,7 @@ export abstract class ViewportLayoutCore {
   protected solidModelController!: SolidModelController | null;
   protected playerSystem: PlayerSystem | null = null;
   protected aiCaptureDebugPanel!: PanelAiCaptureDebug | null;
+  private gamePreviewLayout: LayoutGamePreview | null = null;
   protected cadRulerSystem!: CadRulerSystem;
   protected rulerBoundsBuilder!: BuilderOrientedBounds;
   protected editorOverlayPolicy!: PolicyEditorOverlay;
@@ -1225,6 +1227,9 @@ export abstract class ViewportLayoutCore {
       showStatusMessage: (message) => this.showStatusMessage(message),
       getScene: () => this.sharedWorldScene.getScene(),
       getRenderer: () => this.sharedSurface.getRenderer(),
+      previewLinkServiceEnsure: () => this.gamePreviewLayoutEnsure().serviceEnsure(),
+      sceneDocumentLoad: (sceneJson) =>
+        this.sceneIOHandler.loadSceneFromText(sceneJson, this.worldObject, () => this.onSceneLoaded(), this.statusBar),
     });
     this.setupAiCaptureDebugPanel();
   }
@@ -1262,6 +1267,30 @@ export abstract class ViewportLayoutCore {
       this.aiCaptureDebugPanel.refresh();
       this.statusBar?.setLastAction('AI Captures panel opened');
     }
+  }
+
+  /**
+   * Toggles the floating Game Preview panel, creating the preview link on first
+   * use.
+   */
+  protected onToggleGamePreviewPanel(): void {
+    this.gamePreviewLayoutEnsure().panelToggle();
+  }
+
+  /**
+   * Returns the game preview layout, creating it on first use.
+   *
+   * @returns The game preview layout.
+   */
+  private gamePreviewLayoutEnsure(): LayoutGamePreview {
+    this.gamePreviewLayout ??= new LayoutGamePreview({
+      worldGroup: this.worldObject,
+      panelHost: this.toolbarContainer,
+      textureBrowserControllerRead: () => this.textureBrowserController,
+      sceneFileNameRead: () => this.sceneIOHandler.sceneDocumentFileNameRead(),
+      statusMessageShow: (message) => this.showStatusMessage(message),
+    });
+    return this.gamePreviewLayout;
   }
 
   /** Opens the MCP connection dialog from the main toolbar. */
@@ -1438,6 +1467,9 @@ export abstract class ViewportLayoutCore {
 
   /** Full visual refresh after hierarchy/world mutations. */
   protected abstract refreshAfterWorldMutation(): void;
+
+  /** Refreshes selection, history, panels and visuals after a scene was loaded. */
+  protected abstract onSceneLoaded(): void;
 
   /**
    * Pose-commit refresh (solid finalize once + overlays) after transform

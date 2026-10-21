@@ -2,16 +2,21 @@ import * as THREE from 'three';
 import { SceneJSON, ObjectEntry, GeometryType } from './io_types.js';
 import { BufferGeometryCodec } from '@/io/geometry/buffer_geometry_codec.js';
 import { getFaceTextureMaps } from '@/texture/uv/face_texture_storage.js';
+import { serializeFaceTextureMapping } from '@/texture/uv/face_texture_mapping.js';
 import { resolveGeometrySourceParams, resolveGeometrySourceType } from '@/texture/uv/geometry_source.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidModelCodec } from '@/solid/io/solid_model_codec.js';
 import { ModifierVolumeBevel, type ModifierBevelVolumeSettings } from '@/modifier/volume/modifier_volume_bevel.js';
+import { entityOwnerIs } from '@/entity/model/entity_owner_keys.js';
+import { entityOwnerRegistryFind } from '@/entity/registry/entity_owner_registry.js';
+import { documentIdentityEnsure } from '@/io/document/document_identity.js';
 
 /**
  * Schema version for serialized scene files. Version 3 adds face texture maps
- * and optional buffer UV channels.
+ * and optional buffer UV channels. Version 4 adds the document identifier and
+ * authored light entries. Version 5 adds room and portal entries.
  */
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 5;
 
 /**
  * Serializes a Three.js scene graph into a JSON-compatible structure. Walks the
@@ -36,6 +41,7 @@ export class SceneSerializer {
     this.collectEntries(worldGroup, entries);
     return {
       version: SCHEMA_VERSION,
+      documentId: documentIdentityEnsure(worldGroup),
       objects: entries,
     };
   }
@@ -51,7 +57,7 @@ export class SceneSerializer {
       if (!this.shouldSerializeChild(child)) return;
       const entry = this.createEntryForChild(child, object.uuid);
       entries.push(entry);
-      if (SolidModel.isSolidModelObject(child)) {
+      if (SolidModel.isSolidModelObject(child) || entityOwnerIs(child)) {
         return;
       }
       if (child instanceof THREE.Group) {
@@ -83,6 +89,9 @@ export class SceneSerializer {
    */
   private createEntryForChild(child: THREE.Object3D, parentId: string): ObjectEntry {
     const baseEntry = this.buildBaseEntry(child, parentId);
+    if (entityOwnerIs(child)) {
+      return this.enrichWithEntityData(child, baseEntry);
+    }
     if (child instanceof THREE.Mesh) {
       return this.enrichWithMeshData(child, baseEntry);
     }
@@ -92,6 +101,27 @@ export class SceneSerializer {
       return groupEntry;
     }
     return baseEntry;
+  }
+
+  /**
+   * Marks an entry with its entity kind (light, room or portal) and stores the
+   * settings under the field named after the kind.
+   *
+   * @param owner The entity owner group.
+   * @param entry The base entry to enrich.
+   * @returns The entity entry.
+   */
+  private enrichWithEntityData(owner: THREE.Object3D, entry: ObjectEntry): ObjectEntry {
+    const entityOwner = entityOwnerRegistryFind(owner);
+    if (!entityOwner) {
+      return entry;
+    }
+    entry.type = entityOwner.kind;
+    const settings = entityOwner.settingsRead(owner);
+    if (settings) {
+      Object.assign(entry, { [entityOwner.kind]: settings });
+    }
+    return entry;
   }
 
   /**
@@ -263,7 +293,10 @@ export class SceneSerializer {
   private attachFaceTextureMaps(mesh: THREE.Mesh, entry: ObjectEntry): void {
     const maps = getFaceTextureMaps(mesh);
     if (maps.length === 0) return;
-    entry.faceTextureMaps = maps as unknown as NonNullable<ObjectEntry['faceTextureMaps']>;
+    entry.faceTextureMaps = maps.map((map) => ({
+      triangleIndices: map.triangleIndices.slice(),
+      mapping: serializeFaceTextureMapping(map.mapping),
+    }));
   }
 
   /**

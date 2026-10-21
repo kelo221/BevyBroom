@@ -12,9 +12,9 @@ function startEditor(container: HTMLElement): void {
   try {
     const layoutManager = new ManagerViewportLayout(container);
     layoutManager.start();
-    console.log('AiWorldEd started');
+    console.log('BevyBroom started');
   } catch (error) {
-    console.error('[AiWorldEd] Editor startup failed.', error);
+    console.error('[BevyBroom] Editor startup failed.', error);
     showErrorEditorStartup(container, error);
   }
 }

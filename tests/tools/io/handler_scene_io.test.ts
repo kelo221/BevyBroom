@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { HandlerSceneIo } from '@/tools/io/handler_scene_io.js';
 import { SceneSerializer } from '@/io/scene/scene_serializer.js';
 import { SceneDeserializer } from '@/io/scene/scene_deserializer.js';
+import { documentIdentityEnsure, documentIdentityRead } from '@/io/document/document_identity.js';
+import type { SceneJSON } from '@/io/scene/io_types.js';
 
 describe('SceneIOHandler', () => {
   let handler: HandlerSceneIo;
@@ -19,7 +21,7 @@ describe('SceneIOHandler', () => {
     worldGroup.add(mesh);
     const serializer = new SceneSerializer();
     const sceneData = serializer.serialize(worldGroup);
-    expect(sceneData.version).toBe(3);
+    expect(sceneData.version).toBe(5);
     expect(sceneData.objects.length).toBe(1);
     expect(sceneData.objects[0]!.name).toBe('SavedCube');
     expect(sceneData.objects[0]!.position.x).toBe(1);
@@ -69,10 +71,10 @@ describe('SceneIOHandler', () => {
     const json = JSON.stringify(serializer.serialize(worldGroup));
     const fileDialog = (
       handler as unknown as {
-        fileDialogManager: { loadJSON: () => Promise<string | null> };
+        fileDialogManager: { loadSceneDocument: () => Promise<string | null> };
       }
     ).fileDialogManager;
-    vi.spyOn(fileDialog, 'loadJSON').mockResolvedValue(json);
+    vi.spyOn(fileDialog, 'loadSceneDocument').mockResolvedValue(json);
     const target = new THREE.Group();
     let loaded = false;
     await handler.loadScene(
@@ -85,6 +87,27 @@ describe('SceneIOHandler', () => {
     expect(loaded).toBe(true);
     expect(target.children.length).toBe(1);
     expect(target.children[0]!.name).toBe('LoadNoStatus');
+  });
+
+  it('saves as a new document and writes the new identifier into the chosen file', async () => {
+    worldGroup.add(createTestMesh('SaveAsCube'));
+    const originalIdentifier = documentIdentityEnsure(worldGroup);
+    const saveAs = saveSceneDocumentAsSpy(handler);
+    saveAs.mockResolvedValue('copy.json');
+    await handler.saveSceneAs(worldGroup, null);
+    const newIdentifier = documentIdentityRead(worldGroup);
+    expect(newIdentifier).not.toBeNull();
+    expect(newIdentifier).not.toBe(originalIdentifier);
+    const written = JSON.parse(String(saveAs.mock.calls[0]?.[0])) as SceneJSON;
+    expect(written.documentId).toBe(newIdentifier);
+    expect(written.objects.map((object) => object.name)).toEqual(['SaveAsCube']);
+  });
+
+  it('keeps the document identifier when Save As is cancelled', async () => {
+    const originalIdentifier = documentIdentityEnsure(worldGroup);
+    saveSceneDocumentAsSpy(handler).mockResolvedValue(null);
+    await handler.saveSceneAs(worldGroup, null);
+    expect(documentIdentityRead(worldGroup)).toBe(originalIdentifier);
   });
 
   it('should export GLB and produce non-empty buffer for real meshes', async () => {
@@ -225,6 +248,21 @@ world
 	}
 }
 `;
+}
+
+/**
+ * Replaces the file dialog's Save As picker of a scene IO handler with a spy.
+ *
+ * @param handler Scene IO handler whose dialog is replaced.
+ * @returns Spy standing in for the picker and the write.
+ */
+function saveSceneDocumentAsSpy(handler: HandlerSceneIo) {
+  const fileDialog = (
+    handler as unknown as {
+      fileDialogManager: { saveSceneDocumentAs: (data: string, name: string) => Promise<string | null> };
+    }
+  ).fileDialogManager;
+  return vi.spyOn(fileDialog, 'saveSceneDocumentAs');
 }
 
 /**

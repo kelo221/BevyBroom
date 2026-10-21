@@ -40,6 +40,7 @@ export interface HandlerKeyboardShortcutActionHost {
   onAlignToOrigin: ActionCallback | null;
   onSolidOperationToggle: ActionCallback | null;
   onSaveScene: ActionCallback | null;
+  onSaveSceneAs: ActionCallback | null;
   onLoadScene: ActionCallback | null;
   onExportGlb: ActionCallback | null;
   onFitToSelection: KeyboardActionCallback | null;
@@ -132,7 +133,7 @@ export function handlerKeyboardShortcutHandleExtrudeKey(
 }
 
 /**
- * Handles file keyboard shortcuts (save, load, export).
+ * Handles file keyboard shortcuts (save, save as, load, export).
  *
  * @param host Action host.
  * @param event Keyboard event.
@@ -142,6 +143,7 @@ export function handlerKeyboardShortcutHandleFileKeys(
   event: KeyboardEvent,
 ): void {
   handlerKeyboardShortcutHandleSaveKey(host, event);
+  handlerKeyboardShortcutHandleSaveAsKey(host, event);
   handlerKeyboardShortcutHandleLoadKey(host, event);
   handlerKeyboardShortcutHandleExportKey(host, event);
 }
@@ -159,6 +161,22 @@ function handlerKeyboardShortcutHandleSaveKey(host: HandlerKeyboardShortcutActio
   if (host.matchesShortcut(event, 'save')) {
     event.preventDefault();
     host.onSaveScene();
+  }
+}
+
+/**
+ * Handles the save as keyboard shortcut.
+ *
+ * @param host Action host.
+ * @param event Keyboard event.
+ */
+function handlerKeyboardShortcutHandleSaveAsKey(host: HandlerKeyboardShortcutActionHost, event: KeyboardEvent): void {
+  if (!host.onSaveSceneAs) {
+    return;
+  }
+  if (host.matchesShortcut(event, 'save_as')) {
+    event.preventDefault();
+    host.onSaveSceneAs();
   }
 }
 

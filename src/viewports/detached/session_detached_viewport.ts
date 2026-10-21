@@ -293,7 +293,7 @@ export class DetachedViewportSession {
    * @returns Opened window, or null when blocked.
    */
   private openPopupWindow(): Window | null {
-    const uniqueName = `aiworlded_detached_viewport_${this.sessionId}`;
+    const uniqueName = `bevybroom_detached_viewport_${this.sessionId}`;
     return window.open(
       'about:blank',
       uniqueName,
@@ -331,7 +331,7 @@ export class DetachedViewportSession {
    * @param popupDocument Written about:blank document.
    */
   private applyPopupDocumentChrome(popupDocument: Document): void {
-    popupDocument.title = 'AI World Editor — Detached Viewport';
+    popupDocument.title = 'BevyBroom — Detached Viewport';
     if (typeof document === 'undefined') return;
     applyDetachedWindowFavicon(popupDocument, document);
     void embedDetachedWindowFaviconDataUrl(popupDocument, document).catch(() => undefined);
@@ -348,7 +348,7 @@ export class DetachedViewportSession {
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>AI World Editor — Detached Viewport</title>
+  <title>BevyBroom — Detached Viewport</title>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: ${background}; }
   </style>

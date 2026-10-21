@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
 import { isResultMesh, isSolidModelObject } from '@/solid/model/solid_model_keys.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
@@ -105,6 +106,9 @@ function appendSingleBrushTarget(
  * @returns True for non-solid content meshes.
  */
 export function isEditableContentMesh(mesh: THREE.Mesh): boolean {
+  if (entityVisualPartIs(mesh)) {
+    return false;
+  }
   if (isResultMesh(mesh)) {
     return false;
   }

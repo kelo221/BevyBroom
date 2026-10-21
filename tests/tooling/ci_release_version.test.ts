@@ -23,7 +23,7 @@ describe('CI release version assignment', () => {
     expect(workflow).toContain('bun scripts/ci_release_version.ts --write');
     expect(workflow).toContain('bun scripts/ci_release_version.ts');
     expect(workflow).toContain('tag_name: v${{ steps.version.outputs.version }}');
-    expect(workflow).toContain('AI World Editor v${{ steps.version.outputs.version }}');
+    expect(workflow).toContain('BevyBroom v${{ steps.version.outputs.version }}');
     expect(workflow).toContain('bun scripts/package_desktop_release.ts');
     expect(workflow).toContain('bun scripts/compose_release_notes.ts');
     expect(workflow).toContain('body_path: release_body.md');

@@ -9,6 +9,7 @@ import type { HandlerAlignment } from '@/outliner/alignment/handler_alignment.js
 import type { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js';
 import type { PanelOutliner } from '@/outliner/ui/panel_outliner.js';
 import type { LayoutShellSourceHost } from './layout_shell_source.js';
+import type { ShellFileMenuShortcutAction } from '@/layout/shell/shell_file_menu_shortcut_action.js';
 
 /**
  * Callback surface required to build a late-bound shell source host without
@@ -37,6 +38,7 @@ export interface LayoutShellHostCallbacks {
   onOpenDocumentation(): void;
   onOpenAboutDialog(): void;
   onOpenMcpDialog(): void;
+  onToggleGamePreviewPanel(): void;
   onOpenDetachedViewport(): void;
   onToggleAiCaptureDebugPanel(): void;
   onToggleAudio(): void;
@@ -51,13 +53,14 @@ export interface LayoutShellHostCallbacks {
   isTransformSpaceLocal(): boolean;
   onNewScene(): void;
   onSaveScene(): void;
+  onSaveSceneAs(): void;
   onLoadScene(): void;
   onImportVmf(): void;
   onImportObj(): void;
   onExportGlb(): void;
   onExportObj(): void;
   onExportFbx(): void;
-  getShortcutLabel(action: 'save' | 'load' | 'export_glb'): string;
+  getShortcutLabel(action: ShellFileMenuShortcutAction): string;
 }
 
 /**
@@ -142,6 +145,7 @@ export function createShellSourceHostFromLayout(
     onOpenDocumentation: () => actions.onOpenDocumentation(),
     onOpenAboutDialog: () => actions.onOpenAboutDialog(),
     onOpenMcpDialog: () => actions.onOpenMcpDialog(),
+    onToggleGamePreviewPanel: () => actions.onToggleGamePreviewPanel(),
     onOpenDetachedViewport: () => actions.onOpenDetachedViewport(),
     onToggleAiCaptureDebugPanel: () => actions.onToggleAiCaptureDebugPanel(),
     onToggleAudio: () => actions.onToggleAudio(),
@@ -156,6 +160,7 @@ export function createShellSourceHostFromLayout(
     isTransformSpaceLocal: () => actions.isTransformSpaceLocal(),
     onNewScene: () => actions.onNewScene(),
     onSaveScene: () => actions.onSaveScene(),
+    onSaveSceneAs: () => actions.onSaveSceneAs(),
     onLoadScene: () => actions.onLoadScene(),
     onImportVmf: () => actions.onImportVmf(),
     onImportObj: () => actions.onImportObj(),

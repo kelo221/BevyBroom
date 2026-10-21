@@ -83,5 +83,5 @@
     <g transform="translate(176 595)"><rect class="card" width="140" height="105" rx="10"/><text class="number" x="70" y="20">32</text><use href="#subtract" x="52" y="28" width="36" height="36"/><text class="label" x="70" y="88">Subtractive</text></g>
     <g transform="translate(332 595)"><rect class="card" width="140" height="105" rx="10"/><text class="number" x="70" y="20">33</text><use href="#intersect" x="52" y="28" width="36" height="36"/><text class="label" x="70" y="88">Intersecting</text></g>
   </g>
-  <text class="label" x="480" y="745">AiWorldEd glyph reference — hover over controls in the editor to confirm their current label</text>
+  <text class="label" x="480" y="745">BevyBroom glyph reference — hover over controls in the editor to confirm their current label</text>
 </svg>

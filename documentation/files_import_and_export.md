@@ -1,6 +1,6 @@
 # Saving, Loading, Importing, and Exporting
 
-AiWorldEd distinguishes between an editable scene project and a model exported for another application.
+BevyBroom distinguishes between an editable scene project and a model exported for another application.
 
 ## Save a scene
 
@@ -16,9 +16,13 @@ The scene format is the working project. It preserves editor-specific informatio
 
 The status bar displays the last saved filename when available.
 
+After the first save, `Ctrl+S` writes to the same file again (in browsers with file system access); a loaded scene saves back to the file it came from. **File > New** forgets that file.
+
+Choose **File > Save As…** or press `Ctrl+Shift+S` to save to a new file. The new file becomes a separate document with its own document id, and later `Ctrl+S` saves go to it. The original file keeps its id. Cancelling the dialog leaves the scene unchanged.
+
 ## Load a scene
 
-Choose **File > Load** or press `Ctrl+O`, then choose a previously saved AiWorldEd scene.
+Choose **File > Load** or press `Ctrl+O`, then choose a previously saved BevyBroom scene.
 
 Loading replaces the active editing context with the loaded project. Save current work first if you may need it later.
 
@@ -31,7 +35,7 @@ After loading:
 
 ## Import a VMF map
 
-Choose **File > Import VMF…** and select a Valve Map Format file. Import converts supported brush geometry and surface information into AiWorldEd's scene.
+Choose **File > Import VMF…** and select a Valve Map Format file. Import converts supported brush geometry and surface information into BevyBroom's scene.
 
 Large maps may show an import progress overlay. After import, review:
 
@@ -41,7 +45,7 @@ Large maps may show an import progress overlay. After import, review:
 - Surface alignment.
 - Hierarchy naming and organization.
 
-VMF and AiWorldEd do not share an identical internal representation, so treat import as the start of a verification pass, not as proof that every source detail translated perfectly.
+VMF and BevyBroom do not share an identical internal representation, so treat import as the start of a verification pass, not as proof that every source detail translated perfectly.
 
 ## Export GLB
 
@@ -50,6 +54,18 @@ Choose **File > Export GLB** or press `Ctrl+Shift+E`.
 GLB is a compact glTF model file for Blender, Godot, Unity, Unreal Engine, and other 3D applications. Export uses the active game profile to convert units and axes.
 
 The export places coordinate conversion on a root node. Preserve that node hierarchy and root transform when importing the GLB. This is especially important for left-handed targets such as Unity and Unreal, where the root can contain a reflection.
+
+Every exported mesh gets a second UV set (`TEXCOORD_1`) for baked lighting. Each flat region of a mesh is laid out once, at the same texel density everywhere, without overlaps and with padding between regions. Use it as the lightmap UV channel in your engine; the first UV set (`TEXCOORD_0`) stays the texture UVs.
+
+Rooms and portals are exported as empty nodes without meshes, carrying glTF node extras that DynLight reads directly:
+
+| Extras key               | Node                                                                        |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `dynlight_room`          | A room cell: a box from −1 to +1 on each axis, sized by the node transform. |
+| `dynlight_portal`        | A portal: a square from −1 to +1 in local XY, front side along local +Z.    |
+| `dynlight_portal_closed` | Added to a portal that is closed.                                           |
+
+Lights and the editor's room and portal outlines are not exported as meshes.
 
 ## Target application notes
 

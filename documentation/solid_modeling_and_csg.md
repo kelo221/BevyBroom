@@ -1,6 +1,6 @@
 # Solid Modeling and CSG
 
-Constructive solid geometry, or CSG, creates complex shapes by combining simple volumes. AiWorldEd supports both ordered solid-model brushes and direct boolean operations between ordinary meshes.
+Constructive solid geometry, or CSG, creates complex shapes by combining simple volumes. BevyBroom supports both ordered solid-model brushes and direct boolean operations between ordinary meshes.
 
 ## Solid models versus mesh CSG
 

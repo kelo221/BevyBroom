@@ -174,6 +174,6 @@ export function openLayoutAboutDialog(
 ): DialogAbout {
   const aboutDialog = existingDialog ?? new DialogAbout(container);
   aboutDialog.show();
-  statusBar?.setLastAction('About AI World Editor');
+  statusBar?.setLastAction('About BevyBroom');
   return aboutDialog;
 }

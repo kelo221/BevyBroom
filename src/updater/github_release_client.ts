@@ -1,6 +1,6 @@
 import type { GitHubRelease, GitHubReleaseAsset } from './update_types.js';
 
-/** GitHub Releases API endpoint for the AiWorldEd repository. */
+/** GitHub Releases API endpoint for the BevyBroom repository. */
 export const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/Henry00IS/AiWorldEd/releases/latest';
 
 /** Public release page used when no executable host bridge is available. */

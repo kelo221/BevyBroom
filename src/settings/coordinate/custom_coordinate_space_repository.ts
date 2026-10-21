@@ -3,7 +3,7 @@ import type { CoordinateSpaceDefinition } from './coordinate_space_types.js';
 import type { SettingsStorage } from '@/settings/storage/settings_storage.js';
 
 /** Storage key for user-authored coordinate space presets. */
-export const CUSTOM_COORDINATE_SPACE_STORAGE_KEY = 'aiworlded.coordinate_space.custom_presets';
+export const CUSTOM_COORDINATE_SPACE_STORAGE_KEY = 'bevybroom.coordinate_space.custom_presets';
 
 /** Loads and saves custom coordinate space presets as a JSON array. */
 export class CustomCoordinateSpaceRepository {

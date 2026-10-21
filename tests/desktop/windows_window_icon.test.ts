@@ -31,6 +31,8 @@ describe('Windows window title-bar icon', () => {
 
   it('applies the Windows window icon after the window is shown', () => {
     const bunEntry = readFileSync(resolve(process.cwd(), 'src/desktop/bun/index.ts'), 'utf8');
-    expect(bunEntry).toContain('showMaximizedWhenReady(desktopWindow, () => applyWindowsWindowIcon(windowTitle))');
+    const shownHandler = bunEntry.slice(bunEntry.indexOf('async function desktopWindowShownHandle'));
+    expect(bunEntry).toContain('showMaximizedWhenReady(desktopWindow, desktopWindowShownHandle,');
+    expect(shownHandler).toContain('await applyWindowsWindowIcon(windowTitle)');
   });
 });

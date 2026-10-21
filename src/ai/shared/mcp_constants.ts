@@ -11,7 +11,7 @@ export const MCP_HTTP_PATH = '/mcp';
 export const MCP_BIND_HOST = '127.0.0.1';
 
 /** Product name reported by MCP initialize. */
-export const MCP_SERVER_NAME = 'aiworlded-solid-mcp';
+export const MCP_SERVER_NAME = 'bevybroom-solid-mcp';
 
 /** Protocol version string returned during MCP initialize. */
 export const MCP_PROTOCOL_VERSION = '2024-11-05';

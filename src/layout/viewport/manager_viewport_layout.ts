@@ -19,17 +19,11 @@ import {
   updateLayoutGizmoPivot,
   type ContextHelpersLayoutGizmo,
 } from '@/layout/setup/helpers_layout_gizmo.js';
+import { applyLayoutHistoryChange, handleLayoutSceneLoaded } from '@/layout/setup/layout_scene_io_actions.js';
 import {
-  applyLayoutHistoryChange,
-  handleLayoutSceneLoaded,
-  runLayoutExportGlb,
-  runLayoutExportObj,
-  runLayoutExportFbx,
-  runLayoutNewScene,
-  runLayoutVmfImport,
-  runLayoutObjImport,
-} from '@/layout/setup/layout_scene_io_actions.js';
-import { formatKeyboardShortcut } from '@/settings/keyboard/keyboard_shortcut_format.js';
+  LayoutViewportFileActions,
+  type LayoutViewportFileActionsContext,
+} from '@/layout/viewport/layout_viewport_file_actions.js';
 import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
 import { applyTransformModeUi } from '@/layout/setup/layout_transform_mode_ui.js';
 import { CommandTerrainCreate } from '@/tools/creation/commands/command_terrain_create.js';
@@ -52,6 +46,28 @@ import { EditorOverlayId } from '@/tools/overlay/editor_overlay_id.js';
 
 /** Builds the UI shell and dynamic viewports and wires their layout systems. */
 export class ManagerViewportLayout extends ViewportLayoutCore {
+  private readonly fileActions = new LayoutViewportFileActions(() => this.fileActionsContextRead());
+
+  /**
+   * Returns the current editor parts the File menu actions use.
+   *
+   * @returns File actions context.
+   */
+  private fileActionsContextRead(): LayoutViewportFileActionsContext {
+    return {
+      toolbarContainer: this.toolbarContainer,
+      sceneIOHandler: this.sceneIOHandler,
+      worldObject: this.worldObject,
+      commandStack: this.commandStack,
+      statusBar: this.statusBar,
+      solidModelController: this.solidModelController,
+      settingsStore: this.settingsStore,
+      ensureSettingsSystem: () => this.ensureSettingsSystem(),
+      onSceneLoaded: () => this.onSceneLoaded(),
+      refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
+    };
+  }
+
   /**
    * Builds outliner action callbacks for the shell builder.
    *
@@ -125,6 +141,7 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
         onOpenDocumentation: () => layout.onOpenDocumentation(),
         onOpenAboutDialog: () => layout.onOpenAboutDialog(),
         onOpenMcpDialog: () => layout.onOpenMcpDialog(),
+        onToggleGamePreviewPanel: () => layout.onToggleGamePreviewPanel(),
         onOpenDetachedViewport: () => layout.onOpenDetachedViewport(),
         onToggleAiCaptureDebugPanel: () => layout.onToggleAiCaptureDebugPanel(),
         onToggleAudio: () => layout.onToggleAudio(),
@@ -137,15 +154,16 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
         onSetTransformSpaceGlobal: () => layout.onSetTransformSpaceGlobal(),
         onSetTransformSpaceLocal: () => layout.onSetTransformSpaceLocal(),
         isTransformSpaceLocal: () => layout.isTransformSpaceLocal(),
-        onNewScene: () => layout.onNewScene(),
-        onSaveScene: () => layout.onSaveScene(),
-        onLoadScene: () => layout.onLoadScene(),
-        onImportVmf: () => layout.onImportVmf(),
-        onImportObj: () => layout.onImportObj(),
-        onExportGlb: () => layout.onExportGlb(),
-        onExportObj: () => layout.onExportObj(),
-        onExportFbx: () => layout.onExportFbx(),
-        getShortcutLabel: (action) => layout.getShortcutLabel(action),
+        onNewScene: () => layout.fileActions.sceneNew(),
+        onSaveScene: () => layout.fileActions.sceneSave(),
+        onSaveSceneAs: () => layout.fileActions.sceneSaveAs(),
+        onLoadScene: () => layout.fileActions.sceneLoad(),
+        onImportVmf: () => layout.fileActions.importVmf(),
+        onImportObj: () => layout.fileActions.importObj(),
+        onExportGlb: () => layout.fileActions.exportGlb(),
+        onExportObj: () => layout.fileActions.exportObj(),
+        onExportFbx: () => layout.fileActions.exportFbx(),
+        getShortcutLabel: (action) => layout.fileActions.shortcutLabelRead(action),
       },
     );
   }
@@ -325,9 +343,10 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
         onUndo: () => this.onUndo(),
         onRedo: () => this.onRedo(),
         onGroupSelected: () => this.onGroupSelected(),
-        onSaveScene: () => this.onSaveScene(),
-        onLoadScene: () => this.onLoadScene(),
-        onExportGlb: () => this.onExportGlb(),
+        onSaveScene: () => this.fileActions.sceneSave(),
+        onSaveSceneAs: () => this.fileActions.sceneSaveAs(),
+        onLoadScene: () => this.fileActions.sceneLoad(),
+        onExportGlb: () => this.fileActions.exportGlb(),
         getObjectActionHandler: () => this.objectActionHandler,
         getAlignmentHandler: () => this.alignmentHandler,
         getSolidModelController: () => this.solidModelController,
@@ -751,31 +770,8 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
     applyTransformModeUi(this.toolsPaletteController, this.statusBar, this.transformGizmo.getMode());
   }
 
-  /** Handles File → New: confirms discard, then restores the startup cube. */
-  private onNewScene(): void {
-    void runLayoutNewScene(
-      this.toolbarContainer,
-      this.sceneIOHandler,
-      this.worldObject,
-      this.commandStack,
-      this.statusBar,
-      this.solidModelController,
-      () => this.onSceneLoaded(),
-    );
-  }
-
-  /** Handles the Save Scene toolbar button and Ctrl+S shortcut. */
-  private onSaveScene(): void {
-    void this.sceneIOHandler.saveScene(this.worldObject, this.statusBar);
-  }
-
-  /** Handles the Load Scene toolbar button and Ctrl+O shortcut. */
-  private onLoadScene(): void {
-    void this.sceneIOHandler.loadScene(this.worldObject, () => this.onSceneLoaded(), this.statusBar);
-  }
-
   /** Handles post-load synchronization and UI refresh. */
-  private onSceneLoaded(): void {
+  protected onSceneLoaded(): void {
     handleLayoutSceneLoaded({
       selectionManager: this.selectionManager,
       faceModeCoordinator: this.faceModeCoordinator,
@@ -786,56 +782,6 @@ export class ManagerViewportLayout extends ViewportLayoutCore {
       propertiesPanel: this.propertiesPanel,
       refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
     });
-  }
-
-  /** Exports the world as GLB using the active game profile when available. */
-  private onExportGlb(): void {
-    this.ensureSettingsSystem();
-    const profile = this.settingsStore?.getActiveGameProfile() ?? null;
-    runLayoutExportGlb(this.sceneIOHandler, this.worldObject, this.statusBar, profile);
-  }
-
-  /** Handles File → Export → Wavefront OBJ. */
-  private onExportObj(): void {
-    this.ensureSettingsSystem();
-    const profile = this.settingsStore?.getActiveGameProfile() ?? null;
-    runLayoutExportObj(this.sceneIOHandler, this.worldObject, this.statusBar, profile);
-  }
-
-  /** Handles File → Export → Autodesk FBX. */
-  private onExportFbx(): void {
-    this.ensureSettingsSystem();
-    const profile = this.settingsStore?.getActiveGameProfile() ?? null;
-    runLayoutExportFbx(this.sceneIOHandler, this.worldObject, this.statusBar, profile);
-  }
-
-  /** Handles File → Import VMF: picks a map and places a solid model. */
-  private onImportVmf(): void {
-    void runLayoutVmfImport(this.sceneIOHandler, this.statusBar, this.solidModelController, () =>
-      this.refreshAfterWorldMutation(),
-    );
-  }
-
-  /**
-   * Handles File → Import OBJ: picks a Wavefront file and places content
-   * meshes.
-   */
-  private onImportObj(): void {
-    void runLayoutObjImport(this.sceneIOHandler, this.statusBar, this.worldObject, this.commandStack, () =>
-      this.refreshAfterWorldMutation(),
-    );
-  }
-
-  /**
-   * Resolves a configured keyboard shortcut label for File menu display.
-   *
-   * @param action Save, load, or export_glb action id.
-   * @returns Shortcut text such as "Ctrl+S".
-   */
-  private getShortcutLabel(action: 'save' | 'load' | 'export_glb'): string {
-    const defaults = createDefaultKeyboardShortcutSettings();
-    const settings = this.settingsStore?.getKeyboardShortcutSettings() ?? defaults;
-    return formatKeyboardShortcut(settings[action]);
   }
 
   /** Handles the undo action from toolbar or keyboard shortcut. */

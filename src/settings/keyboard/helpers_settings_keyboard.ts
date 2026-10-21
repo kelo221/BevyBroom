@@ -12,6 +12,7 @@ const KEYBOARD_SHORTCUT_ACTIONS = [
   'delete_selected',
   'escape',
   'save',
+  'save_as',
   'load',
   'export_glb',
   'undo',

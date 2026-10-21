@@ -1,14 +1,55 @@
-# AI World Editor (AiWorldEd)
+# BevyBroom
 
 We use Three.js for rendering and math, no other third-party libraries.
 
-This is a 3D map editor to build 3D worlds for video games.
+This is a 3D map editor to build 3D worlds for video games. The primary target
+is Bevy games rendered with DynLight: the editor mirrors the scene live into the
+running game and exports levels the game loads.
 
-## Unit testing requirement
+## Bevy
+
+There are three repositories side by side:
+
+- This repository (folder `AiWorldEd`): the editor, TypeScript and Three.js.
+- `../AiWorldEdBevy`: the game side, the `broom_bridge` crate a game adds and
+  the `broom_preview` program. Follow its own `AGENTS.md` when working there.
+- `../DynLightBevy`: the renderer (lights, bakes, rooms and portals). Follow its
+  own `AGENTS.md`; prefer solving a problem in the editor or the bridge before
+  changing the renderer.
+
+Rules for work that touches the game:
+
+1. Design features from the game's point of view first: what the game needs to
+   receive, load and show, then how the editor authors it.
+2. The preview protocol is a contract.
+   `src/preview/protocol/preview_protocol_types.ts` mirrors the Rust
+   `protocol/` module in `../AiWorldEdBevy`; always change both together.
+3. Anything the game must see in a shipped level goes into the exported GLB in a
+   form the game reads without the editor (for example DynLight node extras).
+4. Editor-only helpers (light markers, room and portal outlines) are never
+   exported as meshes.
+
+## Testing requirement
 
 Every new feature MUST have a properly documented unit test. This test must be
 robust enough to stand the test of time (no hardcoded positions, rotations, they
 must create what they need, test the result, check the result).
+
+Prefer proving a feature end to end. Every feature the game or the desktop app
+can observe MUST also get an end-to-end test step under `tests/e2e/` that drives
+the real programs. That includes anything sent over the preview link, anything
+exported for the game, and desktop shell or MCP tool behavior. Unit tests prove
+each piece in isolation and stay fast; end-to-end steps prove the pieces work
+together.
+
+End-to-end steps follow the same robustness rules as unit tests. They:
+
+- Build their scene through the editor's own code paths or MCP tools.
+- Check the result in the game itself: its status, its entities through the Bevy
+  remote protocol, and the files it writes.
+- Wait for conditions instead of sleeping fixed times.
+- Work on temporary copies of the game project and clean up after themselves.
+- Run with hidden windows by default.
 
 ## After making changes
 
@@ -17,6 +58,24 @@ must create what they need, test the result, check the result).
 `bun run build` must pass.
 
 `bun run typecheck:strict` must pass.
+
+When the change touches the game preview, the protocol, export for the game,
+the desktop app or MCP tools, `bun run e2e` must pass too, run against freshly
+built programs. A stale build silently tests old code:
+
+```
+cd ..\AiWorldEdBevy
+cargo build --release -j 2 -p broom_preview
+cd ..\AiWorldEd
+bun run desktop:build:dev
+set BROOM_E2E_DESKTOP_EXE=desktop_build\dev-win-x64\BevyBroom-dev\bin\launcher.exe
+set BROOM_E2E_PREVIEW_EXE=..\AiWorldEdBevy\target\release\broom_preview.exe
+set BROOM_E2E_PROJECT_DIR=..\AiWorldEdBevy
+bun run e2e
+```
+
+If the Bevy workspace changed, its own checks (`cargo fmt`, `clippy` and
+`cargo test`, with `-j 2`) must pass too.
 
 PowerShell is janky, use cmd.
 
@@ -179,10 +238,14 @@ PowerShell is janky, use cmd.
 
 ## Coordinates
 
-The main difference you will find when working between ThreeJS and Unity is the
-coordinate systems are different: ThreeJS uses right hand whereas Unity uses
-left hand. But we want to be able to export maps to 3D models and Unity and
-TrenchBroom and Blender. Keep this in mind.
+Bevy and ThreeJS share the same coordinate system: right-handed, Y up, forward
+is -Z, one unit is one meter (the game project's `bevy_meters` profile; the
+editor's Godot preset uses the same axes). The game preview therefore sends
+geometry without any conversion; never add one.
+
+Other targets still matter: we want to be able to export maps to 3D models and
+Unity and TrenchBroom and Blender. Unity uses a left-handed system, so those
+exports convert on a root node through the game profile. Keep this in mind.
 
 ## Theme
 

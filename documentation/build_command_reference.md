@@ -1,6 +1,6 @@
 # Build Command Reference
 
-This is the quick-reference companion to [Building and running AiWorldEd](building_and_running.md). Use the walkthrough when setting up the project for the first time; use this page when you already know the workflow and need the exact command, its side effects, or its output.
+This is the quick-reference companion to [Building and running BevyBroom](building_and_running.md). Use the walkthrough when setting up the project for the first time; use this page when you already know the workflow and need the exact command, its side effects, or its output.
 
 Run these commands from the repository root—the folder containing `package.json`.
 
@@ -46,6 +46,15 @@ bun run desktop:build
 bun run desktop:run
 ```
 
+### Run the end-to-end tests
+
+```console
+bun run desktop:build:dev
+bun run e2e
+```
+
+Set the `BROOM_E2E_*` variables first; see [End-to-end tests](building_and_running.md#end-to-end-tests).
+
 ## Command summary
 
 | Command                         | Purpose                                           | Stays running?      | Modifies project files?                                                   |
@@ -54,6 +63,7 @@ bun run desktop:run
 | `bun run dev`                   | Start the browser development server              | Yes                 | No authored source changes                                                |
 | `bun run test`                  | Start Vitest in its interactive/default mode      | Usually yes         | No                                                                        |
 | `bun run testrun`               | Run the complete test suite once                  | No                  | No                                                                        |
+| `bun run e2e`                   | Run the end-to-end tests against real programs    | No                  | No; works on temporary copies of the game project                         |
 | `bun run build`                 | Format supported files and build the browser site | No                  | Yes: formats files and replaces generated `docs/` output                  |
 | `bun run preview`               | Serve the generated browser build locally         | Yes                 | No                                                                        |
 | `bun run format`                | Format supported project files                    | No                  | Yes                                                                       |
@@ -63,6 +73,7 @@ bun run desktop:run
 | `bun run ci`                    | Check formatting, run tests, and build            | No                  | Yes: the build stage replaces generated `docs/` output                    |
 | `bun run desktop:dev`           | Watch and launch the desktop app for development  | Yes                 | May create desktop build/cache output                                     |
 | `bun run desktop:build`         | Package the desktop app for the current platform  | No                  | Replaces desktop build/artifact output                                    |
+| `bun run desktop:build:dev`     | Build a desktop app that runs in place            | No                  | Replaces `desktop_build/dev-*` output                                     |
 | `bun run desktop:run`           | Launch the most recent compatible desktop build   | Until the app exits | No authored source changes                                                |
 
 ## Dependency commands
@@ -279,6 +290,7 @@ electrobun dev
 Purpose:
 
 - Starts Electrobun's development workflow.
+- Builds the desktop page into `desktop_view_dist/` first.
 - Watches desktop entry points.
 - Launches the application in its desktop shell.
 
@@ -294,9 +306,12 @@ electrobun build --env=stable
 
 Purpose:
 
-- Builds the desktop application for the current operating system.
-- Runs the configured icon post-processing.
-- Creates packages suitable for local inspection or later release packaging.
+- Builds the desktop page with Vite (`scripts/desktop_view_build.ts`, `vite.desktop.config.ts`) into `desktop_view_dist/`.
+- Bundles the main process and builds the desktop application for the current operating system.
+- Embeds the Windows application icon in the launcher, runtime and setup program.
+- Creates compressed packages suitable for release; the stable launcher in `desktop_build/` does not run in place.
+
+The first desktop command downloads the Electrobun tool set into `.hutch/`, which needs network access once.
 
 Output folders:
 
@@ -306,6 +321,28 @@ Output folders:
 | `desktop_artifacts/` | Packaged desktop outputs      |
 
 Build Windows artifacts on Windows, Linux artifacts on Linux, and macOS artifacts on macOS.
+
+### `bun run desktop:build:dev`
+
+Runs:
+
+```text
+electrobun build --env=dev
+```
+
+Builds the same app uncompressed, so it can be started in place. On Windows that is `desktop_build/dev-win-x64/BevyBroom-dev/bin/launcher.exe`, which the desktop end-to-end test launches.
+
+Setting `BEVYBROOM_MCP_AUTOSTART_PORT=<port>` before starting any desktop build starts its MCP server as soon as the window is ready and prints `BEVYBROOM_MCP_URL=<url>` (see `src/ai/README.md`). Setting `BEVYBROOM_DESKTOP_HIDDEN=1` keeps the window hidden while the editor runs normally, which the end-to-end tests use.
+
+### `bun run e2e`
+
+Runs:
+
+```text
+vitest run tests/e2e
+```
+
+Runs the end-to-end tests that drive the built desktop app and the Bevy game preview. Each test is skipped unless its `BROOM_E2E_*` variables are set; see [End-to-end tests](building_and_running.md#end-to-end-tests).
 
 ### `bun run desktop:run`
 
@@ -371,16 +408,14 @@ Arguments:
 
 This creates release-note Markdown; it does not publish a GitHub release by itself.
 
-### Windows icon utilities
-
-The desktop configuration automatically runs the Windows icon embedder after applicable builds and packaging. The lower-level icon scripts under `scripts/` are maintenance tools and normally should not be invoked separately from `bun run desktop:build`.
-
 ## Generated paths at a glance
 
 | Path                 | Generated by                                         | Safe to edit directly?                                |
 | -------------------- | ---------------------------------------------------- | ----------------------------------------------------- |
 | `docs/`              | `bun run build`                                      | No; rebuild from source                               |
+| `desktop_view_dist/` | Desktop commands, before each desktop build          | No                                                    |
 | `desktop_build/`     | Electrobun development/build commands                | No                                                    |
+| `.hutch/`            | First desktop command (Electrobun tool set download) | No; delete it to download again                       |
 | `desktop_artifacts/` | `bun run desktop:build`                              | No                                                    |
 | `release_dist/`      | Desktop release packaging utility                    | No                                                    |
 | `release_body.md`    | Release-note utility when that output name is chosen | Reviewable output, but regenerate after inputs change |
@@ -393,4 +428,4 @@ The desktop configuration automatically runs the Windows icon embedder after app
 - Vite's large-chunk notice is a warning when the build otherwise completes.
 - Canvas messages from the simulated test browser are warnings when Vitest reports all tests passed.
 
-For setup explanations and troubleshooting steps, return to [Building and running AiWorldEd](building_and_running.md).
+For setup explanations and troubleshooting steps, return to [Building and running BevyBroom](building_and_running.md).

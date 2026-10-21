@@ -6,14 +6,14 @@ describe('GitHubReleaseClient', () => {
     const request = vi.fn(async () =>
       createResponse(200, {
         tag_name: 'v1.4.0',
-        name: 'AiWorldEd 1.4.0',
+        name: 'BevyBroom 1.4.0',
         html_url: 'https://github.com/Henry00IS/AiWorldEd/releases/tag/v1.4.0',
         body: 'Bug fixes',
         assets: [
           {
-            name: 'AiWorldEd-windows.exe',
+            name: 'BevyBroom-windows.exe',
             browser_download_url:
-              'https://github.com/Henry00IS/AiWorldEd/releases/download/v1.4.0/AiWorldEd-windows.exe',
+              'https://github.com/Henry00IS/AiWorldEd/releases/download/v1.4.0/BevyBroom-windows.exe',
             size: 100,
           },
         ],

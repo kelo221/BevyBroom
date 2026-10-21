@@ -9,6 +9,7 @@ import { HandlerAlignment } from '@/outliner/alignment/handler_alignment.js';
 import { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js';
 import { buildOutlinerActions, buildToolbarActions } from './layout_action_factories.js';
 import { PanelOutliner } from '@/outliner/ui/panel_outliner.js';
+import type { ShellFileMenuShortcutAction } from '@/layout/shell/shell_file_menu_shortcut_action.js';
 
 /** Layout surface used to build outliner and toolbar shell actions. */
 export interface LayoutShellActionSource {
@@ -38,6 +39,7 @@ export interface LayoutShellActionSource {
   onOpenDocumentation: () => void;
   onOpenAboutDialog: () => void;
   onOpenMcpDialog: () => void;
+  onToggleGamePreviewPanel: () => void;
   onOpenDetachedViewport: () => void;
   onToggleAiCaptureDebugPanel: () => void;
   onToggleAudio: () => void;
@@ -45,13 +47,14 @@ export interface LayoutShellActionSource {
   onGroupSelected: () => void;
   onNewScene: () => void;
   onSaveScene: () => void;
+  onSaveSceneAs: () => void;
   onLoadScene: () => void;
   onImportVmf: () => void;
   onImportObj: () => void;
   onExportGlb: () => void;
   onExportObj: () => void;
   onExportFbx: () => void;
-  getShortcutLabel: (action: 'save' | 'load' | 'export_glb') => string;
+  getShortcutLabel: (action: ShellFileMenuShortcutAction) => string;
   onSetTransformSpaceGlobal: () => void;
   onSetTransformSpaceLocal: () => void;
   isTransformSpaceLocal: () => boolean;
@@ -121,6 +124,7 @@ export function createToolbarShellActions(source: LayoutShellActionSource) {
     onOpenDocumentation: () => source.onOpenDocumentation(),
     onOpenAboutDialog: () => source.onOpenAboutDialog(),
     onOpenMcpDialog: () => source.onOpenMcpDialog(),
+    onToggleGamePreviewPanel: () => source.onToggleGamePreviewPanel(),
     onOpenDetachedViewport: () => source.onOpenDetachedViewport(),
     onToggleAiCaptureDebugPanel: () => source.onToggleAiCaptureDebugPanel(),
     onToggleAudio: () => source.onToggleAudio(),
@@ -128,6 +132,7 @@ export function createToolbarShellActions(source: LayoutShellActionSource) {
     onGroupSelected: () => source.onGroupSelected(),
     onNewScene: () => source.onNewScene(),
     onSaveScene: () => source.onSaveScene(),
+    onSaveSceneAs: () => source.onSaveSceneAs(),
     onLoadScene: () => source.onLoadScene(),
     onImportVmf: () => source.onImportVmf(),
     onImportObj: () => source.onImportObj(),

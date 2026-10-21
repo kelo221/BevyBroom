@@ -1,6 +1,5 @@
 import type * as THREE from 'three';
 import type { CommandStack } from '@/commands/command_stack.js';
-import { Theme } from '@/theme.js';
 import { CommandModifierBevelDistanceSet } from '@/modifier/volume/command_modifier_bevel_distance_set.js';
 import { ModifierVolumeBevel, type ModifierBevelVolumeSettings } from '@/modifier/volume/modifier_volume_bevel.js';
 import { modifierBevelRotationIsIdle } from '@/modifier/volume/modifier_volume_bevel_uv_placement.js';
@@ -51,6 +50,7 @@ import { InputNumeric } from '@/ui/input/input_numeric.js';
 import { inputNumericCreateUvField } from '@/ui/input/input_numeric_uv_field.js';
 import { UV_OFFSET_NUDGE } from '@/texture/uv/uv_trs_ops.js';
 import { InputSelect, type InputSelectChoice } from '@/ui/input/input_select.js';
+import { panelPropertiesRowCaptionPaint, panelPropertiesRowCreate } from '@/ui/properties/panel_properties_row.js';
 import { ModifierVolumeBlacklistList } from '@/modifier/volume/ui/modifier_volume_blacklist_list.js';
 import {
   modifierVolumeBlacklistWithoutMissing,
@@ -161,28 +161,28 @@ export class PanelPropertiesBevelVolumeSection {
 
   /** Adds the segment, distance, and angle rows. */
   private appendCutRows(): void {
-    this.section.appendChild(this.createRow('Segments', this.segmentsInput));
-    this.section.appendChild(this.createRow('Distance', this.distanceInput));
-    this.section.appendChild(this.createRow('Max Angle', this.angleInput));
+    this.section.appendChild(panelPropertiesRowCreate('Segments', this.segmentsInput));
+    this.section.appendChild(panelPropertiesRowCreate('Distance', this.distanceInput));
+    this.section.appendChild(panelPropertiesRowCreate('Max Angle', this.angleInput));
   }
 
   /** Adds the layout, texture, and placement rows. */
   private appendChartRows(): void {
-    this.section.appendChild(this.createRow('Layout', this.layoutInput));
-    this.section.appendChild(this.createRow('Texture', this.textureInput));
-    this.section.appendChild(this.createRow('Owner', this.uvFields.owner));
-    this.section.appendChild(this.createRow('UV', this.uvInput));
-    this.section.appendChild(this.createRow('Space', this.uvFields.space));
+    this.section.appendChild(panelPropertiesRowCreate('Layout', this.layoutInput));
+    this.section.appendChild(panelPropertiesRowCreate('Texture', this.textureInput));
+    this.section.appendChild(panelPropertiesRowCreate('Owner', this.uvFields.owner));
+    this.section.appendChild(panelPropertiesRowCreate('UV', this.uvInput));
+    this.section.appendChild(panelPropertiesRowCreate('Space', this.uvFields.space));
     this.appendScaleRows();
   }
 
   /** Adds the scale, offset, and rotation rows. */
   private appendScaleRows(): void {
-    this.section.appendChild(this.createRow('U scale', this.uvFields.scaleU));
-    this.section.appendChild(this.createRow('V scale', this.uvFields.scaleV));
-    this.section.appendChild(this.createRow('U offset', this.uvFields.offsetU));
-    this.section.appendChild(this.createRow('V offset', this.uvFields.offsetV));
-    this.section.appendChild(this.createRow('Rotation', this.uvFields.rotation));
+    this.section.appendChild(panelPropertiesRowCreate('U scale', this.uvFields.scaleU));
+    this.section.appendChild(panelPropertiesRowCreate('V scale', this.uvFields.scaleV));
+    this.section.appendChild(panelPropertiesRowCreate('U offset', this.uvFields.offsetU));
+    this.section.appendChild(panelPropertiesRowCreate('V offset', this.uvFields.offsetV));
+    this.section.appendChild(panelPropertiesRowCreate('Rotation', this.uvFields.rotation));
   }
 
   /**
@@ -191,7 +191,7 @@ export class PanelPropertiesBevelVolumeSection {
    * @returns Pivot row.
    */
   private appendPivotRow(): HTMLElement {
-    const pivotRow = this.createRow('Pivot', this.uvFields.pivot);
+    const pivotRow = panelPropertiesRowCreate('Pivot', this.uvFields.pivot);
     this.section.appendChild(pivotRow);
     this.appendAffects();
     return pivotRow;
@@ -217,7 +217,7 @@ export class PanelPropertiesBevelVolumeSection {
     label.style.display = 'block';
     label.style.fontWeight = 'bold';
     label.style.marginBottom = '4px';
-    this.paintCaption(label);
+    panelPropertiesRowCaptionPaint(label);
     return label;
   }
 
@@ -457,64 +457,6 @@ export class PanelPropertiesBevelVolumeSection {
       settings.map((entry) => entry.uvRotation),
       1,
     );
-  }
-
-  /**
-   * Builds one labeled row.
-   *
-   * @param labelText Row caption.
-   * @param input Field that exposes its element.
-   * @returns Row element.
-   */
-  private createRow(labelText: string, input: { getElement(): HTMLElement }): HTMLElement {
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.alignItems = 'center';
-    row.style.gap = '4px';
-    row.style.padding = '0 8px 8px';
-    row.appendChild(this.createRowLabel(labelText));
-    row.appendChild(this.stretchField(input.getElement()));
-    return row;
-  }
-
-  /**
-   * Creates a caption that fits the longest bevel label.
-   *
-   * @param labelText Row caption.
-   * @returns Caption element.
-   */
-  private createRowLabel(labelText: string): HTMLElement {
-    const label = document.createElement('span');
-    label.textContent = labelText;
-    label.style.width = '9ch';
-    label.style.flexShrink = '0';
-    this.paintCaption(label);
-    return label;
-  }
-
-  /**
-   * Paints a row caption.
-   *
-   * @param label Caption element.
-   */
-  private paintCaption(label: HTMLElement): void {
-    label.style.color = Theme.buttonTextColor;
-    label.style.fontFamily = 'monospace';
-    label.style.fontSize = '12px';
-  }
-
-  /**
-   * Lets a field use the width left beside its caption.
-   *
-   * @param field Input element.
-   * @returns The same element.
-   */
-  private stretchField(field: HTMLElement): HTMLElement {
-    field.style.flex = '1';
-    field.style.minWidth = '0';
-    field.style.width = '100%';
-    field.style.maxWidth = 'none';
-    return field;
   }
 
   /** Writes a committed UV flow through the undo stack. */

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
-import { buildExportScene } from '@/io/scene/builder_export_scene.js';
+import { buildExportScene, type ExportSceneOptions } from '@/io/scene/builder_export_scene.js';
 import type { GameProfile } from '@/settings/store/settings_types.js';
 import { buildExportRootTransform } from '@/io/coordinates/coordinate_space_transform.js';
 
@@ -17,12 +17,17 @@ export class GlbExporter {
    *
    * @param worldGroup The live editor world root to export.
    * @param profile Active game profile, or null to skip the conversion.
+   * @param options Export scene behavior switches.
    * @returns A promise resolving to the GLB ArrayBuffer.
    */
-  export(worldGroup: THREE.Group, profile: GameProfile | null = null): Promise<ArrayBuffer> {
+  export(
+    worldGroup: THREE.Group,
+    profile: GameProfile | null = null,
+    options: ExportSceneOptions = {},
+  ): Promise<ArrayBuffer> {
     return new Promise<ArrayBuffer>((resolve, reject) => {
-      const exportRoot = this.wrapForExport(worldGroup, profile);
-      this.executeExport(exportRoot, resolve, reject);
+      const exportRoot = this.wrapForExport(worldGroup, profile, options);
+      this.executeExport(exportRoot, options.includeHiddenObjects !== true, resolve, reject);
     });
   }
 
@@ -32,10 +37,15 @@ export class GlbExporter {
    *
    * @param worldGroup The original scene root.
    * @param profile Active game profile, or null.
+   * @param options Export scene behavior switches.
    * @returns A wrapped group ready for GLTFExporter.
    */
-  private wrapForExport(worldGroup: THREE.Group, profile: GameProfile | null): THREE.Group {
-    const exportScene = buildExportScene(worldGroup);
+  private wrapForExport(
+    worldGroup: THREE.Group,
+    profile: GameProfile | null,
+    options: ExportSceneOptions,
+  ): THREE.Group {
+    const exportScene = buildExportScene(worldGroup, options);
     const transform = buildExportRootTransform(profile);
     if (transform.equals(new THREE.Matrix4())) {
       return exportScene;
@@ -52,11 +62,13 @@ export class GlbExporter {
    * Executes the GLTFExporter callback and resolves the promise.
    *
    * @param exportRoot The group to export.
+   * @param onlyVisible True to leave hidden objects out of the file.
    * @param resolve The promise resolve function.
    * @param reject The promise reject function.
    */
   private executeExport(
     exportRoot: THREE.Group,
+    onlyVisible: boolean,
     resolve: (buffer: ArrayBuffer) => void,
     reject: (error: Error) => void,
   ): void {
@@ -65,7 +77,7 @@ export class GlbExporter {
       exportRoot,
       (result) => this.onExportSuccess(result, resolve),
       (error) => this.onExportError(error, reject),
-      { binary: true },
+      { binary: true, onlyVisible },
     );
   }
 

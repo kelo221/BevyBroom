@@ -1,4 +1,4 @@
-# AI World Editor — MCP (desktop)
+# BevyBroom — MCP (desktop)
 
 The Electrobun desktop build can host a **local Model Context Protocol (MCP)** endpoint so external AI clients (Grok Build, Claude Desktop, Cursor, etc.) can inspect and edit **convex solid-model brushes** in the live map.
 
@@ -13,12 +13,24 @@ This is **not** available in the GitHub Pages / browser build.
 
 No token or password is required. The server only listens on this computer (`127.0.0.1`).
 
+### Start at launch (scripts and end-to-end tests)
+
+Set `BEVYBROOM_MCP_AUTOSTART_PORT=<port>` before launching the desktop app. The server then starts as soon as the window is ready, on that port or the next free one, and the app prints one line to stdout:
+
+```text
+BEVYBROOM_MCP_URL=http://127.0.0.1:18765/mcp
+```
+
+If the server cannot start, the failure message is printed instead. Without the variable nothing starts on its own.
+
+Add `BEVYBROOM_DESKTOP_HIDDEN=1` to run the editor without ever showing its window, for scripts that only talk to it over MCP.
+
 ## Connect Grok Build
 
 In `~/.grok/config.toml` (or via `grok mcp add`):
 
 ```toml
-[mcp_servers.aiworlded]
+[mcp_servers.bevybroom]
 url = "http://127.0.0.1:18765/mcp"
 enabled = true
 ```
@@ -28,7 +40,7 @@ Use the exact URL from the dialog if the port is not `18765`.
 CLI equivalent:
 
 ```bash
-grok mcp add --transport http aiworlded http://127.0.0.1:18765/mcp
+grok mcp add --transport http bevybroom http://127.0.0.1:18765/mcp
 ```
 
 Keep the editor open with MCP started while Grok uses the tools.
@@ -139,7 +151,7 @@ Same-solid only: reparent/group never moves a brush out of its solid model root.
 
 **What it does:** Renders one still image of the world and returns it as a **JPEG**. The editor viewports are not moved or changed. In **solid** shading, the default checker texture is replaced with **white** for the capture only; faces with real assigned textures keep those maps.
 
-**Requirements:** AiWorldEd must be running with MCP started (toolbar **MCP** → **Start server**). MCP always runs inside the app; there is no separate browser MCP.
+**Requirements:** BevyBroom must be running with MCP started (toolbar **MCP** → **Start server**). MCP always runs inside the app; there is no separate browser MCP.
 
 **Size limits (important):** Many MCP clients cap tool results near **20KB** (Grok Build default is 20_000 bytes). A full 512×512 PNG is far too large and gets **truncated**, which shows up as “image bytes are truncated” / “payload too large”.  
 `capture_view` therefore:
@@ -238,6 +250,28 @@ max_output_bytes = 200000
 **Transform tips:** use **degrees** (`rotationDegrees`, `rotate_brush.degrees`), not radians. When snap is on, positions and angles snap to the editor grid / rotation step (default 15°) unless you pass `snap: false`.
 
 Solid mutations (including hierarchy create/reparent/rename/ungroup) are **undoable** via `undo` / `redo` and the editor history.
+
+## Lights, rooms and portals
+
+| Tool                                                               | What it does                                                                      |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `add_light` / `add_room` / `add_portal`                            | Add one at `position`, `rotationDegrees`, `scale`; `settings` merge over defaults |
+| `set_light_settings` / `set_room_settings` / `set_portal_settings` | Merge `settings` into the entity with `id`, as one undoable edit                  |
+
+- **Light settings:** `kind` (`point` / `spot`), `colorHex`, `intensity`, `radius`, `falloff`, `innerCutoffDegrees`, `outerCutoffDegrees`, `realtime`, `shadows` (`raytraced` / `realtime`), `enabled`.
+- **Room settings:** `halfSizeX`, `halfSizeY`, `halfSizeZ` in meters; the box is centered on the room and follows its rotation and scale.
+- **Portal settings:** `width`, `height`, `closed`. The portal is a rectangle in its local XY plane facing local +Z. Closing it (a door) hides what is behind it in the game.
+- A room must reach the middle of the wall at each doorway, otherwise the game turns portal culling off; `preview_status` shows the reason.
+- Adds return the new id in `createdIds` and `data.id`. Every add and edit is undoable.
+
+## Game preview and scene documents
+
+| Tool                  | What it does                                                                                    |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
+| `preview_connect`     | Connect to a running game preview; optional `endpoint` (e.g. `http://127.0.0.1:15702`)          |
+| `preview_status`      | `connection`, the `revisions` this editor sent, the newest `game` status, and `lastError`       |
+| `get_scene_document`  | The open scene as scene file text (`json`) and its `documentId`, exactly as Save would write it |
+| `load_scene_document` | Open scene file text (`json`) the way File > Load does, without a file dialog                   |
 
 ## Not in this build
 

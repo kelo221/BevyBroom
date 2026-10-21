@@ -11,15 +11,15 @@ import {
 
 describe('desktop release asset naming', () => {
   it('builds versioned public Setup names for human downloads', () => {
-    expect(buildPublicSetupFileName('1.0.42', 'win', 'x64')).toBe('AiWorldEd-1.0.42-Win-x64-Setup.zip');
-    expect(buildPublicSetupFileName('1.0.42', 'linux', 'x64')).toBe('AiWorldEd-1.0.42-Linux-x64-Setup.zip');
-    expect(buildPublicSetupFileName('1.0.42', 'macos', 'arm64')).toBe('AiWorldEd-1.0.42-MacOS-arm64-Setup.zip');
+    expect(buildPublicSetupFileName('1.0.42', 'win', 'x64')).toBe('BevyBroom-1.0.42-Win-x64-Setup.zip');
+    expect(buildPublicSetupFileName('1.0.42', 'linux', 'x64')).toBe('BevyBroom-1.0.42-Linux-x64-Setup.zip');
+    expect(buildPublicSetupFileName('1.0.42', 'macos', 'arm64')).toBe('BevyBroom-1.0.42-MacOS-arm64-Setup.zip');
   });
 
   it('documents portable naming helpers without requiring a second published copy', () => {
-    expect(buildPublicPortableFileName('1.0.42', 'linux', 'x64')).toBe('AiWorldEd-1.0.42-Linux-x64-Portable.tar.zst');
+    expect(buildPublicPortableFileName('1.0.42', 'linux', 'x64')).toBe('BevyBroom-1.0.42-Linux-x64-Portable.tar.zst');
     expect(buildPublicPortableFileName('1.0.42', 'macos', 'arm64')).toBe(
-      'AiWorldEd-1.0.42-MacOS-arm64-Portable.tar.zst',
+      'BevyBroom-1.0.42-MacOS-arm64-Portable.tar.zst',
     );
   });
 
@@ -27,26 +27,26 @@ describe('desktop release asset naming', () => {
     expect(buildElectrobunUpdateJsonFileName('stable', 'win', 'x64')).toBe('stable-win-x64-update.json');
     expect(buildElectrobunUpdateJsonFileName('stable', 'linux', 'x64')).toBe('stable-linux-x64-update.json');
     expect(buildElectrobunUpdateJsonFileName('stable', 'macos', 'arm64')).toBe('stable-macos-arm64-update.json');
-    expect(buildElectrobunPortableFileName('stable', 'win', 'x64')).toBe('stable-win-x64-AiWorldEd.tar.zst');
-    expect(buildElectrobunPortableFileName('stable', 'linux', 'x64')).toBe('stable-linux-x64-AiWorldEd.tar.zst');
+    expect(buildElectrobunPortableFileName('stable', 'win', 'x64')).toBe('stable-win-x64-BevyBroom.tar.zst');
+    expect(buildElectrobunPortableFileName('stable', 'linux', 'x64')).toBe('stable-linux-x64-BevyBroom.tar.zst');
     expect(buildElectrobunPortableFileName('stable', 'macos', 'arm64')).toBe(
-      'stable-macos-arm64-AiWorldEd.app.tar.zst',
+      'stable-macos-arm64-BevyBroom.app.tar.zst',
     );
   });
 
   it('parses Electrobun artifact kinds and marks patches as droppable', () => {
-    expect(parseElectrobunArtifactFileName('stable-win-x64-AiWorldEd-Setup.zip')).toMatchObject({
+    expect(parseElectrobunArtifactFileName('stable-win-x64-BevyBroom-Setup.zip')).toMatchObject({
       os: 'win',
       arch: 'x64',
       kind: 'setup',
     });
-    expect(parseElectrobunArtifactFileName('stable-linux-x64-AiWorldEd-Setup.tar.gz')).toMatchObject({
+    expect(parseElectrobunArtifactFileName('stable-linux-x64-BevyBroom-Setup.tar.gz')).toMatchObject({
       kind: 'setup',
     });
-    expect(parseElectrobunArtifactFileName('stable-linux-x64-AiWorldEd.tar.zst')).toMatchObject({
+    expect(parseElectrobunArtifactFileName('stable-linux-x64-BevyBroom.tar.zst')).toMatchObject({
       kind: 'portable',
     });
-    expect(parseElectrobunArtifactFileName('stable-macos-arm64-AiWorldEd.app.tar.zst')).toMatchObject({
+    expect(parseElectrobunArtifactFileName('stable-macos-arm64-BevyBroom.app.tar.zst')).toMatchObject({
       kind: 'portable',
       os: 'macos',
       arch: 'arm64',

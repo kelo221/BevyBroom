@@ -1,8 +1,8 @@
-# Building and Running AiWorldEd
+# Building and Running BevyBroom
 
-This guide is for anyone who wants to run AiWorldEd from its source code, test a change locally, create the browser build, or package the standalone desktop application.
+This guide is for anyone who wants to run BevyBroom from its source code, test a change locally, create the browser build, or package the standalone desktop application.
 
-You do not need to build the project to use the published online editor or a prebuilt desktop release. Build from source when you want to modify AiWorldEd, test an unreleased change, host your own copy, or create a desktop package for your current platform.
+You do not need to build the project to use the published online editor or a prebuilt desktop release. Build from source when you want to modify BevyBroom, test an unreleased change, host your own copy, or create a desktop package for your current platform.
 
 If the project is already set up and you only need an exact command or its side effects, use the [Build command reference](build_command_reference.md).
 
@@ -11,12 +11,12 @@ If the project is already set up and you only need an exact command or its side 
 Install the following before opening a terminal:
 
 - **Git**, to obtain and update the source repository.
-- **Bun 1.3.14**, which installs packages and runs the project's scripts.
+- **Bun 1.4.3**, which installs packages and runs the project's scripts.
 - A current web browser for the browser build.
 
-The repository records Bun 1.3.14 as its package-manager version. A significantly different Bun version may behave differently, so use the recorded version when you need a reproducible build.
+The repository records Bun 1.4.3 as its package-manager version (in `package.json` and `.bun-version`). A significantly different Bun version may behave differently, so use the recorded version when you need a reproducible build.
 
-Desktop packages use Electrobun, which is installed with the project dependencies. Build desktop packages on the operating system you intend to target: Windows on Windows, Linux on Linux, and macOS on macOS.
+Desktop packages use Electrobun 2. The `electrobun` package installed with the project dependencies is only a small bootstrap: the first desktop command downloads the Electrobun tool set (Hutch) into `.hutch/` in the project folder, so it needs network access once. Build desktop packages on the operating system you intend to target: Windows on Windows, Linux on Linux, and macOS on macOS.
 
 ## Get the source
 
@@ -39,7 +39,7 @@ bun install --frozen-lockfile
 
 The frozen lockfile option makes Bun use the exact dependency versions recorded by the project. If you are intentionally changing dependencies, use `bun install` while making that change and review the resulting `bun.lock` update.
 
-Dependency installation creates local package files used by the build. It does not install AiWorldEd as a system-wide application.
+Dependency installation creates local package files used by the build. It does not install BevyBroom as a system-wide application.
 
 ## Run the browser editor for development
 
@@ -104,7 +104,7 @@ Start Electrobun's desktop development workflow:
 bun run desktop:dev
 ```
 
-This watches the desktop entry points and launches AiWorldEd in its desktop shell. Use it when testing native-window behavior, desktop file dialogs, or standalone update integration.
+This builds the desktop page, watches the desktop entry points and launches BevyBroom in its desktop shell. Use it when testing native-window behavior, desktop file dialogs, or standalone update integration.
 
 The desktop application uses the same editor entry point as the browser version, so editing behavior should remain consistent between both targets.
 
@@ -116,7 +116,7 @@ Run:
 bun run desktop:build
 ```
 
-Electrobun builds the application for the current operating system using its stable environment. Intermediate files are written to:
+Before packaging, Electrobun runs `scripts/desktop_view_build.ts`, which builds the desktop page with Vite (`vite.desktop.config.ts`) into `desktop_view_dist/`. Electrobun copies it into the app and bundles the main process (`src/desktop/bun/index.ts`). It then builds the application for the current operating system using its stable environment. Intermediate files are written to:
 
 ```text
 desktop_build/
@@ -128,7 +128,15 @@ Packaged outputs are written to:
 desktop_artifacts/
 ```
 
-On Windows, the post-build process also embeds the application icon into applicable executables. macOS uses the icon set in `public/app_icon.iconset`, while Linux uses the large PNG application icon.
+On Windows, Electrobun embeds the application icon (`public/app_icon.ico`) into the launcher, the runtime and the setup program itself. macOS uses the icon set in `public/app_icon.iconset`, while Linux uses the large PNG application icon.
+
+A stable build is compressed for installing and updating, so its `launcher.exe` cannot be started straight from `desktop_build/`. To get an app you can run in place, for example for the end-to-end tests, build the development environment:
+
+```console
+bun run desktop:build:dev
+```
+
+On Windows the runnable app is then `desktop_build/dev-win-x64/BevyBroom-dev/bin/launcher.exe`.
 
 To relaunch the most recent desktop build:
 
@@ -165,6 +173,32 @@ bun run typecheck:strict
 bun run format:check
 ```
 
+### End-to-end tests
+
+The end-to-end tests drive the real programs and are skipped unless you tell them where those programs are:
+
+| Variable                 | Value                                                                                  |
+| ------------------------ | -------------------------------------------------------------------------------------- |
+| `BROOM_E2E_DESKTOP_EXE`  | The desktop app launcher from `bun run desktop:build:dev`                              |
+| `BROOM_E2E_PREVIEW_EXE`  | The release `broom_preview` program of the Bevy workspace (`AiWorldEdBevy`)            |
+| `BROOM_E2E_PROJECT_DIR`  | A game project folder holding `broom.project.json` and `assets/` (copied, not changed) |
+| `BROOM_E2E_PORT`         | Optional first bridge port of the games the tests start (default 15792)                |
+| `BROOM_E2E_MCP_PORT`     | Optional first MCP port of the desktop app (default 18865)                             |
+| `BROOM_E2E_SHOW_WINDOWS` | Optional; `1` shows the game and app windows so you can watch the tests                |
+
+From `cmd` on Windows:
+
+```console
+set BROOM_E2E_DESKTOP_EXE=desktop_build\dev-win-x64\BevyBroom-dev\bin\launcher.exe
+set BROOM_E2E_PREVIEW_EXE=..\AiWorldEdBevy\target\release\broom_preview.exe
+set BROOM_E2E_PROJECT_DIR=..\AiWorldEdBevy
+bun run e2e
+```
+
+The preview tests mirror scenes into the game through the editor's real preview link: lights, rooms and portals, doors opening and closing, failed geometry loads, bakes, renamed levels and Save As. The desktop test starts the app with its MCP server on, builds two rooms joined by a door through MCP tools the way an AI client would, checks them in the game, then relaunches the app and reopens the scene. Without the desktop variable only the preview tests run; without the preview variables the desktop test runs without a game. `bun run testrun` skips all of them unless the variables are set.
+
+The tests run without showing any window: the game is started with `--hidden` and the desktop app with `BEVYBROOM_DESKTOP_HIDDEN=1`. Both still render with the GPU, so they need a normal desktop session rather than a server without graphics. Set `BROOM_E2E_SHOW_WINDOWS=1` to see them in action.
+
 The strict TypeScript check is informational in the current automated workflow because existing strict errors are still being resolved. Do not confuse that known status with the required unit-test and production-build checks.
 
 ## Build outputs and source files
@@ -177,14 +211,16 @@ Generated build folders should not be treated as the editable source:
 | `public/`            | Static assets copied into the browser build    |
 | `documentation/`     | Authored Markdown user guides and their images |
 | `docs/`              | Generated production browser site              |
+| `desktop_view_dist/` | Desktop page built before each desktop build   |
 | `desktop_build/`     | Intermediate Electrobun build files            |
 | `desktop_artifacts/` | Packaged desktop build artifacts               |
+| `.hutch/`            | Downloaded Electrobun tool set                 |
 
 Make changes in `src/`, `public/`, or `documentation/`, then rebuild. Editing generated files in `docs/` or `desktop_build/` will not reliably survive the next build.
 
 ## How official builds are produced
 
-The project's GitHub Actions workflow installs Bun 1.3.14, installs dependencies from the frozen lockfile, checks formatting, runs tests, and builds the browser site.
+The project's GitHub Actions workflow installs the Bun version named in `.bun-version`, installs dependencies from the frozen lockfile, checks formatting, runs tests, and builds the browser site.
 
 For changes pushed to the main branch, the workflow also:
 
@@ -199,7 +235,7 @@ Local builds do not automatically publish a site or create a GitHub release.
 
 ### `bun` is not recognized
 
-Bun is either not installed or is not available on your terminal's `PATH`. Install Bun 1.3.14, close and reopen the terminal, then verify:
+Bun is either not installed or is not available on your terminal's `PATH`. Install Bun 1.4.3, close and reopen the terminal, then verify:
 
 ```console
 bun --version
@@ -228,6 +264,7 @@ The development or preview server may select another available port and print it
 ### A desktop build fails
 
 - Confirm that dependencies installed successfully.
+- The first desktop build downloads the Electrobun tool set into `.hutch/`; confirm network access. Deleting `.hutch/` makes the next build download it again.
 - Build on the same operating-system family as the desired artifact.
 - Close a previously launched copy if it is locking build files.
 - Check the first meaningful error above any follow-on packaging messages.

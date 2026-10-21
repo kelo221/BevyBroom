@@ -11,8 +11,11 @@
     "isolatedModules": true,
     "outDir": "./dist",
     "noEmit": true,
+    "types": ["node"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "electrobun/view": ["./src/types/shims/electrobun_view.ts"],
+      "electrobun/main": ["./src/types/shims/electrobun_main.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "tests/**/*.ts"],

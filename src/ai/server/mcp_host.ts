@@ -40,9 +40,10 @@ export class McpHost {
    * Starts the MCP server on the first free loopback port.
    *
    * @param invoker Callback that runs tools in the webview editor.
+   * @param basePort First port to try; the following ports are tried after it.
    * @returns Start result with URL.
    */
-  start(invoker: EditorToolInvoker): McpHostStartResult {
+  start(invoker: EditorToolInvoker, basePort?: number): McpHostStartResult {
     if (this.server && this.session) {
       return {
         ok: true,
@@ -51,7 +52,7 @@ export class McpHost {
       };
     }
     this.invoker = invoker;
-    for (const port of listMcpPortCandidates()) {
+    for (const port of listMcpPortCandidates(basePort)) {
       const started = this.tryBindPort(port);
       if (started) return started;
     }

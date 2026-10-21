@@ -5,6 +5,7 @@
 
 import type { ObjExportPackage } from '@/io/obj/obj_export_types.js';
 import type { FbxExportPackage } from '@/io/fbx/fbx_export_types.js';
+import { FileTargetSceneDocument, isFileTargetHandle } from '@/io/dialog/file_target_scene_document.js';
 
 /**
  * Checks whether the File System Access API is available.
@@ -70,11 +71,121 @@ function readFileAsText(file: File): Promise<string> {
   });
 }
 
+/** File picker type entry for scene JSON documents. */
+const SCENE_JSON_PICKER_TYPE = {
+  description: 'Scene JSON',
+  accept: { 'application/json': ['.json'] },
+};
+
 /**
  * Manages browser file save and load dialog operations. Falls back to
  * download-based saving when File System Access API is unavailable.
  */
 export class ManagerFileDialog {
+  private readonly sceneDocumentTarget = new FileTargetSceneDocument();
+
+  /**
+   * Saves a scene document to the remembered file, or asks for a file when none
+   * is remembered or the remembered write fails. The chosen file is
+   * remembered.
+   *
+   * @param data The scene JSON text.
+   * @param suggestedName The suggested filename when a picker is needed.
+   * @returns The written file name, or null when cancelled or failed.
+   */
+  async saveSceneDocument(data: string, suggestedName: string): Promise<string | null> {
+    const rememberedName = await this.sceneDocumentTarget.textWrite(data);
+    if (rememberedName !== null) {
+      return rememberedName;
+    }
+    return this.saveSceneDocumentAs(data, suggestedName);
+  }
+
+  /**
+   * Asks for a scene document file, writes it, and remembers the chosen file.
+   *
+   * @param data The scene JSON text.
+   * @param suggestedName The suggested filename for the picker.
+   * @returns The written file name, or null when cancelled or failed.
+   */
+  async saveSceneDocumentAs(data: string, suggestedName: string): Promise<string | null> {
+    if (!isFileSystemAccessAvailable()) {
+      return this.saveJSONFallback(data, suggestedName);
+    }
+    const handle = await this.jsonSaveHandlePick(suggestedName);
+    if (!isFileTargetHandle(handle)) {
+      return null;
+    }
+    this.sceneDocumentTarget.remember(handle);
+    return this.sceneDocumentTarget.textWrite(data);
+  }
+
+  /**
+   * Asks for a scene document to open, reads it, and remembers the file as the
+   * save target.
+   *
+   * @returns The scene JSON text, or null when cancelled or failed.
+   */
+  async loadSceneDocument(): Promise<string | null> {
+    if (!isFileSystemAccessAvailable() || !('showOpenFilePicker' in window)) {
+      this.sceneDocumentTarget.forget();
+      return this.loadJSONFallback();
+    }
+    try {
+      const [handle] = await (window as any).showOpenFilePicker({ types: [SCENE_JSON_PICKER_TYPE] });
+      const text = await readFileAsText(await handle.getFile());
+      this.sceneDocumentTargetAdopt(handle);
+      return text;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Forgets the remembered scene document file so the next save asks for one. */
+  sceneDocumentTargetForget(): void {
+    this.sceneDocumentTarget.forget();
+  }
+
+  /**
+   * Returns the remembered scene document file name.
+   *
+   * @returns The file name, or null when no file is remembered.
+   */
+  sceneDocumentFileNameRead(): string | null {
+    return this.sceneDocumentTarget.fileNameRead();
+  }
+
+  /**
+   * Remembers an opened handle when it is writable, otherwise forgets the
+   * target.
+   *
+   * @param handle Handle returned by the open picker.
+   */
+  private sceneDocumentTargetAdopt(handle: unknown): void {
+    if (isFileTargetHandle(handle)) {
+      this.sceneDocumentTarget.remember(handle);
+      return;
+    }
+    this.sceneDocumentTarget.forget();
+  }
+
+  /**
+   * Shows the JSON save picker.
+   *
+   * @param suggestedName The suggested filename.
+   * @returns The chosen file handle, or null when cancelled or unsupported.
+   */
+  private async jsonSaveHandlePick(suggestedName: string): Promise<unknown> {
+    if (!('showSaveFilePicker' in window)) {
+      return null;
+    }
+    try {
+      return await (window as any).showSaveFilePicker({ suggestedName, types: [SCENE_JSON_PICKER_TYPE] });
+    } catch {
+      return null;
+    }
+  }
+
   /**
    * Opens a save dialog for JSON data and writes the file. Falls back to
    * download anchor when API is unavailable.
@@ -202,19 +313,11 @@ export class ManagerFileDialog {
    * @returns The filename or null on failure.
    */
   private async saveJSONWithAPI(data: string, suggestedName: string): Promise<string | null> {
-    if (!('showSaveFilePicker' in window)) {
+    const handle: any = await this.jsonSaveHandlePick(suggestedName);
+    if (handle === null) {
       return null;
     }
     try {
-      const handle = await (window as any).showSaveFilePicker({
-        suggestedName: suggestedName,
-        types: [
-          {
-            description: 'Scene JSON',
-            accept: { 'application/json': ['.json'] },
-          },
-        ],
-      });
       const writable = await handle.createWritable();
       await writable.write(data);
       await writable.close();
@@ -234,14 +337,7 @@ export class ManagerFileDialog {
       return null;
     }
     try {
-      const [handle] = await (window as any).showOpenFilePicker({
-        types: [
-          {
-            description: 'Scene JSON',
-            accept: { 'application/json': ['.json'] },
-          },
-        ],
-      });
+      const [handle] = await (window as any).showOpenFilePicker({ types: [SCENE_JSON_PICKER_TYPE] });
       const file = await handle.getFile();
       return await readFileAsText(file);
     } catch {

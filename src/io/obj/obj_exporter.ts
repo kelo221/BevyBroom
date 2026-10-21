@@ -120,7 +120,7 @@ export class ObjExporter {
    */
   private buildObjDocument(mtlFileName: string, body: string): string {
     const header = [
-      '# Wavefront OBJ exported by AI World Editor',
+      '# Wavefront OBJ exported by BevyBroom',
       '# https://github.com/henrydejongh/AiWorldEd',
       `mtllib ${mtlFileName}`,
       '',

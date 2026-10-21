@@ -1,6 +1,6 @@
-# AiWorldEd User Guide
+# BevyBroom User Guide
 
-AiWorldEd is a visual editor for blocking out and building 3D game worlds. You can create ordinary meshes, construct architecture from solid brushes, cut and combine shapes, apply textures, and export the result as a GLB file for another 3D tool or game engine.
+BevyBroom is a visual editor for blocking out and building 3D game worlds. You can create ordinary meshes, construct architecture from solid brushes, cut and combine shapes, apply textures, and export the result as a GLB file for another 3D tool or game engine.
 
 These guides explain the editor from a user's point of view. You do not need to know Three.js or understand how the editor is programmed.
 
@@ -25,6 +25,7 @@ These guides explain the editor from a user's point of view. You do not need to 
 ## Projects and preferences
 
 - [Saving, loading, importing, and exporting](files_import_and_export.md)
+- [Game preview and lights](game_preview.md) — mirror the scene into your running Bevy game.
 - [Settings and game profiles](settings_and_profiles.md)
 - [Building and running from source](building_and_running.md)
 - [Build command reference](build_command_reference.md)
@@ -32,7 +33,7 @@ These guides explain the editor from a user's point of view. You do not need to 
 
 ## A useful way to think about the editor
 
-AiWorldEd offers two complementary building styles:
+BevyBroom offers two complementary building styles:
 
 - **Ordinary scene objects** are independent cubes, spheres, cylinders, planes, and terrain meshes. They are convenient for props, blockouts, standalone shapes, and mesh-to-mesh CSG.
 - **Solid models** contain an ordered list of convex brushes. Each brush adds, removes, or limits volume as part of one continuously rebuilt architectural result. They are best suited to rooms, walls, doorways, corridors, and other level geometry.

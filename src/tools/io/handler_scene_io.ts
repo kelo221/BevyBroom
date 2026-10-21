@@ -14,6 +14,7 @@ import { VmfImportResult, VmfSolidImporter } from '@/io/vmf/vmf_solid_importer.j
 import { ImportProgressOverlay } from '@/ui/import/import_progress_overlay.js';
 import type { SceneJSON } from '@/io/scene/io_types.js';
 import { CLIP_PREVIEW_USERDATA_KEY } from '@/tools/clip_plane/clip_plane_preview.js';
+import { documentIdentityRead, documentIdentityReset, documentIdentityWrite } from '@/io/document/document_identity.js';
 
 /**
  * Orchestrates save, load, new scene, GLB/OBJ/FBX export, and VMF/OBJ import
@@ -44,17 +45,28 @@ export class HandlerSceneIo {
 
   /**
    * Clears all scene content from the world group while preserving editor
-   * helpers. Does not modify the undo stack; the caller clears history.
+   * helpers and forgets the remembered save file. Does not modify the undo
+   * stack; the caller clears history.
    *
    * @param worldGroup The root group containing the scene objects.
    * @param statusBar The status bar for feedback, or null.
    */
   clearScene(worldGroup: THREE.Group, statusBar: StatusBar | null): void {
     this.sceneDeserializer.clearContent(worldGroup);
+    this.fileDialogManager.sceneDocumentTargetForget();
     if (statusBar) {
       statusBar.setLastAction('Created new scene');
       statusBar.setLastSavedInfo('untitled');
     }
+  }
+
+  /**
+   * Returns the file name of the scene document that Save writes to.
+   *
+   * @returns File name, or null while the scene has no remembered file.
+   */
+  sceneDocumentFileNameRead(): string | null {
+    return this.fileDialogManager.sceneDocumentFileNameRead();
   }
 
   /**
@@ -68,20 +80,72 @@ export class HandlerSceneIo {
   }
 
   /**
-   * Saves the scene by serializing and writing to a file.
+   * Saves the scene to the file it was opened from or last saved to, asking for
+   * a file only when none is remembered.
    *
    * @param worldGroup The root group containing the scene objects.
    * @param statusBar The status bar for feedback, or null.
    */
   async saveScene(worldGroup: THREE.Group, statusBar: StatusBar | null): Promise<void> {
     try {
-      const sceneData = this.sceneSerializer.serialize(worldGroup);
-      const jsonString = JSON.stringify(sceneData, null, 2);
-      const filename = await this.fileDialogManager.saveJSON(jsonString, 'scene.json');
+      const jsonString = this.sceneJsonBuild(worldGroup);
+      const filename = await this.fileDialogManager.saveSceneDocument(jsonString, 'scene.json');
       this.showSaveResult(filename, statusBar);
     } catch (error) {
       this.showError(statusBar, `Failed to save scene: ${this.formatError(error)}`);
     }
+  }
+
+  /**
+   * Saves the scene to a newly chosen file as a new document: the world gets a
+   * fresh document identifier before it is written, and the chosen file becomes
+   * the save target. Cancelling keeps the previous identifier.
+   *
+   * @param worldGroup The root group containing the scene objects.
+   * @param statusBar The status bar for feedback, or null.
+   */
+  async saveSceneAs(worldGroup: THREE.Group, statusBar: StatusBar | null): Promise<void> {
+    const previousDocumentIdentifier = documentIdentityRead(worldGroup);
+    try {
+      documentIdentityReset(worldGroup);
+      const jsonString = this.sceneJsonBuild(worldGroup);
+      const filename = await this.fileDialogManager.saveSceneDocumentAs(jsonString, 'scene.json');
+      this.documentIdentityRestoreWhenUnsaved(worldGroup, previousDocumentIdentifier, filename);
+      this.showSaveResult(filename, statusBar);
+    } catch (error) {
+      this.documentIdentityRestoreWhenUnsaved(worldGroup, previousDocumentIdentifier, null);
+      this.showError(statusBar, `Failed to save scene: ${this.formatError(error)}`);
+    }
+  }
+
+  /**
+   * Puts the previous document identifier back when Save As wrote no file.
+   *
+   * @param worldGroup The root group containing the scene objects.
+   * @param previousDocumentIdentifier Identifier before Save As, or null when
+   *   the world had none.
+   * @param filename The written file name, or null when nothing was written.
+   */
+  private documentIdentityRestoreWhenUnsaved(
+    worldGroup: THREE.Group,
+    previousDocumentIdentifier: string | null,
+    filename: string | null,
+  ): void {
+    if (filename !== null || previousDocumentIdentifier === null) {
+      return;
+    }
+    documentIdentityWrite(worldGroup, previousDocumentIdentifier);
+  }
+
+  /**
+   * Serializes the world into formatted scene JSON text.
+   *
+   * @param worldGroup The root group containing the scene objects.
+   * @returns The scene document text.
+   */
+  sceneJsonBuild(worldGroup: THREE.Group): string {
+    const sceneData = this.sceneSerializer.serialize(worldGroup);
+    return JSON.stringify(sceneData, null, 2);
   }
 
   /**
@@ -109,7 +173,7 @@ export class HandlerSceneIo {
    */
   async loadScene(worldGroup: THREE.Group, onSceneLoaded: () => void, statusBar: StatusBar | null): Promise<void> {
     try {
-      const jsonString = await this.fileDialogManager.loadJSON();
+      const jsonString = await this.fileDialogManager.loadSceneDocument();
       this.processLoadResult(jsonString, worldGroup, onSceneLoaded, statusBar);
     } catch (error) {
       this.showError(statusBar, `Failed to load scene: ${this.formatError(error)}`);
@@ -132,40 +196,41 @@ export class HandlerSceneIo {
     statusBar: StatusBar | null,
   ): void {
     if (jsonString) {
-      this.processLoadedScene(jsonString, worldGroup, onSceneLoaded, statusBar);
+      this.loadSceneFromText(jsonString, worldGroup, onSceneLoaded, statusBar);
       return;
     }
     this.showError(statusBar, 'Failed to load scene');
   }
 
   /**
-   * Parses JSON and deserializes into the world group.
+   * Parses scene file text and deserializes it into the world group.
    *
-   * @param jsonString The JSON string to parse and load.
+   * @param jsonString The scene file text to parse and load.
    * @param worldGroup The target group to populate.
    * @param onSceneLoaded Callback invoked after successful scene load.
    * @param statusBar The status bar for feedback, or null.
+   * @returns True when the scene loaded.
    */
-  private processLoadedScene(
+  loadSceneFromText(
     jsonString: string,
     worldGroup: THREE.Group,
     onSceneLoaded: () => void,
     statusBar: StatusBar | null,
-  ): void {
+  ): boolean {
     try {
       const sceneData = JSON.parse(jsonString);
       if (!this.isValidSceneData(sceneData)) {
         this.showError(statusBar, 'Invalid scene file format');
-        return;
+        return false;
       }
       this.sceneDeserializer.deserialize(sceneData, worldGroup);
       onSceneLoaded();
-      if (statusBar) {
-        statusBar.setLastAction('Scene loaded successfully');
-        statusBar.setLastSavedInfo('loaded scene');
-      }
+      statusBar?.setLastAction('Scene loaded successfully');
+      statusBar?.setLastSavedInfo('loaded scene');
+      return true;
     } catch (error) {
       this.showError(statusBar, `Invalid scene file format: ${this.formatError(error)}`);
+      return false;
     }
   }
 
@@ -345,7 +410,10 @@ export class HandlerSceneIo {
         this.showError(statusBar, 'Nothing to export');
         return;
       }
-      const buffer = await this.glbExporter.export(worldGroup, profile);
+      const buffer = await this.glbExporter.export(worldGroup, profile, {
+        includeLightmapUvs: true,
+        includeRoomAndPortalNodes: true,
+      });
       if (!buffer || buffer.byteLength === 0) {
         this.showError(statusBar, 'Failed to export GLB: empty result');
         return;

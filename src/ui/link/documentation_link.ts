@@ -1,4 +1,4 @@
-/** Opens the hosted AiWorldEd user guide from editor help controls. */
+/** Opens the hosted BevyBroom user guide from editor help controls. */
 export class DocumentationLink {
   /** Public web address for the documentation entry page. */
   static readonly URL = 'https://github.com/Henry00IS/AiWorldEd/blob/main/documentation/README.md';

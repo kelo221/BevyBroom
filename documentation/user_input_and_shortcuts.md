@@ -1,6 +1,6 @@
 # User Input and Shortcuts
 
-AiWorldEd supports both direct manipulation and keyboard-driven editing. Most shortcuts are ignored while you are typing in a text field, number field, list, or other form control.
+BevyBroom supports both direct manipulation and keyboard-driven editing. Most shortcuts are ignored while you are typing in a text field, number field, list, or other form control.
 
 ## Mouse input
 
