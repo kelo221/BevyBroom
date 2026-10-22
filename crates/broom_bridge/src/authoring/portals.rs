@@ -11,6 +11,7 @@ use bevy::prelude::*;
 use dynlight::portals::{ClosedPortal, Portal, Room};
 
 use super::AppliedAuthoring;
+use super::ownership::{authored_unchanged, previous_of_same_document};
 use crate::protocol::{AuthoredHierarchy, AuthoredObject, AuthoredObjectKind, AuthoredState};
 
 /// A room or portal owned by an editor document.
@@ -91,9 +92,11 @@ type CellComponents<'a> = (
     &'a mut Name,
 );
 
-/// Spawns, updates and despawns room and portal entities to match the applied snapshot.
-/// Components are only written when they differ so DynLight rebuilds its graph only on real
-/// changes; a cell that changes between room and portal is respawned.
+/// Spawns, updates and despawns room and portal entities to match the applied snapshot. A cell
+/// is only written when its authored target changed since the previous snapshot, so a door
+/// gameplay opened stays open while unrelated objects are edited. Components are only written
+/// when they differ so DynLight rebuilds its graph only on real changes; a cell that changes
+/// between room and portal is respawned.
 pub(super) fn sync_cells(
     mut commands: Commands,
     applied: Res<AppliedAuthoring>,
@@ -106,6 +109,7 @@ pub(super) fn sync_cells(
         return;
     };
     let mut targets = cell_targets(state);
+    let previous_targets = previous_of_same_document(&applied).map(cell_targets);
     for (entity, owner, room, portal, closed, mut transform, mut name) in &mut cells {
         let target = (owner.document_id == state.document_id)
             .then(|| targets.remove(&owner.id))
@@ -114,6 +118,9 @@ pub(super) fn sync_cells(
             commands.entity(entity).despawn();
             continue;
         };
+        if authored_unchanged(previous_targets.as_ref(), &owner.id, &target) {
+            continue;
+        }
         if !cell_update(&mut commands, entity, room, portal, closed, &target.shape) {
             commands.entity(entity).despawn();
             targets.insert(owner.id.clone(), target);

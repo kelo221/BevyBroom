@@ -3,6 +3,7 @@
 
 mod cells;
 mod companions;
+mod ownership;
 mod revisions;
 mod spawning;
 

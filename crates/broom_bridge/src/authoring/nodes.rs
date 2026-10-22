@@ -7,7 +7,8 @@ use bevy::gltf::GltfExtras;
 use bevy::prelude::*;
 
 use super::AppliedAuthoring;
-use crate::protocol::{AuthoredObject, EXTRAS_OBJECT_ID, local_transform};
+use super::ownership::{authored_unchanged, previous_of_same_document};
+use crate::protocol::{AuthoredState, EXTRAS_OBJECT_ID, local_transform};
 
 /// A glTF node exported from the editor object with this id.
 #[derive(Component, Reflect, Clone, Debug, PartialEq, Eq)]
@@ -33,8 +34,23 @@ pub(crate) fn tag_authored_nodes(
     }
 }
 
-/// Writes the applied snapshot's transforms onto tagged nodes: all of them when the snapshot
-/// changed, otherwise only nodes that just appeared.
+/// The local transform and visibility a snapshot authors for each geometry node, by id.
+fn node_targets(state: &AuthoredState) -> HashMap<&str, (Transform, bool)> {
+    state
+        .objects
+        .iter()
+        .map(|object| {
+            (
+                object.id.as_str(),
+                (local_transform(object), object.visible),
+            )
+        })
+        .collect()
+}
+
+/// Writes the applied snapshot's transforms onto tagged nodes: nodes that just appeared, and,
+/// when the snapshot changed, nodes whose authored transform or visibility changed since the
+/// previous snapshot. A node the snapshot left unchanged keeps what gameplay did to it.
 pub(super) fn sync_node_transforms(
     applied: Res<AppliedAuthoring>,
     mut nodes: Query<(Ref<AuthoredNode>, &mut Transform, &mut Visibility)>,
@@ -42,21 +58,21 @@ pub(super) fn sync_node_transforms(
     let Some(state) = applied.state.as_ref() else {
         return;
     };
-    let everything = applied.is_changed();
-    let by_id: HashMap<&str, &AuthoredObject> = state
-        .objects
-        .iter()
-        .map(|object| (object.id.as_str(), object))
-        .collect();
+    let is_snapshot_new = applied.is_changed();
+    let targets = node_targets(state);
+    let previous_targets = previous_of_same_document(&applied).map(node_targets);
     for (node, mut transform, mut visibility) in &mut nodes {
-        if !everything && !node.is_added() {
-            continue;
-        }
-        let Some(object) = by_id.get(node.0.as_str()) else {
+        let id = node.0.as_str();
+        let Some(target) = targets.get(id) else {
             continue;
         };
-        transform.set_if_neq(local_transform(object));
-        visibility.set_if_neq(if object.visible {
+        let is_authored_change =
+            is_snapshot_new && !authored_unchanged(previous_targets.as_ref(), &id, target);
+        if !node.is_added() && !is_authored_change {
+            continue;
+        }
+        transform.set_if_neq(target.0);
+        visibility.set_if_neq(if target.1 {
             Visibility::Inherited
         } else {
             Visibility::Hidden

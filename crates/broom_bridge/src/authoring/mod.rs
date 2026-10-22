@@ -7,6 +7,7 @@
 mod light_companions;
 mod lights;
 mod nodes;
+mod ownership;
 mod portals;
 #[cfg(test)]
 mod tests;
@@ -66,10 +67,13 @@ impl AuthoringInbox {
     }
 }
 
-/// The snapshot the world currently shows.
+/// The snapshot the world currently shows, and the one shown before it.
 #[derive(Resource, Default)]
 pub struct AppliedAuthoring {
     pub state: Option<AuthoredState>,
+    /// The snapshot applied before `state`; authored values it already wrote are not written
+    /// again (see the `ownership` module).
+    pub previous: Option<AuthoredState>,
 }
 
 impl AppliedAuthoring {
@@ -147,5 +151,5 @@ fn apply_pending_state(
             current: state.document_id.clone(),
         });
     }
-    applied.state = Some(state);
+    applied.previous = applied.state.replace(state);
 }

@@ -12,6 +12,7 @@ use super::AppliedAuthoring;
 use super::light_companions::{
     CookieLoader, CurrentCompanions, LightCompanions, companions_insert, companions_sync,
 };
+use super::ownership::{authored_unchanged, previous_of_same_document};
 use crate::protocol::{AuthoredHierarchy, AuthoredObjectKind, AuthoredState};
 use crate::status::BridgeStatus;
 
@@ -56,9 +57,11 @@ pub(crate) fn light_targets(state: &AuthoredState) -> HashMap<String, LightTarge
         .collect()
 }
 
-/// Spawns, updates and despawns light entities to match the applied snapshot. Components are
-/// only written when they differ so DynLight's change detection sees real changes only. Cookies
-/// load only in apps that have both an asset server and images.
+/// Spawns, updates and despawns light entities to match the applied snapshot. A light is only
+/// written when its authored target changed since the previous snapshot, so gameplay changes to
+/// an unchanged light stay, and components are only written when they differ so DynLight's
+/// change detection sees real changes only. Cookies load only in apps that have both an asset
+/// server and images.
 pub(super) fn sync_lights(
     mut commands: Commands,
     applied: Res<AppliedAuthoring>,
@@ -84,6 +87,7 @@ pub(super) fn sync_lights(
         status: status.as_deref_mut(),
     };
     let mut targets = light_targets(state);
+    let previous_targets = previous_of_same_document(&applied).map(light_targets);
     for (entity, owner, mut light, mut transform, companions) in &mut lights {
         let target = (owner.document_id == state.document_id)
             .then(|| targets.remove(&owner.id))
@@ -92,6 +96,9 @@ pub(super) fn sync_lights(
             commands.entity(entity).despawn();
             continue;
         };
+        if authored_unchanged(previous_targets.as_ref(), &owner.id, &target) {
+            continue;
+        }
         light.set_if_neq(target.light);
         transform.set_if_neq(target.transform);
         companions_sync(
