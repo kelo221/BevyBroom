@@ -23,8 +23,8 @@ Desktop packages use Electrobun 2. The `electrobun` package installed with the p
 If you do not already have the repository:
 
 ```console
-git clone https://github.com/Henry00IS/AiWorldEd.git
-cd AiWorldEd
+git clone https://github.com/kelo221/BevyBroom.git
+cd BevyBroom
 ```
 
 If you already have a checkout, open a terminal in its root folder—the folder containing `package.json`, `src`, and `documentation`.
@@ -199,7 +199,41 @@ The preview tests mirror scenes into the game through the editor's real preview 
 
 The tests run without showing any window: the game is started with `--hidden` and the desktop app with `BEVYBROOM_DESKTOP_HIDDEN=1`. Both still render with the GPU, so they need a normal desktop session rather than a server without graphics. Set `BROOM_E2E_SHOW_WINDOWS=1` to see them in action.
 
-The strict TypeScript check is informational in the current automated workflow because existing strict errors are still being resolved. Do not confuse that known status with the required unit-test and production-build checks.
+Set `BROOM_E2E_REQUIRED=1` to turn skipping into failure: every end-to-end suite then fails when its variables are missing, and the protocol fixture test fails when the companion checkout is missing. The manual **Game integration** workflow (`.github/workflows/integration.yml`) sets it, builds the preview and the desktop app in the same job, and runs `bun run e2e` against them.
+
+The strict TypeScript check (`bun run typecheck:strict`) is a required step of the automated workflow, next to the unit tests and the production build.
+
+### Getting a compatible set of programs
+
+The game side lives in two sibling checkouts next to this repository:
+
+```
+AiWorldEd/        this editor (https://github.com/kelo221/BevyBroom)
+AiWorldEdBevy/    broom_bridge (the crate a game adds) and broom_preview (the ready-made game preview)
+DynLightBevy/     the DynLight renderer (https://github.com/kelo221/DynamicLighting-Bevy)
+```
+
+`compatibility.json` at the root of this repository pins the combination the editor is tested with: the preview protocol range, the Bevy version and the renderer commit. `tests/preview/protocol/preview_protocol_compatibility.test.ts` checks the pin against the editor and, when `../AiWorldEdBevy` is present, against the companion's protocol constants and Bevy version. The wire fixtures in `AiWorldEdBevy/fixtures/` are mirrored in `tests/preview/protocol/fixtures/`; both repositories parse them, and the editor test fails when the mirror and the companion differ.
+
+The companion workspace does not have a public repository yet; until it has one, get it from the maintainer and place it next to this checkout. Check out the renderer at the pinned commit:
+
+```console
+git clone https://github.com/kelo221/DynamicLighting-Bevy.git DynLightBevy
+git -C DynLightBevy checkout <renderer commit from compatibility.json>
+cd AiWorldEdBevy
+cargo build --release -j 2 -p broom_preview
+```
+
+### The handshake
+
+Before the editor publishes anything into a running game it calls `broom.hello`. The game answers with the protocol range it accepts, the features it serves and the project it was started for. The editor publishes nothing, shows **Game is incompatible, nothing is sent** in the Game Preview panel and writes the reason to the Console when:
+
+- the game does not accept the editor's protocol version (rebuild the game, or update the editor),
+- the game lacks a feature the editor needs,
+- the game belongs to a different project than the open document,
+- the game predates the handshake (protocol 3 or older).
+
+A restarted game is checked again, so rebuilding and restarting a compatible game recovers on its own.
 
 ## Build outputs and source files
 
@@ -222,7 +256,7 @@ Make changes in `src/`, `public/`, or `documentation/`, then rebuild. Editing ge
 
 The project's GitHub Actions workflow installs the Bun version named in `.bun-version`, installs dependencies from the frozen lockfile, checks formatting, runs tests, and builds the browser site.
 
-For changes pushed to the main branch, the workflow also:
+For changes pushed to the `master` branch, the workflow also:
 
 - Deploys the contents of `docs/` to GitHub Pages.
 - Builds Windows, Linux, and macOS desktop artifacts on their respective hosted systems.

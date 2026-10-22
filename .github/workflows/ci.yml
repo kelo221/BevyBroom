@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - main
+      - master
   workflow_dispatch:
 
 permissions:
@@ -39,7 +39,7 @@ jobs:
       # Embed the same CI version into package.json before the web production build so
       # GitHub Pages shows "Version: 1.<run>.0" instead of the repo placeholder 1.0.0.
       - name: Assign application version
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         shell: bash
         run: |
           VERSION="$(bun scripts/ci_release_version.ts --write)"
@@ -52,18 +52,17 @@ jobs:
       # build (relative links in index.html / site.webmanifest). No restore step.
 
       - name: Upload GitHub Pages artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: actions/upload-pages-artifact@v4
         with:
           path: docs/
 
       - name: Run strict TypeScript check
-        continue-on-error: true
         run: bun run typecheck:strict
 
   desktop-build:
     name: Build ${{ matrix.platform }} desktop artifact
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: quality
     runs-on: ${{ matrix.os }}
     strategy:
@@ -169,7 +168,7 @@ jobs:
 
   deploy-pages:
     name: Deploy to GitHub Pages
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: quality
     runs-on: ubuntu-latest
     permissions:

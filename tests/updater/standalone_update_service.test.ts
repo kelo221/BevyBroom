@@ -67,7 +67,7 @@ describe('StandaloneUpdateService', () => {
       version: '1.1.0',
       downloadUrl: '',
       fileName: 'Electrobun update bundle',
-      releasePageUrl: 'https://github.com/Henry00IS/AiWorldEd/releases',
+      releasePageUrl: 'https://github.com/kelo221/BevyBroom/releases',
     });
   });
 });
@@ -108,12 +108,12 @@ function createRelease(version: string, assetName: string): GitHubRelease {
   return {
     tagName: version,
     title: `BevyBroom ${version}`,
-    releasePageUrl: 'https://github.com/Henry00IS/AiWorldEd/releases/tag/v1.2.0',
+    releasePageUrl: 'https://github.com/kelo221/BevyBroom/releases/tag/v1.2.0',
     notes: 'Test release notes',
     assets: [
       {
         name: assetName,
-        browserDownloadUrl: `https://github.com/Henry00IS/AiWorldEd/releases/download/${version}/${assetName}`,
+        browserDownloadUrl: `https://github.com/kelo221/BevyBroom/releases/download/${version}/${assetName}`,
         size: 42,
       },
     ],

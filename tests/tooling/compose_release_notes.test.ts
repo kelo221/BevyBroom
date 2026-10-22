@@ -49,16 +49,16 @@ describe('compose_release_notes script', () => {
     expect(body).toContain('## Linux');
     expect(body).toContain('## macOS');
     expect(body).toContain(
-      '[Download Setup](https://github.com/Henry00IS/AiWorldEd/releases/download/v1.24.0/BevyBroom-1.24.0-Win-x64-Setup.zip)',
+      '[Download Setup](https://github.com/kelo221/BevyBroom/releases/download/v1.24.0/BevyBroom-1.24.0-Win-x64-Setup.zip)',
     );
     expect(body).toContain(
-      '[Download Portable](https://github.com/Henry00IS/AiWorldEd/releases/download/v1.24.0/stable-win-x64-BevyBroom.tar.zst)',
+      '[Download Portable](https://github.com/kelo221/BevyBroom/releases/download/v1.24.0/stable-win-x64-BevyBroom.tar.zst)',
     );
     expect(body).toContain(
-      '[Download Setup](https://github.com/Henry00IS/AiWorldEd/releases/download/v1.24.0/BevyBroom-1.24.0-Linux-x64-Setup.tar.gz)',
+      '[Download Setup](https://github.com/kelo221/BevyBroom/releases/download/v1.24.0/BevyBroom-1.24.0-Linux-x64-Setup.tar.gz)',
     );
     expect(body).toContain(
-      '[Download Portable](https://github.com/Henry00IS/AiWorldEd/releases/download/v1.24.0/stable-macos-arm64-BevyBroom.app.tar.zst)',
+      '[Download Portable](https://github.com/kelo221/BevyBroom/releases/download/v1.24.0/stable-macos-arm64-BevyBroom.app.tar.zst)',
     );
     expect(body).not.toContain('Keep the `stable-*`');
     expect(body).not.toContain('update.json');

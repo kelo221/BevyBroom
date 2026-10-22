@@ -1,0 +1,19 @@
+{
+  "description": "The combination of editor, game bridge, renderer and engine this editor is tested with. tests/preview/protocol/preview_protocol_compatibility.test.ts checks it against the code and, when present, the sibling checkouts.",
+  "preview_protocol": 4,
+  "min_preview_protocol": 3,
+  "bevy": "0.20.0",
+  "companion": {
+    "name": "AiWorldEdBevy",
+    "checkout": "../AiWorldEdBevy",
+    "crates": ["broom_bridge", "broom_preview"],
+    "repository": null,
+    "commit": null
+  },
+  "renderer": {
+    "name": "DynLightBevy",
+    "checkout": "../DynLightBevy",
+    "repository": "https://github.com/kelo221/DynamicLighting-Bevy",
+    "commit": "96b47fc53fc6b228bc9e801ae3d161437a638c00"
+  }
+}

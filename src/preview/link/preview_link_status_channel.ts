@@ -9,8 +9,11 @@ export const PREVIEW_STATUS_INTERVAL_MILLISECONDS = 1000;
 /** Time a status request may take before the game counts as unreachable. */
 const PREVIEW_STATUS_TIMEOUT_MILLISECONDS = 1500;
 
-/** Called when a different game process answers than the one seen before. */
-export type PreviewGameInstanceChangedCallback = (status: PreviewBridgeStatus) => void;
+/**
+ * Called when a different game process answers than the one seen before; the
+ * status poll waits for a returned promise.
+ */
+export type PreviewGameInstanceChangedCallback = (status: PreviewBridgeStatus) => Promise<void> | void;
 
 /**
  * Polls the game bridge status and detects when the game process was replaced,
@@ -68,7 +71,10 @@ export class PreviewLinkStatusChannel extends PreviewLinkChannel {
     this.nextPollMilliseconds = 0;
   }
 
-  /** Fetches the status and reports a changed game process. */
+  /**
+   * Fetches the status and reports a changed game process. When that report
+   * fails, the process stays unknown so the next poll reports it again.
+   */
   private async statusFetch(): Promise<void> {
     const status = await this.transport.call<PreviewBridgeStatus>(
       PREVIEW_METHOD.status,
@@ -77,8 +83,14 @@ export class PreviewLinkStatusChannel extends PreviewLinkChannel {
     );
     const previousInstance = this.latestStatus?.instance_id ?? null;
     this.latestStatus = status;
-    if (previousInstance !== status.instance_id) {
-      this.onInstanceChanged(status);
+    if (previousInstance === status.instance_id) {
+      return;
+    }
+    try {
+      await this.onInstanceChanged(status);
+    } catch (error) {
+      this.latestStatus = null;
+      throw error;
     }
   }
 }

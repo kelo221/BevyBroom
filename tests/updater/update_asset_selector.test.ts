@@ -45,7 +45,7 @@ describe('standalone update asset selection', () => {
 function createAssets(...names: string[]): GitHubReleaseAsset[] {
   return names.map((name, index) => ({
     name,
-    browserDownloadUrl: `https://github.com/Henry00IS/AiWorldEd/releases/download/test/${name}`,
+    browserDownloadUrl: `https://github.com/kelo221/BevyBroom/releases/download/test/${name}`,
     size: index + 1,
   }));
 }

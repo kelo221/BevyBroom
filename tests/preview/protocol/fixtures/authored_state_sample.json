@@ -1,0 +1,135 @@
+{
+  "protocol": 3,
+  "project_id": "broom-sample-project",
+  "document_id": "7c1f4e9a-2b6d-4c8e-9f10-5a3b2c1d0e0f",
+  "session_id": "session-a",
+  "revision": 12,
+  "geometry_revision": 3,
+  "objects": [
+    {
+      "id": "group-hall",
+      "parent_id": null,
+      "name": "Hall",
+      "kind": "group",
+      "visible": true,
+      "translation": [10.0, 0.0, 0.0],
+      "rotation": [0.0, 0.7071068, 0.0, 0.7071068],
+      "scale": [1.0, 1.0, 1.0]
+    },
+    {
+      "id": "solid-rooms",
+      "parent_id": null,
+      "name": "Rooms",
+      "kind": "solid",
+      "visible": true,
+      "translation": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0, 1.0],
+      "scale": [1.0, 1.0, 1.0],
+      "components": {
+        "broom_bridge::placeables::properties::BroomProperties": {
+          "values": { "surface": "stone", "footstep_volume": 0.5, "climbable": false }
+        }
+      }
+    },
+    {
+      "id": "light-lamp",
+      "parent_id": "group-hall",
+      "name": "Lamp",
+      "kind": "light",
+      "visible": true,
+      "translation": [0.0, 2.5, -2.0],
+      "rotation": [0.0, 0.0, 0.0, 1.0],
+      "scale": [1.0, 1.0, 1.0],
+      "light": {
+        "light_type": "point",
+        "color": [1.0, 0.85, 0.6],
+        "intensity": 2.0,
+        "radius": 6.0,
+        "falloff": 0.0,
+        "inner_cutoff": 26.0,
+        "outer_cutoff": 30.0,
+        "realtime": false,
+        "shadows": "raytraced",
+        "enabled": true
+      }
+    },
+    {
+      "id": "light-spot",
+      "parent_id": null,
+      "name": "Spot",
+      "kind": "light",
+      "visible": true,
+      "translation": [2.0, 3.0, 1.0],
+      "rotation": [-0.7071068, 0.0, 0.0, 0.7071068],
+      "scale": [1.0, 1.0, 1.0],
+      "light": {
+        "light_type": "spot",
+        "color": [0.6, 0.8, 1.0],
+        "intensity": 3.5,
+        "radius": 8.0,
+        "falloff": 0.25,
+        "inner_cutoff": 20.0,
+        "outer_cutoff": 35.0,
+        "realtime": true,
+        "shadows": "realtime",
+        "enabled": true,
+        "effect": {
+          "kind": "flicker",
+          "pulse_speed": 1.0,
+          "pulse_modifier": 0.25,
+          "pulse_offset": 0.5,
+          "timestep": 0.05
+        },
+        "cookie": "textures/gobo.png",
+        "fog": { "shape": "cone_z", "radius": 6.0, "thickness": 1.5, "intensity": 0.6, "visibility": 2.0 },
+        "shimmer": { "kind": "water", "scale": 10.0, "modifier": 0.7 },
+        "illumination": "single_bounce",
+        "transparency": "enabled",
+        "bounce": {
+          "color": [1.0, 0.5, 0.25, 0.5],
+          "modifier": 0.8,
+          "intensity": 1.5,
+          "samples": 48,
+          "compression": "bits6"
+        }
+      }
+    },
+    {
+      "id": "room-hall",
+      "parent_id": "group-hall",
+      "name": "Hall Room",
+      "kind": "room",
+      "visible": true,
+      "translation": [0.0, 1.5, 0.0],
+      "rotation": [0.0, 0.0, 0.0, 1.0],
+      "scale": [1.0, 1.0, 2.0],
+      "room": { "half_size": [3.0, 1.5, 2.0] }
+    },
+    {
+      "id": "portal-door",
+      "parent_id": null,
+      "name": "Door",
+      "kind": "portal",
+      "visible": true,
+      "translation": [10.0, 1.1, 4.0],
+      "rotation": [0.0, 0.0, 0.0, 1.0],
+      "scale": [1.0, 1.0, 1.0],
+      "portal": { "size": [1.2, 2.2], "closed": false }
+    },
+    {
+      "id": "game-spawn",
+      "parent_id": "group-hall",
+      "name": "Spawn Point",
+      "kind": "game_entity",
+      "visible": true,
+      "translation": [1.0, 0.0, -1.0],
+      "rotation": [0.0, 0.0, 0.0, 1.0],
+      "scale": [1.0, 1.0, 1.0],
+      "components": {
+        "broom_bridge::placeables::properties::BroomProperties": {
+          "values": { "team": "red", "lives": 3, "boss": true }
+        }
+      }
+    }
+  ]
+}

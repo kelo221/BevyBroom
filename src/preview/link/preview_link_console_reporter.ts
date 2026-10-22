@@ -76,6 +76,8 @@ export class PreviewLinkConsoleReporter {
     } else if (state === 'unreachable') {
       const reason = error === '' ? '' : `: ${error}`;
       consoleLog.entryAppendWarning(`Game preview unreachable at ${this.endpoint}${reason}`);
+    } else if (state === 'incompatible') {
+      consoleLog.entryAppendError(`Game preview at ${this.endpoint} is incompatible: ${error}`);
     } else {
       consoleLog.entryAppendInfo('Game preview disconnected');
     }

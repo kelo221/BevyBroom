@@ -1,68 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { PreviewLinkController } from '@/preview/link/preview_link_controller.js';
 import { PREVIEW_GEOMETRY_SETTLE_MILLISECONDS } from '@/preview/link/preview_link_geometry_channel.js';
 import { PREVIEW_STATUS_INTERVAL_MILLISECONDS } from '@/preview/link/preview_link_status_channel.js';
 import { PREVIEW_METHOD, type PreviewAuthoredState } from '@/preview/protocol/preview_protocol_types.js';
 import { LightOwner } from '@/light/model/light_owner.js';
 import { documentIdentityEnsure, documentIdentityReset } from '@/io/document/document_identity.js';
-import { PreviewLinkTransportFake } from './preview_link_transport_fake.js';
-
-/** A controller wired to a fake game with a manual clock. */
-interface PreviewLinkRig {
-  world: THREE.Group;
-  transport: PreviewLinkTransportFake;
-  controller: PreviewLinkController;
-  clock: { now: number };
-  edit: { inProgress: boolean };
-  level: { name: string };
-}
-
-/**
- * Builds a connected controller rig.
- *
- * @returns The rig.
- */
-function createRig(): PreviewLinkRig {
-  const world = new THREE.Group();
-  world.add(new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), new THREE.MeshBasicMaterial()));
-  const transport = new PreviewLinkTransportFake();
-  const clock = { now: 1000 };
-  const edit = { inProgress: false };
-  const level = { name: 'test_level' };
-  const controller = new PreviewLinkController({
-    worldGroup: world,
-    transport,
-    geometryEncoder: async () => 'Z2xURg==',
-    onCatalogLoaded: () => {},
-    clock: () => clock.now,
-    isEditInProgress: () => edit.inProgress,
-    levelNameProvider: () => level.name,
-  });
-  controller.connect();
-  return { world, transport, controller, clock, edit, level };
-}
-
-/**
- * Runs one tick and waits for every request it started.
- *
- * @param rig Controller rig.
- * @param advanceMilliseconds Time to advance before the tick.
- */
-async function tickAndSettle(rig: PreviewLinkRig, advanceMilliseconds: number): Promise<void> {
-  rig.clock.now += advanceMilliseconds;
-  await Promise.all(rig.controller.tick());
-}
-
-/**
- * Ticks long enough for the current geometry to be observed and then published.
- *
- * @param rig Controller rig.
- */
-async function geometrySettle(rig: PreviewLinkRig): Promise<void> {
-  await tickAndSettle(rig, PREVIEW_GEOMETRY_SETTLE_MILLISECONDS);
-  await tickAndSettle(rig, PREVIEW_GEOMETRY_SETTLE_MILLISECONDS);
-}
+import type { PreviewLinkTransportFake } from './preview_link_transport_fake.js';
+import {
+  previewLinkRigCreate as createRig,
+  previewLinkRigGeometrySettle as geometrySettle,
+  previewLinkRigTick as tickAndSettle,
+} from './preview_link_controller_rig.js';
 
 /**
  * Returns the newest state the fake game received.

@@ -7,13 +7,12 @@ describe('GitHubReleaseClient', () => {
       createResponse(200, {
         tag_name: 'v1.4.0',
         name: 'BevyBroom 1.4.0',
-        html_url: 'https://github.com/Henry00IS/AiWorldEd/releases/tag/v1.4.0',
+        html_url: 'https://github.com/kelo221/BevyBroom/releases/tag/v1.4.0',
         body: 'Bug fixes',
         assets: [
           {
             name: 'BevyBroom-windows.exe',
-            browser_download_url:
-              'https://github.com/Henry00IS/AiWorldEd/releases/download/v1.4.0/BevyBroom-windows.exe',
+            browser_download_url: 'https://github.com/kelo221/BevyBroom/releases/download/v1.4.0/BevyBroom-windows.exe',
             size: 100,
           },
         ],

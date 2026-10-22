@@ -41,7 +41,7 @@ describe('Electrobun desktop build configuration', () => {
     expect(config.build?.mac).toMatchObject({
       icons: 'public/app_icon.iconset',
     });
-    expect(config.release?.baseUrl).toBe('https://github.com/Henry00IS/AiWorldEd/releases/latest/download');
+    expect(config.release?.baseUrl).toBe('https://github.com/kelo221/BevyBroom/releases/latest/download');
     expect(config.release?.generatePatch).toBe(false);
   });
 

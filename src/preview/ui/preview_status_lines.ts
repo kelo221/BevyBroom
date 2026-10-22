@@ -16,6 +16,7 @@ const PREVIEW_CONNECTION_LABELS: Record<PreviewLinkConnectionState, string> = {
   connecting: 'Connecting…',
   connected: 'Connected',
   unreachable: 'Game not reachable, retrying…',
+  incompatible: 'Game is incompatible, nothing is sent',
 };
 
 /** Labels of the bake states. */

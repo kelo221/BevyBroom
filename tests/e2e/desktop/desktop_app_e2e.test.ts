@@ -5,7 +5,11 @@ import type { SceneJSON } from '@/io/scene/io_types.js';
 import { PreviewLinkTransportHttp } from '@/preview/link/preview_link_transport.js';
 import type { PreviewBridgeStatus } from '@/preview/protocol/preview_protocol_types.js';
 import { PreviewE2eGameProcess, previewE2eProjectCopy, previewE2eProjectRemove } from '../preview_e2e_game_process.js';
-import { e2eWindowsShownRead, previewE2eEnvironmentRead } from '../preview_e2e_environment.js';
+import {
+  e2eRequiredConfigurationAssert,
+  e2eWindowsShownRead,
+  previewE2eEnvironmentRead,
+} from '../preview_e2e_environment.js';
 import {
   PREVIEW_E2E_DYNAMIC_LIGHT_COMPONENT,
   PREVIEW_E2E_LIGHT_EFFECT_COMPONENT,
@@ -34,6 +38,7 @@ import type { ShellMainWindowState } from '@/layout/shell/actions/shell_main_win
  * preview is started too and the app is checked against it.
  */
 const desktopExecutable = process.env['BROOM_E2E_DESKTOP_EXE'] ? resolve(process.env['BROOM_E2E_DESKTOP_EXE']) : '';
+e2eRequiredConfigurationAssert(desktopExecutable !== '', ['BROOM_E2E_DESKTOP_EXE']);
 const mcpBasePort = Number(process.env['BROOM_E2E_MCP_PORT'] ?? '18865');
 const previewEnvironment = previewE2eEnvironmentRead(2);
 const LAUNCH_TIMEOUT_MILLISECONDS = 90000;
