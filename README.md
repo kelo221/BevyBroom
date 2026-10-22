@@ -52,6 +52,8 @@ Preview flags (`crates/broom_preview/src/arguments.rs`):
 
 `material_catalog` and `level_directory` are relative to `asset_root`; every path must stay inside the project.
 
+`preview` may carry a `build` section (`program`, `arguments`, `working_directory`) that the desktop editor runs before launching; without it the editor builds a `cargo run` launch with the matching `cargo build`.
+
 ## Adding the bridge to your game
 
 ```rust
@@ -102,6 +104,7 @@ The editor's `documentation/game_components.md` describes the workflow from the 
 - **Manifest**: each level directory holds a `level.broom.json` naming the shown geometry file plus the authored state (lights, rooms, portals, transforms, visibility), so the game loads the same level without the editor. When a document is shown under a new level name, the bridge deletes its own `geometry_*.glb` and `level.broom.json` from the old directory, then the directory if it is empty; it never deletes other files or another document's level.
 - **Bakes** (`broom.bake_preview`): a preview bake runs in memory once geometry is settled. A bake whose scene changed before it finished is dropped. `broom.status` reports whether the shown bake is current; when a requested bake was dropped and none is shown yet, it reports `needs_bake` rather than `no_bake`.
 - **Restarts**: `broom.status` returns an `instance_id`. When it changes, the editor makes the handshake again and then resends state, geometry and catalog. Revisions are ordered per editor session, so a restarted editor starts over cleanly.
+- **Project check**: a snapshot whose `project_id` names another project than the running game's is refused and reported in `broom.status` errors; an empty `project_id` (an editor without a project) is accepted.
 - **Handshake** (`broom.hello`): before publishing anything into a game process, the editor asks for the accepted protocol range (`min_protocol` to `protocol`), the served features (`capabilities`) and the `project_id`. A game outside the editor's protocol, without a required feature or of another project receives nothing, and the editor explains why. `PROTOCOL_VERSION` is 4; snapshots, publications and manifests of protocol 3 still read. `broom_preview --protocol-override N` advertises only version N so tests can prove the refusal.
 
 | Method | Purpose |

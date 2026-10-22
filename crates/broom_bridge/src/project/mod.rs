@@ -29,6 +29,21 @@ pub struct PreviewLaunch {
     /// The bridge's HTTP endpoint.
     #[serde(default = "default_endpoint")]
     pub endpoint: String,
+    /// How the editor builds the game before launching it. When absent the editor derives a
+    /// `cargo build` from a `cargo run` launch, or launches without building.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub build: Option<PreviewBuild>,
+}
+
+/// The command that builds the game without starting it.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct PreviewBuild {
+    pub program: String,
+    #[serde(default)]
+    pub arguments: Vec<String>,
+    /// Relative to the project root.
+    #[serde(default = "current_directory")]
+    pub working_directory: String,
 }
 
 /// Serde default for [`PreviewLaunch::working_directory`].

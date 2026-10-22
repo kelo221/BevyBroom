@@ -111,16 +111,35 @@ pub enum StateRejection {
     WrongProtocol(u32),
     MissingDocumentId,
     MissingSessionId,
-    EmptyObjectId { index: usize },
+    EmptyObjectId {
+        index: usize,
+    },
     DuplicateObjectId(String),
     LightWithoutSettings(String),
-    InvalidLight { id: String, reason: String },
+    InvalidLight {
+        id: String,
+        reason: String,
+    },
     RoomWithoutSettings(String),
-    InvalidRoom { id: String, reason: String },
+    InvalidRoom {
+        id: String,
+        reason: String,
+    },
     PortalWithoutSettings(String),
-    InvalidPortal { id: String, reason: String },
-    InvalidComponents { id: String, reason: String },
+    InvalidPortal {
+        id: String,
+        reason: String,
+    },
+    InvalidComponents {
+        id: String,
+        reason: String,
+    },
     NonFiniteTransform(String),
+    /// The state names a project other than the running game's.
+    WrongProject {
+        sent: String,
+        running: String,
+    },
 }
 
 impl core::fmt::Display for StateRejection {
@@ -132,6 +151,10 @@ impl core::fmt::Display for StateRejection {
                     "protocol {found} is not supported (expected {MIN_PROTOCOL_VERSION} to {PROTOCOL_VERSION})"
                 )
             }
+            Self::WrongProject { sent, running } => write!(
+                f,
+                "the document belongs to project \"{sent}\" but this game runs project \"{running}\""
+            ),
             Self::MissingDocumentId => f.write_str("the state has no document_id"),
             Self::MissingSessionId => f.write_str("the state has no session_id"),
             Self::EmptyObjectId { index } => write!(f, "object {index} has an empty id"),
@@ -169,6 +192,18 @@ impl AuthoredState {
             }
         }
         Ok(())
+    }
+
+    /// Refuses a state that names a project other than `running_project_id`. A state without
+    /// a project id comes from an editor with no project and is accepted.
+    pub fn project_check(&self, running_project_id: &str) -> Result<(), StateRejection> {
+        if self.project_id.is_empty() || self.project_id == running_project_id {
+            return Ok(());
+        }
+        Err(StateRejection::WrongProject {
+            sent: self.project_id.clone(),
+            running: running_project_id.to_owned(),
+        })
     }
 
     /// The object with `id`, if any.

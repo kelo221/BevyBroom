@@ -43,3 +43,26 @@ fn every_method_name_is_unique_and_namespaced() {
     assert_eq!(names.len(), METHODS.len());
     assert!(METHODS.iter().all(|name| name.starts_with("broom.")));
 }
+
+/// Runs `broom.apply_state` with a sample state naming `sent_project` in a game running
+/// `running_project`, returning whether it was accepted and the errors the game reported.
+fn apply_state_in_world(sent_project: &str, running_project: &str) -> (bool, usize) {
+    let mut world = World::new();
+    world.insert_resource(BridgeStatus::new(running_project));
+    world.init_resource::<crate::authoring::AuthoringInbox>();
+    let mut state = crate::test_support::sample_state();
+    state.project_id = sent_project.to_owned();
+    let params = serde_json::to_value(&state).expect("the state serializes");
+    let accepted = world
+        .run_system_cached_with(handlers::apply_state, Some(params))
+        .expect("the handler runs")
+        .is_ok();
+    (accepted, world.resource::<BridgeStatus>().errors.len())
+}
+
+#[test]
+fn apply_state_accepts_its_own_project_or_none_and_refuses_another() {
+    assert_eq!(apply_state_in_world("game-a", "game-a"), (true, 0));
+    assert_eq!(apply_state_in_world("", "game-a"), (true, 0));
+    assert_eq!(apply_state_in_world("game-b", "game-a"), (false, 1));
+}

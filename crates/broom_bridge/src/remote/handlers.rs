@@ -52,8 +52,16 @@ fn verdict_reply(verdict: RevisionVerdict, revision: u64) -> Value {
 }
 
 /// `broom.apply_state`: queues an authored snapshot.
-pub fn apply_state(In(params): In<Option<Value>>, mut inbox: ResMut<AuthoringInbox>) -> BrpResult {
+pub fn apply_state(
+    In(params): In<Option<Value>>,
+    mut inbox: ResMut<AuthoringInbox>,
+    mut status: ResMut<BridgeStatus>,
+) -> BrpResult {
     let state: AuthoredState = parse(params)?;
+    if let Err(rejection) = state.project_check(&status.project_id) {
+        status.report_error(rejection.to_string());
+        return Err(invalid(rejection.to_string()));
+    }
     let revision = state.revision;
     let verdict = inbox
         .receive(state)
