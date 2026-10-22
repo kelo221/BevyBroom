@@ -4,12 +4,14 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::hello::{MIN_PROTOCOL_VERSION, protocol_supported};
 use super::light::AuthoredLight;
 use super::placeable::{AuthoredComponents, validate_components};
 use super::portal::{AuthoredPortal, AuthoredRoom};
 
-/// The wire protocol version. Requests with another version are rejected.
-pub const PROTOCOL_VERSION: u32 = 3;
+/// The newest wire protocol version. Requests outside
+/// [`MIN_PROTOCOL_VERSION`](super::hello::MIN_PROTOCOL_VERSION)`..=PROTOCOL_VERSION` are rejected.
+pub const PROTOCOL_VERSION: u32 = 4;
 
 /// A complete, lightweight snapshot of one editor document.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
@@ -127,7 +129,7 @@ impl core::fmt::Display for StateRejection {
             Self::WrongProtocol(found) => {
                 write!(
                     f,
-                    "protocol {found} is not supported (expected {PROTOCOL_VERSION})"
+                    "protocol {found} is not supported (expected {MIN_PROTOCOL_VERSION} to {PROTOCOL_VERSION})"
                 )
             }
             Self::MissingDocumentId => f.write_str("the state has no document_id"),
@@ -150,7 +152,7 @@ impl AuthoredState {
     /// Checks everything the bridge relies on before it touches the world. The first problem
     /// found is returned.
     pub fn validate(&self) -> Result<(), StateRejection> {
-        if self.protocol != PROTOCOL_VERSION {
+        if !protocol_supported(self.protocol) {
             return Err(StateRejection::WrongProtocol(self.protocol));
         }
         if self.document_id.is_empty() {

@@ -4,6 +4,7 @@
 
 mod catalog;
 mod data_asset;
+mod hello;
 mod hierarchy;
 mod light;
 mod light_features;
@@ -13,6 +14,8 @@ mod portal;
 mod revision;
 mod state;
 
+#[cfg(test)]
+mod hello_tests;
 #[cfg(test)]
 mod light_feature_tests;
 #[cfg(test)]
@@ -25,6 +28,9 @@ pub use catalog::{
 pub use data_asset::{
     DataAssetReadReply, DataAssetReadRequest, DataAssetValues, DataAssetWriteReply,
     DataAssetWriteRequest, validate_data_asset_values,
+};
+pub use hello::{
+    CAPABILITIES, HelloReply, MIN_PROTOCOL_VERSION, ProtocolRange, protocol_supported,
 };
 pub use hierarchy::{AuthoredHierarchy, local_transform};
 pub use light::{AuthoredLight, AuthoredLightType, AuthoredShadowMode};

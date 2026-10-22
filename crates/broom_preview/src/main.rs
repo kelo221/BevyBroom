@@ -17,6 +17,7 @@ use bevy::winit::WinitSettings;
 use broom_bridge::level::LevelLoadRequest;
 use broom_bridge::placeables::BroomGltfComponentsPlugin;
 use broom_bridge::project::ProjectPaths;
+use broom_bridge::protocol::ProtocolRange;
 use broom_bridge::{BroomBridgePlugin, bake_link::BakeLink};
 use dynlight::prelude::*;
 
@@ -69,6 +70,9 @@ fn build_app(arguments: PreviewArguments, paths: ProjectPaths) -> App {
     .insert_resource(ClearColor(Color::srgb(0.02, 0.025, 0.04)))
     .add_plugins(BroomBridgePlugin {
         port: arguments.port,
+        protocol: arguments
+            .protocol_override
+            .map_or_else(ProtocolRange::default, ProtocolRange::only),
         ..BroomBridgePlugin::new(paths)
     })
     .add_plugins((

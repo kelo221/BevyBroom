@@ -3,6 +3,8 @@
 //! desktop webview. Development only: it accepts any local caller.
 
 mod handlers;
+#[cfg(test)]
+mod tests;
 
 use std::net::{IpAddr, Ipv4Addr};
 
@@ -10,11 +12,13 @@ use bevy::prelude::*;
 use bevy::remote::RemotePlugin;
 use bevy::remote::http::{Headers, RemoteHttpPlugin};
 
+use crate::protocol::ProtocolRange;
+
 /// The default port, Bevy's own remote default.
 pub const DEFAULT_PORT: u16 = 15702;
 
 /// Every method the bridge adds, by name.
-pub const METHODS: [&str; 10] = [
+pub const METHODS: [&str; 11] = [
     "broom.apply_state",
     "broom.publish_geometry",
     "broom.status",
@@ -25,10 +29,17 @@ pub const METHODS: [&str; 10] = [
     "broom.placeable_classes",
     "broom.data_asset_read",
     "broom.data_asset_write",
+    "broom.hello",
 ];
 
-/// Adds the remote protocol with the `broom.*` methods on loopback `port`.
-pub fn add_remote(app: &mut App, port: u16) {
+/// The protocol range `broom.hello` advertises.
+#[derive(Resource, Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct AdvertisedProtocol(pub ProtocolRange);
+
+/// Adds the remote protocol with the `broom.*` methods on loopback `port`, advertising
+/// `protocol` in the handshake.
+pub fn add_remote(app: &mut App, port: u16, protocol: ProtocolRange) {
+    app.insert_resource(AdvertisedProtocol(protocol));
     let remote = RemotePlugin::default()
         .with_method_main(METHODS[0], handlers::apply_state)
         .with_method_main(METHODS[1], handlers::publish_geometry)
@@ -39,7 +50,8 @@ pub fn add_remote(app: &mut App, port: u16) {
         .with_method_main(METHODS[6], handlers::load_level)
         .with_method_main(METHODS[7], handlers::placeable_classes)
         .with_method_main(METHODS[8], handlers::data_asset_read)
-        .with_method_main(METHODS[9], handlers::data_asset_write);
+        .with_method_main(METHODS[9], handlers::data_asset_write)
+        .with_method_main(METHODS[10], handlers::hello);
     let headers = Headers::new()
         .insert("Access-Control-Allow-Origin", "*")
         .insert("Access-Control-Allow-Headers", "Content-Type");

@@ -22,6 +22,9 @@ pub struct PreviewArguments {
     pub bake: bool,
     /// `--hidden`: never show the window; rendering, bakes and the bridge keep running (tests).
     pub hidden: bool,
+    /// `--protocol-override N`: advertise only protocol N in the handshake, so tests can
+    /// prove the editor refuses an incompatible game.
+    pub protocol_override: Option<u32>,
 }
 
 impl PreviewArguments {
@@ -36,6 +39,7 @@ impl PreviewArguments {
             screenshot: None,
             bake: false,
             hidden: false,
+            protocol_override: None,
         };
         let mut arguments = arguments.into_iter();
         while let Some(flag) = arguments.next() {
@@ -53,6 +57,9 @@ impl PreviewArguments {
                 "--screenshot" => parsed.screenshot = Some(PathBuf::from(value()?)),
                 "--bake" => parsed.bake = true,
                 "--hidden" => parsed.hidden = true,
+                "--protocol-override" => {
+                    parsed.protocol_override = Some(number(&flag, &value()?)?);
+                }
                 other => return Err(format!("unknown argument {other}")),
             }
         }
@@ -82,9 +89,11 @@ mod tests {
         assert!(defaults.level.is_none());
         assert!(defaults.scene.is_none());
         assert!(!defaults.hidden);
+        assert!(defaults.protocol_override.is_none());
         let full =
-            parse("--project game/p.json --port 1234 --level keep --scene levels/keep.glb --frames 5 --bake --hidden")
+            parse("--project game/p.json --port 1234 --level keep --scene levels/keep.glb --frames 5 --bake --hidden --protocol-override 99")
                 .expect("all flags");
+        assert_eq!(full.protocol_override, Some(99));
         assert_eq!(full.project, PathBuf::from("game/p.json"));
         assert_eq!((full.port, full.frames, full.bake), (1234, Some(5), true));
         assert!(full.hidden);

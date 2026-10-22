@@ -3,6 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::hello::{MIN_PROTOCOL_VERSION, protocol_supported};
 use super::state::{AuthoredState, PROTOCOL_VERSION};
 
 /// The manifest's file name inside a level directory.
@@ -25,9 +26,9 @@ pub struct GeometryPublication {
 impl GeometryPublication {
     /// Checks the fields that don't need decoding.
     pub fn validate(&self) -> Result<(), String> {
-        if self.protocol != PROTOCOL_VERSION {
+        if !protocol_supported(self.protocol) {
             return Err(format!(
-                "protocol {} is not supported (expected {PROTOCOL_VERSION})",
+                "protocol {} is not supported (expected {MIN_PROTOCOL_VERSION} to {PROTOCOL_VERSION})",
                 self.protocol
             ));
         }
@@ -57,7 +58,7 @@ impl LevelManifest {
     /// Parses a manifest and checks its protocol and state.
     pub fn parse(json: &str) -> Result<Self, String> {
         let manifest: Self = serde_json::from_str(json).map_err(|error| error.to_string())?;
-        if manifest.protocol != PROTOCOL_VERSION {
+        if !protocol_supported(manifest.protocol) {
             return Err(format!(
                 "manifest protocol {} is not supported",
                 manifest.protocol

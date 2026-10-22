@@ -22,6 +22,8 @@ use crate::protocol::{
 };
 use crate::status::BridgeStatus;
 
+use super::AdvertisedProtocol;
+
 /// The largest file `broom.read_asset` returns.
 const MAX_ASSET_BYTES: u64 = 64 * 1024 * 1024;
 
@@ -72,6 +74,20 @@ pub fn publish_geometry(
         invalid(error)
     })?;
     Ok(verdict_reply(verdict, revision))
+}
+
+/// `broom.hello`: the protocol range, capabilities, project and process of this bridge.
+pub fn hello(
+    In(_): In<Option<Value>>,
+    advertised: Res<AdvertisedProtocol>,
+    status: Res<BridgeStatus>,
+) -> BrpResult {
+    let reply = advertised.0.hello(
+        status.bridge_version,
+        &status.project_id,
+        &status.instance_id,
+    );
+    serde_json::to_value(reply).map_err(|error| invalid(error.to_string()))
 }
 
 /// `broom.status`: the bridge status.

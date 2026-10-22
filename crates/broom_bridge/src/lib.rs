@@ -64,6 +64,8 @@ impl Plugin for BroomLevelPlugin {
 pub struct BroomBridgePlugin {
     pub paths: ProjectPaths,
     pub port: u16,
+    /// The protocol range the handshake advertises; leave the default outside of tests.
+    pub protocol: protocol::ProtocolRange,
 }
 
 impl BroomBridgePlugin {
@@ -72,6 +74,7 @@ impl BroomBridgePlugin {
         Self {
             paths,
             port: remote::DEFAULT_PORT,
+            protocol: protocol::ProtocolRange::default(),
         }
     }
 }
@@ -81,7 +84,7 @@ impl Plugin for BroomBridgePlugin {
         app.add_plugins(BroomLevelPlugin {
             paths: self.paths.clone(),
         });
-        remote::add_remote(app, self.port);
+        remote::add_remote(app, self.port, self.protocol);
         info!(
             "broom bridge: listening on http://127.0.0.1:{} for project {}",
             self.port, self.paths.project_id
