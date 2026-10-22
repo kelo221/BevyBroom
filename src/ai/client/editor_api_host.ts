@@ -5,6 +5,7 @@ import type { SolidModelController } from '@/solid/controller/solid_model_contro
 import type { GridSnap } from '@/transform/snap/grid_snap.js';
 import type { ManagerSnap } from '@/transform/snap/manager_snap.js';
 import type { PreviewLinkService } from '@/preview/link/preview_link_service.js';
+import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
 import type { ConsoleLog } from '@/info_panel/console/console_log.js';
 import type { Issue } from '@/info_panel/issues/issue.js';
 import type { ShellMainWindowControl } from '@/layout/shell/actions/shell_main_window_control.js';
@@ -40,6 +41,11 @@ export interface EditorApiHost {
    * bootstrap; unit tests may omit it.
    */
   previewLinkServiceEnsure?: () => PreviewLinkService;
+  /**
+   * Returns the project workbench that opens game projects and runs their game,
+   * creating it on first use. Set by layout bootstrap; unit tests may omit it.
+   */
+  projectWorkbenchEnsure?: () => ProjectWorkbench;
   /**
    * Replaces the open scene with scene file text as Load does. Set by layout
    * bootstrap; unit tests may omit it.

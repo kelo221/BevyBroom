@@ -278,7 +278,8 @@ export class PreviewLinkController implements PreviewLinkChannelListener {
   private stateSend(): Promise<void> | null {
     const worldGroup = this.options.worldGroup;
     const document = {
-      projectIdentifier: this.statusChannel.latestStatusRead()?.project_id ?? '',
+      projectIdentifier:
+        this.options.expectedProjectProvider?.() ?? this.statusChannel.latestStatusRead()?.project_id ?? '',
       documentIdentifier: documentIdentityEnsure(worldGroup),
       geometryRevision: this.geometryChannel.geometryRevisionRead(),
     };

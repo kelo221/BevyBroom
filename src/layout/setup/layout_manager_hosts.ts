@@ -9,6 +9,7 @@ import type { HandlerAlignment } from '@/outliner/alignment/handler_alignment.js
 import type { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js';
 import type { PanelOutliner } from '@/outliner/ui/panel_outliner.js';
 import type { LayoutShellSourceHost } from './layout_shell_source.js';
+import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
 
 /**
  * Callback surface required to build a late-bound shell source host without
@@ -37,6 +38,8 @@ export interface LayoutShellHostCallbacks {
   onOpenAboutDialog(): void;
   onOpenMcpDialog(): void;
   onToggleGamePreviewPanel(): void;
+  /** Returns the project workbench that opens game projects and runs their game. */
+  gameProjectWorkbenchRead(): ProjectWorkbench;
   onOpenDetachedViewport(): void;
   onToggleAiCaptureDebugPanel(): void;
   onToggleAudio(): void;
@@ -142,6 +145,7 @@ export function createShellSourceHostFromLayout(
     onOpenAboutDialog: () => actions.onOpenAboutDialog(),
     onOpenMcpDialog: () => actions.onOpenMcpDialog(),
     onToggleGamePreviewPanel: () => actions.onToggleGamePreviewPanel(),
+    gameProjectWorkbenchRead: () => actions.gameProjectWorkbenchRead(),
     onOpenDetachedViewport: () => actions.onOpenDetachedViewport(),
     onToggleAiCaptureDebugPanel: () => actions.onToggleAiCaptureDebugPanel(),
     onToggleAudio: () => actions.onToggleAudio(),

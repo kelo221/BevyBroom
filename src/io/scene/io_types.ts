@@ -52,6 +52,8 @@ export interface SceneJSON {
   layers?: LayerDefinition[];
   /** Identifier of the layer new objects join (version 7+). */
   currentLayerId?: string;
+  /** Game project the document belongs to; absent before it was linked to one. */
+  projectId?: string;
 }
 
 /** A single object entry in the serialized scene. */

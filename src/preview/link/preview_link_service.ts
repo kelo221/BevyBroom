@@ -19,6 +19,8 @@ export interface PreviewLinkServiceHooks {
   onCatalogLoaded: PreviewCatalogLoadedCallback;
   /** Returns the level name the game stores geometry under. */
   levelNameProvider: () => string;
+  /** Returns the project id the game must report, or null to accept any game. */
+  expectedProjectProvider?: () => string | null;
 }
 
 /**
@@ -125,6 +127,7 @@ export class PreviewLinkService {
       clock: () => performance.now(),
       isEditInProgress: () => this.pointerTracker?.isPointerHeld() ?? false,
       levelNameProvider: this.hooks.levelNameProvider,
+      expectedProjectProvider: () => this.hooks.expectedProjectProvider?.() ?? null,
     });
   }
 

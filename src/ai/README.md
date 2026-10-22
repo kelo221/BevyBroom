@@ -280,6 +280,22 @@ Solid mutations (including hierarchy create/reparent/rename/ungroup) are **undoa
 | `get_scene_document`  | The open scene as scene file text (`json`) and its `documentId`, exactly as Save would write it |
 | `load_scene_document` | Open scene file text (`json`) the way File > Load does, without a file dialog                   |
 
+## Game projects
+
+These tools need the desktop app; the browser editor answers that it cannot start games.
+
+| Tool             | What it does                                                                                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `project_open`   | Open `path` (a `broom.project.json`); stops the previous project's game, links an unlinked document and points the preview at it    |
+| `project_status` | `project`, `phase`, `processId`, `exitCode`, compiler `diagnostics`, `logTail`, `message`, `documentProjectId`, `expectedProjectId` |
+| `game_launch`    | Build when the project can be built, then start the game and connect the preview; returns at once, poll `project_status`            |
+| `game_rebuild`   | Stop, build and start again                                                                                                         |
+| `game_restart`   | Stop and start again without building                                                                                               |
+| `game_stop`      | Stop the game this editor started; a game started any other way is never stopped                                                    |
+
+- Builds use `preview.build` from the project file, or the `cargo build` matching a `cargo run` launch. Compiler errors appear in the Console and the Issues list with their file and line.
+- A document linked to one project refuses the game of another: the preview shows `incompatible` and nothing is published.
+
 ## Console and issues
 
 | Tool           | What it does                                                                                                                |

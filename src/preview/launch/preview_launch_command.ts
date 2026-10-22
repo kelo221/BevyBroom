@@ -1,4 +1,4 @@
-/** A program the game preview is started with. */
+/** A program the game preview is started or built with. */
 export interface PreviewLaunchCommand {
   /** Program to run, resolved through PATH when it is not a path. */
   program: string;
@@ -6,7 +6,7 @@ export interface PreviewLaunchCommand {
   arguments: string[];
   /** Absolute directory the program runs in. */
   workingDirectory: string;
-  /** Bridge endpoint the editor connects to. */
+  /** Bridge endpoint the editor connects to; empty for build commands. */
   endpoint: string;
 }
 
@@ -33,14 +33,31 @@ export class PreviewLaunchCommandError extends Error {
  */
 export function previewLaunchCommandFromProject(projectJson: string, projectDirectory: string): PreviewLaunchCommand {
   const preview = previewLaunchSectionRead(previewLaunchProjectParse(projectJson));
+  return previewLaunchCommandFromSection(preview, projectDirectory, 'preview');
+}
+
+/**
+ * Reads one command section: program, arguments, working directory and
+ * endpoint.
+ *
+ * @param section Parsed command section.
+ * @param projectDirectory Absolute directory holding the project file.
+ * @param sectionPath Dotted name of the section, used in error messages.
+ * @returns The command.
+ */
+export function previewLaunchCommandFromSection(
+  section: Record<string, unknown>,
+  projectDirectory: string,
+  sectionPath: string,
+): PreviewLaunchCommand {
   return {
-    program: previewLaunchStringRead(preview, 'program'),
-    arguments: previewLaunchArgumentsRead(preview),
+    program: previewLaunchStringRead(section, 'program', sectionPath),
+    arguments: previewLaunchArgumentsRead(section, sectionPath),
     workingDirectory: previewLaunchDirectoryJoin(
       projectDirectory,
-      previewLaunchOptionalStringRead(preview, 'working_directory') ?? '.',
+      previewLaunchOptionalStringRead(section, 'working_directory', sectionPath) ?? '.',
     ),
-    endpoint: previewLaunchOptionalStringRead(preview, 'endpoint') ?? '',
+    endpoint: previewLaunchOptionalStringRead(section, 'endpoint', sectionPath) ?? '',
   };
 }
 
@@ -50,7 +67,7 @@ export function previewLaunchCommandFromProject(projectJson: string, projectDire
  * @param projectJson Text of the project file.
  * @returns Parsed project object.
  */
-function previewLaunchProjectParse(projectJson: string): Record<string, unknown> {
+export function previewLaunchProjectParse(projectJson: string): Record<string, unknown> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(projectJson);
@@ -69,7 +86,7 @@ function previewLaunchProjectParse(projectJson: string): Record<string, unknown>
  * @param project Parsed project object.
  * @returns The preview section.
  */
-function previewLaunchSectionRead(project: Record<string, unknown>): Record<string, unknown> {
+export function previewLaunchSectionRead(project: Record<string, unknown>): Record<string, unknown> {
   const preview = project['preview'];
   if (!previewLaunchIsRecord(preview)) {
     throw new PreviewLaunchCommandError('The project file has no "preview" section');
@@ -82,12 +99,13 @@ function previewLaunchSectionRead(project: Record<string, unknown>): Record<stri
  *
  * @param section Object holding the field.
  * @param key Field name.
+ * @param sectionPath Dotted name of the section, used in error messages.
  * @returns Field value.
  */
-function previewLaunchStringRead(section: Record<string, unknown>, key: string): string {
-  const value = previewLaunchOptionalStringRead(section, key);
+export function previewLaunchStringRead(section: Record<string, unknown>, key: string, sectionPath: string): string {
+  const value = previewLaunchOptionalStringRead(section, key, sectionPath);
   if (value === null) {
-    throw new PreviewLaunchCommandError(`preview.${key} must be a non-empty string`);
+    throw new PreviewLaunchCommandError(`${sectionPath}.${key} must be a non-empty string`);
   }
   return value;
 }
@@ -97,42 +115,48 @@ function previewLaunchStringRead(section: Record<string, unknown>, key: string):
  *
  * @param section Object holding the field.
  * @param key Field name.
+ * @param sectionPath Dotted name of the section, used in error messages.
  * @returns Field value, or null when absent or empty.
  */
-function previewLaunchOptionalStringRead(section: Record<string, unknown>, key: string): string | null {
+export function previewLaunchOptionalStringRead(
+  section: Record<string, unknown>,
+  key: string,
+  sectionPath: string,
+): string | null {
   const value = section[key];
   if (value === undefined) {
     return null;
   }
   if (typeof value !== 'string') {
-    throw new PreviewLaunchCommandError(`preview.${key} must be a string`);
+    throw new PreviewLaunchCommandError(`${sectionPath}.${key} must be a string`);
   }
   return value.trim() === '' ? null : value;
 }
 
 /**
- * Returns the argument list of the preview section.
+ * Returns the argument list of a command section.
  *
- * @param section Preview section.
+ * @param section Command section.
+ * @param sectionPath Dotted name of the section, used in error messages.
  * @returns Arguments, empty when absent.
  */
-function previewLaunchArgumentsRead(section: Record<string, unknown>): string[] {
+function previewLaunchArgumentsRead(section: Record<string, unknown>, sectionPath: string): string[] {
   const value = section['arguments'] ?? [];
   if (!Array.isArray(value) || !value.every((argument) => typeof argument === 'string')) {
-    throw new PreviewLaunchCommandError('preview.arguments must be a list of strings');
+    throw new PreviewLaunchCommandError(`${sectionPath}.arguments must be a list of strings`);
   }
   return [...value];
 }
 
 /**
- * Resolves a working directory against the project directory.
+ * Resolves a directory against the project directory.
  *
  * @param projectDirectory Absolute project directory.
- * @param workingDirectory Absolute or project-relative directory.
+ * @param relativeOrAbsolute Absolute or project-relative directory.
  * @returns Absolute directory with forward slashes and no trailing slash.
  */
-function previewLaunchDirectoryJoin(projectDirectory: string, workingDirectory: string): string {
-  const normalizedWorking = workingDirectory.replace(/\\/g, '/');
+export function previewLaunchDirectoryJoin(projectDirectory: string, relativeOrAbsolute: string): string {
+  const normalizedWorking = relativeOrAbsolute.replace(/\\/g, '/');
   const isAbsolute = /^([a-zA-Z]:)?\//.test(normalizedWorking);
   const joined = isAbsolute ? normalizedWorking : `${projectDirectory.replace(/\\/g, '/')}/${normalizedWorking}`;
   return previewLaunchPathNormalize(joined);
@@ -162,6 +186,6 @@ function previewLaunchPathNormalize(path: string): string {
  * @param value Value to test.
  * @returns True for non-null, non-array objects.
  */
-function previewLaunchIsRecord(value: unknown): value is Record<string, unknown> {
+export function previewLaunchIsRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

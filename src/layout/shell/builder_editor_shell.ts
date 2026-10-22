@@ -19,6 +19,7 @@ import { ShellDockCommands } from '@/layout/shell/actions/shell_dock_commands.js
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
 import { shellMenuBarPopulate, shellMenusBuiltinCreate } from '@/layout/shell/menubar/shell_menu_bar.js';
 import { ShellToolBarBuilder } from '@/layout/shell/toolbar/shell_tool_bar_builder.js';
+import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
 
 /** Outliner action callbacks accepted when building the shell. */
 export interface EditorShellOutlinerActions {
@@ -65,6 +66,8 @@ export interface EditorToolbarActions {
   onOpenAboutDialog: () => void;
   onOpenMcpDialog: () => void;
   onToggleGamePreviewPanel: () => void;
+  /** Returns the project workbench that opens game projects and runs their game. */
+  gameProjectWorkbenchRead: () => ProjectWorkbench;
   onOpenDetachedViewport: () => void;
   onToggleAiCaptureDebugPanel: () => void;
   onToggleAudio: () => void;

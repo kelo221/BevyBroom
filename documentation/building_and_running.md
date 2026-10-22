@@ -177,14 +177,15 @@ bun run format:check
 
 The end-to-end tests drive the real programs and are skipped unless you tell them where those programs are:
 
-| Variable                 | Value                                                                                  |
-| ------------------------ | -------------------------------------------------------------------------------------- |
-| `BROOM_E2E_DESKTOP_EXE`  | The desktop app launcher from `bun run desktop:build:dev`                              |
-| `BROOM_E2E_PREVIEW_EXE`  | The release `broom_preview` program of the Bevy workspace (`AiWorldEdBevy`)            |
-| `BROOM_E2E_PROJECT_DIR`  | A game project folder holding `broom.project.json` and `assets/` (copied, not changed) |
-| `BROOM_E2E_PORT`         | Optional first bridge port of the games the tests start (default 15792)                |
-| `BROOM_E2E_MCP_PORT`     | Optional first MCP port of the desktop app (default 18865)                             |
-| `BROOM_E2E_SHOW_WINDOWS` | Optional; `1` shows the game and app windows so you can watch the tests                |
+| Variable                     | Value                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| `BROOM_E2E_DESKTOP_EXE`      | The desktop app launcher from `bun run desktop:build:dev`                              |
+| `BROOM_E2E_PREVIEW_EXE`      | The release `broom_preview` program of the Bevy workspace (`AiWorldEdBevy`)            |
+| `BROOM_E2E_PROJECT_DIR`      | A game project folder holding `broom.project.json` and `assets/` (copied, not changed) |
+| `BROOM_E2E_PORT`             | Optional first bridge port of the games the tests start (default 15792)                |
+| `BROOM_E2E_MCP_PORT`         | Optional first MCP port of the desktop app (default 18865)                             |
+| `BROOM_E2E_PROJECT_MCP_PORT` | Optional first MCP port of the desktop project test's app (default 18905)              |
+| `BROOM_E2E_SHOW_WINDOWS`     | Optional; `1` shows the game and app windows so you can watch the tests                |
 
 From `cmd` on Windows:
 
@@ -195,7 +196,7 @@ set BROOM_E2E_PROJECT_DIR=..\AiWorldEdBevy
 bun run e2e
 ```
 
-The preview tests mirror scenes into the game through the editor's real preview link: lights, rooms and portals, doors opening and closing, failed geometry loads, bakes, renamed levels, Save As, game components with their data assets, including a shipped GLB loaded by a second game, and DynLight light features (effect, cookie, fog, shimmer, scaling a light into its radius, and which settings make a bake stale). The desktop test starts the app with its MCP server on, builds two rooms joined by a door through MCP tools the way an AI client would, checks them in the game, gives the light an effect and fog and removes them, places a game entity and reads a data asset through MCP, then relaunches the app and reopens the scene. Without the desktop variable only the preview tests run; without the preview variables the desktop test runs without a game. `bun run testrun` skips all of them unless the variables are set.
+The preview tests mirror scenes into the game through the editor's real preview link: lights, rooms and portals, doors opening and closing, failed geometry loads, bakes, renamed levels, Save As, game components with their data assets, including a shipped GLB loaded by a second game, and DynLight light features (effect, cookie, fog, shimmer, scaling a light into its radius, and which settings make a bake stale). The desktop test starts the app with its MCP server on, builds two rooms joined by a door through MCP tools the way an AI client would, checks them in the game, gives the light an effect and fog and removes them, places a game entity and reads a data asset through MCP, then relaunches the app and reopens the scene. The desktop project test opens a temporary copy of the game project whose launch is the preview program, builds a small crate before every launch, breaks and fixes that crate to check compiler errors in the Console and Issues list, rebuilds, restarts and stops the game, and checks that the game of a second project is refused. Without the desktop variable only the preview tests run; without the preview variables the desktop test runs without a game. `bun run testrun` skips all of them unless the variables are set.
 
 The tests run without showing any window: the game is started with `--hidden` and the desktop app with `BEVYBROOM_DESKTOP_HIDDEN=1`. Both still render with the GPU, so they need a normal desktop session rather than a server without graphics. Set `BROOM_E2E_SHOW_WINDOWS=1` to see them in action.
 
@@ -234,6 +235,17 @@ Before the editor publishes anything into a running game it calls `broom.hello`.
 - the game predates the handshake (protocol 3 or older).
 
 A restarted game is checked again, so rebuilding and restarting a compatible game recovers on its own.
+
+### Opening a game project in the desktop app
+
+**File > Open Project…** (or **Open Project…** in the Game Preview panel) opens a `broom.project.json`. The editor checks the project (asset root, working directories, programs, endpoint), remembers it under **File > Recent Projects**, links the open document to it when the document belongs to no project yet, and points the game preview at the project's endpoint. **Run > Launch / Rebuild / Restart / Stop Game** and the panel buttons manage the game:
+
+- **Launch** builds the game when the editor knows how, then starts it and connects.
+- **Rebuild** stops the game, builds it and starts it again.
+- **Restart** stops and starts the game without building.
+- **Stop** ends the game and every process it started. Only a game the editor started is ever stopped; a game you started yourself keeps running when the editor closes.
+
+The build is `preview.build` from the project file (`program`, `arguments`, `working_directory`), or, when that is missing, the `cargo build` matching a `cargo run` launch. Compiler errors appear in the Console and in the Issues list as `file:line:column: message`. A document stays linked to its project: the game of another project is refused, and **Link Document** in the panel moves the document to the open project. The browser editor cannot start programs; start the game yourself and connect to it.
 
 ## Build outputs and source files
 

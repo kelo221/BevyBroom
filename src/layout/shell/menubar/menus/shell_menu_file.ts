@@ -20,11 +20,43 @@ export class ShellMenuFile extends ShellMenu {
       this.actionEntry(context, 'Save As…', () => actions.onSaveSceneAs(), { shortcutAction: 'save_as' }),
       this.actionEntry(context, 'Load', () => actions.onLoadScene(), { shortcutAction: 'load' }),
       this.separatorEntry(),
+      this.actionEntry(context, 'Open Project…', () => void actions.gameProjectWorkbenchRead().projectOpen(null), {
+        isEnabled: () => actions.gameProjectWorkbenchRead().isAvailable(),
+      }),
+      this.recentProjectsSubmenuBuild(context),
+      this.separatorEntry(),
       this.importSubmenuBuild(context),
       this.exportSubmenuBuild(context),
       this.separatorEntry(),
       this.actionEntry(context, 'Preferences…', () => actions.onToggleSettingsDialog()),
     ];
+  }
+
+  /**
+   * Builds the Recent Projects submenu, read again whenever the menu opens.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Submenu entry.
+   */
+  private recentProjectsSubmenuBuild(context: ShellMenuContext): ToolbarMenuEntry {
+    const actions = context.toolbarActions;
+    return {
+      kind: 'submenu',
+      label: 'Recent Projects',
+      children: [],
+      childrenResolve: () =>
+        actions
+          .gameProjectWorkbenchRead()
+          .recentProjectFilesRead()
+          .map((projectFile) =>
+            this.actionEntry(
+              context,
+              projectFile,
+              () => void actions.gameProjectWorkbenchRead().projectOpen(projectFile),
+            ),
+          ),
+      isEnabled: () => actions.gameProjectWorkbenchRead().recentProjectFilesRead().length > 0,
+    };
   }
 
   /**
