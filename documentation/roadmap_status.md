@@ -51,4 +51,18 @@ Open:
 - Undo granularity audit (one gesture, one undoable step) and reporting rejected edits in the Console beyond the existing status errors.
 - BakeId mapping for objects made of several primitives is not covered by a dedicated test.
 
-## M04 to M10: not started
+## M04 Build and ship complete levels (#6): started
+
+Done:
+
+- Lights ship in exported GLBs: **File > Export GLB** writes every enabled light as an empty node with DynLight light extras (type, color, intensity, radius, falloff, cone, realtime, effect, fog shape, shimmer). DynLight's glTF import turns them into lights without the editor or the bridge. Light markers are still never exported as meshes (`src/light/export/`, unit tests in `tests/light/export/`).
+- End-to-end: the portals suite exports its scene, starts a fresh `broom_preview --scene` with no editor link and no manifest, and finds both rooms, the portal and the light with its authored radius through the Bevy remote protocol.
+
+Open:
+
+- The **Build Level** command (preflight validation, a package with a version 2 `level.broom.json`, GLB, material and data references and an optional bake, written to a temporary folder and renamed into place), with its menu entry, `bun run build:level` and the MCP `build_level` tool.
+- The companion's loader for manifest version 2 (keeping version 1).
+- Settings DynLight extras cannot carry yet (shadow mode, bounce, cookie, fog density, effect timing). They need new extras keys in DynLight's importer, which is a renderer change.
+- End-to-end check of a full package (textured room, lit doorway, component, data asset, rooms, portals, bake) and of an interrupted build keeping the last good output.
+
+## M05 to M10: not started

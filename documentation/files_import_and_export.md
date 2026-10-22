@@ -67,7 +67,9 @@ Rooms and portals are exported as empty nodes without meshes, carrying glTF node
 
 Game components are written as node extras too, under `broom_components`: a map from each component's Rust type path to the fields that differ from the game's defaults. Game Entities are exported as empty nodes carrying only that key. A game reads them with the bridge's `BroomGltfComponentsPlugin` (see [Game components and data assets](game_components.md)).
 
-Lights are left out of GLB exports, because the game creates them from the level manifest; components on lights therefore only reach a game through that manifest. Lights, Game Entity markers and the editor's room and portal outlines are not exported as meshes.
+Enabled lights are exported as empty nodes under the light's transform, carrying the DynLight light extras `dynlight_type`, `dynlight_color`, `dynlight_intensity`, `dynlight_radius`, `dynlight_falloff`, `dynlight_inner_cutoff`, `dynlight_outer_cutoff` and `dynlight_realtime`, plus `dynlight_effect`, `dynlight_fog` (the fog shape) and `dynlight_shimmer` when the light uses them. DynLight's glTF import turns them into lights, so an exported level is lit without the editor or the bridge. Settings that DynLight extras cannot carry yet (shadow mode, bounce, cookie, fog density and the effect's timing) keep DynLight's defaults; the level manifest written by the live preview carries all of them. A game that loads both an exported GLB and a level manifest of the same document gets each light twice, so ship one or the other.
+
+Light markers, Game Entity markers and the editor's room and portal outlines are never exported as meshes.
 
 ## Target application notes
 

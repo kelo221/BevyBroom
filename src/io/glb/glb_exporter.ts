@@ -33,7 +33,8 @@ export class GlbExporter {
 
   /**
    * Exports the given group the way File > Export GLB writes it for games: with
-   * lightmap UVs, room and portal nodes and game components in node extras.
+   * lightmap UVs, light, room and portal nodes and game components in node
+   * extras.
    *
    * @param worldGroup The live editor world root to export.
    * @param profile Active game profile, or null to skip the conversion.
@@ -43,6 +44,7 @@ export class GlbExporter {
     return this.export(worldGroup, profile, {
       includeLightmapUvs: true,
       includeRoomAndPortalNodes: true,
+      includeLightNodes: true,
       includeGameComponents: true,
     });
   }
