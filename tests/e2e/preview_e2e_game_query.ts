@@ -47,6 +47,22 @@ export function previewE2eEntityRowsQuery(
 }
 
 /**
+ * Opens the game's only portal the way gameplay would, by removing its closed
+ * door marker directly in the game world.
+ *
+ * @param transport Transport to the game's bridge.
+ */
+export async function previewE2eOnlyPortalOpenByGameplay(transport: PreviewLinkTransport): Promise<void> {
+  const rows = await previewE2eEntityRowsQuery(transport, [PREVIEW_E2E_PORTAL_COMPONENT]);
+  const portalRow = rows[0];
+  if (rows.length !== 1 || portalRow === undefined) {
+    throw new Error(`Expected one portal in the game, found ${rows.length}`);
+  }
+  const params = { entity: portalRow.entity, components: [PREVIEW_E2E_CLOSED_PORTAL_COMPONENT] };
+  await transport.call<unknown>('world.remove_components', params, 5000);
+}
+
+/**
  * Returns whether the game has exactly one portal and it is closed or open as
  * expected.
  *

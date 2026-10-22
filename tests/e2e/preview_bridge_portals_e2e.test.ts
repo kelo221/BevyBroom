@@ -19,6 +19,7 @@ import {
   PREVIEW_E2E_ROOM_COMPONENT,
   previewE2eEntityRowsQuery,
   previewE2eOnlyPortalClosedIs,
+  previewE2eOnlyPortalOpenByGameplay,
 } from './preview_e2e_game_query.js';
 
 /**
@@ -206,6 +207,23 @@ describe.skipIf(!environment.isConfigured)('game preview rooms and portals end t
       expect(rig.controller.revisionsRead().geometry).toBe(geometryRevisionBefore);
     },
     STEP_TIMEOUT_MILLISECONDS * 3,
+  );
+
+  it(
+    'keeps a door opened by gameplay open while other objects are edited, until the door is edited',
+    async () => {
+      portalClosedWrite(true);
+      await gamePortalClosedUntil(true);
+      await previewE2eOnlyPortalOpenByGameplay(rig.transport);
+      scene.light.position.y += 0.25;
+      await gameMatchesEditor('the moved light next to the door gameplay opened');
+      expect(await previewE2eOnlyPortalClosedIs(rig.transport, false)).toBe(true);
+      scene.portal.position.z -= 0.25;
+      await gamePortalClosedUntil(true);
+      portalClosedWrite(false);
+      await gamePortalClosedUntil(false);
+    },
+    STEP_TIMEOUT_MILLISECONDS * 4,
   );
 
   it(

@@ -94,7 +94,8 @@ export class PreviewLinkTransportFake extends PreviewLinkTransport {
       this.highestStateRevision = Math.max(this.highestStateRevision, revision);
       return { accepted, verdict: accepted ? 'newer' : 'stale', revision };
     }
-    return { accepted: true, verdict: 'newer', revision: 1 };
+    const geometryRevision = (params as { geometry_revision?: number } | null)?.geometry_revision ?? 1;
+    return { accepted: true, verdict: 'newer', revision: geometryRevision };
   }
 
   /**

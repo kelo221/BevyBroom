@@ -264,10 +264,22 @@ export class PreviewLinkController implements PreviewLinkChannelListener {
    * @param status First status of the new game process.
    */
   private gameContentResendRequest(status: PreviewBridgeStatus): void {
+    this.contentChannelsGenerationAdvance();
     this.stateChannel.resendRequest();
     this.geometryChannel.republishRequest();
     this.catalogChannel.reloadRequest();
     this.featureChannels.forEach((channel) => channel.gameInstanceAdopt(status));
+  }
+
+  /**
+   * Starts a new generation on every channel that carries document content, so
+   * replies of requests sent to the previous game process change nothing.
+   */
+  private contentChannelsGenerationAdvance(): void {
+    this.stateChannel.generationAdvance();
+    this.geometryChannel.generationAdvance();
+    this.catalogChannel.generationAdvance();
+    this.featureChannels.forEach((channel) => channel.generationAdvance());
   }
 
   /**

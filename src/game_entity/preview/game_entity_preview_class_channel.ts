@@ -1,6 +1,9 @@
 import { GameEntityClassProviderPreview } from '@/game_entity/class/game_entity_class_provider_preview.js';
 import { gameEntityClassListFromUnknown } from '@/game_entity/class/game_entity_class_schema.js';
-import type { PreviewLinkChannelListener } from '@/preview/link/preview_link_channel.js';
+import type {
+  PreviewLinkChannelGenerationCheck,
+  PreviewLinkChannelListener,
+} from '@/preview/link/preview_link_channel.js';
 import { PreviewLinkFeatureChannel } from '@/preview/link/preview_link_feature_channel.js';
 import type { PreviewLinkTransport } from '@/preview/link/preview_link_transport.js';
 import { type PreviewBridgeStatus, PREVIEW_METHOD } from '@/preview/protocol/preview_protocol_types.js';
@@ -50,7 +53,7 @@ export class GameEntityPreviewClassChannel extends PreviewLinkFeatureChannel {
       return null;
     }
     this.nextCheckMilliseconds = nowMilliseconds + GAME_ENTITY_CLASS_INTERVAL_MILLISECONDS;
-    return this.requestRun(() => this.classesFetch());
+    return this.requestRun((isCurrent) => this.classesFetch(isCurrent));
   }
 
   /**
@@ -65,8 +68,14 @@ export class GameEntityPreviewClassChannel extends PreviewLinkFeatureChannel {
     this.nextCheckMilliseconds = 0;
   }
 
-  /** Fetches the class list and hands it on when its counters changed. */
-  private async classesFetch(): Promise<void> {
+  /**
+   * Fetches the class list and hands it on when its counters changed; a list
+   * that arrives after the game was replaced is dropped.
+   *
+   * @param isCurrent Tells whether the request still belongs to the current
+   *   game.
+   */
+  private async classesFetch(isCurrent: PreviewLinkChannelGenerationCheck): Promise<void> {
     const reply = await this.transport.call<unknown>(
       PREVIEW_METHOD.placeableClasses,
       null,
@@ -77,7 +86,7 @@ export class GameEntityPreviewClassChannel extends PreviewLinkFeatureChannel {
       throw new Error('The game sent an unreadable component class list');
     }
     const version = `${list.generation}:${list.asset_generation}`;
-    if (version === this.loadedVersion) {
+    if (!isCurrent() || version === this.loadedVersion) {
       return;
     }
     this.loadedVersion = version;

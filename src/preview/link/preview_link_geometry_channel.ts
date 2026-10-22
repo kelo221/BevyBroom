@@ -1,7 +1,11 @@
 import type { PreviewGeometryPublication, PreviewRevisionReply } from '@/preview/protocol/preview_protocol_types.js';
 import { PREVIEW_METHOD, PREVIEW_PROTOCOL_VERSION } from '@/preview/protocol/preview_protocol_types.js';
 import type { PreviewLinkTransport } from '@/preview/link/preview_link_transport.js';
-import { PreviewLinkChannel, type PreviewLinkChannelListener } from '@/preview/link/preview_link_channel.js';
+import {
+  PreviewLinkChannel,
+  type PreviewLinkChannelGenerationCheck,
+  type PreviewLinkChannelListener,
+} from '@/preview/link/preview_link_channel.js';
 
 /** Time a geometry upload may take before the game counts as unreachable. */
 const PREVIEW_GEOMETRY_TIMEOUT_MILLISECONDS = 30000;
@@ -83,12 +87,16 @@ export class PreviewLinkGeometryChannel extends PreviewLinkChannel {
     }
     this.geometryRevision += 1;
     const revision = this.geometryRevision;
-    return this.requestRun(() => this.geometrySend(check, revision));
+    return this.requestRun((isCurrent) => this.geometrySend(check, revision, isCurrent));
   }
 
-  /** Forgets what the game shows so the next settled check publishes again. */
+  /**
+   * Forgets what the game shows and any retry wait, so the next settled check
+   * publishes again.
+   */
   republishRequest(): void {
     this.publishedKey = null;
+    this.retryNotBeforeMilliseconds = 0;
   }
 
   /**
@@ -160,12 +168,19 @@ ${check.signature}`;
 
   /**
    * Encodes and uploads one geometry revision. A failure delays the next
-   * attempt.
+   * attempt; a reply that arrives after the game was replaced, or that names
+   * another revision, changes nothing.
    *
    * @param check The check that triggered the publication.
    * @param geometryRevision Revision of this publication.
+   * @param isCurrent Tells whether the request still belongs to the current
+   *   game.
    */
-  private async geometrySend(check: PreviewGeometryCheck, geometryRevision: number): Promise<void> {
+  private async geometrySend(
+    check: PreviewGeometryCheck,
+    geometryRevision: number,
+    isCurrent: PreviewLinkChannelGenerationCheck,
+  ): Promise<void> {
     this.retryNotBeforeMilliseconds = check.nowMilliseconds + PREVIEW_GEOMETRY_RETRY_MILLISECONDS;
     const publication: PreviewGeometryPublication = {
       protocol: PREVIEW_PROTOCOL_VERSION,
@@ -180,7 +195,7 @@ ${check.signature}`;
       publication,
       PREVIEW_GEOMETRY_TIMEOUT_MILLISECONDS,
     );
-    if (reply.accepted) {
+    if (isCurrent() && reply.accepted && reply.revision === geometryRevision) {
       this.publishedKey = this.publicationKeyOf(check);
       this.publishedRevision = geometryRevision;
       this.retryNotBeforeMilliseconds = 0;
