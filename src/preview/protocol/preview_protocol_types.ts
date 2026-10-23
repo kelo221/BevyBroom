@@ -6,7 +6,10 @@
 import type { PreviewAuthoredComponents } from '@/preview/protocol/preview_protocol_placeable_types.js';
 
 /** Wire protocol version spoken by this editor. */
-export const PREVIEW_PROTOCOL_VERSION = 3;
+export const PREVIEW_PROTOCOL_VERSION = 4;
+
+/** Game bridge features this editor cannot mirror a scene without. */
+export const PREVIEW_REQUIRED_CAPABILITIES: readonly string[] = ['state', 'geometry'];
 
 /** Default game preview endpoint of the Bevy remote server. */
 export const PREVIEW_DEFAULT_ENDPOINT = 'http://127.0.0.1:15702';
@@ -23,7 +26,23 @@ export const PREVIEW_METHOD = {
   placeableClasses: 'broom.placeable_classes',
   dataAssetRead: 'broom.data_asset_read',
   dataAssetWrite: 'broom.data_asset_write',
+  hello: 'broom.hello',
 } as const;
+
+/** Reply to the handshake the editor makes before it publishes anything. */
+export interface PreviewHelloReply {
+  /** Newest protocol version the bridge speaks. */
+  protocol: number;
+  /** Oldest protocol version the bridge accepts. */
+  min_protocol: number;
+  bridge_version: string;
+  /** Project the running game was started for. */
+  project_id: string;
+  /** Game process; changes every time the game starts. */
+  instance_id: string;
+  /** Features the bridge serves, by name. */
+  capabilities: string[];
+}
 
 /** Every authored object kind the game bridge understands. */
 export const PREVIEW_OBJECT_KINDS = ['mesh', 'group', 'solid', 'light', 'room', 'portal', 'game_entity'] as const;

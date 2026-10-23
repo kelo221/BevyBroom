@@ -9,3 +9,4 @@ bun.lock
 .hutch/
 .cottontail-tmp/
 desktop_view_dist/
+bevy/

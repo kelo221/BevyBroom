@@ -7,9 +7,9 @@
 
 A professional 3D level editor that runs entirely in your browser. Built with Three.js and TypeScript, designed for fast iteration on game worlds with CSG solid modeling, texture painting, and precision tools.
 
-[**OPEN THE EDITOR ONLINE**](https://Henry00IS.github.io/AiWorldEd/)
+[**OPEN THE EDITOR ONLINE**](https://kelo221.github.io/BevyBroom/)
 
-[![Screenshot of the editor](https://raw.githubusercontent.com/wiki/Henry00IS/AiWorldEd/images/home.png)](https://Henry00IS.github.io/AiWorldEd/)
+[![Screenshot of the editor](https://raw.githubusercontent.com/wiki/Henry00IS/AiWorldEd/images/home.png)](https://kelo221.github.io/BevyBroom/)
 
 > BevyBroom is created and maintained entirely by AI (Grok 4.5 and Qwen 3.6) under human guidance. No human has manually edited the source code.
 
@@ -254,7 +254,7 @@ All shortcuts can be rebound in Settings > Keyboard.
 ### Standalone executable updates
 
 The Settings > Update tab checks the latest published release from the
-[BevyBroom GitHub Releases page](https://github.com/Henry00IS/AiWorldEd/releases)
+[BevyBroom GitHub Releases page](https://github.com/kelo221/BevyBroom/releases)
 when the editor is hosted inside a standalone executable. The browser build
 shows the release page instead because a browser cannot replace its own
 executable.

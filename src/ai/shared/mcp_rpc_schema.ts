@@ -1,4 +1,5 @@
 import type { StandaloneHostUpdateCheck } from '@/updater/update_types.js';
+import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
 import type {
   McpHostStartResult,
   McpHostStatus,
@@ -15,6 +16,10 @@ export interface ElectrobunDesktopRpcSchema {
       startMcpServer: { params: undefined; response: McpHostStartResult };
       stopMcpServer: { params: undefined; response: McpHostStatus };
       getMcpStatus: { params: undefined; response: McpHostStatus };
+      projectChooseFile: { params: undefined; response: string | null };
+      projectOpen: { params: { projectFile: string }; response: ProjectOpenResult };
+      gameProcessAction: { params: { action: GameProcessAction }; response: GameProcessStatus };
+      gameProcessStatus: { params: undefined; response: GameProcessStatus };
     };
     messages: {};
   };
@@ -34,6 +39,10 @@ export interface ElectrobunDesktopBunRpcClient {
     startMcpServer: () => Promise<McpHostStartResult>;
     stopMcpServer: () => Promise<McpHostStatus>;
     getMcpStatus: () => Promise<McpHostStatus>;
+    projectChooseFile: () => Promise<string | null>;
+    projectOpen: (params: { projectFile: string }) => Promise<ProjectOpenResult>;
+    gameProcessAction: (params: { action: GameProcessAction }) => Promise<GameProcessStatus>;
+    gameProcessStatus: () => Promise<GameProcessStatus>;
   };
 }
 

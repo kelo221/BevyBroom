@@ -67,7 +67,11 @@ Rooms and portals are exported as empty nodes without meshes, carrying glTF node
 
 Game components are written as node extras too, under `broom_components`: a map from each component's Rust type path to the fields that differ from the game's defaults. Game Entities are exported as empty nodes carrying only that key. A game reads them with the bridge's `BroomGltfComponentsPlugin` (see [Game components and data assets](game_components.md)).
 
-Lights are left out of GLB exports, because the game creates them from the level manifest; components on lights therefore only reach a game through that manifest. Lights, Game Entity markers and the editor's room and portal outlines are not exported as meshes.
+Enabled lights are exported as empty nodes under the light's transform, carrying the DynLight light extras `dynlight_type`, `dynlight_color`, `dynlight_intensity`, `dynlight_radius`, `dynlight_falloff`, `dynlight_inner_cutoff`, `dynlight_outer_cutoff` and `dynlight_realtime`, plus `dynlight_effect`, `dynlight_fog` (the fog shape) and `dynlight_shimmer` when the light uses them. DynLight's glTF import turns them into lights, so an exported level is lit without the editor or the bridge. Each light node also carries `broom_light`, the light's complete definition (shadow mode, bounce, cookie, fog density, the effect's timing and everything else the game preview receives), and `broom_light_of`, the light's editor id. A game with the bridge's level plugin applies the complete definition on top of what DynLight imported; without the bridge those settings keep DynLight's defaults.
+
+While the bridge shows a document that has an object with the same editor id, from the live editor or a level manifest, it switches the exported light off and its own light stands for it. A game that loads a level both ways therefore lights each light once, and the exported light comes back when the shown document no longer has that id.
+
+Light markers, Game Entity markers and the editor's room and portal outlines are never exported as meshes.
 
 ## Target application notes
 

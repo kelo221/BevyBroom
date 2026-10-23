@@ -23,8 +23,8 @@ Desktop packages use Electrobun 2. The `electrobun` package installed with the p
 If you do not already have the repository:
 
 ```console
-git clone https://github.com/Henry00IS/AiWorldEd.git
-cd AiWorldEd
+git clone https://github.com/kelo221/BevyBroom.git
+cd BevyBroom
 ```
 
 If you already have a checkout, open a terminal in its root folder—the folder containing `package.json`, `src`, and `documentation`.
@@ -177,29 +177,76 @@ bun run format:check
 
 The end-to-end tests drive the real programs and are skipped unless you tell them where those programs are:
 
-| Variable                 | Value                                                                                  |
-| ------------------------ | -------------------------------------------------------------------------------------- |
-| `BROOM_E2E_DESKTOP_EXE`  | The desktop app launcher from `bun run desktop:build:dev`                              |
-| `BROOM_E2E_PREVIEW_EXE`  | The release `broom_preview` program of the Bevy workspace (`AiWorldEdBevy`)            |
-| `BROOM_E2E_PROJECT_DIR`  | A game project folder holding `broom.project.json` and `assets/` (copied, not changed) |
-| `BROOM_E2E_PORT`         | Optional first bridge port of the games the tests start (default 15792)                |
-| `BROOM_E2E_MCP_PORT`     | Optional first MCP port of the desktop app (default 18865)                             |
-| `BROOM_E2E_SHOW_WINDOWS` | Optional; `1` shows the game and app windows so you can watch the tests                |
+| Variable                     | Value                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| `BROOM_E2E_DESKTOP_EXE`      | The desktop app launcher from `bun run desktop:build:dev`                              |
+| `BROOM_E2E_PREVIEW_EXE`      | The release `broom_preview` program of the Bevy workspace (`bevy/`)                    |
+| `BROOM_E2E_PROJECT_DIR`      | A game project folder holding `broom.project.json` and `assets/` (copied, not changed) |
+| `BROOM_E2E_PORT`             | Optional first bridge port of the games the tests start (default 15792)                |
+| `BROOM_E2E_MCP_PORT`         | Optional first MCP port of the desktop app (default 18865)                             |
+| `BROOM_E2E_PROJECT_MCP_PORT` | Optional first MCP port of the desktop project test's app (default 18905)              |
+| `BROOM_E2E_SHOW_WINDOWS`     | Optional; `1` shows the game and app windows so you can watch the tests                |
 
 From `cmd` on Windows:
 
 ```console
 set BROOM_E2E_DESKTOP_EXE=desktop_build\dev-win-x64\BevyBroom-dev\bin\launcher.exe
-set BROOM_E2E_PREVIEW_EXE=..\AiWorldEdBevy\target\release\broom_preview.exe
-set BROOM_E2E_PROJECT_DIR=..\AiWorldEdBevy
+set BROOM_E2E_PREVIEW_EXE=bevy\target\release\broom_preview.exe
+set BROOM_E2E_PROJECT_DIR=bevy
 bun run e2e
 ```
 
-The preview tests mirror scenes into the game through the editor's real preview link: lights, rooms and portals, doors opening and closing, failed geometry loads, bakes, renamed levels, Save As, game components with their data assets, including a shipped GLB loaded by a second game, and DynLight light features (effect, cookie, fog, shimmer, scaling a light into its radius, and which settings make a bake stale). The desktop test starts the app with its MCP server on, builds two rooms joined by a door through MCP tools the way an AI client would, checks them in the game, gives the light an effect and fog and removes them, places a game entity and reads a data asset through MCP, then relaunches the app and reopens the scene. Without the desktop variable only the preview tests run; without the preview variables the desktop test runs without a game. `bun run testrun` skips all of them unless the variables are set.
+The preview tests mirror scenes into the game through the editor's real preview link: lights, rooms and portals, doors opening and closing, failed geometry loads, bakes, renamed levels, Save As, game components with their data assets, including a shipped GLB loaded by a second game, and DynLight light features (effect, cookie, fog, shimmer, scaling a light into its radius, and which settings make a bake stale), and the lights of a shipped GLB (every setting applied, and one light per editor light when the editor shows the same document). The desktop test starts the app with its MCP server on, builds two rooms joined by a door through MCP tools the way an AI client would, checks them in the game, gives the light an effect and fog and removes them, places a game entity and reads a data asset through MCP, then relaunches the app and reopens the scene. The desktop project test opens a temporary copy of the game project whose launch is the preview program, builds a small crate before every launch, breaks and fixes that crate to check compiler errors in the Console and Issues list, rebuilds, restarts and stops the game, and checks that the game of a second project is refused. Without the desktop variable only the preview tests run; without the preview variables the desktop test runs without a game. `bun run testrun` skips all of them unless the variables are set.
 
 The tests run without showing any window: the game is started with `--hidden` and the desktop app with `BEVYBROOM_DESKTOP_HIDDEN=1`. Both still render with the GPU, so they need a normal desktop session rather than a server without graphics. Set `BROOM_E2E_SHOW_WINDOWS=1` to see them in action.
 
-The strict TypeScript check is informational in the current automated workflow because existing strict errors are still being resolved. Do not confuse that known status with the required unit-test and production-build checks.
+Set `BROOM_E2E_REQUIRED=1` to turn skipping into failure: every end-to-end suite then fails when its variables are missing. The manual **Game integration** workflow (`.github/workflows/integration.yml`) sets it, builds the preview and the desktop app in the same job, and runs `bun run e2e` against them. The **Bevy workspace** job of the automated workflow runs `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` on `bevy/` for every pull request.
+
+The strict TypeScript check (`bun run typecheck:strict`) is a required step of the automated workflow, next to the unit tests and the production build.
+
+### Getting a compatible set of programs
+
+The game side lives in `bevy/` of this repository; only the renderer is a separate checkout next to it:
+
+```
+AiWorldEd/        this repository (https://github.com/kelo221/BevyBroom)
+  bevy/           broom_bridge (the crate a game adds) and broom_preview (the ready-made game preview)
+DynLightBevy/     the DynLight renderer (https://github.com/kelo221/DynamicLighting-Bevy)
+```
+
+`compatibility.json` at the root of this repository pins the combination the editor is tested with: the preview protocol range, the Bevy version and the renderer commit. `tests/preview/protocol/preview_protocol_compatibility.test.ts` checks the pin against the editor and against the bridge's protocol constants and Bevy version in `bevy/`. The wire fixtures in `bevy/fixtures/` are parsed by both the Rust tests and `tests/preview/protocol/preview_protocol_fixtures.test.ts`, so the two protocol definitions cannot drift apart.
+
+On a clean machine, clone both repositories side by side and check out the renderer at the pinned commit:
+
+```console
+git clone https://github.com/kelo221/BevyBroom.git AiWorldEd
+git clone https://github.com/kelo221/DynamicLighting-Bevy.git DynLightBevy
+git -C DynLightBevy checkout <renderer commit from compatibility.json>
+cd AiWorldEd\bevy
+cargo build --release -j 2 -p broom_preview
+```
+
+### The handshake
+
+Before the editor publishes anything into a running game it calls `broom.hello`. The game answers with the protocol range it accepts, the features it serves and the project it was started for. The editor publishes nothing, shows **Game is incompatible, nothing is sent** in the Game Preview panel and writes the reason to the Console when:
+
+- the game does not accept the editor's protocol version (rebuild the game, or update the editor),
+- the game lacks a feature the editor needs,
+- the game belongs to a different project than the open document,
+- the game predates the handshake (protocol 3 or older).
+
+A restarted game is checked again, so rebuilding and restarting a compatible game recovers on its own.
+
+### Opening a game project in the desktop app
+
+**File > Open Project…** (or **Open Project…** in the Game Preview panel) opens a `broom.project.json`. The editor checks the project (asset root, working directories, programs, endpoint), remembers it under **File > Recent Projects**, links the open document to it when the document belongs to no project yet, and points the game preview at the project's endpoint. **Run > Launch / Rebuild / Restart / Stop Game** and the panel buttons manage the game:
+
+- **Launch** builds the game when the editor knows how, then starts it and connects.
+- **Rebuild** stops the game, builds it and starts it again.
+- **Restart** stops and starts the game without building.
+- **Stop** ends the game and every process it started. Only a game the editor started is ever stopped; a game you started yourself keeps running when the editor closes.
+
+The build is `preview.build` from the project file (`program`, `arguments`, `working_directory`), or, when that is missing, the `cargo build` matching a `cargo run` launch. Compiler errors appear in the Console and in the Issues list as `file:line:column: message`. A document stays linked to its project: the game of another project is refused, and **Link Document** in the panel moves the document to the open project. The browser editor cannot start programs; start the game yourself and connect to it.
 
 ## Build outputs and source files
 
@@ -222,7 +269,7 @@ Make changes in `src/`, `public/`, or `documentation/`, then rebuild. Editing ge
 
 The project's GitHub Actions workflow installs the Bun version named in `.bun-version`, installs dependencies from the frozen lockfile, checks formatting, runs tests, and builds the browser site.
 
-For changes pushed to the main branch, the workflow also:
+For changes pushed to the `master` branch, the workflow also:
 
 - Deploys the contents of `docs/` to GitHub Pages.
 - Builds Windows, Linux, and macOS desktop artifacts on their respective hosted systems.

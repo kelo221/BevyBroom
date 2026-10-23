@@ -53,7 +53,7 @@ const electrobunConfig = {
     preBuild: 'scripts/desktop_view_build.ts',
   },
   release: {
-    baseUrl: 'https://github.com/Henry00IS/AiWorldEd/releases/latest/download',
+    baseUrl: 'https://github.com/kelo221/BevyBroom/releases/latest/download',
     generatePatch: false,
   },
 };

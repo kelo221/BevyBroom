@@ -9,6 +9,7 @@ import {
   type IssuesSchedulerTimerSource,
 } from '@/info_panel/issues/issues_scheduler.js';
 import { IssuesView, type IssuesViewActivateCallback } from '@/info_panel/issues/issues_view.js';
+import { ProjectIssueBoard } from '@/project/issues/project_issue_board.js';
 
 /** Collaborators of the info panel sources. */
 export interface InfoPanelSourcesOptions {
@@ -61,6 +62,7 @@ export class InfoPanelSources {
       changeSubscribes: [
         infoPanelCommandStackSubscribeCreate(options.commandStack),
         (listener: () => void) => GameEntityClassRegistry.changeListenerAdd(listener),
+        (listener: () => void) => ProjectIssueBoard.changeListenerAdd(listener),
       ],
     };
     this.issuesScheduler = new IssuesScheduler(

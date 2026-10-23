@@ -17,6 +17,7 @@ import { HandlerAlignment } from '@/outliner/alignment/handler_alignment.js';
 import { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js';
 import { TextureLockSettings } from '@/texture/lock/texture_lock_settings.js';
 import { audioSettings } from '@/audio/settings/audio_settings.js';
+import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
 
 /**
  * Host callbacks used when building outliner shell action bindings. Handler
@@ -57,6 +58,8 @@ export interface ToolbarActionHost {
   onOpenAboutDialog: () => void;
   onOpenMcpDialog: () => void;
   onToggleGamePreviewPanel: () => void;
+  /** Returns the project workbench that opens game projects and runs their game. */
+  gameProjectWorkbenchRead: () => ProjectWorkbench;
   onOpenDetachedViewport: () => void;
   onToggleAiCaptureDebugPanel: () => void;
   onToggleAudio: () => void;
@@ -173,6 +176,7 @@ function buildPrimitiveToolbarActions(
   | 'onOpenAboutDialog'
   | 'onOpenMcpDialog'
   | 'onToggleGamePreviewPanel'
+  | 'gameProjectWorkbenchRead'
   | 'onOpenDetachedViewport'
   | 'onToggleAiCaptureDebugPanel'
   | 'onToggleAudio'
@@ -198,6 +202,7 @@ function buildPrimitiveToolbarActions(
     onOpenAboutDialog: () => host.onOpenAboutDialog(),
     onOpenMcpDialog: () => host.onOpenMcpDialog(),
     onToggleGamePreviewPanel: () => host.onToggleGamePreviewPanel(),
+    gameProjectWorkbenchRead: () => host.gameProjectWorkbenchRead(),
     onOpenDetachedViewport: () => host.onOpenDetachedViewport(),
     onToggleAiCaptureDebugPanel: () => host.onToggleAiCaptureDebugPanel(),
     onToggleAudio: () => host.onToggleAudio(),

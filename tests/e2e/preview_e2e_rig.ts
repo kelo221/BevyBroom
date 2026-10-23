@@ -54,6 +54,8 @@ export class PreviewE2eRig {
    * instead.
    */
   unloadableGeometryPublicationsRemaining = 0;
+  /** Project the mirrored document belongs to; null accepts any game. */
+  expectedProjectIdentifier: string | null = null;
 
   /**
    * Creates a connected rig.
@@ -74,8 +76,33 @@ export class PreviewE2eRig {
       clock: () => performance.now(),
       isEditInProgress: () => false,
       levelNameProvider: () => this.levelName,
+      expectedProjectProvider: () => this.expectedProjectIdentifier,
     });
     this.controller.connect();
+  }
+
+  /**
+   * Keeps updating until the editor's link satisfies a condition.
+   *
+   * @param description What is waited for, used in the timeout error.
+   * @param condition Condition on the link controller.
+   * @param timeoutMilliseconds Longest wait.
+   */
+  async untilLink(
+    description: string,
+    condition: (controller: PreviewLinkController) => boolean,
+    timeoutMilliseconds: number,
+  ): Promise<void> {
+    const end = performance.now() + timeoutMilliseconds;
+    while (performance.now() < end) {
+      await this.run(PREVIEW_E2E_CHECK_MILLISECONDS);
+      if (condition(this.controller)) {
+        return;
+      }
+    }
+    throw new Error(
+      `Timed out waiting for ${description}; link state: ${this.controller.connectionStateRead()}; link error: ${this.controller.lastErrorRead()}`,
+    );
   }
 
   /**

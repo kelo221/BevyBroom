@@ -1,0 +1,66 @@
+{
+  "dynlight_type": "spot",
+  "dynlight_color": [
+    0.2,
+    0.4,
+    1
+  ],
+  "dynlight_intensity": 3,
+  "dynlight_radius": 7.5,
+  "dynlight_falloff": 0,
+  "dynlight_inner_cutoff": 26,
+  "dynlight_outer_cutoff": 30,
+  "dynlight_realtime": false,
+  "dynlight_effect": "candle",
+  "dynlight_fog": "cone_z",
+  "broom_light": {
+    "light_type": "spot",
+    "color": [
+      0.2,
+      0.4,
+      1
+    ],
+    "intensity": 3,
+    "radius": 7.5,
+    "falloff": 0,
+    "inner_cutoff": 26,
+    "outer_cutoff": 30,
+    "realtime": false,
+    "shadows": "realtime",
+    "enabled": true,
+    "shimmer": {
+      "kind": "none",
+      "scale": 12.25,
+      "modifier": 0.8
+    },
+    "illumination": "direct",
+    "transparency": "disabled",
+    "bounce": {
+      "color": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "modifier": 1,
+      "intensity": 1,
+      "samples": 32,
+      "compression": null
+    },
+    "effect": {
+      "kind": "candle",
+      "pulse_speed": 1,
+      "pulse_modifier": 0.25,
+      "pulse_offset": 0,
+      "timestep": 0.03333333333333333
+    },
+    "fog": {
+      "shape": "cone_z",
+      "radius": 4,
+      "thickness": 1,
+      "intensity": 0.75,
+      "visibility": 2
+    }
+  },
+  "broom_light_of": "3f0c2a5e-8f1d-4f6b-9a37-2c4d5e6f7a8b"
+}

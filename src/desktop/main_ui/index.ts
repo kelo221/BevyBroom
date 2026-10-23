@@ -2,6 +2,7 @@ import { Electroview } from 'electrobun/view';
 import { buildDesktopWindowTitle } from '@/application_identity.js';
 import { sharedMcpBridgeHandler } from '@/ai/client/handler_mcp_bridge.js';
 import { createMcpDesktopBridge } from '@/ai/client/bridge_mcp_desktop.js';
+import { GameProcessControlDesktop } from '@/project/control/game_process_control_desktop.js';
 import type { ElectrobunDesktopBunRpcClient, ElectrobunDesktopRpcSchema } from '@/ai/shared/mcp_rpc_schema.js';
 import type { McpInvokeEditorToolParams } from '@/ai/shared/mcp_protocol_types.js';
 import { storageMigrationLegacyPrefixRunInBrowser } from '@/settings/storage/storage_migration_legacy_prefix.js';
@@ -10,6 +11,7 @@ import { createElectrobunUpdaterBridge, type ElectrobunUpdaterRpcClient } from '
 document.title = buildDesktopWindowTitle();
 
 const desktopRpc = Electroview.defineRPC<ElectrobunDesktopRpcSchema>({
+  maxRequestTime: 600000,
   handlers: {
     requests: {
       invokeEditorTool: (params: McpInvokeEditorToolParams) => sharedMcpBridgeHandler.invokeEditorTool(params),
@@ -20,5 +22,6 @@ const desktopRpc = Electroview.defineRPC<ElectrobunDesktopRpcSchema>({
 new Electroview({ rpc: desktopRpc as never });
 window.bevybroomStandaloneUpdater = createElectrobunUpdaterBridge(desktopRpc);
 window.bevybroomMcpBridge = createMcpDesktopBridge(desktopRpc);
+window.bevybroomGameProcessControl = new GameProcessControlDesktop(desktopRpc);
 storageMigrationLegacyPrefixRunInBrowser();
 await import('@/app.js');

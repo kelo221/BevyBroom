@@ -49,11 +49,38 @@ export function previewE2eEnvironmentRead(portOffset: number): PreviewE2eEnviron
   const previewExecutable = previewE2ePathResolveOrEmpty(process.env['BROOM_E2E_PREVIEW_EXE']);
   const sourceProjectDirectory = previewE2ePathResolveOrEmpty(process.env['BROOM_E2E_PROJECT_DIR']);
   const bridgePort = Number(process.env['BROOM_E2E_PORT'] ?? PREVIEW_E2E_DEFAULT_PORT) + portOffset;
+  const isConfigured = previewExecutable !== '' && sourceProjectDirectory !== '';
+  e2eRequiredConfigurationAssert(isConfigured, ['BROOM_E2E_PREVIEW_EXE', 'BROOM_E2E_PROJECT_DIR']);
   return {
     previewExecutable,
     sourceProjectDirectory,
     bridgePort,
     endpoint: `http://127.0.0.1:${bridgePort}`,
-    isConfigured: previewExecutable !== '' && sourceProjectDirectory !== '',
+    isConfigured,
   };
+}
+
+/**
+ * Returns whether BROOM_E2E_REQUIRED asks every end-to-end suite to run, so a
+ * missing program fails the run instead of skipping it.
+ *
+ * @returns True when skipping is not allowed.
+ */
+export function e2eRequiredRead(): boolean {
+  return process.env['BROOM_E2E_REQUIRED'] === '1';
+}
+
+/**
+ * Fails when end-to-end suites are required but their programs are not
+ * configured.
+ *
+ * @param isConfigured Whether every variable the suite needs is set.
+ * @param variableNames Variables the suite needs, named in the failure.
+ * @throws Error naming the variables when the suite would otherwise be skipped.
+ */
+export function e2eRequiredConfigurationAssert(isConfigured: boolean, variableNames: readonly string[]): void {
+  if (isConfigured || !e2eRequiredRead()) {
+    return;
+  }
+  throw new Error(`BROOM_E2E_REQUIRED=1 but ${variableNames.join(' and ')} must be set; the suite would be skipped.`);
 }

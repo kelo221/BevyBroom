@@ -91,7 +91,13 @@ export type McpToolName =
   | 'set_layer_flags'
   | 'move_objects_to_layer'
   | 'viewport_drag'
-  | 'viewport_click';
+  | 'viewport_click'
+  | 'project_open'
+  | 'project_status'
+  | 'game_launch'
+  | 'game_rebuild'
+  | 'game_restart'
+  | 'game_stop';
 
 /** JSON vector DTO used at the MCP / EditorApi boundary. */
 export interface McpVec3 {

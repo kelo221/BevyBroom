@@ -1,21 +1,29 @@
 import { Theme } from '@/theme.js';
 import { PanelFloating } from '@/ui/floating_panel/panel_floating.js';
 import { applyFloatingPanelToolChrome } from '@/ui/floating_panel/panel_floating_tool_chrome.js';
-import { styleFloatingPanelChromeButton } from '@/ui/floating_panel/panel_floating_title_bar.js';
 import type { PreviewLinkService } from '@/preview/link/preview_link_service.js';
 import { previewStatusLinesBuild } from '@/preview/ui/preview_status_lines.js';
+import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
+import { PanelGamePreviewProjectSection } from '@/preview/ui/panel_game_preview_project_section.js';
+import {
+  panelGamePreviewButtonPrepare,
+  panelGamePreviewLineCreate,
+  panelGamePreviewRowCreate,
+} from '@/preview/ui/panel_game_preview_controls.js';
 
 /**
- * Floating panel that connects the editor to a running game preview, shows what
- * the game received and applied, and requests preview bakes.
+ * Floating panel that opens a game project and runs its game, connects the
+ * editor to a running game preview, shows what the game received and applied,
+ * and requests preview bakes.
  */
 export class PanelGamePreview extends PanelFloating {
   private readonly service: PreviewLinkService;
+  private readonly projectSection: PanelGamePreviewProjectSection;
   private readonly endpointInput: HTMLInputElement;
   private readonly connectButton: HTMLButtonElement;
   private readonly bakeButton: HTMLButtonElement;
   private readonly statusList: HTMLElement;
-  private readonly removeServiceListener: () => void;
+  private readonly removeListeners: Array<() => void>;
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
   /**
@@ -23,20 +31,25 @@ export class PanelGamePreview extends PanelFloating {
    *
    * @param host Parent element of the panel.
    * @param service Preview link service shown and controlled by the panel.
+   * @param workbench Project workbench shown and driven by the panel.
    */
-  constructor(host: HTMLElement, service: PreviewLinkService) {
+  constructor(host: HTMLElement, service: PreviewLinkService, workbench: ProjectWorkbench) {
     super(host, { corner: 'bottom-right', insetBelowViewportToolbar: false });
     this.service = service;
+    this.projectSection = new PanelGamePreviewProjectSection(workbench);
     this.endpointInput = document.createElement('input');
     this.connectButton = document.createElement('button');
     this.bakeButton = document.createElement('button');
     this.statusList = document.createElement('div');
     this.rootPopulate();
-    this.removeServiceListener = service.changeListenerAdd(() => this.refresh());
+    this.removeListeners = [
+      service.changeListenerAdd(() => this.refresh()),
+      workbench.changeListenerAdd(() => this.refresh()),
+    ];
     this.refresh();
   }
 
-  /** Rewrites the controls and status lines from the service. */
+  /** Rewrites the controls and status lines from the service and workbench. */
   refresh(): void {
     const controller = this.service.controllerRead();
     const connectionState = controller?.connectionStateRead() ?? 'disconnected';
@@ -48,14 +61,20 @@ export class PanelGamePreview extends PanelFloating {
       sentGeometryRevision: revisions.geometry,
       lastError: controller?.lastErrorRead() ?? '',
     });
-    this.statusList.replaceChildren(...lines.map((line) => this.statusLineCreate(line)));
+    this.statusList.replaceChildren(
+      ...lines.map((line) =>
+        panelGamePreviewLineCreate(line, line.startsWith('Last error') || line.startsWith('Game error')),
+      ),
+    );
     this.connectButton.textContent = connectionState === 'disconnected' ? 'Connect' : 'Disconnect';
     this.bakeButton.disabled = connectionState !== 'connected';
+    this.endpointInputSync();
+    this.projectSection.refresh();
   }
 
   /** Removes listeners, timers and the panel element. */
   override dispose(): void {
-    this.removeServiceListener();
+    this.removeListeners.forEach((removeListener) => removeListener());
     this.refreshTimerStop();
     super.dispose();
   }
@@ -72,6 +91,13 @@ export class PanelGamePreview extends PanelFloating {
     this.refreshTimerStop();
   }
 
+  /** Shows the remembered endpoint unless the user is editing the field. */
+  private endpointInputSync(): void {
+    if (document.activeElement !== this.endpointInput) {
+      this.endpointInput.value = this.service.endpointRead();
+    }
+  }
+
   /** Stops the status refresh timer. */
   private refreshTimerStop(): void {
     if (this.refreshTimer !== null) {
@@ -80,7 +106,10 @@ export class PanelGamePreview extends PanelFloating {
     }
   }
 
-  /** Fills the panel with its title bar, endpoint row, actions and status. */
+  /**
+   * Fills the panel with its title bar, project section, endpoint row, actions
+   * and status.
+   */
   private rootPopulate(): void {
     applyFloatingPanelToolChrome(this.root, {
       width: '340px',
@@ -88,6 +117,7 @@ export class PanelGamePreview extends PanelFloating {
       boxShadow: '0 10px 28px rgba(0,0,0,0.55)',
     });
     this.root.appendChild(this.createStandardTitleBar({ titleText: 'Game Preview' }).bar);
+    this.root.appendChild(this.projectSection.root);
     this.root.appendChild(this.endpointRowCreate());
     this.root.appendChild(this.actionRowCreate());
     this.statusList.style.padding = '6px 10px 10px';
@@ -103,7 +133,7 @@ export class PanelGamePreview extends PanelFloating {
    * @returns Row element.
    */
   private endpointRowCreate(): HTMLElement {
-    const row = this.rowCreate();
+    const row = panelGamePreviewRowCreate();
     this.endpointInput.type = 'text';
     this.endpointInput.value = this.service.endpointRead();
     this.endpointInput.setAttribute('aria-label', 'Game preview endpoint');
@@ -124,11 +154,13 @@ export class PanelGamePreview extends PanelFloating {
    * @returns Row element.
    */
   private actionRowCreate(): HTMLElement {
-    const row = this.rowCreate();
-    this.buttonPrepare(this.connectButton, 'Connect to or disconnect from the running game', () =>
+    const row = panelGamePreviewRowCreate();
+    panelGamePreviewButtonPrepare(this.connectButton, 'Connect to or disconnect from the running game', () =>
       this.connectionToggle(),
     );
-    this.buttonPrepare(this.bakeButton, 'Bake preview lighting in the game', () => this.previewBakeRequest());
+    panelGamePreviewButtonPrepare(this.bakeButton, 'Bake preview lighting in the game', () =>
+      this.previewBakeRequest(),
+    );
     this.bakeButton.textContent = 'Preview Bake';
     row.append(this.connectButton, this.bakeButton);
     return row;
@@ -151,50 +183,5 @@ export class PanelGamePreview extends PanelFloating {
       .controllerRead()
       ?.previewBakeRequest()
       .catch(() => this.refresh());
-  }
-
-  /**
-   * Styles a button and binds its click handler.
-   *
-   * @param button Button element.
-   * @param title Hover text.
-   * @param onClick Click handler.
-   */
-  private buttonPrepare(button: HTMLButtonElement, title: string, onClick: () => void): void {
-    button.type = 'button';
-    button.title = title;
-    styleFloatingPanelChromeButton(button);
-    button.style.padding = '3px 10px';
-    button.style.fontSize = '12px';
-    button.addEventListener('click', onClick);
-  }
-
-  /**
-   * Creates a padded horizontal row.
-   *
-   * @returns Row element.
-   */
-  private rowCreate(): HTMLElement {
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.alignItems = 'center';
-    row.style.gap = '6px';
-    row.style.padding = '8px 10px 0';
-    return row;
-  }
-
-  /**
-   * Creates one status line.
-   *
-   * @param text Line text.
-   * @returns Line element.
-   */
-  private statusLineCreate(text: string): HTMLElement {
-    const line = document.createElement('div');
-    line.textContent = text;
-    line.style.fontSize = '11px';
-    line.style.color =
-      text.startsWith('Last error') || text.startsWith('Game error') ? '#ff7a6a' : Theme.inputTextColor;
-    return line;
   }
 }

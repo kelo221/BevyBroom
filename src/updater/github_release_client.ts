@@ -1,10 +1,10 @@
 import type { GitHubRelease, GitHubReleaseAsset } from './update_types.js';
 
 /** GitHub Releases API endpoint for the BevyBroom repository. */
-export const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/Henry00IS/AiWorldEd/releases/latest';
+export const GITHUB_LATEST_RELEASE_URL = 'https://api.github.com/repos/kelo221/BevyBroom/releases/latest';
 
 /** Public release page used when no executable host bridge is available. */
-export const GITHUB_RELEASES_PAGE_URL = 'https://github.com/Henry00IS/AiWorldEd/releases';
+export const GITHUB_RELEASES_PAGE_URL = 'https://github.com/kelo221/BevyBroom/releases';
 
 /** Small client for the public GitHub Releases API. */
 export class GitHubReleaseClient {

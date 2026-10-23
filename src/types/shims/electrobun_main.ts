@@ -121,6 +121,22 @@ export const Utils = {
       return '';
     },
   },
+
+  /**
+   * Shows the native open dialog.
+   *
+   * @param _options Starting folder, allowed extensions and what may be chosen.
+   * @returns Chosen paths; empty or one blank path when cancelled.
+   */
+  async openFileDialog(_options: {
+    startingFolder?: string;
+    allowedFileTypes?: string;
+    canChooseFiles?: boolean;
+    canChooseDirectory?: boolean;
+    allowsMultipleSelection?: boolean;
+  }): Promise<string[]> {
+    return [];
+  },
 };
 
 /** Loose string-keyed record of Electrobun application configuration. */

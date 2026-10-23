@@ -5,6 +5,10 @@ import type { PreviewCatalogEntries } from '@/preview/catalog/preview_catalog_en
 import { previewCatalogMaterialsRebind } from '@/preview/catalog/preview_catalog_material_rebind.js';
 import type { ControllerTextureBrowser } from '@/texture/controller/controller_texture_browser.js';
 import { getTextureMapCache } from '@/texture/library/texture_map_cache.js';
+import { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
+import { ProjectWorkbenchLinkPreview } from '@/project/workbench/project_workbench_link_preview.js';
+import { ProjectRecentStore } from '@/project/recent/project_recent_store.js';
+import { gameProcessControlResolve } from '@/project/control/game_process_control_desktop.js';
 
 /** Texture browser folder name shown for the game material catalog. */
 export const LAYOUT_GAME_PREVIEW_CATALOG_FOLDER_NAME = 'Game materials';
@@ -33,6 +37,7 @@ export interface LayoutGamePreviewHosts {
 export class LayoutGamePreview {
   private readonly hosts: LayoutGamePreviewHosts;
   private service: PreviewLinkService | null = null;
+  private workbench: ProjectWorkbench | null = null;
   private panel: PanelGamePreview | null = null;
 
   /**
@@ -59,9 +64,27 @@ export class LayoutGamePreview {
       this.service = new PreviewLinkService(this.hosts.worldGroup, {
         onCatalogLoaded: (catalog) => this.catalogApply(catalog),
         levelNameProvider: () => this.levelNameRead(),
+        expectedProjectProvider: () => this.workbenchEnsure().expectedProjectIdentifierRead(),
       });
     }
     return this.service;
+  }
+
+  /**
+   * Returns the project workbench, creating it on first use.
+   *
+   * @returns The shared workbench.
+   */
+  workbenchEnsure(): ProjectWorkbench {
+    if (!this.workbench) {
+      this.workbench = new ProjectWorkbench({
+        control: gameProcessControlResolve(),
+        link: new ProjectWorkbenchLinkPreview(this.serviceEnsure()),
+        worldGroup: this.hosts.worldGroup,
+        recentStore: new ProjectRecentStore(),
+      });
+    }
+    return this.workbench;
   }
 
   /**
@@ -93,7 +116,7 @@ export class LayoutGamePreview {
    */
   private panelEnsure(): PanelGamePreview {
     if (!this.panel) {
-      this.panel = new PanelGamePreview(this.hosts.panelHost, this.serviceEnsure());
+      this.panel = new PanelGamePreview(this.hosts.panelHost, this.serviceEnsure(), this.workbenchEnsure());
     }
     return this.panel;
   }

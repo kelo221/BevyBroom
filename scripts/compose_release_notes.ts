@@ -13,7 +13,7 @@ const version = requireArg(args.version, '--version');
 const assetsDir = resolve(process.cwd(), requireArg(args.assets, '--assets'));
 const commitSha = requireArg(args.sha, '--sha');
 const outputPath = resolve(process.cwd(), requireArg(args.out, '--out'));
-const repository = args.repository ?? 'Henry00IS/AiWorldEd';
+const repository = args.repository ?? 'kelo221/BevyBroom';
 
 const fileNames = readdirSync(assetsDir).filter((name) => statSync(join(assetsDir, name)).isFile());
 const body = buildReleaseNotesBody(version, commitSha, repository, fileNames);

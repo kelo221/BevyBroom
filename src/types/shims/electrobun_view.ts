@@ -12,6 +12,8 @@ export type RpcWithTransport = {
 
 /** Handler configuration with optional request and message maps. */
 export type DefineRpcConfig = {
+  /** Optional request timeout in milliseconds. */
+  maxRequestTime?: number;
   handlers: {
     requests?: Record<string, unknown>;
     messages?: Record<string, unknown>;

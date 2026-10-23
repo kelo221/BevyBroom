@@ -8,6 +8,10 @@ import { enableWindowsPerMonitorDpiAwareness } from '@/desktop/windows_dpi_aware
 import { applyWindowsWindowIcon } from '@/desktop/windows_window_icon.js';
 import { desktopMcpAutostartRun } from '@/desktop/desktop_mcp_autostart.js';
 import { desktopProfileMigrationRun } from '@/desktop/desktop_profile_migration_legacy.js';
+import { GameProcessHost } from '@/desktop/bun/game_process/game_process_host.js';
+import { GameProcessSpawnerNode } from '@/desktop/bun/game_process/game_process_spawner_node.js';
+import { gameProcessProjectReaderNodeCreate } from '@/desktop/bun/game_process/game_process_project_reader.js';
+import { gameProcessRpcHandlersCreate } from '@/desktop/bun/game_process/game_process_rpc_handlers.js';
 
 await enableWindowsPerMonitorDpiAwareness();
 
@@ -16,6 +20,8 @@ const { BrowserView, BrowserWindow, Screen, Updater, Utils } = await import('ele
 console.log(`desktop profile migration: ${desktopProfileMigrationRun(Utils.paths.userData, process.platform)}`);
 
 const mcpHost = new McpHost();
+const gameProcessHost = new GameProcessHost(new GameProcessSpawnerNode(), gameProcessProjectReaderNodeCreate());
+process.on('exit', () => gameProcessHost.disposeNow());
 let desktopRpc: ElectrobunDesktopWebviewCaller | null = null;
 
 const desktopRpcBinding = BrowserView.defineRPC<ElectrobunDesktopRpcSchema>({
@@ -27,6 +33,9 @@ const desktopRpcBinding = BrowserView.defineRPC<ElectrobunDesktopRpcSchema>({
       startMcpServer: startMcpServer,
       stopMcpServer: stopMcpServer,
       getMcpStatus: getMcpStatus,
+      ...gameProcessRpcHandlersCreate(gameProcessHost, () =>
+        Utils.openFileDialog({ allowedFileTypes: 'json', canChooseDirectory: false, allowsMultipleSelection: false }),
+      ),
     },
   },
 });

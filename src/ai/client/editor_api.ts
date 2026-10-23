@@ -24,6 +24,7 @@ import { EditorApiMainWindow } from './editor_api_main_window.js';
 import { EditorApiLayers } from './editor_api_layers.js';
 import { EditorApiClipboard } from './editor_api_clipboard.js';
 import { EditorApiViewportInput } from './editor_api_viewport_input.js';
+import { EditorApiProject } from './editor_api_project.js';
 import type {
   AddBoxBrushArgs,
   AddBoxBrushesArgs,
@@ -86,6 +87,7 @@ export class EditorApi {
   private readonly mainWindow: EditorApiMainWindow;
   private readonly clipboard: EditorApiClipboard;
   private readonly viewportInput: EditorApiViewportInput;
+  private readonly project: EditorApiProject;
 
   /**
    * Creates an editor API bound to live editor systems.
@@ -112,6 +114,7 @@ export class EditorApi {
     this.mainWindow = new EditorApiMainWindow(host);
     this.clipboard = new EditorApiClipboard(host);
     this.viewportInput = new EditorApiViewportInput(host, () => this.reads.getSelection());
+    this.project = new EditorApiProject(host);
   }
 
   /**
@@ -148,7 +151,7 @@ export class EditorApi {
   }
 
   /**
-   * Routes the tools that wait for the running game.
+   * Routes the tools that wait for the running game or the desktop app.
    *
    * @param name Tool name.
    * @param args Argument object.
@@ -161,7 +164,7 @@ export class EditorApi {
       case 'write_data_asset':
         return this.gameEntities.dataAssetWrite(args as unknown as DataAssetWriteArgs);
       default:
-        return null;
+        return this.project.projectToolDispatchAsync(name, args);
     }
   }
 
@@ -347,7 +350,8 @@ export class EditorApi {
           this.layers.layerToolDispatch(name, args) ??
           this.mainWindow.mainWindowToolDispatch(name, args) ??
           this.clipboard.clipboardToolDispatch(name, args) ??
-          this.viewportInput.viewportInputToolDispatch(name, args) ?? { ok: false, message: `Unknown tool: ${name}` }
+          this.viewportInput.viewportInputToolDispatch(name, args) ??
+          this.project.projectToolDispatchSync(name) ?? { ok: false, message: `Unknown tool: ${name}` }
         );
     }
   }

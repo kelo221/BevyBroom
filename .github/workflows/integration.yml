@@ -1,0 +1,81 @@
+name: Game integration (end to end)
+
+# Builds the game preview and the desktop app from source in this job and runs
+# every end-to-end suite against them. BROOM_E2E_REQUIRED makes a missing
+# program fail the run instead of skipping its suites.
+#
+# The game bridge workspace lives in bevy/ of this repository; the renderer is
+# checked out next to it at the commit pinned in compatibility.json. Rendering
+# needs a GPU or a working software adapter, so this workflow runs on demand:
+# pick a runner label that has one (for example a self-hosted Windows GPU
+# runner). The Bevy workspace job in ci.yml checks the Rust side on every
+# pull request.
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: 'Runner label with a GPU or software adapter'
+        required: false
+        default: 'windows-latest'
+
+permissions:
+  contents: read
+
+jobs:
+  end-to-end:
+    name: Editor and game end to end
+    runs-on: ${{ inputs.runner }}
+    env:
+      BROOM_E2E_REQUIRED: '1'
+    steps:
+      - name: Check out the editor
+        uses: actions/checkout@v4
+        with:
+          path: AiWorldEd
+
+      - name: Read the pinned renderer commit
+        id: pin
+        shell: bash
+        run: |
+          echo "renderer_repository=$(jq -r '.renderer.repository' AiWorldEd/compatibility.json | sed 's#https://github.com/##')" >> "$GITHUB_OUTPUT"
+          echo "renderer_commit=$(jq -r '.renderer.commit' AiWorldEd/compatibility.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the renderer at the pinned commit
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.pin.outputs.renderer_repository }}
+          ref: ${{ steps.pin.outputs.renderer_commit }}
+          path: DynLightBevy
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: AiWorldEd/.bun-version
+
+      - name: Build the game preview
+        working-directory: AiWorldEd/bevy
+        run: cargo build --release -j 2 -p broom_preview
+
+      - name: Install editor dependencies
+        working-directory: AiWorldEd
+        run: bun install --frozen-lockfile
+
+      - name: Build the desktop app
+        working-directory: AiWorldEd
+        run: bun run desktop:build:dev
+
+      - name: Run every end-to-end suite
+        working-directory: AiWorldEd
+        shell: bash
+        env:
+          BROOM_E2E_PREVIEW_EXE: bevy/target/release/broom_preview${{ runner.os == 'Windows' && '.exe' || '' }}
+          BROOM_E2E_PROJECT_DIR: bevy
+        run: |
+          launcher="$(find desktop_build -path '*bin/launcher*' -type f | head -n 1)"
+          if [ -z "$launcher" ]; then echo "no desktop launcher was built" >&2; exit 1; fi
+          export BROOM_E2E_DESKTOP_EXE="$launcher"
+          bun run e2e

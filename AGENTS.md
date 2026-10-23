@@ -8,12 +8,14 @@ running game and exports levels the game loads.
 
 ## Bevy
 
-There are three repositories side by side:
+This repository (kelo221/BevyBroom, folder `AiWorldEd`) holds all the work,
+with one more checkout next to it:
 
-- This repository (folder `AiWorldEd`): the editor, TypeScript and Three.js.
-- `../AiWorldEdBevy`: the game side, the `broom_bridge` crate a game adds and
-  the `broom_preview` program. Follow its own `AGENTS.md` when working there.
-- `../DynLightBevy`: the renderer (lights, bakes, rooms and portals). Follow its
+- `src/`, `tests/`: the editor, TypeScript and Three.js.
+- `bevy/`: the game side, the `broom_bridge` crate a game adds and the
+  `broom_preview` program. Follow its own `bevy/AGENTS.md` when working there.
+- `../DynLightBevy`: the renderer, its own repository
+  (kelo221/DynamicLighting-Bevy) at the commit pinned in `compatibility.json` (lights, bakes, rooms and portals). Follow its
   own `AGENTS.md`; prefer solving a problem in the editor or the bridge before
   changing the renderer.
 
@@ -23,7 +25,8 @@ Rules for work that touches the game:
    receive, load and show, then how the editor authors it.
 2. The preview protocol is a contract.
    `src/preview/protocol/preview_protocol_types.ts` mirrors the Rust
-   `protocol/` module in `../AiWorldEdBevy`; always change both together.
+   `protocol/` module in `bevy/crates/broom_bridge`; always change both
+   together. Both sides parse the wire fixtures in `bevy/fixtures/`.
 3. Anything the game must see in a shipped level goes into the exported GLB in a
    form the game reads without the editor (for example DynLight node extras).
 4. Editor-only helpers (light markers, room and portal outlines, game entity
@@ -74,17 +77,17 @@ the desktop app or MCP tools, `bun run e2e` must pass too, run against freshly
 built programs. A stale build silently tests old code:
 
 ```
-cd ..\AiWorldEdBevy
+cd bevy
 cargo build --release -j 2 -p broom_preview
-cd ..\AiWorldEd
+cd ..
 bun run desktop:build:dev
 set BROOM_E2E_DESKTOP_EXE=desktop_build\dev-win-x64\BevyBroom-dev\bin\launcher.exe
-set BROOM_E2E_PREVIEW_EXE=..\AiWorldEdBevy\target\release\broom_preview.exe
-set BROOM_E2E_PROJECT_DIR=..\AiWorldEdBevy
+set BROOM_E2E_PREVIEW_EXE=bevy\target\release\broom_preview.exe
+set BROOM_E2E_PROJECT_DIR=bevy
 bun run e2e
 ```
 
-If the Bevy workspace changed, its own checks (`cargo fmt`, `clippy` and
+If `bevy/` changed, its own checks (`cargo fmt`, `clippy` and
 `cargo test`, with `-j 2`) must pass too.
 
 PowerShell is janky, use cmd.

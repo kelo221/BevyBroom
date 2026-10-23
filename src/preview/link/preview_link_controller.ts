@@ -1,7 +1,13 @@
 import * as THREE from 'three';
 import { documentIdentityEnsure } from '@/io/document/document_identity.js';
-import type { PreviewBridgeStatus } from '@/preview/protocol/preview_protocol_types.js';
-import { PREVIEW_METHOD } from '@/preview/protocol/preview_protocol_types.js';
+import type { PreviewBridgeStatus, PreviewHelloReply } from '@/preview/protocol/preview_protocol_types.js';
+import {
+  PREVIEW_METHOD,
+  PREVIEW_PROTOCOL_VERSION,
+  PREVIEW_REQUIRED_CAPABILITIES,
+} from '@/preview/protocol/preview_protocol_types.js';
+import { PreviewLinkHandshake } from '@/preview/link/handshake/preview_link_handshake.js';
+import type { PreviewHandshakeExpectation } from '@/preview/link/handshake/preview_handshake_judge.js';
 import type { PreviewLinkTransport } from '@/preview/link/preview_link_transport.js';
 import type { PreviewLinkChannelListener } from '@/preview/link/preview_link_channel.js';
 import { PreviewLinkStateChannel } from '@/preview/link/preview_link_state_channel.js';
@@ -16,8 +22,11 @@ import type { PreviewLinkFeatureChannel } from '@/preview/link/preview_link_feat
 import { PreviewLinkFeatureChannelRegistry } from '@/preview/link/preview_link_feature_channel_registry.js';
 import { PreviewGeometrySignature } from '@/preview/geometry/preview_geometry_signature.js';
 
-/** Where the link to the game stands. */
-export type PreviewLinkConnectionState = 'disconnected' | 'connecting' | 'connected' | 'unreachable';
+/**
+ * Where the link to the game stands. An incompatible game answered but failed
+ * the handshake, so nothing is published into it.
+ */
+export type PreviewLinkConnectionState = 'disconnected' | 'connecting' | 'connected' | 'unreachable' | 'incompatible';
 
 /** Collaborators of a preview link controller. */
 export interface PreviewLinkControllerOptions {
@@ -38,6 +47,11 @@ export interface PreviewLinkControllerOptions {
   isEditInProgress: () => boolean;
   /** Returns the level name the game stores geometry under. */
   levelNameProvider: () => string;
+  /**
+   * Returns the project the open document belongs to; a game of another project
+   * fails the handshake. Omitted or null accepts any project.
+   */
+  expectedProjectProvider?: () => string | null;
 }
 
 /** Time between geometry signature checks. */
@@ -58,6 +72,7 @@ export class PreviewLinkController implements PreviewLinkChannelListener {
   private readonly catalogChannel: PreviewLinkCatalogChannel;
   private readonly featureChannels: readonly PreviewLinkFeatureChannel[];
   private readonly changeListeners = new Set<() => void>();
+  private readonly handshake = new PreviewLinkHandshake();
   private connectionState: PreviewLinkConnectionState = 'disconnected';
   private lastErrorMessage = '';
   private nextGeometryCheckMilliseconds = 0;
@@ -88,6 +103,7 @@ export class PreviewLinkController implements PreviewLinkChannelListener {
       return;
     }
     this.statusChannel.instanceForget();
+    this.handshake.forget();
     this.connectionStateWrite('connecting');
   }
 
@@ -147,6 +163,15 @@ export class PreviewLinkController implements PreviewLinkChannelListener {
   }
 
   /**
+   * Returns the handshake reply of the current game process.
+   *
+   * @returns Reply, or null before a game answered the handshake.
+   */
+  gameHelloRead(): PreviewHelloReply | null {
+    return this.handshake.helloRead();
+  }
+
+  /**
    * Returns the last request error.
    *
    * @returns Error text, empty when the last request succeeded.
@@ -176,13 +201,21 @@ export class PreviewLinkController implements PreviewLinkChannelListener {
     return () => this.changeListeners.delete(listener);
   }
 
-  /** Marks the link connected after a reply. */
+  /**
+   * Marks the link connected after a reply from a game that passed the
+   * handshake, or incompatible with the handshake's reason.
+   */
   onRequestSucceeded(): void {
     if (this.connectionState === 'disconnected') {
       return;
     }
-    this.lastErrorMessage = '';
-    this.connectionStateWrite('connected');
+    const incompatibilityReason = this.handshake.incompatibilityReasonRead();
+    this.lastErrorMessage = incompatibilityReason ?? '';
+    if (incompatibilityReason !== null) {
+      this.connectionStateWrite('incompatible');
+      return;
+    }
+    this.connectionStateWrite(this.handshake.isCompatible() ? 'connected' : 'connecting');
   }
 
   /**
@@ -200,16 +233,53 @@ export class PreviewLinkController implements PreviewLinkChannelListener {
   }
 
   /**
-   * Resends everything and reloads the catalog and every feature channel
-   * because a new game process answered.
+   * Checks a new game process with the handshake and, when it passes, resends
+   * everything and reloads the catalog and every feature channel.
    *
    * @param status First status of the new game process.
    */
-  private gameInstanceAdopt(status: PreviewBridgeStatus): void {
+  private async gameInstanceAdopt(status: PreviewBridgeStatus): Promise<void> {
+    await this.handshake.perform(this.options.transport, this.handshakeExpectationBuild());
+    if (this.handshake.isCompatible()) {
+      this.gameContentResendRequest(status);
+    }
+  }
+
+  /**
+   * Builds what the editor needs from a game before publishing into it.
+   *
+   * @returns Handshake expectation.
+   */
+  private handshakeExpectationBuild(): PreviewHandshakeExpectation {
+    return {
+      protocol: PREVIEW_PROTOCOL_VERSION,
+      requiredCapabilities: PREVIEW_REQUIRED_CAPABILITIES,
+      expectedProjectIdentifier: this.options.expectedProjectProvider?.() ?? null,
+    };
+  }
+
+  /**
+   * Resends everything and reloads the catalog and every feature channel.
+   *
+   * @param status First status of the new game process.
+   */
+  private gameContentResendRequest(status: PreviewBridgeStatus): void {
+    this.contentChannelsGenerationAdvance();
     this.stateChannel.resendRequest();
     this.geometryChannel.republishRequest();
     this.catalogChannel.reloadRequest();
     this.featureChannels.forEach((channel) => channel.gameInstanceAdopt(status));
+  }
+
+  /**
+   * Starts a new generation on every channel that carries document content, so
+   * replies of requests sent to the previous game process change nothing.
+   */
+  private contentChannelsGenerationAdvance(): void {
+    this.stateChannel.generationAdvance();
+    this.geometryChannel.generationAdvance();
+    this.catalogChannel.generationAdvance();
+    this.featureChannels.forEach((channel) => channel.generationAdvance());
   }
 
   /**
@@ -220,7 +290,8 @@ export class PreviewLinkController implements PreviewLinkChannelListener {
   private stateSend(): Promise<void> | null {
     const worldGroup = this.options.worldGroup;
     const document = {
-      projectIdentifier: this.statusChannel.latestStatusRead()?.project_id ?? '',
+      projectIdentifier:
+        this.options.expectedProjectProvider?.() ?? this.statusChannel.latestStatusRead()?.project_id ?? '',
       documentIdentifier: documentIdentityEnsure(worldGroup),
       geometryRevision: this.geometryChannel.geometryRevisionRead(),
     };

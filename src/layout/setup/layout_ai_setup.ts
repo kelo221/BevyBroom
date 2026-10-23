@@ -26,6 +26,8 @@ export interface LayoutAiSetupHost {
   getRenderer?: () => THREE.WebGLRenderer | null;
   /** Returns the game preview link, creating it on first use. */
   previewLinkServiceEnsure?: EditorApiHost['previewLinkServiceEnsure'];
+  /** Returns the project workbench, creating it on first use. */
+  projectWorkbenchEnsure?: EditorApiHost['projectWorkbenchEnsure'];
   /** Replaces the open scene with scene file text as Load does. */
   sceneDocumentLoad?: EditorApiHost['sceneDocumentLoad'];
   /** Validates the map at once and returns the issues the Issues tab shows. */
@@ -66,6 +68,7 @@ export function setupLayoutAi(host: LayoutAiSetupHost): LayoutAiSetupResult {
     ...(host.getScene ? { getScene: host.getScene } : {}),
     ...(host.getRenderer ? { getRenderer: host.getRenderer } : {}),
     ...(host.previewLinkServiceEnsure ? { previewLinkServiceEnsure: host.previewLinkServiceEnsure } : {}),
+    ...(host.projectWorkbenchEnsure ? { projectWorkbenchEnsure: host.projectWorkbenchEnsure } : {}),
     ...(host.sceneDocumentLoad ? { sceneDocumentLoad: host.sceneDocumentLoad } : {}),
     ...(host.issuesValidateNow ? { issuesValidateNow: host.issuesValidateNow } : {}),
     ...(host.mainWindowControlRead ? { mainWindowControlRead: host.mainWindowControlRead } : {}),

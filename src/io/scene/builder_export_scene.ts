@@ -42,6 +42,8 @@ export interface ExportSceneOptions {
    * extras.
    */
   includeRoomAndPortalNodes?: boolean;
+  /** Writes lights as empty nodes carrying DynLight light extras. */
+  includeLightNodes?: boolean;
   /**
    * Writes game entities as empty nodes and every object's game components as
    * `broom_components` extras.

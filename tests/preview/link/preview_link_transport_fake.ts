@@ -1,5 +1,5 @@
 import { PreviewLinkTransport, PreviewLinkTransportError } from '@/preview/link/preview_link_transport.js';
-import { PREVIEW_METHOD } from '@/preview/protocol/preview_protocol_types.js';
+import { PREVIEW_METHOD, PREVIEW_PROTOCOL_VERSION } from '@/preview/protocol/preview_protocol_types.js';
 
 /** One call received by the fake transport. */
 export interface PreviewFakeCall {
@@ -27,6 +27,10 @@ export class PreviewLinkTransportFake extends PreviewLinkTransport {
   placeableClassesReply: unknown = { generation: 1, asset_generation: 0, classes: [], asset_types: [] };
   readonly dataAssetFiles = new Map<string, { type_path: string; values: unknown }>();
   dataAssetGeneration = 0;
+  projectIdentifier = 'project-test';
+  helloProtocolRange: [number, number] = [PREVIEW_PROTOCOL_VERSION, PREVIEW_PROTOCOL_VERSION];
+  helloCapabilities: string[] = ['state', 'geometry', 'catalog', 'placeables', 'data_assets', 'bake_preview'];
+  isHelloSupported = true;
 
   /**
    * Answers one call.
@@ -61,10 +65,13 @@ export class PreviewLinkTransportFake extends PreviewLinkTransport {
    * @returns Reply value.
    */
   private replyCreate(method: string, params: unknown): unknown {
+    if (method === PREVIEW_METHOD.hello) {
+      return this.helloReplyCreate();
+    }
     if (method === PREVIEW_METHOD.status) {
       return {
         instance_id: this.instanceIdentifier,
-        project_id: 'project-test',
+        project_id: this.projectIdentifier,
         geometry_revision_failed: this.failedGeometryRevision,
         errors: [],
       };
@@ -87,7 +94,27 @@ export class PreviewLinkTransportFake extends PreviewLinkTransport {
       this.highestStateRevision = Math.max(this.highestStateRevision, revision);
       return { accepted, verdict: accepted ? 'newer' : 'stale', revision };
     }
-    return { accepted: true, verdict: 'newer', revision: 1 };
+    const geometryRevision = (params as { geometry_revision?: number } | null)?.geometry_revision ?? 1;
+    return { accepted: true, verdict: 'newer', revision: geometryRevision };
+  }
+
+  /**
+   * Builds the handshake reply, or fails like a bridge without the handshake.
+   *
+   * @returns Handshake reply.
+   */
+  private helloReplyCreate(): unknown {
+    if (!this.isHelloSupported) {
+      throw new PreviewLinkTransportError('Method not found: broom.hello', false);
+    }
+    return {
+      protocol: this.helloProtocolRange[1],
+      min_protocol: this.helloProtocolRange[0],
+      bridge_version: 'fake',
+      project_id: this.projectIdentifier,
+      instance_id: this.instanceIdentifier,
+      capabilities: this.helloCapabilities,
+    };
   }
 
   /**

@@ -12,7 +12,7 @@ describe('DocumentationLink', () => {
     new DocumentationLink().open();
 
     expect(open).toHaveBeenCalledWith(
-      'https://github.com/Henry00IS/AiWorldEd/blob/main/documentation/README.md',
+      'https://github.com/kelo221/BevyBroom/blob/master/documentation/README.md',
       '_blank',
       'noopener,noreferrer',
     );

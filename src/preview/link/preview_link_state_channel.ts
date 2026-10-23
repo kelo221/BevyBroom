@@ -5,7 +5,11 @@ import type {
 } from '@/preview/protocol/preview_protocol_types.js';
 import { PREVIEW_METHOD, PREVIEW_PROTOCOL_VERSION } from '@/preview/protocol/preview_protocol_types.js';
 import type { PreviewLinkTransport } from '@/preview/link/preview_link_transport.js';
-import { PreviewLinkChannel, type PreviewLinkChannelListener } from '@/preview/link/preview_link_channel.js';
+import {
+  PreviewLinkChannel,
+  type PreviewLinkChannelGenerationCheck,
+  type PreviewLinkChannelListener,
+} from '@/preview/link/preview_link_channel.js';
 
 /** Identity of the document a state snapshot belongs to. */
 export interface PreviewStateDocument {
@@ -58,7 +62,7 @@ export class PreviewLinkStateChannel extends PreviewLinkChannel {
       return null;
     }
     const state = this.stateCreate(document, objects);
-    return this.requestRun(() => this.stateSend(state, signature));
+    return this.requestRun((isCurrent) => this.stateSend(state, signature, isCurrent));
   }
 
   /**
@@ -108,19 +112,30 @@ export class PreviewLinkStateChannel extends PreviewLinkChannel {
   }
 
   /**
-   * Sends one snapshot and remembers it when the game accepted it.
+   * Sends one snapshot and remembers it when the current game accepted exactly
+   * this revision. A reply that arrives after the game was replaced, or that
+   * names another revision, changes nothing.
    *
    * @param state Snapshot.
    * @param signature Signature of the snapshot content.
+   * @param isCurrent Tells whether the request still belongs to the current
+   *   game.
    */
-  private async stateSend(state: PreviewAuthoredState, signature: string): Promise<void> {
+  private async stateSend(
+    state: PreviewAuthoredState,
+    signature: string,
+    isCurrent: PreviewLinkChannelGenerationCheck,
+  ): Promise<void> {
     const reply = await this.transport.call<PreviewRevisionReply>(
       PREVIEW_METHOD.applyState,
       state,
       PREVIEW_STATE_TIMEOUT_MILLISECONDS,
     );
+    if (!isCurrent()) {
+      return;
+    }
     this.lastVerdict = reply.verdict;
-    if (reply.accepted) {
+    if (reply.accepted && reply.revision === state.revision) {
       this.acceptedSignature = signature;
     }
   }

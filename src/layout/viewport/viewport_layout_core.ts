@@ -1243,6 +1243,7 @@ export abstract class ViewportLayoutCore {
       getScene: () => this.sharedWorldScene.getScene(),
       getRenderer: () => this.sharedSurface.getRenderer(),
       previewLinkServiceEnsure: () => this.gamePreviewLayoutEnsure().serviceEnsure(),
+      projectWorkbenchEnsure: () => this.gamePreviewLayoutEnsure().workbenchEnsure(),
       sceneDocumentLoad: (sceneJson) =>
         this.sceneIOHandler.loadSceneFromText(sceneJson, this.worldObject, () => this.onSceneLoaded(), this.statusBar),
       issuesValidateNow: () => this.shellPanels?.issuesValidateNow() ?? [],
@@ -1267,12 +1268,8 @@ export abstract class ViewportLayoutCore {
    * @returns Anchor element or null.
    */
   protected resolveAiCaptureDebugAnchor(): HTMLElement | null {
-    const perspective = this.getPrimaryPerspectiveViewport();
-    if (perspective) {
-      return perspective.getContainer();
-    }
-    const first = this.getAllLiveViewports()[0];
-    return first ? first.getContainer() : null;
+    const viewport = this.getPrimaryPerspectiveViewport() ?? this.getAllLiveViewports()[0];
+    return viewport ? viewport.getContainer() : null;
   }
 
   /** Toggles the floating AI Captures debug panel. */
@@ -1300,7 +1297,7 @@ export abstract class ViewportLayoutCore {
    *
    * @returns The game preview layout.
    */
-  private gamePreviewLayoutEnsure(): LayoutGamePreview {
+  protected gamePreviewLayoutEnsure(): LayoutGamePreview {
     this.gamePreviewLayout ??= new LayoutGamePreview({
       worldGroup: this.worldObject,
       panelHost: this.toolbarContainer,

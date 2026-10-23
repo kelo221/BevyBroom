@@ -2,7 +2,7 @@
 
 BevyBroom can mirror the scene into your running Bevy game while you edit. The game shows your level with its own renderer (DynLight), its own materials and its own lights, and updates as you work.
 
-The game side lives in a separate Rust workspace (`AiWorldEdBevy`): the `broom_bridge` crate that a game adds, and a ready-made `broom_preview` program. Its `README.md` explains how to add the bridge to your own game.
+The game side lives in the Rust workspace in `bevy/` of this repository: the `broom_bridge` crate that a game adds, and a ready-made `broom_preview` program. Its `README.md` explains how to add the bridge to your own game.
 
 ## Start the preview
 

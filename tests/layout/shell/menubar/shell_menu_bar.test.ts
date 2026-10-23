@@ -16,6 +16,7 @@ import {
   type ShellTestDocks,
   type ShellTestToolbarActions,
 } from '../shell_test_support.js';
+import { workbenchRigCreate } from '../../../project/workbench/project_workbench_rig.js';
 
 /** Docks, actions and context shared by one menu bar test. */
 interface ShellMenuBarTestRig {
@@ -219,6 +220,44 @@ describe('ShellMenuRun', () => {
     expect(windowActions.playStart).toHaveBeenCalledTimes(1);
     expect(toolbarActions.onToggleGamePreviewPanel).toHaveBeenCalledTimes(1);
     expect(shellTestMenuShortcutRead(play)).toBe(shellTestShortcutLabelFormat('play_start'));
+  });
+
+  it('offers game actions only for an open project and runs them through the workbench', async () => {
+    const rig = workbenchRigCreate();
+    const toolbarActions = shellTestToolbarActionsCreate({ gameProjectWorkbenchRead: () => rig.workbench });
+    const { context } = shellMenuBarTestRigCreate(toolbarActions);
+    const entries = shellMenuBarTestEntriesBuild(context, 'Run');
+    const launch = shellTestMenuActionFind(entries, 'Launch Game');
+    expect(launch.isEnabled?.()).toBe(false);
+    await rig.workbench.projectOpen('/games/menu game/broom.project.json');
+    expect(launch.isEnabled?.()).toBe(true);
+    expect(shellTestMenuActionFind(entries, 'Stop Game').isEnabled?.()).toBe(false);
+    launch.onClick();
+    await Promise.resolve();
+    expect(rig.control.actions).toEqual(['launch']);
+    rig.workbench.dispose();
+  });
+});
+
+describe('ShellMenuFile projects', () => {
+  it('opens a project and lists it under Recent Projects', async () => {
+    const rig = workbenchRigCreate();
+    rig.control.chosenFile = '/games/recent game/broom.project.json';
+    const toolbarActions = shellTestToolbarActionsCreate({ gameProjectWorkbenchRead: () => rig.workbench });
+    const { context } = shellMenuBarTestRigCreate(toolbarActions);
+    const entries = shellMenuBarTestEntriesBuild(context, 'File');
+    const recent = entries.find((entry) => isMenuSubmenu(entry) && entry.label === 'Recent Projects');
+    if (!recent || !isMenuSubmenu(recent)) {
+      throw new Error('Recent Projects submenu missing');
+    }
+    expect(recent.isEnabled?.()).toBe(false);
+    shellTestMenuActionFind(entries, 'Open Project…').onClick();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(recent.isEnabled?.()).toBe(true);
+    expect(shellTestMenuLabelsRead(recent.childrenResolve?.() ?? [])).toEqual([
+      '/games/recent game/broom.project.json',
+    ]);
+    rig.workbench.dispose();
   });
 });
 

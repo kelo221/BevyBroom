@@ -1,5 +1,9 @@
 import type { PreviewLinkTransport } from '@/preview/link/preview_link_transport.js';
-import { PreviewLinkChannel, type PreviewLinkChannelListener } from '@/preview/link/preview_link_channel.js';
+import {
+  PreviewLinkChannel,
+  type PreviewLinkChannelGenerationCheck,
+  type PreviewLinkChannelListener,
+} from '@/preview/link/preview_link_channel.js';
 import { PreviewCatalogEntryLoader, type PreviewCatalogEntries } from '@/preview/catalog/preview_catalog_entries.js';
 
 /** Time between catalog change checks. */
@@ -48,7 +52,7 @@ export class PreviewLinkCatalogChannel extends PreviewLinkChannel {
       return null;
     }
     this.nextCheckMilliseconds = nowMilliseconds + PREVIEW_CATALOG_INTERVAL_MILLISECONDS;
-    return this.requestRun(() => this.catalogCheck());
+    return this.requestRun((isCurrent) => this.catalogCheck(isCurrent));
   }
 
   /** Forgets the loaded catalog so the next check loads it again. */
@@ -67,14 +71,23 @@ export class PreviewLinkCatalogChannel extends PreviewLinkChannel {
     return this.gameMaterialIdentifiers.has(materialIdentifier);
   }
 
-  /** Loads the catalog again when its counters changed. */
-  private async catalogCheck(): Promise<void> {
+  /**
+   * Loads the catalog again when its counters changed; a catalog that arrives
+   * after the game was replaced is dropped.
+   *
+   * @param isCurrent Tells whether the request still belongs to the current
+   *   game.
+   */
+  private async catalogCheck(isCurrent: PreviewLinkChannelGenerationCheck): Promise<void> {
     const reply = await PreviewCatalogEntryLoader.catalogFetch(this.transport);
     const version = `${reply.generation}:${reply.texture_generation ?? 0}`;
     if (version === this.loadedVersion) {
       return;
     }
     const catalog = await PreviewCatalogEntryLoader.load(this.transport);
+    if (!isCurrent()) {
+      return;
+    }
     this.loadedVersion = `${catalog.generation}:${catalog.textureGeneration}`;
     this.gameMaterialIdentifiers.clear();
     catalog.entries.forEach((entry) => this.gameMaterialIdentifiers.add(entry.id));

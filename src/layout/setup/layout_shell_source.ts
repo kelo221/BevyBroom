@@ -9,6 +9,7 @@ import type { HandlerAlignment } from '@/outliner/alignment/handler_alignment.js
 import type { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js';
 import type { PanelOutliner } from '@/outliner/ui/panel_outliner.js';
 import { mergeLayoutShellActionSourceParts, type LayoutShellActionSource } from './layout_shell_action_builders.js';
+import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
 
 /**
  * Late-bound layout surface used to assemble shell action callbacks after the
@@ -37,6 +38,8 @@ export interface LayoutShellSourceHost {
   onOpenAboutDialog(): void;
   onOpenMcpDialog(): void;
   onToggleGamePreviewPanel(): void;
+  /** Returns the project workbench that opens game projects and runs their game. */
+  gameProjectWorkbenchRead(): ProjectWorkbench;
   onOpenDetachedViewport(): void;
   onToggleAiCaptureDebugPanel(): void;
   onToggleAudio(): void;
@@ -168,6 +171,7 @@ function buildShellPanelCallbacks(
   | 'onOpenAboutDialog'
   | 'onOpenMcpDialog'
   | 'onToggleGamePreviewPanel'
+  | 'gameProjectWorkbenchRead'
   | 'onOpenDetachedViewport'
   | 'onToggleAiCaptureDebugPanel'
   | 'onToggleAudio'
@@ -184,6 +188,7 @@ function buildShellPanelCallbacks(
     onOpenAboutDialog: () => host.onOpenAboutDialog(),
     onOpenMcpDialog: () => host.onOpenMcpDialog(),
     onToggleGamePreviewPanel: () => host.onToggleGamePreviewPanel(),
+    gameProjectWorkbenchRead: () => host.gameProjectWorkbenchRead(),
     onOpenDetachedViewport: () => host.onOpenDetachedViewport(),
     onToggleAiCaptureDebugPanel: () => host.onToggleAiCaptureDebugPanel(),
     onToggleAudio: () => host.onToggleAudio(),

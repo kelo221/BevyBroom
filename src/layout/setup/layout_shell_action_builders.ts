@@ -9,6 +9,7 @@ import { HandlerAlignment } from '@/outliner/alignment/handler_alignment.js';
 import { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js';
 import { buildOutlinerActions, buildToolbarActions } from './layout_action_factories.js';
 import { PanelOutliner } from '@/outliner/ui/panel_outliner.js';
+import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
 
 /** Layout surface used to build outliner and toolbar shell actions. */
 export interface LayoutShellActionSource {
@@ -38,6 +39,8 @@ export interface LayoutShellActionSource {
   onOpenAboutDialog: () => void;
   onOpenMcpDialog: () => void;
   onToggleGamePreviewPanel: () => void;
+  /** Returns the project workbench that opens game projects and runs their game. */
+  gameProjectWorkbenchRead: () => ProjectWorkbench;
   onOpenDetachedViewport: () => void;
   onToggleAiCaptureDebugPanel: () => void;
   onToggleAudio: () => void;
@@ -121,6 +124,7 @@ export function createToolbarShellActions(source: LayoutShellActionSource) {
     onOpenAboutDialog: () => source.onOpenAboutDialog(),
     onOpenMcpDialog: () => source.onOpenMcpDialog(),
     onToggleGamePreviewPanel: () => source.onToggleGamePreviewPanel(),
+    gameProjectWorkbenchRead: () => source.gameProjectWorkbenchRead(),
     onOpenDetachedViewport: () => source.onOpenDetachedViewport(),
     onToggleAiCaptureDebugPanel: () => source.onToggleAiCaptureDebugPanel(),
     onToggleAudio: () => source.onToggleAudio(),

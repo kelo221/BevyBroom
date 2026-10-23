@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import * as THREE from 'three';
 import { LightOwner } from '@/light/model/light_owner.js';
 import { PortalOwner } from '@/portal/model/portal_owner.js';
 import { RoomOwner } from '@/portal/model/room_owner.js';
 import { CommandEntitySettingsSet } from '@/entity/commands/command_entity_settings_set.js';
+import { GlbExporter } from '@/io/glb/glb_exporter.js';
+import { PreviewLinkTransportHttp } from '@/preview/link/preview_link_transport.js';
 import { SceneSerializer } from '@/io/scene/scene_serializer.js';
 import { SceneDeserializer } from '@/io/scene/scene_deserializer.js';
 import { documentIdentityEnsure, documentIdentityReset } from '@/io/document/document_identity.js';
@@ -15,10 +17,12 @@ import { PreviewE2eRig, previewE2eSleep, type PreviewE2eGameView } from './previ
 import { e2eWindowsShownRead, previewE2eEnvironmentRead } from './preview_e2e_environment.js';
 import { previewE2eGameMaterialBoxCreate } from './preview_e2e_scene_parts.js';
 import {
+  PREVIEW_E2E_DYNAMIC_LIGHT_COMPONENT,
   PREVIEW_E2E_PORTAL_COMPONENT,
   PREVIEW_E2E_ROOM_COMPONENT,
   previewE2eEntityRowsQuery,
   previewE2eOnlyPortalClosedIs,
+  previewE2eOnlyPortalOpenByGameplay,
 } from './preview_e2e_game_query.js';
 
 /**
@@ -28,6 +32,8 @@ import {
  * the other preview end-to-end test.
  */
 const environment = previewE2eEnvironmentRead(1);
+const shippedEnvironment = previewE2eEnvironmentRead(12);
+const SHIPPED_SCENE_PATH = 'shipped/portal_level.glb';
 const STEP_TIMEOUT_MILLISECONDS = 60000;
 const BAKE_TIMEOUT_MILLISECONDS = 240000;
 const ROOM_HALF_SIZE = new THREE.Vector3(3, 1.5, 3);
@@ -107,6 +113,61 @@ function levelBridgeFilesList(levelDirectory: string): string[] {
     return [];
   }
   return readdirSync(levelDirectory).filter((name) => /^geometry_.*\.glb$/.test(name) || name === 'level.broom.json');
+}
+
+/**
+ * Rooms, portals and lights a game shows, counted through the Bevy remote
+ * protocol.
+ */
+interface ShippedCellCounts {
+  rooms: number;
+  portals: number;
+  lightRadii: number[];
+}
+
+/**
+ * Counts the rooms and portals of a game and reads the radius of every light.
+ *
+ * @param transport Transport to the game's bridge.
+ * @returns The counts, or null while the game does not answer yet.
+ */
+async function shippedCellCountsRead(transport: PreviewLinkTransportHttp): Promise<ShippedCellCounts | null> {
+  try {
+    const rooms = await previewE2eEntityRowsQuery(transport, [PREVIEW_E2E_ROOM_COMPONENT]);
+    const portals = await previewE2eEntityRowsQuery(transport, [PREVIEW_E2E_PORTAL_COMPONENT]);
+    const lights = await previewE2eEntityRowsQuery(transport, [PREVIEW_E2E_DYNAMIC_LIGHT_COMPONENT]);
+    const lightRadii = lights.map((row) =>
+      Number((row.components[PREVIEW_E2E_DYNAMIC_LIGHT_COMPONENT] as { radius?: number }).radius),
+    );
+    return { rooms: rooms.length, portals: portals.length, lightRadii };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Waits until a game shows the expected rooms, portals and light radii.
+ *
+ * @param transport Transport to the game's bridge.
+ * @param expected The counts and radii to wait for.
+ * @param timeoutMilliseconds How long to wait.
+ * @returns The last counts read.
+ */
+async function shippedCellCountsUntil(
+  transport: PreviewLinkTransportHttp,
+  expected: ShippedCellCounts,
+  timeoutMilliseconds: number,
+): Promise<ShippedCellCounts | null> {
+  const end = performance.now() + timeoutMilliseconds;
+  let counts: ShippedCellCounts | null = null;
+  while (performance.now() < end) {
+    counts = await shippedCellCountsRead(transport);
+    if (counts !== null && JSON.stringify(counts) === JSON.stringify(expected)) {
+      return counts;
+    }
+    await previewE2eSleep(250);
+  }
+  return counts;
 }
 
 describe.skipIf(!environment.isConfigured)('game preview rooms and portals end to end', () => {
@@ -209,6 +270,23 @@ describe.skipIf(!environment.isConfigured)('game preview rooms and portals end t
   );
 
   it(
+    'keeps a door opened by gameplay open while other objects are edited, until the door is edited',
+    async () => {
+      portalClosedWrite(true);
+      await gamePortalClosedUntil(true);
+      await previewE2eOnlyPortalOpenByGameplay(rig.transport);
+      scene.light.position.y += 0.25;
+      await gameMatchesEditor('the moved light next to the door gameplay opened');
+      expect(await previewE2eOnlyPortalClosedIs(rig.transport, false)).toBe(true);
+      scene.portal.position.z -= 0.25;
+      await gamePortalClosedUntil(true);
+      portalClosedWrite(false);
+      await gamePortalClosedUntil(false);
+    },
+    STEP_TIMEOUT_MILLISECONDS * 4,
+  );
+
+  it(
     'publishes the geometry once more when the game fails to load it',
     async () => {
       const geometryRevisionBefore = rig.controller.revisionsRead().geometry;
@@ -279,6 +357,34 @@ describe.skipIf(!environment.isConfigured)('game preview rooms and portals end t
       expect(game.logRead()).not.toContain('has no UV1');
     },
     BAKE_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'ships lights, rooms and portals in an exported GLB that a game shows without the editor',
+    async () => {
+      const shippedProject = previewE2eProjectCopy(environment.sourceProjectDirectory);
+      const shippedFile = join(shippedProject, 'assets', SHIPPED_SCENE_PATH);
+      mkdirSync(dirname(shippedFile), { recursive: true });
+      writeFileSync(shippedFile, new Uint8Array(await new GlbExporter().exportForFile(scene.world)));
+      const shippedGame = new PreviewE2eGameProcess(
+        shippedEnvironment.previewExecutable,
+        shippedProject,
+        shippedEnvironment.bridgePort,
+        e2eWindowsShownRead(),
+        ['--scene', SHIPPED_SCENE_PATH],
+      );
+      const radius = LightOwner.settingsRead(scene.light)?.radius ?? Number.NaN;
+      const expected = { rooms: scene.rooms.length, portals: 1, lightRadii: [radius] };
+      shippedGame.start();
+      try {
+        const transport = new PreviewLinkTransportHttp(shippedEnvironment.endpoint);
+        expect(await shippedCellCountsUntil(transport, expected, STEP_TIMEOUT_MILLISECONDS)).toEqual(expected);
+      } finally {
+        await shippedGame.stop();
+        previewE2eProjectRemove(shippedProject);
+      }
+    },
+    STEP_TIMEOUT_MILLISECONDS * 2,
   );
 
   it(
