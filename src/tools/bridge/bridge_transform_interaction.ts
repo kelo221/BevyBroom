@@ -21,7 +21,7 @@ import { createSyntheticPointerDown, createSyntheticPointerMove } from '@/utils/
 import { resolveViewportOwnerWindow } from '@/utils/viewport_owner_window.js';
 import { getCadViewPlaneForKind } from '@/viewports/core/viewport_editor.js';
 import { resolveLayoutGizmoOrientation } from '@/layout/setup/helpers_layout_gizmo.js';
-import { TransformMode } from '@/types/transform_mode.js';
+import { TransformMode, isBoundsWidgetMode } from '@/types/transform_mode.js';
 import { TransformSpace } from '@/types/transform_space.js';
 import type { EntityHandleSystem } from '@/entity/handles/entity_handle_system.js';
 
@@ -182,7 +182,7 @@ export class BridgeTransformInteraction {
     if (!gizmoGroup) return false;
     if (this.deps.entityHandles?.probe({ camera, element: pickElement, event })) return true;
     const handles = this.deps.transformGizmo.getHandles();
-    if (this.deps.transformGizmo.getMode() === TransformMode.BOUNDS) {
+    if (isBoundsWidgetMode(this.deps.transformGizmo.getMode())) {
       const kind = typeof viewport.getViewportKind === 'function' ? viewport.getViewportKind() : undefined;
       const viewPlane = kind ? getCadViewPlaneForKind(kind) : 'xyz';
       return this.deps.transformHandler.probeBoundsControlUnderPointer(

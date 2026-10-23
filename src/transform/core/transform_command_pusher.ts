@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GizmoAxis, TransformMode } from '@/types/transform_mode.js';
+import { GizmoAxis, TransformMode, isBoundsWidgetMode } from '@/types/transform_mode.js';
 import { GizmoTransform } from '@/transform/gizmo/gizmo_transform.js';
 import { TransformExecutor } from './transform_executor.js';
 import { CommandStack } from '@/commands/command_stack.js';
@@ -66,7 +66,7 @@ export class TransformCommandPusher {
     if (mode === TransformMode.SCALE) {
       this.pushScaleCommand(pivot, selectedObjects);
     }
-    if (mode === TransformMode.BOUNDS) {
+    if (isBoundsWidgetMode(mode)) {
       this.pushBoundsUndoCommand(selectedObjects);
     }
   }

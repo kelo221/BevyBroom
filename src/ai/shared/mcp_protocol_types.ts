@@ -41,6 +41,7 @@ export type McpToolName =
   | 'create_solid_model'
   | 'add_box_brush'
   | 'add_box_brushes'
+  | 'create_shape_brush'
   | 'place_wall'
   | 'add_room_shell'
   | 'cut_opening'

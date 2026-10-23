@@ -2,6 +2,7 @@ import type { IssueProvider } from '@/info_panel/issues/issue_provider.js';
 import { IssueProviderSolidBrushInvalid } from '@/info_panel/issues/providers/issue_provider_solid_brush_invalid.js';
 import { IssueProviderSolidModelWarnings } from '@/info_panel/issues/providers/issue_provider_solid_model_warnings.js';
 import { IssueProviderGameComponentUnknown } from '@/info_panel/issues/providers/issue_provider_game_component_unknown.js';
+import { IssueProviderFaceUvScale } from '@/info_panel/issues/providers/issue_provider_face_uv_scale.js';
 import { IssueProviderProjectBuild } from '@/project/issues/issue_provider_project_build.js';
 
 /**
@@ -14,6 +15,7 @@ export function issueProvidersBuiltin(): readonly IssueProvider[] {
     new IssueProviderSolidBrushInvalid(),
     new IssueProviderSolidModelWarnings(),
     new IssueProviderGameComponentUnknown(),
+    new IssueProviderFaceUvScale(),
     new IssueProviderProjectBuild(),
   ];
 }

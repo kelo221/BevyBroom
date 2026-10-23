@@ -216,6 +216,17 @@ export class ToolbarIcons {
   }
 
   /**
+   * Shear gizmo icon: a box with its top side slid sideways.
+   *
+   * @returns SVG markup string.
+   */
+  static toolShear(): string {
+    return this.wrapSvg(
+      '<path fill="none" stroke="currentColor" stroke-width="1.6" d="M7 19 11 5M11 5h6l-4 14H3l4-14h4"/><path fill="currentColor" d="M10.5 4.5 11 3l1.5 1.8-2 .7z"/>',
+    );
+  }
+
+  /**
    * Undo curved arrow icon.
    *
    * @returns SVG markup string.

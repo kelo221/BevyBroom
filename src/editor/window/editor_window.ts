@@ -13,6 +13,7 @@ import { UvRotateTool } from '../tools/uv/uv_rotate_tool.js';
 import { UvScaleTool } from '../tools/uv/uv_scale_tool.js';
 import { RotateTool } from '../tools/rotate_tool.js';
 import { ScaleTool } from '../tools/scale_tool.js';
+import { ShearTool } from '../tools/shear_tool.js';
 import { FaceSelectTool } from '../tools/face_select/face_select_tool.js';
 import { EditSelectTool } from '@/edit/tool/edit_select_tool.js';
 import { EditEdgeCutTool } from '@/edit/tool/edit_edge_cut_tool.js';
@@ -48,6 +49,7 @@ export class EditorWindow {
   private translateTool: TranslateTool | null;
   private rotateTool: RotateTool | null;
   private scaleTool: ScaleTool | null;
+  private shearTool: ShearTool | null;
   private faceSelectTool: FaceSelectTool | null;
   private editSelectTool: EditSelectTool | null;
   private gridTool: GridTool | null;
@@ -110,6 +112,7 @@ export class EditorWindow {
     this.translateTool = null;
     this.rotateTool = null;
     this.scaleTool = null;
+    this.shearTool = null;
     this.faceSelectTool = null;
     this.editSelectTool = null;
     this.gridTool = null;
@@ -367,6 +370,7 @@ export class EditorWindow {
       this.translateTool = new TranslateTool();
       this.rotateTool = new RotateTool();
       this.scaleTool = new ScaleTool();
+      this.shearTool = new ShearTool();
       this.faceSelectTool = new FaceSelectTool();
       this.editSelectTool = new EditSelectTool();
       this.gridTool = new GridTool();
@@ -394,6 +398,16 @@ export class EditorWindow {
   getBoundsTool(): BoundsTool {
     this.validateTools();
     return this.boundsTool as BoundsTool;
+  }
+
+  /**
+   * Ensures tools exist and returns the shear tool.
+   *
+   * @returns Shear tool instance.
+   */
+  getShearTool(): ShearTool {
+    this.validateTools();
+    return this.shearTool as ShearTool;
   }
 
   /**
@@ -928,6 +942,11 @@ export class EditorWindow {
   /** Switches to the permanent bounds tool. */
   userSwitchToBoundsTool(): void {
     this.switchTool(this.getBoundsTool());
+  }
+
+  /** Switches to the permanent shear tool. */
+  userSwitchToShearTool(): void {
+    this.switchTool(this.getShearTool());
   }
 
   /** Switches to the permanent face select tool. */

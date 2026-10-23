@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TransformMode } from '@/types/transform_mode.js';
+import { TransformMode, isBoundsWidgetMode } from '@/types/transform_mode.js';
 import { HandlerTransform } from '@/transform/core/handler_transform.js';
 import { GizmoTransform } from '@/transform/gizmo/gizmo_transform.js';
 import type { GridSnap } from '@/transform/snap/grid_snap.js';
@@ -393,8 +393,11 @@ function switchPermanentTransformMode(editorWindow: EditorWindow, mode: Transfor
     editorWindow.userSwitchToScaleTool();
     return true;
   }
-  if (mode === TransformMode.BOUNDS) {
+  if (isBoundsWidgetMode(mode)) {
     editorWindow.userSwitchToBoundsTool();
+    if (mode === TransformMode.SHEAR) {
+      editorWindow.userSwitchToShearTool();
+    }
     return true;
   }
   editorWindow.userSwitchToBoundsTool();

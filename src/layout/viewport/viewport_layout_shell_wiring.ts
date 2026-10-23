@@ -134,10 +134,33 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
       surfaceShadingRefresh: () => this.shadingModeCoordinator?.updateShadingMeshes(),
       refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
       selectionFrameAll: () => this.cameraFitCoordinator.onFitAllViewports(),
+      ...this.faceInspectorSourcePartsRead(),
       viewportAtClientPointResolve: (clientX, clientY) =>
         this.toolEditorSystem?.editorWindow.getServices()?.resolveInteractiveViewportAtClientPoint(clientX, clientY) ??
         null,
       spawnCameraOverrideRun: (camera, action) => this.primitiveCreationHandler.spawnCameraOverrideRun(camera, action),
+    };
+  }
+
+  /**
+   * Reads the editor parts the Face tab services need.
+   *
+   * @returns Face inspector source parts.
+   */
+  private faceInspectorSourcePartsRead(): Pick<
+    LayoutShellPanelsSource,
+    | 'gridSnap'
+    | 'keyboardShortcutHandler'
+    | 'activeCameraRead'
+    | 'revealFaceInspector'
+    | 'isFaceInspectorAutoRevealEnabled'
+  > {
+    return {
+      gridSnap: this.gridSnap,
+      keyboardShortcutHandler: this.keyboardShortcutHandler,
+      activeCameraRead: () => this.getActiveSpawnCamera(),
+      revealFaceInspector: () => this.faceInspectorReveal(),
+      isFaceInspectorAutoRevealEnabled: () => this.settingsStore?.getViewSettings().faceInspectorAutoReveal !== false,
     };
   }
 

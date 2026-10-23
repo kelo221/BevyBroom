@@ -136,6 +136,7 @@ export class ViewportToolChromeHost {
       onComponentMode: (mode) => handlers.onComponentMode(mode),
       onApplyObjectTransform: (kind) => handlers.onApplyObjectTransform?.(kind),
       onConvexHull: () => handlers.onConvexHull?.(),
+      onShapeSettingChanged: () => handlers.onShapeSettingChanged?.(),
       onEditKnife: () => handlers.onEditKnife?.(),
       onEditLoopCut: () => handlers.onEditLoopCut?.(),
       onEditMerge: (mode) => handlers.onEditMerge?.(mode),

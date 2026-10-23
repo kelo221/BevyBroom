@@ -19,7 +19,20 @@ describe('FaceInspector', () => {
     document.body.appendChild(host);
     refreshFromSelection = vi.fn<() => void>();
     faceAttributesEditor = new FaceAttributesEditor(
-      { onAlign: vi.fn(), onApplyPartialTrs: vi.fn(), onRelativeOp: vi.fn(), onReset: vi.fn() },
+      {
+        onAlign: vi.fn(),
+        onApplyPartialTrs: vi.fn(),
+        onRelativeOp: vi.fn(),
+        onReset: vi.fn(),
+        onFit: vi.fn(),
+        onJustify: vi.fn(),
+        onAlignEdge: vi.fn(),
+        onFlip: vi.fn(),
+        onRotate: vi.fn(),
+        onResetFace: vi.fn(),
+        onResetWorld: vi.fn(),
+        onShearCommit: vi.fn(),
+      },
       () => null,
     );
     materialBrowser = new MaterialBrowser({ onOpenFolder: vi.fn(), onSelectTexture: vi.fn() });

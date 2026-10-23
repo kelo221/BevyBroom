@@ -3,8 +3,8 @@ import { UndoCommand } from '@/commands/command_undo.js';
 import { SolidBrush } from '@/solid/brush/solid_brush.js';
 import { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
-import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidBrushPlaneClip } from '@/solid/brush/solid_brush_plane_clip.js';
+import { solidBrushPreviewSwap } from '@/solid/brush/solid_brush_preview_swap.js';
 import {
   applyTransferredSurfacesToInstance,
   captureInstanceFaceSurfaces,
@@ -130,61 +130,12 @@ export class CommandSolidBrushClip implements UndoCommand {
   }
 
   /**
-   * Replaces brush topology and rebuilds the hull preview mesh in place.
+   * Replaces brush topology with the clipped geometry.
    *
    * @param instance Brush instance.
    * @param brush New local topology.
    */
   private applyBrushGeometry(instance: SolidBrushInstance, brush: SolidBrush): void {
-    instance.brush = brush;
-    if (!instance.mesh) return;
-    const previous = instance.mesh;
-    const parent = previous.parent;
-    const siblingIndex = parent ? parent.children.indexOf(previous) : 0;
-    const replacement = SolidBrushVisual.createHullPreview(instance.name, brush, instance.operation);
-    replacement.position.copy(previous.position);
-    replacement.rotation.copy(previous.rotation);
-    replacement.scale.copy(previous.scale);
-    instance.attachMesh(replacement);
-    if (parent) {
-      parent.remove(previous);
-      parent.add(replacement);
-      this.restoreSiblingIndex(parent, replacement, siblingIndex);
-    }
-    this.disposeMeshTree(previous);
-  }
-
-  /**
-   * Moves a child to a specific sibling index under its parent.
-   *
-   * @param parent Parent object.
-   * @param child Child to reorder.
-   * @param index Desired sibling index.
-   */
-  private restoreSiblingIndex(parent: THREE.Object3D, child: THREE.Object3D, index: number): void {
-    const current = parent.children.indexOf(child);
-    if (current < 0 || current === index) return;
-    parent.children.splice(current, 1);
-    parent.children.splice(index, 0, child);
-  }
-
-  /**
-   * Disposes geometry and materials of a mesh tree.
-   *
-   * @param root Root object.
-   */
-  private disposeMeshTree(root: THREE.Object3D): void {
-    root.traverse((child) => {
-      if (!(child instanceof THREE.Mesh) && !(child instanceof THREE.LineSegments)) {
-        return;
-      }
-      child.geometry?.dispose();
-      const material = child.material;
-      if (Array.isArray(material)) {
-        material.forEach((entry) => entry.dispose());
-      } else if (material) {
-        material.dispose();
-      }
-    });
+    solidBrushPreviewSwap(instance, brush);
   }
 }

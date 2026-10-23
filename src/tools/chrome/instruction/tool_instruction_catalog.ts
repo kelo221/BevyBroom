@@ -67,6 +67,13 @@ export function toolInstructionForTransformMode(mode: TransformMode): ToolInstru
       description: 'Show the scale gizmo. Drag handles or use S for free scale.',
     };
   }
+  if (mode === TransformMode.SHEAR) {
+    return {
+      title: 'Shear',
+      description:
+        'Show bounds side handles. Drag a side to slide it parallel to itself; Alt slides side faces vertically.',
+    };
+  }
   return {
     title: 'Bounds',
     shortcut: 'T',

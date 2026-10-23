@@ -6,8 +6,10 @@ import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidModelRegistry } from '@/solid/model/solid_model_registry.js';
 import { findSolidModelRoot } from '@/solid/model/solid_group.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
+import { GridSnap } from '@/transform/snap/grid_snap.js';
+import { ObjectDragGridFrame } from '@/tools/object_drag/object_drag_grid_frame.js';
 import { SHAPE_DRAW_NEW_MODEL_NAME, ShapeDrawBrushCommit } from '@/tools/shape_draw/shape_draw_brush_commit.js';
-import type { ShapeDrawWorldBox } from '@/tools/shape_draw/shape_draw_world_box.js';
+import { ShapeDrawShapeCuboid } from '@/tools/shape_draw/shapes/shape_draw_shape_cuboid.js';
 
 /** Test scene: world root, history, selection and the active model slot. */
 interface BrushCommitScene {
@@ -15,11 +17,12 @@ interface BrushCommitScene {
   commandStack: CommandStack;
   selection: ManagerSelection;
   commit: ShapeDrawBrushCommit;
+  gridFrame: ObjectDragGridFrame;
   activeModel: { model: SolidModel | null };
 }
 
 /**
- * Builds a brush committer over a fresh scene.
+ * Builds a shape committer over a fresh scene.
  *
  * @param activeModel Model new brushes join, or null when the scene has none.
  * @param textureId Texture new brushes receive.
@@ -33,45 +36,71 @@ function brushCommitSceneCreate(activeModel: SolidModel | null, textureId: strin
   if (activeModel) {
     world.add(activeModel.root);
   }
-  const commit = new ShapeDrawBrushCommit({
+  return {
+    world,
+    commandStack,
+    selection,
+    commit: brushCommitCreate(world, commandStack, selection, slot, textureId),
+    gridFrame: new ObjectDragGridFrame(new GridSnap(true, 0.25)),
+    activeModel: slot,
+  };
+}
+
+/**
+ * Builds the shape committer over the scene systems.
+ *
+ * @param world World root.
+ * @param commandStack Undo history.
+ * @param selection Selection manager.
+ * @param slot Active model slot.
+ * @param textureId Texture new brushes receive.
+ * @returns Shape committer.
+ */
+function brushCommitCreate(
+  world: THREE.Group,
+  commandStack: CommandStack,
+  selection: ManagerSelection,
+  slot: { model: SolidModel | null },
+  textureId: string | null,
+): ShapeDrawBrushCommit {
+  return new ShapeDrawBrushCommit({
     commandStack,
     worldObject: world,
     selectObject: (mesh) => selection.selectObject(mesh),
+    selectObjects: (meshes) => selection.setSelection(meshes),
     activeModelResolve: () => slot.model,
     brushInsertParentResolve: (model) => model.root,
     textureIdResolve: () => textureId,
     afterWorldMutation: () => {},
   });
-  return { world, commandStack, selection, commit, activeModel: slot };
 }
 
 /**
- * Returns the world-axis bounds of a box placed in the world.
+ * Commits the cuboid shape filling a bounds box.
  *
- * @param worldBox World box.
- * @returns Axis-aligned world bounds of the box corners.
+ * @param scene Test scene.
+ * @param bounds Grid-local bounds the cuboid must fill.
+ * @returns First created mesh, or null.
  */
-function worldBoxBounds(worldBox: ShapeDrawWorldBox): THREE.Box3 {
-  const box = new THREE.Box3();
-  const half = worldBox.size.clone().multiplyScalar(0.5);
-  for (const signX of [-1, 1]) {
-    for (const signY of [-1, 1]) {
-      for (const signZ of [-1, 1]) {
-        const corner = new THREE.Vector3(signX * half.x, signY * half.y, signZ * half.z);
-        box.expandByPoint(corner.applyQuaternion(worldBox.orientation).add(worldBox.center));
-      }
-    }
-  }
-  return box;
+function cuboidCommit(scene: BrushCommitScene, bounds: THREE.Box3): THREE.Mesh | null {
+  return scene.commit.shapeCommit({
+    shape: new ShapeDrawShapeCuboid(),
+    parameters: {},
+    boundsLocal: bounds,
+    gridFrame: scene.gridFrame,
+    upAxis: 'y',
+  });
 }
 
 /**
- * Asserts two boxes match within a tolerance.
+ * Asserts a mesh matches bounds within a tolerance.
  *
- * @param actual Measured box.
- * @param expected Expected box.
+ * @param mesh Mesh to measure.
+ * @param expected Expected world bounds.
  */
-function expectBoxesClose(actual: THREE.Box3, expected: THREE.Box3): void {
+function expectMeshFillsBounds(mesh: THREE.Mesh, expected: THREE.Box3): void {
+  mesh.updateMatrixWorld(true);
+  const actual = new THREE.Box3().setFromObject(mesh);
   for (const axis of ['x', 'y', 'z'] as const) {
     expect(actual.min[axis]).toBeCloseTo(expected.min[axis], 4);
     expect(actual.max[axis]).toBeCloseTo(expected.max[axis], 4);
@@ -79,20 +108,16 @@ function expectBoxesClose(actual: THREE.Box3, expected: THREE.Box3): void {
 }
 
 /**
- * Proves a drawn box becomes one selected, additive, textured brush that fills
- * the drawn world box, in one undo entry, creating a model when needed.
+ * Proves a drawn shape becomes selected, additive, textured brushes that fill
+ * the drawn bounds, in one undo entry, creating a model when needed.
  */
 describe('ShapeDrawBrushCommit', () => {
-  const worldBox: ShapeDrawWorldBox = {
-    center: new THREE.Vector3(2.5, 1, -3),
-    size: new THREE.Vector3(3, 2, 1),
-    orientation: new THREE.Quaternion(),
-  };
+  const bounds = new THREE.Box3(new THREE.Vector3(1, 0, -4), new THREE.Vector3(4, 2, -3));
 
-  it('creates a World model, an additive brush filling the box and selects it in one undo entry', () => {
+  it('creates a World model, an additive brush filling the bounds and selects it in one undo entry', () => {
     const textureId = 'texture_shape_draw_test';
     const scene = brushCommitSceneCreate(null, textureId);
-    const mesh = scene.commit.brushCommit(worldBox);
+    const mesh = cuboidCommit(scene, bounds);
     expect(mesh).not.toBeNull();
     if (!mesh) {
       return;
@@ -103,8 +128,7 @@ describe('ShapeDrawBrushCommit', () => {
     expect(model?.root.name).toBe(SHAPE_DRAW_NEW_MODEL_NAME);
     expect(model?.findBrushByMesh(mesh)?.getSurfaceTextureId(0)).toBe(textureId);
     expect(scene.selection.getAllSelectedObjectsAsArray()).toEqual([mesh]);
-    mesh.updateMatrixWorld(true);
-    expectBoxesClose(new THREE.Box3().setFromObject(mesh), worldBoxBounds(worldBox));
+    expectMeshFillsBounds(mesh, bounds);
     expect(scene.commandStack.getUndoCount()).toBe(1);
     scene.commandStack.undo();
     expect(mesh.parent).toBeNull();
@@ -115,7 +139,7 @@ describe('ShapeDrawBrushCommit', () => {
     const model = new SolidModel('ActiveModel');
     const textureId = 'texture_shape_draw_active';
     const scene = brushCommitSceneCreate(model, textureId);
-    const mesh = scene.commit.brushCommit(worldBox);
+    const mesh = cuboidCommit(scene, bounds);
     const brush = mesh ? model.findBrushByMesh(mesh) : undefined;
     expect(brush).toBeDefined();
     expect(brush?.operation).toBe(SolidOperation.Additive);
@@ -124,18 +148,17 @@ describe('ShapeDrawBrushCommit', () => {
     expect(scene.commandStack.getUndoCount()).toBe(1);
   });
 
-  it('fills the world box even when the model root is moved, turned and scaled', () => {
+  it('fills the drawn bounds even when the model root is moved, turned and scaled', () => {
     const model = new SolidModel('TransformedModel');
     model.root.position.set(-4, 2, 7);
     model.root.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
     model.root.scale.set(2, 2, 2);
     const scene = brushCommitSceneCreate(model, null);
     scene.world.updateMatrixWorld(true);
-    const mesh = scene.commit.brushCommit(worldBox);
+    const mesh = cuboidCommit(scene, bounds);
     expect(mesh).not.toBeNull();
-    mesh?.updateMatrixWorld(true);
     if (mesh) {
-      expectBoxesClose(new THREE.Box3().setFromObject(mesh), worldBoxBounds(worldBox));
+      expectMeshFillsBounds(mesh, bounds);
     }
   });
 });

@@ -500,6 +500,19 @@ export class EditorSettingsStore {
   }
 
   /**
+   * Sets whether entering face mode or selecting faces reveals the Face
+   * inspector tab.
+   *
+   * @param enabled Whether the Face tab auto-reveals.
+   */
+  setFaceInspectorAutoReveal(enabled: boolean): void {
+    if (this.view.faceInspectorAutoReveal === enabled) return;
+    this.view.faceInspectorAutoReveal = enabled;
+    this.persistViewSettings();
+    this.notifyListeners();
+  }
+
+  /**
    * Sets the content texture sampling mode.
    *
    * @param mode Point, bilinear, or trilinear sampling.

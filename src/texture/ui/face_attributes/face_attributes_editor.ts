@@ -11,6 +11,13 @@ import {
 import type { FaceAttributesView } from './face_attributes_view.js';
 import { FaceAttributesFieldGrid } from './face_attributes_field_grid.js';
 import { FaceAttributesMaterialRow, type FaceAttributesMaterialDescriber } from './face_attributes_material_row.js';
+import { FaceAttributesUvToolStrip, type FaceAttributesUvToolStripHandlers } from './face_attributes_uv_tool_strip.js';
+import type { FaceUvFitAxis } from '@/texture/uv/operations/face_uv_operation_fit.js';
+import type { FaceUvJustifySide } from '@/texture/uv/operations/face_uv_operation_justify.js';
+import type { FaceUvAlignEdgeMode } from '@/texture/uv/operations/face_uv_operation_align_edge.js';
+import type { FaceUvFlipAxis } from '@/texture/uv/operations/face_uv_operation_flip.js';
+import type { FaceUvShearMode } from '@/texture/uv/operations/face_uv_operation_shear.js';
+import type { FaceUvToolSelectionStatus } from '@/texture/controller/controller_face_uv_tools.js';
 
 /** Callbacks the face attributes editor uses to apply texture mapping edits. */
 export interface FaceAttributesEditorHandlers {
@@ -18,6 +25,14 @@ export interface FaceAttributesEditorHandlers {
   onApplyPartialTrs: (fields: Partial<FaceTextureMappingTrs>) => void;
   onRelativeOp: (op: UvRelativeTrsOp) => void;
   onReset: () => void;
+  onFit: (axis: FaceUvFitAxis) => void;
+  onJustify: (side: FaceUvJustifySide) => void;
+  onAlignEdge: (mode: FaceUvAlignEdgeMode) => void;
+  onFlip: (axis: FaceUvFlipAxis) => void;
+  onRotate: (degrees: number) => void;
+  onResetFace: () => void;
+  onResetWorld: () => void;
+  onShearCommit: (mode: FaceUvShearMode, factor: number | null) => void;
 }
 
 /** Field state shown before the first selection refresh. */
@@ -42,6 +57,7 @@ export class FaceAttributesEditor implements FaceAttributesView {
   private readonly handlers: FaceAttributesEditorHandlers;
   private readonly materialRow: FaceAttributesMaterialRow;
   private readonly fieldGrid: FaceAttributesFieldGrid;
+  private readonly uvToolStrip: FaceAttributesUvToolStrip;
 
   /**
    * Creates the face attributes editor.
@@ -57,9 +73,33 @@ export class FaceAttributesEditor implements FaceAttributesView {
       onFieldsCommit: (fields) => this.handlers.onApplyPartialTrs(fields),
       onRelativeOp: (op) => this.handlers.onRelativeOp(op),
     });
+    this.uvToolStrip = new FaceAttributesUvToolStrip(this.uvToolStripHandlersRead());
     this.rootStyleApply();
-    this.element.append(this.materialRow.getElement(), this.alignStripCreate(), this.fieldGrid.getElement());
+    this.element.append(
+      this.materialRow.getElement(),
+      this.alignStripCreate(),
+      this.uvToolStrip.getElement(),
+      this.fieldGrid.getElement(),
+    );
     this.setFromFieldState(FACE_ATTRIBUTES_EDITOR_INITIAL_STATE);
+  }
+
+  /**
+   * Builds the callbacks the UV tool strip runs through this editor's handlers.
+   *
+   * @returns Tool strip handlers.
+   */
+  private uvToolStripHandlersRead(): FaceAttributesUvToolStripHandlers {
+    return {
+      onFit: (axis) => this.handlers.onFit(axis),
+      onJustify: (side) => this.handlers.onJustify(side),
+      onAlignEdge: (mode) => this.handlers.onAlignEdge(mode),
+      onFlip: (axis) => this.handlers.onFlip(axis),
+      onRotate: (degrees) => this.handlers.onRotate(degrees),
+      onResetFace: () => this.handlers.onResetFace(),
+      onResetWorld: () => this.handlers.onResetWorld(),
+      onShearCommit: (mode, factor) => this.handlers.onShearCommit(mode, factor),
+    };
   }
 
   /**
@@ -84,7 +124,28 @@ export class FaceAttributesEditor implements FaceAttributesView {
   /** Removes field listeners and detaches the editor element. */
   dispose(): void {
     this.fieldGrid.dispose();
+    this.uvToolStrip.dispose();
     this.element.remove();
+  }
+
+  /**
+   * Highlights the fit, justify, and align buttons satisfied by the single
+   * selected face.
+   *
+   * @param status Status of the single selected face, or null.
+   */
+  setUvToolStatus(status: FaceUvToolSelectionStatus | null): void {
+    this.uvToolStrip.setFromStatus(status);
+  }
+
+  /**
+   * Shows the shared shear factors of the selection.
+   *
+   * @param shearU Shared U shear factor, or null when mixed.
+   * @param shearV Shared V shear factor, or null when mixed.
+   */
+  setShearValues(shearU: number | null, shearV: number | null): void {
+    this.uvToolStrip.setShearValues(shearU, shearV);
   }
 
   /** Styles the editor as a full-width block with a bottom separator. */

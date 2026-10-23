@@ -52,6 +52,16 @@ const KEYBOARD_SHORTCUT_ACTIONS = [
   'select_all',
   'select_none',
   'paste_original',
+  'face_uv_nudge_left',
+  'face_uv_nudge_right',
+  'face_uv_nudge_up',
+  'face_uv_nudge_down',
+  'face_uv_rotate_ccw',
+  'face_uv_rotate_cw',
+  'face_uv_flip_h',
+  'face_uv_flip_v',
+  'face_uv_reset_face',
+  'face_uv_reset_world',
 ] as const satisfies ReadonlyArray<keyof KeyboardShortcutSettings>;
 
 /**

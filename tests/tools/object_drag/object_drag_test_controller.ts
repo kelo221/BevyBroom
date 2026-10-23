@@ -3,7 +3,12 @@ import { CommandStack } from '@/commands/command_stack.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { TransformExecutor } from '@/transform/core/transform_executor.js';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
-import { ObjectDragController } from '@/tools/object_drag/object_drag_controller.js';
+import { ShapeDrawSettings } from '@/tools/shape_draw/shapes/shape_draw_settings.js';
+import {
+  ObjectDragController,
+  type ObjectDragControllerDeps,
+  type ObjectDragControllerMoveDeps,
+} from '@/tools/object_drag/object_drag_controller.js';
 import { ShapeDrawBrushCommit } from '@/tools/shape_draw/shape_draw_brush_commit.js';
 import { ViewportKind } from '@/viewports/core/viewport_kind.js';
 import {
@@ -63,6 +68,52 @@ function objectDragTestBrushCommitCreate(
 }
 
 /**
+ * Builds the shape-draw and preview dependencies of the controller rig.
+ *
+ * @param world World root of the rig.
+ * @param commandStack Undo history of the rig.
+ * @param selection Selection manager of the rig.
+ * @returns Draw dependencies spread into the controller deps.
+ */
+function objectDragTestShapeDepsCreate(
+  world: THREE.Group,
+  commandStack: CommandStack,
+  selection: ManagerSelection,
+): Pick<ObjectDragControllerDeps, 'brushCommit' | 'shapeSettings' | 'previewHost'> {
+  return {
+    brushCommit: objectDragTestBrushCommitCreate(commandStack, world, selection),
+    shapeSettings: new ShapeDrawSettings(),
+    previewHost: { addHelper: () => {}, removeHelper: () => {} },
+  };
+}
+
+/**
+ * Builds the move-session dependencies of the controller rig.
+ *
+ * @param gridSnap Grid snap of the rig.
+ * @param commandStack Undo history of the rig.
+ * @param selection Selection manager of the rig.
+ * @returns Move dependencies.
+ */
+function objectDragTestMoveDepsCreate(
+  gridSnap: GridSnap,
+  commandStack: CommandStack,
+  selection: ManagerSelection,
+): ObjectDragControllerMoveDeps {
+  return {
+    transformExecutor: new TransformExecutor(gridSnap),
+    commandStack,
+    transformTargetsResolve: () => [...selection.getInspectorObjects(), ...selection.getAllSelectedObjectsAsArray()],
+    duplicateHierarchyObjects: () => {},
+    translateUndoPush: () => {},
+    textureLockRebake: () => {},
+    liveVisuals: {},
+    afterCommit: () => {},
+    afterCancel: () => {},
+  };
+}
+
+/**
  * Builds a controller over a perspective view showing two separate boxes; the
  * move pieces translate the selection but record no undo commands.
  *
@@ -71,37 +122,61 @@ function objectDragTestBrushCommitCreate(
 export function objectDragTestControllerRigCreate(): ObjectDragTestControllerRig {
   const world = new THREE.Group();
   const size = new THREE.Vector3(2, 2, 2);
-  const meshes = [
-    objectDragTestBoxMeshCreate(world, size, new THREE.Vector3(-3, 1, 0)),
-    objectDragTestBoxMeshCreate(world, size, new THREE.Vector3(3, 1, 0)),
-  ];
+  const meshes = objectDragTestSceneMeshesCreate(world, size);
   const testViewport = objectDragTestViewportCreate(ViewportKind.PERSPECTIVE, meshes);
   const selection = new ManagerSelection();
   const gridSnap = new GridSnap(true, 0.5);
   const commandStack = new CommandStack(32);
   const editing = { allowed: true };
   const controller = new ObjectDragController({
+    ...objectDragTestControllerDepsCreate(testViewport, gridSnap, commandStack, selection, editing, world),
+  });
+  return { controller, testViewport, selection, commandStack, gridSnap, world, meshes, editing };
+}
+
+/**
+ * Creates the two separated scene boxes of the rig.
+ *
+ * @param world World root receiving the boxes.
+ * @param size Box size.
+ * @returns Created box meshes.
+ */
+function objectDragTestSceneMeshesCreate(world: THREE.Group, size: THREE.Vector3): THREE.Mesh[] {
+  return [
+    objectDragTestBoxMeshCreate(world, size, new THREE.Vector3(-3, 1, 0)),
+    objectDragTestBoxMeshCreate(world, size, new THREE.Vector3(3, 1, 0)),
+  ];
+}
+
+/**
+ * Builds the controller dependencies of the rig.
+ *
+ * @param testViewport Viewport of the rig.
+ * @param gridSnap Grid snap of the rig.
+ * @param commandStack Undo history of the rig.
+ * @param selection Selection manager of the rig.
+ * @param editing Editing flag holder of the rig.
+ * @param world World root of the rig.
+ * @returns Controller dependencies.
+ */
+function objectDragTestControllerDepsCreate(
+  testViewport: ReturnType<typeof objectDragTestViewportCreate>,
+  gridSnap: GridSnap,
+  commandStack: CommandStack,
+  selection: ManagerSelection,
+  editing: { allowed: boolean },
+  world: THREE.Group,
+): ObjectDragControllerDeps {
+  return {
     viewportAtClientPoint: (clientX, clientY) =>
       objectDragTestViewportContains(clientX, clientY) ? testViewport.source : null,
     gridSnap,
     userSnapEnabledRead: () => true,
     objectEditingAllowed: () => editing.allowed,
     selection,
-    move: {
-      transformExecutor: new TransformExecutor(gridSnap),
-      commandStack,
-      transformTargetsResolve: () => [...selection.getInspectorObjects(), ...selection.getAllSelectedObjectsAsArray()],
-      duplicateHierarchyObjects: () => {},
-      translateUndoPush: () => {},
-      textureLockRebake: () => {},
-      liveVisuals: {},
-      afterCommit: () => {},
-      afterCancel: () => {},
-    },
-    brushCommit: objectDragTestBrushCommitCreate(commandStack, world, selection),
-    previewHost: { addHelper: () => {}, removeHelper: () => {} },
-  });
-  return { controller, testViewport, selection, commandStack, gridSnap, world, meshes, editing };
+    move: objectDragTestMoveDepsCreate(gridSnap, commandStack, selection),
+    ...objectDragTestShapeDepsCreate(world, commandStack, selection),
+  };
 }
 
 /**

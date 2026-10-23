@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BoundsFace, BOUNDS_FACE_USERDATA_KEY } from '@/types/bounds_face.js';
+import { BoundsFace } from '@/types/bounds_face.js';
 import { GizmoHandle } from '@/transform/gizmo/gizmo_handle.js';
 import { GizmoTransform } from '@/transform/gizmo/gizmo_transform.js';
 import { GizmoRaycaster } from '@/transform/gizmo/gizmo_raycaster.js';
@@ -20,9 +20,9 @@ import { BOUNDS_DEFAULT_CURSOR, resolveBoundsResizeCursor } from './bounds_resiz
 import { pickOrthographicSilhouetteEdgeFace } from './bounds_face_interaction.js';
 import { computeSilhouetteExteriorBandWorld } from './bounds_handle_screen_size.js';
 import { managerMouseCursor } from '@/input/manager_mouse_cursor.js';
-import { TransformMode } from '@/types/transform_mode.js';
+import { isBoundsWidgetMode } from '@/types/transform_mode.js';
 import { NotificationGlobal } from '@/audio/notification/notification_global.js';
-import { boundsHandleVisibleHitAcceptanceCreate } from './bounds_handle_occlusion.js';
+import { boundsFaceFromHandleRead, pickBoundsHandleFace } from './bounds_face_pick.js';
 
 /** Resize handles to pick from and the pane they are picked in. */
 interface BoundsResizeHandleTarget {
@@ -160,9 +160,16 @@ export class ControllerBoundsDrag {
     event: MouseEvent,
     target: BoundsResizeHandleTarget,
   ): GizmoHandle | null {
-    const bounds = this.transformGizmo.getCurrentBounds();
-    const isHitAccepted = target.viewPlane === 'xyz' && bounds ? boundsHandleVisibleHitAcceptanceCreate(bounds) : null;
-    return this.gizmoRaycaster.pickHandle(target.handles, camera, pickElement, event, target.gizmoGroup, isHitAccepted);
+    return pickBoundsHandleFace(
+      this.gizmoRaycaster,
+      this.transformGizmo,
+      camera,
+      pickElement,
+      event,
+      target.handles,
+      target.gizmoGroup,
+      target.viewPlane,
+    );
   }
 
   /**
@@ -270,7 +277,7 @@ export class ControllerBoundsDrag {
    * @returns True when bounds mode still has live oriented bounds.
    */
   private canRefreshHoverCursor(): boolean {
-    if (this.transformGizmo.getMode() !== TransformMode.BOUNDS) {
+    if (!isBoundsWidgetMode(this.transformGizmo.getMode())) {
       return false;
     }
     if (!this.transformGizmo.isVisible()) {
@@ -730,9 +737,7 @@ export class ControllerBoundsDrag {
    * @returns Bounds face, or null.
    */
   private readBoundsFaceFromHandle(handle: GizmoHandle): BoundsFace | null {
-    const face = handle.getVisualMesh().userData[BOUNDS_FACE_USERDATA_KEY];
-    if (typeof face !== 'string') return null;
-    return face as BoundsFace;
+    return boundsFaceFromHandleRead(handle);
   }
 
   /**

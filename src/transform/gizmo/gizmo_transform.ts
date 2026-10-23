@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Theme } from '@/theme.js';
-import { TransformMode } from '@/types/transform_mode.js';
+import { TransformMode, isBoundsWidgetMode } from '@/types/transform_mode.js';
 import { GizmoHandle } from './gizmo_handle.js';
 import { GizmoTranslate } from './gizmo_translate.js';
 import { GizmoRotate } from './gizmo_rotate.js';
@@ -197,7 +197,7 @@ export class GizmoTransform {
    * @param pivot The new pivot point in world space.
    */
   setPivot(pivot: THREE.Vector3): void {
-    if (this.currentMode === TransformMode.BOUNDS) return;
+    if (isBoundsWidgetMode(this.currentMode)) return;
     this.handleGroup.position.copy(pivot);
     this.viewportGroups.forEach((group) => {
       group.position.copy(pivot);
@@ -211,7 +211,7 @@ export class GizmoTransform {
    * @param orientation World-space rotation for the handle group.
    */
   setOrientation(orientation: THREE.Quaternion): void {
-    if (this.currentMode === TransformMode.BOUNDS) return;
+    if (isBoundsWidgetMode(this.currentMode)) return;
     this.handleGroup.quaternion.copy(orientation);
     this.viewportGroups.forEach((group) => {
       group.quaternion.copy(orientation);
@@ -234,7 +234,7 @@ export class GizmoTransform {
    * @param camera Optional camera used to size resize handles.
    */
   updateBoundsFromMeshes(meshes: THREE.Mesh[], camera: THREE.Camera | null = null): void {
-    if (this.currentMode !== TransformMode.BOUNDS) return;
+    if (!isBoundsWidgetMode(this.currentMode)) return;
     const bounds = this.boundsBuilder.buildFromMeshes(meshes);
     const poseSignature = this.buildBoundsPoseSignature(bounds);
     if (poseSignature === this.lastBoundsPoseSignature) {
@@ -265,7 +265,7 @@ export class GizmoTransform {
     viewPlane: CadViewPlane,
     viewportHeightPx: number,
   ): void {
-    if (this.currentMode !== TransformMode.BOUNDS) return;
+    if (!isBoundsWidgetMode(this.currentMode)) return;
     if (!this.gizmoVisible) return;
     this.gizmoBounds.applyScreenSpaceStyleToClone(group, viewPlane, camera, viewportHeightPx);
     this.applyCloneDepthStyleForCamera(group, camera);
@@ -281,7 +281,7 @@ export class GizmoTransform {
    * @param targetScale Optional extra multiplier.
    */
   prepareTransformCloneForCamera(group: THREE.Group, camera: THREE.Camera, targetScale: number = 1): void {
-    if (this.currentMode === TransformMode.BOUNDS) return;
+    if (isBoundsWidgetMode(this.currentMode)) return;
     if (!this.gizmoVisible) return;
     const scale = computeGizmoCameraScale(camera, group.position) * targetScale;
     group.scale.setScalar(scale);
@@ -349,7 +349,7 @@ export class GizmoTransform {
    * @param face Face to highlight, or null to clear.
    */
   setHighlightedBoundsFace(face: BoundsFace | null): void {
-    if (this.currentMode !== TransformMode.BOUNDS) return;
+    if (!isBoundsWidgetMode(this.currentMode)) return;
     if (this.gizmoBounds.getHighlightedFace() === face) {
       return;
     }
@@ -405,7 +405,7 @@ export class GizmoTransform {
    * @param targetScale Multiplier applied after distance/frustum compensation.
    */
   updateScaleForCamera(camera: THREE.Camera, targetScale: number = 1): void {
-    if (this.currentMode === TransformMode.BOUNDS) return;
+    if (isBoundsWidgetMode(this.currentMode)) return;
     const scale = computeGizmoCameraScale(camera, this.handleGroup.position) * targetScale;
     this.handleGroup.scale.setScalar(scale);
   }
@@ -504,7 +504,7 @@ export class GizmoTransform {
       this.attachModeGizmo(this.gizmoScale);
       return;
     }
-    if (mode === TransformMode.BOUNDS) {
+    if (isBoundsWidgetMode(mode)) {
       this.attachModeGizmo(this.gizmoBounds);
     }
   }
@@ -610,7 +610,7 @@ export class GizmoTransform {
    * @param viewPlane View plane for this clone.
    */
   private applyViewPlaneFilters(group: THREE.Group, viewPlane: CadViewPlane): void {
-    if (this.currentMode === TransformMode.BOUNDS) {
+    if (isBoundsWidgetMode(this.currentMode)) {
       this.gizmoBounds.styleCloneForViewPlane(group, viewPlane);
       return;
     }

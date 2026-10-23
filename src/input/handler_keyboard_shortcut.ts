@@ -96,6 +96,24 @@ export class HandlerKeyboardShortcut {
   }
 
   /**
+   * Returns whether either Alt key is currently held.
+   *
+   * @returns True while Alt is down.
+   */
+  isAltDown(): boolean {
+    return this.inputManager.isAltDown();
+  }
+
+  /**
+   * Reads the current Shift and Ctrl key state from the shared input path.
+   *
+   * @returns Live modifier state.
+   */
+  modifiersStateRead(): { shift: boolean; ctrl: boolean } {
+    return { shift: this.inputManager.isShiftDown(), ctrl: this.inputManager.isCtrlDown() };
+  }
+
+  /**
    * Creates a new keyboard shortcut handler.
    *
    * @param inputManager The input manager providing key state queries.
@@ -666,7 +684,7 @@ export class HandlerKeyboardShortcut {
       this.matchesShortcutCode(event, action, shortcut.code) &&
       this.isCtrlDown(event) === shortcut.ctrl &&
       this.isShiftDown(event) === shortcut.shift &&
-      this.isAltDown(event) === shortcut.alt &&
+      this.isAltActiveForEvent(event) === shortcut.alt &&
       event.metaKey === shortcut.meta
     );
   }
@@ -709,7 +727,7 @@ export class HandlerKeyboardShortcut {
    * @param event Keyboard event to inspect.
    * @returns True when Alt is active.
    */
-  private isAltDown(event: KeyboardEvent): boolean {
+  private isAltActiveForEvent(event: KeyboardEvent): boolean {
     return event.altKey || this.inputManager.isAltDown();
   }
 }

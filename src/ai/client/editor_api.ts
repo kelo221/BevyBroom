@@ -7,6 +7,7 @@ import { EditorApiFind } from './editor_api_find.js';
 import { EditorApiHierarchy } from './editor_api_hierarchy.js';
 import { EditorApiSolidReads } from './editor_api_solid_reads.js';
 import { EditorApiSolidWrites } from './editor_api_solid_writes.js';
+import { EditorApiShapeWrites, type CreateShapeBrushArgs } from './editor_api_shape_writes.js';
 import { EditorApiSpatial } from './editor_api_spatial.js';
 import { EditorApiValidation } from './editor_api_validation.js';
 import { EditorApiEntities, type EntityAddArgs, type EntitySettingsSetArgs } from './editor_api_entities.js';
@@ -70,6 +71,7 @@ import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 export class EditorApi {
   private readonly reads: EditorApiSolidReads;
   private readonly writes: EditorApiSolidWrites;
+  private readonly shapeWrites: EditorApiShapeWrites;
   private readonly spatial: EditorApiSpatial;
   private readonly validation: EditorApiValidation;
   private readonly find: EditorApiFind;
@@ -97,6 +99,7 @@ export class EditorApi {
   constructor(host: EditorApiHost) {
     this.reads = new EditorApiSolidReads(host);
     this.writes = new EditorApiSolidWrites(host);
+    this.shapeWrites = new EditorApiShapeWrites(host);
     this.spatial = new EditorApiSpatial(host);
     this.validation = new EditorApiValidation(host);
     this.find = new EditorApiFind(host);
@@ -237,6 +240,8 @@ export class EditorApi {
         return this.writes.addBoxBrush(args as unknown as AddBoxBrushArgs);
       case 'add_box_brushes':
         return this.writes.addBoxBrushes(args as unknown as AddBoxBrushesArgs);
+      case 'create_shape_brush':
+        return this.shapeWrites.createShapeBrush(args as unknown as CreateShapeBrushArgs);
       case 'place_wall':
         return this.builders.placeWall(args as unknown as PlaceWallArgs);
       case 'add_room_shell':

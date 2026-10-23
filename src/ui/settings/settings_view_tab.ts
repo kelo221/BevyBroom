@@ -71,6 +71,7 @@ export class SettingsViewTab {
     body.appendChild(this.createThemeRow(view.theme));
     body.appendChild(this.createBrightnessRow(view.brightness));
     body.appendChild(this.createToolbarLabelsRow(view.toolbarButtonLabels));
+    body.appendChild(this.createFaceInspectorRevealRow(view.faceInspectorAutoReveal));
     return section;
   }
 
@@ -87,6 +88,21 @@ export class SettingsViewTab {
     checkbox.dataset['settingsField'] = 'toolbar-button-labels';
     checkbox.addEventListener('change', () => this.store.setToolbarButtonLabels(checkbox.checked));
     return createSettingsControlRow('Expanded toolbar button labels', checkbox);
+  }
+
+  /**
+   * Creates the face inspector auto-reveal preference.
+   *
+   * @param enabled Current auto-reveal preference.
+   * @returns Control row containing the checkbox.
+   */
+  private createFaceInspectorRevealRow(enabled: boolean): HTMLElement {
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = enabled;
+    checkbox.dataset['settingsField'] = 'face-inspector-auto-reveal';
+    checkbox.addEventListener('change', () => this.store.setFaceInspectorAutoReveal(checkbox.checked));
+    return createSettingsControlRow('Reveal Face inspector when faces are selected', checkbox);
   }
 
   /**

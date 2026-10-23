@@ -150,6 +150,7 @@ export function setupToolsPaletteAndClipWiring(parts: {
   onEditModePresentationChanged?: () => void;
   onApplyObjectTransform?: (kind: import('@/types/object_apply_transform_kind.js').ObjectApplyTransformKind) => void;
   onConvexHull?: () => void;
+  onShapeSettingChanged?: () => void;
   onEditKnife?: () => void;
   onEditLoopCut?: () => void;
   onEditMerge?: (mode: import('@/edit/topology/topology_vertex_merge_mode.js').TopologyVertexMergeMode) => void;
@@ -202,6 +203,7 @@ export function setupToolsPaletteAndClipWiring(parts: {
       : {}),
     ...(parts.onApplyObjectTransform !== undefined ? { onApplyObjectTransform: parts.onApplyObjectTransform } : {}),
     ...(parts.onConvexHull !== undefined ? { onConvexHull: parts.onConvexHull } : {}),
+    ...(parts.onShapeSettingChanged !== undefined ? { onShapeSettingChanged: parts.onShapeSettingChanged } : {}),
     ...(parts.onEditKnife !== undefined ? { onEditKnife: parts.onEditKnife } : {}),
     ...(parts.onEditLoopCut !== undefined ? { onEditLoopCut: parts.onEditLoopCut } : {}),
     ...(parts.onEditMerge !== undefined ? { onEditMerge: parts.onEditMerge } : {}),

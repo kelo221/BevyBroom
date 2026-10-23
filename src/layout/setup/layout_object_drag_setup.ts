@@ -12,6 +12,7 @@ import { ObjectDragController, type ObjectDragControllerMoveDeps } from '@/tools
 import type { ObjectDragViewportSource } from '@/tools/object_drag/object_drag_viewport.js';
 import { ShapeDrawBrushCommit } from '@/tools/shape_draw/shape_draw_brush_commit.js';
 import type { ShapeDrawPreviewHost } from '@/tools/shape_draw/shape_draw_preview.js';
+import { getShapeDrawSettings } from '@/tools/shape_draw/shapes/shape_draw_settings.js';
 import type { LayoutToolEditorSetupDeps } from './layout_tool_editor_setup.js';
 
 /** Layout systems object dragging needs beyond the tool editor dependencies. */
@@ -75,6 +76,7 @@ export function layoutObjectDragControllerCreate(
     move: layoutObjectDragMoveDepsCreate(deps, host),
     brushCommit: layoutObjectDragBrushCommitCreate(deps, host),
     previewHost: host.helperScene,
+    shapeSettings: getShapeDrawSettings(),
   });
 }
 

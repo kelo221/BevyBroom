@@ -33,6 +33,22 @@ export function solidBrushHullBuild(
 }
 
 /**
+ * Builds the hull in model-local space from explicit world points.
+ *
+ * @param worldPoints World points to enclose.
+ * @param sources Authored faces in model-local space.
+ * @param modelWorld Model root world matrix.
+ * @returns Hull, or null when the points are flat.
+ */
+export function solidBrushHullFromWorldPoints(
+  worldPoints: readonly Vector3[],
+  sources: readonly SolidBrushHullSourceFace[],
+  modelWorld: Matrix4,
+): SolidBrushHullBuild | null {
+  return solidBrushHullFromWorld(worldPoints, sources, modelWorld);
+}
+
+/**
  * Builds the hull in model-local space and copies surfaces.
  *
  * @param worldPoints World points to enclose.

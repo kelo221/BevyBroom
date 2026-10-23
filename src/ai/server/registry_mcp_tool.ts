@@ -310,6 +310,23 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   ),
   tool(
+    'create_shape_brush',
+    'Create the brushes of a draw-tool shape (cuboid|stairs|arch|cylinder|cone|spheroid_uv|spheroid_ico) inside world min/max bounds as one undo step. Optional params per shape (e.g. stairs: stepHeight, direction; cylinder: sides, axis, hollow, wallThickness). Multi-piece shapes are grouped so parameter changes can regenerate them.',
+    {
+      type: 'object',
+      properties: {
+        shapeId: { type: 'string', description: 'Shape id from the shape catalogue.' },
+        min: vec3Schema,
+        max: vec3Schema,
+        params: {
+          type: 'object',
+          description: 'Parameter values keyed by parameter id (numbers or strings).',
+        },
+      },
+      required: ['shapeId', 'min', 'max'],
+    },
+  ),
+  tool(
     'create_csg_group',
     'Group solid brushes and/or nested CSG groups into a new solid CSG compound (same as outliner Group). Members stay under the solid model. operation is the branch op when the group combines into its parent (default additive). Optional parentGroupId nests the new group under another group (must not be a member or under a member).',
     {

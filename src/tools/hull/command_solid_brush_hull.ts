@@ -12,6 +12,7 @@ export class CommandSolidBrushHull implements UndoCommand {
   private readonly model: SolidModel;
   private readonly brush: SolidBrush;
   private readonly surfaces: readonly FaceSurfaceDescription[];
+  private readonly nameLabel: string;
   private created: SolidBrushInstance | null;
   private listIndex: number;
   private executed: boolean;
@@ -22,11 +23,18 @@ export class CommandSolidBrushHull implements UndoCommand {
    * @param model Solid model that will own the brush.
    * @param brush Convex hull in model-local space.
    * @param surfaces Texture and UV for each hull face.
+   * @param nameLabel Base name allocated for the created brush.
    */
-  constructor(model: SolidModel, brush: SolidBrush, surfaces: readonly FaceSurfaceDescription[]) {
+  constructor(
+    model: SolidModel,
+    brush: SolidBrush,
+    surfaces: readonly FaceSurfaceDescription[],
+    nameLabel: string = 'Hull',
+  ) {
     this.model = model;
     this.brush = brush;
     this.surfaces = surfaces;
+    this.nameLabel = nameLabel;
     this.created = null;
     this.listIndex = -1;
     this.executed = false;
@@ -79,7 +87,7 @@ export class CommandSolidBrushHull implements UndoCommand {
    * @param instance New brush.
    */
   private nameHull(instance: SolidBrushInstance): void {
-    const name = hierarchyNameAllocator.allocate('Hull');
+    const name = hierarchyNameAllocator.allocate(this.nameLabel);
     instance.name = name;
     if (instance.mesh) instance.mesh.name = name;
   }

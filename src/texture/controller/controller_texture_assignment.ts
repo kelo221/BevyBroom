@@ -7,7 +7,11 @@ import { CommandTextureSolidFaceAssign } from '@/texture/commands/command_textur
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { ControllerFaceExtrusion } from '@/tools/face/controller_face_extrusion.js';
 import { SelectionMode } from '@/types/selection_mode.js';
-import { TextureApplyTarget, buildTargetsFromMeshes } from '@/texture/uv/face_texture_applier.js';
+import {
+  TextureApplyTarget,
+  buildTargetsFromFaceSelection,
+  buildTargetsFromMeshes,
+} from '@/texture/uv/face_texture_applier.js';
 import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import { TextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
@@ -86,13 +90,35 @@ export class ControllerTextureAssignment {
   }
 
   /**
-   * Paints selected solid faces, or reports that faces are required.
+   * Paints selected solid or content faces, or reports that faces are required.
    *
    * @param entry Selected browser entry.
    */
   private assignFaceSelection(entry: TextureBrowserEntry): void {
     if (this.tryAssignSolidFaces(entry)) return;
-    this.statusCallback?.(`Paint texture: ${entry.displayName} (select brush faces to assign)`);
+    if (this.tryAssignContentFaces(entry)) return;
+    this.statusCallback?.(`Paint texture: ${entry.displayName} (select faces to assign)`);
+  }
+
+  /**
+   * Face-mode paint for ordinary content-mesh face regions.
+   *
+   * @param entry Texture entry.
+   * @returns True when content faces were painted.
+   */
+  private tryAssignContentFaces(entry: TextureBrowserEntry): boolean {
+    const contentFaces = this.faceExtrusionController
+      .getSelectedFaces()
+      .filter((face) => this.isContentTextureMesh(face.mesh));
+    if (contentFaces.length === 0) {
+      return false;
+    }
+    const targets = buildTargetsFromFaceSelection(contentFaces);
+    if (targets.length === 0) {
+      return false;
+    }
+    this.assignTextureToTargets(targets, entry);
+    return true;
   }
 
   /**

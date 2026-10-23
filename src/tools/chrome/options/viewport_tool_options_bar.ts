@@ -2,7 +2,7 @@ import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
 import { ToolbarIcons } from '@/ui/toolbar/toolbar_icons.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
-import { TransformMode } from '@/types/transform_mode.js';
+import { TransformMode, isBoundsWidgetMode } from '@/types/transform_mode.js';
 import { EditorInteractionMode } from '@/types/editor_interaction_mode.js';
 import { EditorComponentMode, getEditorComponentModeLabel } from '@/types/editor_component_mode.js';
 import { UiStackLayers } from '@/ui/stack/ui_stack_layers.js';
@@ -39,6 +39,7 @@ import {
 import { ViewportToolModeDropdown } from './viewport_tool_mode_dropdown.js';
 import { ViewportToolObjectDropdown } from './viewport_tool_object_dropdown.js';
 import { ViewportToolNamedDropdown } from './viewport_tool_named_dropdown.js';
+import { ViewportToolShapeControls } from './viewport_tool_shape_controls.js';
 import type { ObjectApplyTransformKind } from '@/types/object_apply_transform_kind.js';
 import type { TopologyVertexMergeMode } from '@/edit/topology/topology_vertex_merge_mode.js';
 import {
@@ -67,6 +68,7 @@ export interface ViewportToolOptionsBarHandlers {
   onComponentMode: (mode: EditorComponentMode) => void;
   onApplyObjectTransform?: (kind: ObjectApplyTransformKind) => void;
   onConvexHull?: () => void;
+  onShapeSettingChanged?: () => void;
   onEditKnife?: () => void;
   onEditLoopCut?: () => void;
   onEditMerge?: (mode: TopologyVertexMergeMode) => void;
@@ -84,6 +86,7 @@ export class ViewportToolOptionsBar {
   private readonly transformButtons: Map<TransformMode, HTMLButtonElement>;
   private readonly modeDropdown: ViewportToolModeDropdown;
   private readonly objectDropdown: ViewportToolObjectDropdown;
+  private readonly shapeControls: ViewportToolShapeControls;
   private readonly meshDropdown: ViewportToolNamedDropdown;
   private readonly vertexMenuDropdown: ViewportToolNamedDropdown;
   private readonly edgeMenuDropdown: ViewportToolNamedDropdown;
@@ -142,6 +145,9 @@ export class ViewportToolOptionsBar {
     this.vertexMenuDropdown = this.createEditMenuDropdown(parentElement, 'Vertex', buildViewportToolVertexMenuEntries);
     this.edgeMenuDropdown = this.createEditMenuDropdown(parentElement, 'Edge', buildViewportToolEdgeMenuEntries);
     this.faceMenuDropdown = this.createEditMenuDropdown(parentElement, 'Face', buildViewportToolFaceMenuEntries);
+    this.shapeControls = new ViewportToolShapeControls(parentElement, () => {
+      this.handlers.onShapeSettingChanged?.();
+    });
     this.flipButton = this.createTextAction('Flip', TOOL_INSTRUCTION_CLIP_FLIP, () => {
       this.handlers.onFlipClipPlane();
     });
@@ -298,6 +304,7 @@ export class ViewportToolOptionsBar {
   dispose(): void {
     this.modeDropdown.dispose();
     this.objectDropdown.dispose();
+    this.shapeControls.dispose();
     this.meshDropdown.dispose();
     this.vertexMenuDropdown.dispose();
     this.edgeMenuDropdown.dispose();
@@ -351,12 +358,13 @@ export class ViewportToolOptionsBar {
     this.actionsRow.style.width = 'max-content';
   }
 
-  /** Builds Bounds / Move / Rotate / Scale icon buttons once. */
+  /** Builds Bounds / Move / Rotate / Scale / Shear icon buttons once. */
   private buildTransformButtons(): void {
     this.addTransformButton(TransformMode.BOUNDS, ToolbarIcons.toolBounds());
     this.addTransformButton(TransformMode.TRANSLATE, ToolbarIcons.toolMove());
     this.addTransformButton(TransformMode.ROTATE, ToolbarIcons.toolRotate());
     this.addTransformButton(TransformMode.SCALE, ToolbarIcons.toolScale());
+    this.addTransformButton(TransformMode.SHEAR, ToolbarIcons.toolShear());
   }
 
   /**
@@ -413,13 +421,15 @@ export class ViewportToolOptionsBar {
     }
     this.appendTransformModeButtons();
     this.actionsRow.appendChild(this.objectDropdown.getElement());
+    this.actionsRow.appendChild(this.shapeControls.getElement());
+    this.shapeControls.selectionRefresh();
   }
 
-  /** Appends Bounds / Move / Rotate / Scale toggles. */
+  /** Appends Bounds / Move / Rotate / Scale / Shear toggles. */
   private appendTransformModeButtons(): void {
     const hideBounds = this.activeInteractionMode === EditorInteractionMode.EDIT_MODE;
     this.transformButtons.forEach((button, mode) => {
-      if (hideBounds && mode === TransformMode.BOUNDS) {
+      if (hideBounds && isBoundsWidgetMode(mode)) {
         return;
       }
       this.actionsRow.appendChild(button);

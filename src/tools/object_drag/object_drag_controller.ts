@@ -12,6 +12,7 @@ import {
 import { ShapeDrawSession } from '@/tools/shape_draw/shape_draw_session.js';
 import type { ShapeDrawBrushCommit } from '@/tools/shape_draw/shape_draw_brush_commit.js';
 import type { ShapeDrawPreviewHost } from '@/tools/shape_draw/shape_draw_preview.js';
+import type { ShapeDrawSettings } from '@/tools/shape_draw/shapes/shape_draw_settings.js';
 import {
   ShapeDrawReferenceBoundsTracker,
   type ShapeDrawReferenceSelectionSource,
@@ -61,6 +62,8 @@ export interface ObjectDragControllerDeps {
   brushCommit: ShapeDrawBrushCommit;
   /** Helper scene for the draw preview. */
   previewHost: ShapeDrawPreviewHost;
+  /** Shape and parameter selection draws use. */
+  shapeSettings: ShapeDrawSettings;
 }
 
 /**
@@ -209,6 +212,7 @@ export class ObjectDragController {
         referenceBoundsResolve: () => this.referenceBounds.referenceBoundsResolve(),
         previewHost: this.deps.previewHost,
         brushCommit: this.deps.brushCommit,
+        shapeSettings: this.deps.shapeSettings,
       },
       press.clientX,
       press.clientY,
