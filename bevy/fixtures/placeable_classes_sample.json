@@ -1,0 +1,68 @@
+{
+  "generation": 3,
+  "asset_generation": 1849230017,
+  "classes": [
+    {
+      "type_path": "broom_bridge::placeables::properties::BroomProperties",
+      "label": "Properties",
+      "category": "Data",
+      "placement": "any",
+      "marker_color": [0.35, 0.65, 0.95],
+      "fields": [
+        { "path": "values", "label": "values", "kind": "property_map", "default": {} }
+      ]
+    },
+    {
+      "type_path": "broom_preview::placeables::Door",
+      "label": "Door",
+      "category": "Doors",
+      "placement": "point",
+      "marker_color": [0.9, 0.5, 0.1],
+      "fields": [
+        { "path": "speed", "label": "Speed", "kind": "number", "default": 1.5, "minimum": 0.0, "maximum": 10.0, "step": 0.1 },
+        { "path": "locked", "label": "locked", "kind": "bool", "default": false },
+        { "path": "key_name", "label": "key_name", "kind": "text", "default": "" },
+        { "path": "uses", "label": "uses", "kind": "integer", "default": 3, "minimum": 0.0, "maximum": 4294967295.0, "step": 1.0 },
+        { "path": "kind", "label": "kind", "kind": "enum", "default": "Wooden", "variants": ["Wooden", "Iron", "Glass"] },
+        { "path": "open_offset", "label": "open_offset", "kind": "vector3", "default": [0.0, 2.5, 0.0] },
+        { "path": "tint", "label": "tint", "kind": "color", "default": [1.0, 1.0, 1.0, 1.0] },
+        {
+          "path": "hinge",
+          "label": "hinge",
+          "kind": "group",
+          "default": null,
+          "children": [
+            { "path": "hinge.angle", "label": "angle", "kind": "number", "default": 90.0 },
+            { "path": "hinge.squeaky", "label": "squeaky", "kind": "bool", "default": true }
+          ]
+        },
+        { "path": "stats", "label": "stats", "kind": "asset", "default": null, "asset_type": "broom_preview::placeables::DoorStats" },
+        { "path": "pending", "label": "pending", "kind": "unsupported", "default": null, "hidden": true }
+      ]
+    },
+    {
+      "type_path": "broom_preview::placeables::Spinner",
+      "label": "Spinner",
+      "category": "Motion",
+      "placement": "any",
+      "marker_color": [0.3, 0.9, 0.5],
+      "fields": [
+        { "path": "speed", "label": "speed", "kind": "number", "default": 1.0 },
+        { "path": "axis", "label": "axis", "kind": "vector3", "default": [0.0, 1.0, 0.0] }
+      ]
+    }
+  ],
+  "asset_types": [
+    {
+      "type_path": "broom_preview::placeables::DoorStats",
+      "label": "DoorStats",
+      "extensions": ["door.ron"],
+      "editable": true,
+      "paths": ["data/doors/heavy.door.ron", "data/doors/light.door.ron"],
+      "fields": [
+        { "path": "health", "label": "health", "kind": "number", "default": 100.0 },
+        { "path": "open_seconds", "label": "open_seconds", "kind": "number", "default": 1.0 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "catalog_version": 1,
+  "materials": [
+    {
+      "id": "stone/castle_wall",
+      "label": "Castle wall",
+      "base_color_texture": "textures/castle_wall_base.png",
+      "normal_texture": "textures/castle_wall_normal.png",
+      "roughness": 0.85,
+      "tile_meters": [2.0, 2.0]
+    },
+    {
+      "id": "wood/floor_planks",
+      "label": "Floor planks",
+      "base_color_texture": "textures/floor_planks_base.png",
+      "roughness": 0.7,
+      "tile_meters": [2.0, 2.0]
+    },
+    {
+      "id": "metal/panel",
+      "label": "Metal panel",
+      "base_color_texture": "textures/metal_panel_base.png",
+      "metallic_roughness_texture": "textures/metal_panel_metal_roughness.png",
+      "metallic": 1.0,
+      "roughness": 1.0,
+      "tile_meters": [1.0, 1.0]
+    },
+    {
+      "id": "foliage/ivy",
+      "label": "Ivy",
+      "base_color_texture": "textures/ivy_base.png",
+      "alpha": "mask",
+      "alpha_cutoff": 0.5,
+      "double_sided": true,
+      "tile_meters": [1.0, 1.0]
+    },
+    {
+      "id": "light/warm_panel",
+      "label": "Warm light panel",
+      "base_color": [1.0, 0.9, 0.7, 1.0],
+      "emissive": [1.0, 0.8, 0.5],
+      "unlit": false,
+      "roughness": 0.5
+    }
+  ]
+}

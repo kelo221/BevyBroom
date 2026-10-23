@@ -1,0 +1,22 @@
+[package]
+name = "broom_preview"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Sample game preview window driven by the BevyBroom editor"
+
+[dependencies]
+broom_bridge = { path = "../broom_bridge" }
+dynlight.workspace = true
+bevy = { workspace = true, features = [
+    "bevy_winit",
+    "keyboard",
+    "mouse",
+    "default_font",
+    "free_camera",
+    "bevy_camera_controller",
+    "x11",
+    "wayland",
+] }

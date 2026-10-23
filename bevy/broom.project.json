@@ -1,0 +1,16 @@
+{
+  "project_version": 1,
+  "project_id": "broom-sample-project",
+  "name": "BevyBroom sample game",
+  "asset_root": "assets",
+  "material_catalog": "broom/materials.json",
+  "level_directory": "broom/levels",
+  "document_directory": "broom/documents",
+  "preview": {
+    "program": "cargo",
+    "arguments": ["run", "--release", "-p", "broom_preview", "--", "--project", "broom.project.json"],
+    "working_directory": ".",
+    "endpoint": "http://127.0.0.1:15702"
+  },
+  "coordinate_profile": "bevy_meters"
+}
