@@ -60,6 +60,52 @@ jobs:
       - name: Run strict TypeScript check
         run: bun run typecheck:strict
 
+  bevy-workspace:
+    name: Bevy workspace (fmt, clippy, tests)
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          path: AiWorldEd
+
+      - name: Read the pinned renderer commit
+        id: pin
+        shell: bash
+        run: |
+          echo "renderer_repository=$(jq -r '.renderer.repository' AiWorldEd/compatibility.json | sed 's#https://github.com/##')" >> "$GITHUB_OUTPUT"
+          echo "renderer_commit=$(jq -r '.renderer.commit' AiWorldEd/compatibility.json)" >> "$GITHUB_OUTPUT"
+
+      # bevy/Cargo.toml reaches the renderer at ../../DynLightBevy.
+      - name: Check out the renderer at the pinned commit
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.pin.outputs.renderer_repository }}
+          ref: ${{ steps.pin.outputs.renderer_commit }}
+          path: DynLightBevy
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: AiWorldEd/bevy
+
+      - name: Check formatting
+        working-directory: AiWorldEd/bevy
+        run: cargo fmt --all --check
+
+      - name: Run clippy
+        working-directory: AiWorldEd/bevy
+        run: cargo clippy --workspace --all-targets -j 2 -- -D warnings
+
+      - name: Run tests
+        working-directory: AiWorldEd/bevy
+        run: cargo test --workspace -j 2
+
   desktop-build:
     name: Build ${{ matrix.platform }} desktop artifact
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'

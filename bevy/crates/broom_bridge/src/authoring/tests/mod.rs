@@ -5,6 +5,7 @@ mod cells;
 mod companions;
 mod ownership;
 mod revisions;
+mod shipped;
 mod spawning;
 
 use std::collections::HashMap;

@@ -1,5 +1,6 @@
 //! Applies the editor's authored state to the world: DynLight lights, room cells and portals
-//! spawned and updated by id, and the transforms and visibility of exported geometry nodes.
+//! spawned and updated by id, the transforms and visibility of exported geometry nodes, and the
+//! complete settings of light nodes in shipped levels.
 //!
 //! Remote handlers only queue a validated snapshot in [`AuthoringInbox`]; the systems here apply
 //! the newest one in `Update`, before transforms propagate in `PostUpdate`.
@@ -9,6 +10,7 @@ mod lights;
 mod nodes;
 mod ownership;
 mod portals;
+mod shipped_lights;
 #[cfg(test)]
 mod tests;
 
@@ -24,6 +26,7 @@ pub use lights::AuthoredLightEntity;
 pub use nodes::AuthoredNode;
 pub(crate) use nodes::tag_authored_nodes;
 pub use portals::AuthoredCellEntity;
+pub use shipped_lights::{ShippedLight, ShippedLightReplaced, ShippedLightSettings};
 
 /// Ordering of the bridge's own work.
 #[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -104,6 +107,8 @@ impl Plugin for AuthoringPlugin {
             .register_type::<AuthoredNode>()
             .register_type::<AuthoredLightCookiePath>()
             .register_type::<LightEffect>()
+            .register_type::<ShippedLight>()
+            .register_type::<ShippedLightReplaced>()
             .add_message::<DocumentSwitched>()
             .configure_sets(Update, BroomSystems::ApplyState)
             .configure_sets(
@@ -131,7 +136,14 @@ impl Plugin for AuthoringPlugin {
             )
             .add_systems(
                 PostUpdate,
-                nodes::sync_node_transforms.before(TransformSystems::Propagate),
+                (
+                    nodes::sync_node_transforms.before(TransformSystems::Propagate),
+                    (
+                        shipped_lights::read_shipped_lights,
+                        shipped_lights::replace_shipped_lights,
+                    )
+                        .chain(),
+                ),
             );
     }
 }

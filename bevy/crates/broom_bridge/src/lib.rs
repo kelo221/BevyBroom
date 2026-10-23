@@ -28,7 +28,9 @@ use status::BridgeStatus;
 
 /// Common imports.
 pub mod prelude {
-    pub use crate::authoring::{AuthoredLightEntity, AuthoredNode, BroomSystems};
+    pub use crate::authoring::{
+        AuthoredLightEntity, AuthoredNode, BroomSystems, ShippedLight, ShippedLightReplaced,
+    };
     pub use crate::level::{LevelGeometryRoot, LevelLoadRequest};
     pub use crate::materials::{CatalogResolver, CatalogResolvers, CatalogState};
     pub use crate::placeables::{

@@ -1,14 +1,12 @@
 {
-  "description": "The combination of editor, game bridge, renderer and engine this editor is tested with. tests/preview/protocol/preview_protocol_compatibility.test.ts checks it against the code and, when present, the sibling checkouts.",
+  "description": "The combination of editor, game bridge, renderer and engine this editor is tested with. tests/preview/protocol/preview_protocol_compatibility.test.ts checks it against the editor and the game bridge workspace in bevy/.",
   "preview_protocol": 4,
   "min_preview_protocol": 3,
   "bevy": "0.20.0",
   "companion": {
-    "name": "AiWorldEdBevy",
-    "checkout": "../AiWorldEdBevy",
-    "crates": ["broom_bridge", "broom_preview"],
-    "repository": null,
-    "commit": null
+    "name": "broom_bridge and broom_preview",
+    "path": "bevy",
+    "crates": ["broom_bridge", "broom_preview"]
   },
   "renderer": {
     "name": "DynLightBevy",

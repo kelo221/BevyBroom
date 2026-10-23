@@ -19,6 +19,15 @@ export const LIGHT_EXPORT_FOG_EXTRAS_KEY = 'dynlight_fog';
 /** Node extras key holding the light's shimmer pattern name. */
 export const LIGHT_EXPORT_SHIMMER_EXTRAS_KEY = 'dynlight_shimmer';
 
+/**
+ * Node extras key holding the light's complete definition as the game preview
+ * receives it, for games that read more settings than the DynLight extras.
+ */
+export const LIGHT_EXPORT_SETTINGS_EXTRAS_KEY = 'broom_light';
+
+/** Node extras key holding the editor id of the light the node belongs to. */
+export const LIGHT_EXPORT_OWNER_EXTRAS_KEY = 'broom_light_of';
+
 /** The numeric and boolean light fields written as extras, by extras key. */
 const LIGHT_EXPORT_SCALAR_FIELDS: readonly (readonly [string, keyof PreviewAuthoredLight])[] = [
   ['dynlight_intensity', 'intensity'],
@@ -32,7 +41,8 @@ const LIGHT_EXPORT_SCALAR_FIELDS: readonly (readonly [string, keyof PreviewAutho
 /**
  * Builds the export node that describes a light to game engines reading
  * DynLight node extras: an empty node in owner space whose extras carry the
- * light's type, color, range, cone, effect, fog shape and shimmer.
+ * light's type, color, range, cone, effect, fog shape and shimmer, plus the
+ * complete light definition and the light's editor id.
  */
 export class LightExportNodeBuilder {
   /**
@@ -49,8 +59,27 @@ export class LightExportNodeBuilder {
     const node = new THREE.Object3D();
     node.name = `${owner.name} Light`;
     LightExportNodeBuilder.ownerScaleCancel(owner, node);
-    LightExportNodeBuilder.extrasWrite(previewLightFromSettings(settings), node.userData);
+    const light = previewLightFromSettings(settings);
+    LightExportNodeBuilder.extrasWrite(light, node.userData);
+    LightExportNodeBuilder.identityExtrasWrite(light, owner.uuid, node.userData);
     return node;
+  }
+
+  /**
+   * Writes the complete light definition and the editor id of its light, so a
+   * game can apply every setting and recognize the light it already shows.
+   *
+   * @param light The light definition the game preview would receive.
+   * @param ownerIdentifier Editor id of the light owner.
+   * @param extras The node extras to fill.
+   */
+  static identityExtrasWrite(
+    light: PreviewAuthoredLight,
+    ownerIdentifier: string,
+    extras: Record<string, unknown>,
+  ): void {
+    extras[LIGHT_EXPORT_SETTINGS_EXTRAS_KEY] = structuredClone(light);
+    extras[LIGHT_EXPORT_OWNER_EXTRAS_KEY] = ownerIdentifier;
   }
 
   /**

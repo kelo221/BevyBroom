@@ -1,24 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   PREVIEW_PROTOCOL_VERSION,
   PREVIEW_REQUIRED_CAPABILITIES,
+  type PreviewAuthoredLight,
   type PreviewAuthoredObject,
   type PreviewAuthoredState,
   type PreviewHelloReply,
 } from '@/preview/protocol/preview_protocol_types.js';
 import { PreviewHandshakeJudge } from '@/preview/link/handshake/preview_handshake_judge.js';
-import { e2eRequiredRead } from '../../e2e/preview_e2e_environment.js';
+import {
+  LIGHT_EXPORT_OWNER_EXTRAS_KEY,
+  LIGHT_EXPORT_SETTINGS_EXTRAS_KEY,
+  LightExportNodeBuilder,
+} from '@/light/export/light_export_node_builder.js';
 
-/** Mirror of the game bridge's shared fixtures kept in this repository. */
-const FIXTURE_MIRROR_DIRECTORY = resolve(__dirname, 'fixtures');
-
-/** Shared fixtures of the sibling game bridge checkout, when present. */
-const FIXTURE_COMPANION_DIRECTORY = resolve(__dirname, '../../../../AiWorldEdBevy/fixtures');
-
-/** Fixture files both repositories parse. */
-const FIXTURE_FILE_NAMES = ['hello_sample.json', 'authored_state_sample.json'] as const;
+/** Wire fixtures of the game bridge workspace, parsed by its Rust tests too. */
+const FIXTURE_BRIDGE_DIRECTORY = resolve(__dirname, '../../../bevy/fixtures');
 
 /** Every field of a handshake reply; the record type makes the list exhaustive. */
 const HELLO_FIELDS: Record<keyof PreviewHelloReply, true> = {
@@ -61,13 +60,13 @@ const OBJECT_FIELDS: Record<keyof PreviewAuthoredObject, true> = {
 };
 
 /**
- * Reads and parses one mirrored fixture.
+ * Reads and parses one fixture of the game bridge workspace.
  *
  * @param fileName Fixture file name.
  * @returns Parsed JSON.
  */
-function fixtureMirrorRead<Value>(fileName: string): Value {
-  return JSON.parse(readFileSync(resolve(FIXTURE_MIRROR_DIRECTORY, fileName), 'utf8')) as Value;
+function fixtureBridgeRead<Value>(fileName: string): Value {
+  return JSON.parse(readFileSync(resolve(FIXTURE_BRIDGE_DIRECTORY, fileName), 'utf8')) as Value;
 }
 
 /**
@@ -88,7 +87,7 @@ function fieldsUndeclared(value: object, declared: Record<string, true>): string
  */
 describe('preview protocol fixtures', () => {
   it('accepts the bridge sample handshake with the editor protocol and required features', () => {
-    const hello = fixtureMirrorRead<PreviewHelloReply>('hello_sample.json');
+    const hello = fixtureBridgeRead<PreviewHelloReply>('hello_sample.json');
     expect(fieldsUndeclared(hello, HELLO_FIELDS)).toEqual([]);
     const verdict = PreviewHandshakeJudge.evaluate(hello, {
       protocol: PREVIEW_PROTOCOL_VERSION,
@@ -99,22 +98,19 @@ describe('preview protocol fixtures', () => {
   });
 
   it('declares every field of the bridge sample snapshot and its objects', () => {
-    const state = fixtureMirrorRead<PreviewAuthoredState>('authored_state_sample.json');
+    const state = fixtureBridgeRead<PreviewAuthoredState>('authored_state_sample.json');
     expect(fieldsUndeclared(state, STATE_FIELDS)).toEqual([]);
     expect(state.objects.length).toBeGreaterThan(0);
     state.objects.forEach((object) => expect(fieldsUndeclared(object, OBJECT_FIELDS)).toEqual([]));
   });
 
-  it('keeps the mirrored fixtures identical to the game bridge checkout', () => {
-    const isCompanionPresent = existsSync(FIXTURE_COMPANION_DIRECTORY);
-    expect(isCompanionPresent || !e2eRequiredRead()).toBe(true);
-    if (!isCompanionPresent) {
-      return;
-    }
-    FIXTURE_FILE_NAMES.forEach((fileName) => {
-      const mirrored = readFileSync(resolve(FIXTURE_MIRROR_DIRECTORY, fileName), 'utf8');
-      const companion = readFileSync(resolve(FIXTURE_COMPANION_DIRECTORY, fileName), 'utf8');
-      expect(mirrored.replace(/\r\n/g, '\n'), fileName).toBe(companion.replace(/\r\n/g, '\n'));
-    });
+  it('writes exactly the light node extras the bridge sample reads', () => {
+    const sample = fixtureBridgeRead<Record<string, unknown>>('light_extras_sample.json');
+    const light = sample[LIGHT_EXPORT_SETTINGS_EXTRAS_KEY] as PreviewAuthoredLight;
+    const ownerIdentifier = sample[LIGHT_EXPORT_OWNER_EXTRAS_KEY] as string;
+    const written: Record<string, unknown> = {};
+    LightExportNodeBuilder.extrasWrite(light, written);
+    LightExportNodeBuilder.identityExtrasWrite(light, ownerIdentifier, written);
+    expect(JSON.parse(JSON.stringify(written))).toEqual(sample);
   });
 });

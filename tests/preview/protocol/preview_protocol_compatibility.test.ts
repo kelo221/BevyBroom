@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { PREVIEW_PROTOCOL_VERSION } from '@/preview/protocol/preview_protocol_types.js';
 
@@ -11,7 +11,7 @@ interface CompatibilityPin {
   preview_protocol: number;
   min_preview_protocol: number;
   bevy: string;
-  companion: { checkout: string };
+  companion: { path: string };
   renderer: { checkout: string; commit: string };
 }
 
@@ -25,21 +25,17 @@ function compatibilityPinRead(): CompatibilityPin {
 }
 
 /**
- * Reads a text file of a sibling checkout.
+ * Reads a text file of the game bridge workspace.
  *
- * @param checkout Checkout path relative to this repository.
- * @param filePath File path inside the checkout.
- * @returns File text, or null when the checkout is not present.
+ * @param workspacePath Workspace path relative to this repository.
+ * @param filePath File path inside the workspace.
+ * @returns File text.
  */
-function siblingFileRead(checkout: string, filePath: string): string | null {
-  const absolutePath = resolve(REPOSITORY_ROOT, checkout, filePath);
-  return existsSync(absolutePath) ? readFileSync(absolutePath, 'utf8') : null;
+function companionFileRead(workspacePath: string, filePath: string): string {
+  return readFileSync(resolve(REPOSITORY_ROOT, workspacePath, filePath), 'utf8');
 }
 
-/**
- * The compatibility pin agrees with the editor and, when present, the companion
- * checkout.
- */
+/** The compatibility pin agrees with the editor and the game bridge workspace. */
 describe('compatibility.json', () => {
   it('pins the protocol this editor speaks', () => {
     const pin = compatibilityPinRead();
@@ -48,14 +44,11 @@ describe('compatibility.json', () => {
     expect(pin.renderer.commit).toMatch(/^[0-9a-f]{40}$/);
   });
 
-  it('matches the protocol and Bevy version of the companion checkout', () => {
+  it('matches the protocol and Bevy version of the game bridge workspace', () => {
     const pin = compatibilityPinRead();
-    const stateSource = siblingFileRead(pin.companion.checkout, 'crates/broom_bridge/src/protocol/state.rs');
-    const helloSource = siblingFileRead(pin.companion.checkout, 'crates/broom_bridge/src/protocol/hello.rs');
-    const cargoManifest = siblingFileRead(pin.companion.checkout, 'Cargo.toml');
-    if (stateSource === null || helloSource === null || cargoManifest === null) {
-      return;
-    }
+    const stateSource = companionFileRead(pin.companion.path, 'crates/broom_bridge/src/protocol/state.rs');
+    const helloSource = companionFileRead(pin.companion.path, 'crates/broom_bridge/src/protocol/hello.rs');
+    const cargoManifest = companionFileRead(pin.companion.path, 'Cargo.toml');
     expect(stateSource).toContain(`pub const PROTOCOL_VERSION: u32 = ${pin.preview_protocol};`);
     expect(helloSource).toContain(`pub const MIN_PROTOCOL_VERSION: u32 = ${pin.min_preview_protocol};`);
     expect(cargoManifest).toMatch(new RegExp(`bevy = \\{[^}]*version = "${pin.bevy.replace(/\./g, '\\.')}"`));

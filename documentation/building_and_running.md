@@ -180,7 +180,7 @@ The end-to-end tests drive the real programs and are skipped unless you tell the
 | Variable                     | Value                                                                                  |
 | ---------------------------- | -------------------------------------------------------------------------------------- |
 | `BROOM_E2E_DESKTOP_EXE`      | The desktop app launcher from `bun run desktop:build:dev`                              |
-| `BROOM_E2E_PREVIEW_EXE`      | The release `broom_preview` program of the Bevy workspace (`AiWorldEdBevy`)            |
+| `BROOM_E2E_PREVIEW_EXE`      | The release `broom_preview` program of the Bevy workspace (`bevy/`)                    |
 | `BROOM_E2E_PROJECT_DIR`      | A game project folder holding `broom.project.json` and `assets/` (copied, not changed) |
 | `BROOM_E2E_PORT`             | Optional first bridge port of the games the tests start (default 15792)                |
 | `BROOM_E2E_MCP_PORT`         | Optional first MCP port of the desktop app (default 18865)                             |
@@ -191,37 +191,38 @@ From `cmd` on Windows:
 
 ```console
 set BROOM_E2E_DESKTOP_EXE=desktop_build\dev-win-x64\BevyBroom-dev\bin\launcher.exe
-set BROOM_E2E_PREVIEW_EXE=..\AiWorldEdBevy\target\release\broom_preview.exe
-set BROOM_E2E_PROJECT_DIR=..\AiWorldEdBevy
+set BROOM_E2E_PREVIEW_EXE=bevy\target\release\broom_preview.exe
+set BROOM_E2E_PROJECT_DIR=bevy
 bun run e2e
 ```
 
-The preview tests mirror scenes into the game through the editor's real preview link: lights, rooms and portals, doors opening and closing, failed geometry loads, bakes, renamed levels, Save As, game components with their data assets, including a shipped GLB loaded by a second game, and DynLight light features (effect, cookie, fog, shimmer, scaling a light into its radius, and which settings make a bake stale). The desktop test starts the app with its MCP server on, builds two rooms joined by a door through MCP tools the way an AI client would, checks them in the game, gives the light an effect and fog and removes them, places a game entity and reads a data asset through MCP, then relaunches the app and reopens the scene. The desktop project test opens a temporary copy of the game project whose launch is the preview program, builds a small crate before every launch, breaks and fixes that crate to check compiler errors in the Console and Issues list, rebuilds, restarts and stops the game, and checks that the game of a second project is refused. Without the desktop variable only the preview tests run; without the preview variables the desktop test runs without a game. `bun run testrun` skips all of them unless the variables are set.
+The preview tests mirror scenes into the game through the editor's real preview link: lights, rooms and portals, doors opening and closing, failed geometry loads, bakes, renamed levels, Save As, game components with their data assets, including a shipped GLB loaded by a second game, and DynLight light features (effect, cookie, fog, shimmer, scaling a light into its radius, and which settings make a bake stale), and the lights of a shipped GLB (every setting applied, and one light per editor light when the editor shows the same document). The desktop test starts the app with its MCP server on, builds two rooms joined by a door through MCP tools the way an AI client would, checks them in the game, gives the light an effect and fog and removes them, places a game entity and reads a data asset through MCP, then relaunches the app and reopens the scene. The desktop project test opens a temporary copy of the game project whose launch is the preview program, builds a small crate before every launch, breaks and fixes that crate to check compiler errors in the Console and Issues list, rebuilds, restarts and stops the game, and checks that the game of a second project is refused. Without the desktop variable only the preview tests run; without the preview variables the desktop test runs without a game. `bun run testrun` skips all of them unless the variables are set.
 
 The tests run without showing any window: the game is started with `--hidden` and the desktop app with `BEVYBROOM_DESKTOP_HIDDEN=1`. Both still render with the GPU, so they need a normal desktop session rather than a server without graphics. Set `BROOM_E2E_SHOW_WINDOWS=1` to see them in action.
 
-Set `BROOM_E2E_REQUIRED=1` to turn skipping into failure: every end-to-end suite then fails when its variables are missing, and the protocol fixture test fails when the companion checkout is missing. The manual **Game integration** workflow (`.github/workflows/integration.yml`) sets it, builds the preview and the desktop app in the same job, and runs `bun run e2e` against them.
+Set `BROOM_E2E_REQUIRED=1` to turn skipping into failure: every end-to-end suite then fails when its variables are missing. The manual **Game integration** workflow (`.github/workflows/integration.yml`) sets it, builds the preview and the desktop app in the same job, and runs `bun run e2e` against them. The **Bevy workspace** job of the automated workflow runs `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` on `bevy/` for every pull request.
 
 The strict TypeScript check (`bun run typecheck:strict`) is a required step of the automated workflow, next to the unit tests and the production build.
 
 ### Getting a compatible set of programs
 
-The game side lives in two sibling checkouts next to this repository:
+The game side lives in `bevy/` of this repository; only the renderer is a separate checkout next to it:
 
 ```
-AiWorldEd/        this editor (https://github.com/kelo221/BevyBroom)
-AiWorldEdBevy/    broom_bridge (the crate a game adds) and broom_preview (the ready-made game preview)
+AiWorldEd/        this repository (https://github.com/kelo221/BevyBroom)
+  bevy/           broom_bridge (the crate a game adds) and broom_preview (the ready-made game preview)
 DynLightBevy/     the DynLight renderer (https://github.com/kelo221/DynamicLighting-Bevy)
 ```
 
-`compatibility.json` at the root of this repository pins the combination the editor is tested with: the preview protocol range, the Bevy version and the renderer commit. `tests/preview/protocol/preview_protocol_compatibility.test.ts` checks the pin against the editor and, when `../AiWorldEdBevy` is present, against the companion's protocol constants and Bevy version. The wire fixtures in `AiWorldEdBevy/fixtures/` are mirrored in `tests/preview/protocol/fixtures/`; both repositories parse them, and the editor test fails when the mirror and the companion differ.
+`compatibility.json` at the root of this repository pins the combination the editor is tested with: the preview protocol range, the Bevy version and the renderer commit. `tests/preview/protocol/preview_protocol_compatibility.test.ts` checks the pin against the editor and against the bridge's protocol constants and Bevy version in `bevy/`. The wire fixtures in `bevy/fixtures/` are parsed by both the Rust tests and `tests/preview/protocol/preview_protocol_fixtures.test.ts`, so the two protocol definitions cannot drift apart.
 
-The companion workspace does not have a public repository yet; until it has one, get it from the maintainer and place it next to this checkout. Check out the renderer at the pinned commit:
+On a clean machine, clone both repositories side by side and check out the renderer at the pinned commit:
 
 ```console
+git clone https://github.com/kelo221/BevyBroom.git AiWorldEd
 git clone https://github.com/kelo221/DynamicLighting-Bevy.git DynLightBevy
 git -C DynLightBevy checkout <renderer commit from compatibility.json>
-cd AiWorldEdBevy
+cd AiWorldEd\bevy
 cargo build --release -j 2 -p broom_preview
 ```
 

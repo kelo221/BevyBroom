@@ -61,3 +61,7 @@ pub const EXTRAS_MATERIAL_ID: &str = "broom_material";
 /// The glTF node extras key carrying an object's placed game components as
 /// [`AuthoredComponents`].
 pub const EXTRAS_COMPONENTS: &str = "broom_components";
+/// The glTF node extras key carrying a shipped light node's complete [`AuthoredLight`].
+pub const EXTRAS_LIGHT: &str = "broom_light";
+/// The glTF node extras key carrying the editor id of the light a shipped light node belongs to.
+pub const EXTRAS_LIGHT_OF: &str = "broom_light_of";

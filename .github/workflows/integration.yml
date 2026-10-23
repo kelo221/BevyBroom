@@ -4,22 +4,16 @@ name: Game integration (end to end)
 # every end-to-end suite against them. BROOM_E2E_REQUIRED makes a missing
 # program fail the run instead of skipping its suites.
 #
-# The companion workspace (broom_bridge, broom_preview) has no public
-# repository yet, so this workflow only runs on demand and takes the companion
-# repository as an input. Rendering needs a GPU or a working software adapter:
+# The game bridge workspace lives in bevy/ of this repository; the renderer is
+# checked out next to it at the commit pinned in compatibility.json. Rendering
+# needs a GPU or a working software adapter, so this workflow runs on demand:
 # pick a runner label that has one (for example a self-hosted Windows GPU
-# runner).
+# runner). The Bevy workspace job in ci.yml checks the Rust side on every
+# pull request.
 
 on:
   workflow_dispatch:
     inputs:
-      companion_repository:
-        description: 'owner/name of the companion repository (broom_bridge, broom_preview)'
-        required: true
-      companion_ref:
-        description: 'Branch, tag or commit of the companion repository'
-        required: false
-        default: ''
       runner:
         description: 'Runner label with a GPU or software adapter'
         required: false
@@ -47,13 +41,6 @@ jobs:
           echo "renderer_repository=$(jq -r '.renderer.repository' AiWorldEd/compatibility.json | sed 's#https://github.com/##')" >> "$GITHUB_OUTPUT"
           echo "renderer_commit=$(jq -r '.renderer.commit' AiWorldEd/compatibility.json)" >> "$GITHUB_OUTPUT"
 
-      - name: Check out the companion
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.companion_repository }}
-          ref: ${{ inputs.companion_ref }}
-          path: AiWorldEdBevy
-
       - name: Check out the renderer at the pinned commit
         uses: actions/checkout@v4
         with:
@@ -70,7 +57,7 @@ jobs:
           bun-version-file: AiWorldEd/.bun-version
 
       - name: Build the game preview
-        working-directory: AiWorldEdBevy
+        working-directory: AiWorldEd/bevy
         run: cargo build --release -j 2 -p broom_preview
 
       - name: Install editor dependencies
@@ -85,8 +72,8 @@ jobs:
         working-directory: AiWorldEd
         shell: bash
         env:
-          BROOM_E2E_PREVIEW_EXE: ../AiWorldEdBevy/target/release/broom_preview${{ runner.os == 'Windows' && '.exe' || '' }}
-          BROOM_E2E_PROJECT_DIR: ../AiWorldEdBevy
+          BROOM_E2E_PREVIEW_EXE: bevy/target/release/broom_preview${{ runner.os == 'Windows' && '.exe' || '' }}
+          BROOM_E2E_PROJECT_DIR: bevy
         run: |
           launcher="$(find desktop_build -path '*bin/launcher*' -type f | head -n 1)"
           if [ -z "$launcher" ]; then echo "no desktop launcher was built" >&2; exit 1; fi

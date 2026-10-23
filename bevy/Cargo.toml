@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [workspace.dependencies]
-dynlight = { path = "../DynLightBevy" }
+dynlight = { path = "../../DynLightBevy" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 bevy = { version = "0.20.0", default-features = false, features = [

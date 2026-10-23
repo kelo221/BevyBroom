@@ -6,10 +6,13 @@ import {
   LIGHT_EXPORT_COLOR_EXTRAS_KEY,
   LIGHT_EXPORT_EFFECT_EXTRAS_KEY,
   LIGHT_EXPORT_FOG_EXTRAS_KEY,
+  LIGHT_EXPORT_OWNER_EXTRAS_KEY,
+  LIGHT_EXPORT_SETTINGS_EXTRAS_KEY,
   LIGHT_EXPORT_TYPE_EXTRAS_KEY,
 } from '@/light/export/light_export_node_builder.js';
 import { LightOwner } from '@/light/model/light_owner.js';
 import { lightSettingsCreateDefault, type LightSettings } from '@/light/model/light_settings.js';
+import { previewLightFromSettings } from '@/preview/state/preview_state_light_converter.js';
 import { previewLightColorChannels } from '@/preview/state/preview_state_light_converter_color.js';
 import { glbJsonRead } from '../../io/glb/glb_json_read.js';
 
@@ -25,6 +28,7 @@ function spotWorldCreate(): { world: THREE.Group; spot: THREE.Group; settings: L
     ...lightSettingsCreateDefault('spot'),
     colorHex: 0x3366ff,
     radius: 7.5,
+    shadows: 'realtime',
     effectKind: 'candle',
     fogEnabled: true,
     fogShape: 'cone_z',
@@ -74,6 +78,14 @@ describe('light export nodes', () => {
     expect(node?.userData[LIGHT_EXPORT_FOG_EXTRAS_KEY]).toBe('cone_z');
   });
 
+  it('writes the complete light definition and the editor id of its light', () => {
+    const { world, spot, settings } = spotWorldCreate();
+    const node = exportGroupFind(buildExportScene(world, { includeLightNodes: true }), spot.uuid)?.children[0];
+    expect(node?.userData[LIGHT_EXPORT_SETTINGS_EXTRAS_KEY]).toEqual(previewLightFromSettings(settings));
+    expect(node?.userData[LIGHT_EXPORT_SETTINGS_EXTRAS_KEY]).toMatchObject({ shadows: 'realtime' });
+    expect(node?.userData[LIGHT_EXPORT_OWNER_EXTRAS_KEY]).toBe(spot.uuid);
+  });
+
   it('cancels the owner scale because the radius already stands for it', () => {
     const { world, spot } = spotWorldCreate();
     spot.scale.setScalar(2);
@@ -89,10 +101,12 @@ describe('light export nodes', () => {
   });
 
   it('carries the light extras into the file export without any light mesh', async () => {
-    const { world } = spotWorldCreate();
+    const { world, spot } = spotWorldCreate();
     const json = glbJsonRead(await new GlbExporter().exportForFile(world));
     const extras = (json.nodes ?? []).map((node) => node.extras ?? {});
-    expect(extras.some((entry) => entry[LIGHT_EXPORT_TYPE_EXTRAS_KEY] === 'spot')).toBe(true);
+    const lightExtras = extras.find((entry) => entry[LIGHT_EXPORT_TYPE_EXTRAS_KEY] === 'spot');
+    expect(lightExtras?.[LIGHT_EXPORT_OWNER_EXTRAS_KEY]).toBe(spot.uuid);
+    expect(lightExtras?.[LIGHT_EXPORT_SETTINGS_EXTRAS_KEY]).toMatchObject({ light_type: 'spot', shadows: 'realtime' });
     expect((json.meshes ?? []).length).toBe(0);
   });
 });

@@ -1,8 +1,0 @@
-{
-  "protocol": 4,
-  "min_protocol": 3,
-  "bridge_version": "0.1.0",
-  "project_id": "broom-sample-project",
-  "instance_id": "18f2a7c4b1d-3a1c",
-  "capabilities": ["state", "geometry", "catalog", "placeables", "data_assets", "bake_preview", "load_level"]
-}
