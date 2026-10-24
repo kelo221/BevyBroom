@@ -2,20 +2,15 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MaterialBrowser } from '@/texture/ui/material_browser/material_browser.js';
 import { createTextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
 import type { TextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
-import type { MaterialBrowserContextActions } from '@/texture/ui/material_browser/material_browser.js';
+import type { MaterialBrowserContextMenuHandlers } from '@/texture/ui/material_browser/material_browser_context_menu.js';
 import { mockObjectUrlApis } from '../../library/utils_object_url_test.js';
 
 describe('MaterialBrowser context menu', () => {
   let host: HTMLElement;
-  let actions: {
-    onSelectFacesUsingMaterial: ReturnType<typeof vi.fn<MaterialBrowserContextActions['onSelectFacesUsingMaterial']>>;
-    onSelectObjectsUsingMaterial: ReturnType<
-      typeof vi.fn<MaterialBrowserContextActions['onSelectObjectsUsingMaterial']>
-    >;
-    onCopyName: ReturnType<typeof vi.fn<MaterialBrowserContextActions['onCopyName']>>;
-  };
+  let actions: { [Name in keyof MaterialBrowserContextMenuHandlers]: ReturnType<typeof vi.fn> };
   let browser: MaterialBrowser;
   let entry: TextureBrowserEntry;
+  let otherEntry: TextureBrowserEntry;
 
   beforeEach(() => {
     mockObjectUrlApis('blob:browser-menu');
@@ -24,15 +19,18 @@ describe('MaterialBrowser context menu', () => {
     actions = {
       onSelectFacesUsingMaterial: vi.fn(),
       onSelectObjectsUsingMaterial: vi.fn(),
+      onReplaceWithSelectedMaterial: vi.fn(),
+      selectedMaterialIdRead: vi.fn(() => ''),
       onCopyName: vi.fn(),
     };
     entry = createTextureBrowserEntry(new File(['x'], 'brick.png', { type: 'image/png' }), 'walls/brick.png');
+    otherEntry = createTextureBrowserEntry(new File(['y'], 'stone.png', { type: 'image/png' }), 'walls/stone.png');
     browser = new MaterialBrowser({
       onOpenFolder: () => undefined,
       onSelectTexture: () => undefined,
-      contextActions: actions,
+      contextActions: actions as unknown as MaterialBrowserContextMenuHandlers,
     });
-    browser.setEntries([entry], entry.id, 'walls');
+    browser.setEntries([entry, otherEntry], entry.id, 'walls');
     host.appendChild(browser.getElement());
   });
 
@@ -61,6 +59,21 @@ describe('MaterialBrowser context menu', () => {
     dispatchContextMenu(entry.id);
     clickMenuItem('Copy Name');
     expect(actions.onCopyName).toHaveBeenCalledWith(entry);
+  });
+
+  it('replaces the right-clicked material with the selected one', () => {
+    actions.selectedMaterialIdRead.mockReturnValue(entry.id);
+    dispatchContextMenu(otherEntry.id);
+    clickMenuItem('Replace With Selected Material');
+    expect(actions.onReplaceWithSelectedMaterial).toHaveBeenCalledWith(otherEntry);
+  });
+
+  it('disables replacing when no other material is selected', () => {
+    for (const selectedId of ['', entry.id]) {
+      actions.selectedMaterialIdRead.mockReturnValue(selectedId);
+      dispatchContextMenu(entry.id);
+      expect(menuItemFind('Replace With Selected Material').disabled).toBe(true);
+    }
   });
 });
 
@@ -94,11 +107,21 @@ function openMenuLabels(): string[] {
  * @param label Row label.
  */
 function clickMenuItem(label: string): void {
+  menuItemFind(label).click();
+}
+
+/**
+ * Finds one open menu row by label.
+ *
+ * @param label Row label.
+ * @returns The row button.
+ */
+function menuItemFind(label: string): HTMLButtonElement {
   const row = Array.from(document.querySelectorAll<HTMLButtonElement>('.editor-toolbar-dropdown-menu button')).find(
     (button) => button.textContent?.trim() === label,
   );
   if (!row) {
     throw new Error(`menu row not found: ${label}`);
   }
-  row.click();
+  return row;
 }

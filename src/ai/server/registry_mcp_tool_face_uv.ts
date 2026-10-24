@@ -64,4 +64,17 @@ export const MCP_FACE_UV_TOOL_DEFINITIONS: McpToolDefinition[] = [
       required: ['brushId', 'operation'],
     },
   ),
+  tool(
+    'replace_texture',
+    'Replace one material with another on every brush face that uses it, keeping each face UV mapping, as one undo step (like Replace With Selected Material in the material browser). scope all searches every brush (default); selection searches only the selected brushes and models. Returns { faceCount, scope }.',
+    {
+      type: 'object',
+      properties: {
+        findTextureId: { type: 'string' },
+        replaceTextureId: { type: 'string' },
+        scope: { type: 'string', enum: ['all', 'selection'] },
+      },
+      required: ['findTextureId', 'replaceTextureId'],
+    },
+  ),
 ];

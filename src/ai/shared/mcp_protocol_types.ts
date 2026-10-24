@@ -64,6 +64,7 @@ export type McpToolName =
   | 'snap_brush_vertices'
   | 'get_face_uv'
   | 'set_face_material'
+  | 'replace_texture'
   | 'set_face_uv'
   | 'transform_face_uv'
   | 'select_by_query'

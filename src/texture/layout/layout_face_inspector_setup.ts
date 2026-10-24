@@ -9,6 +9,8 @@ import { ControllerFaceUvTools } from '@/texture/controller/controller_face_uv_t
 import { faceUvShortcutsRegister } from '@/texture/controller/face_uv_shortcut_bindings.js';
 import { ControllerTextureBrowser } from '@/texture/controller/controller_texture_browser.js';
 import { ControllerTextureAssignment } from '@/texture/controller/controller_texture_assignment.js';
+import { HandlerTextureReplace } from '@/texture/replace/handler_texture_replace.js';
+import type { MaterialBrowserContextMenuHandlers } from '@/texture/ui/material_browser/material_browser_context_menu.js';
 import { ControllerMaterialUsage } from '@/texture/controller/controller_material_usage.js';
 import {
   FaceAttributesEditor,
@@ -327,6 +329,8 @@ function faceInspectorTextureSizeRead(textureId: string): { width: number; heigh
  * Creates the material browser whose actions go through the browser controller.
  *
  * @param slots Late-bound browser controller.
+ * @param usageController Material usage finder, or null without a world.
+ * @param deps Face inspector setup dependencies.
  * @returns Material browser.
  */
 function faceInspectorMaterialBrowserCreate(
@@ -334,21 +338,96 @@ function faceInspectorMaterialBrowserCreate(
   usageController: ControllerMaterialUsage | null,
   deps: FaceInspectorSetupDeps,
 ): MaterialBrowser {
+  const contextActions =
+    usageController && deps.worldObject
+      ? faceInspectorMaterialContextActionsCreate(slots, usageController, deps.worldObject, deps)
+      : null;
   return new MaterialBrowser({
     onOpenFolder: () => {
       void slots.textureBrowserController?.openFolder();
     },
     onSelectTexture: (entryId) => slots.textureBrowserController?.selectTexture(entryId),
-    ...(usageController
-      ? {
-          contextActions: {
-            onSelectFacesUsingMaterial: (entry) => usageController.selectFacesUsingTexture(entry.id),
-            onSelectObjectsUsingMaterial: (entry) => usageController.selectObjectsUsingTexture(entry.id),
-            onCopyName: (entry) => faceInspectorMaterialNameCopy(entry.displayName, deps),
-          },
-        }
-      : {}),
+    ...(contextActions ? { contextActions } : {}),
   });
+}
+
+/**
+ * Builds the right-click actions of the material tiles.
+ *
+ * @param slots Late-bound browser controller.
+ * @param usageController Material usage finder.
+ * @param worldObject Scene root searched for brushes.
+ * @param deps Face inspector setup dependencies.
+ * @returns Tile context actions.
+ */
+function faceInspectorMaterialContextActionsCreate(
+  slots: FaceInspectorControllerSlots,
+  usageController: ControllerMaterialUsage,
+  worldObject: THREE.Object3D,
+  deps: FaceInspectorSetupDeps,
+): MaterialBrowserContextMenuHandlers {
+  const selectedMaterialIdRead = faceInspectorSelectedMaterialIdReaderCreate(slots);
+  const textureReplace = faceInspectorTextureReplaceCreate(deps, worldObject);
+  return {
+    onSelectFacesUsingMaterial: (entry) => usageController.selectFacesUsingTexture(entry.id),
+    onSelectObjectsUsingMaterial: (entry) => usageController.selectObjectsUsingTexture(entry.id),
+    onReplaceWithSelectedMaterial: (entry) =>
+      faceInspectorMaterialReplace(textureReplace, entry.id, selectedMaterialIdRead(), deps),
+    selectedMaterialIdRead,
+    onCopyName: (entry) => faceInspectorMaterialNameCopy(entry.displayName, deps),
+  };
+}
+
+/**
+ * Creates a reader of the material selected in the browser.
+ *
+ * @param slots Late-bound browser controller.
+ * @returns Reader returning the selected material id, or ''.
+ */
+function faceInspectorSelectedMaterialIdReaderCreate(slots: FaceInspectorControllerSlots): () => string {
+  return () => slots.textureBrowserController?.getLibrary().getSelectedId() ?? '';
+}
+
+/**
+ * Creates the material replacement over the editor world.
+ *
+ * @param deps Face inspector setup dependencies.
+ * @param worldObject Scene root searched for brushes.
+ * @returns Material replacement.
+ */
+function faceInspectorTextureReplaceCreate(
+  deps: FaceInspectorSetupDeps,
+  worldObject: THREE.Object3D,
+): HandlerTextureReplace {
+  return new HandlerTextureReplace({
+    commandStack: deps.commandStack,
+    worldObject,
+    selectionManager: deps.selectionManager,
+    afterReplace: () => deps.afterSurfaceChange(),
+  });
+}
+
+/**
+ * Replaces a material with the selected one, in the selected objects when
+ * anything is selected and everywhere otherwise, and reports the face count.
+ *
+ * @param textureReplace Material replacement.
+ * @param findTextureId Material to replace.
+ * @param replaceTextureId Material painted instead.
+ * @param deps Face inspector setup dependencies for status feedback.
+ */
+function faceInspectorMaterialReplace(
+  textureReplace: HandlerTextureReplace,
+  findTextureId: string,
+  replaceTextureId: string,
+  deps: FaceInspectorSetupDeps,
+): void {
+  if (replaceTextureId === '') {
+    return;
+  }
+  const scope = deps.selectionManager.getSelectedObjectCount() > 0 ? 'selection' : 'all';
+  const faceCount = textureReplace.replace(findTextureId, replaceTextureId, scope);
+  deps.statusBar?.setLastAction(`Replaced the material of ${faceCount} face(s)`);
 }
 
 /**

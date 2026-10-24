@@ -10,7 +10,10 @@ import {
 import type { MaterialBrowserView } from './material_browser_view.js';
 import { materialBrowserFilterEntries } from './material_browser_filter.js';
 import { materialBrowserTileCreate, materialBrowserTileSelectionPaint } from './material_browser_tile.js';
-import { MaterialBrowserContextMenu } from './material_browser_context_menu.js';
+import {
+  MaterialBrowserContextMenu,
+  type MaterialBrowserContextMenuHandlers,
+} from './material_browser_context_menu.js';
 import {
   MATERIAL_BROWSER_GRID_CLASS,
   MATERIAL_BROWSER_ROOT_CLASS,
@@ -22,14 +25,7 @@ export interface MaterialBrowserHandlers {
   onOpenFolder: () => void;
   onSelectTexture: (entryId: string) => void;
   /** Right-click actions of a material tile; supplying them enables the menu. */
-  contextActions?: MaterialBrowserContextActions;
-}
-
-/** Right-click actions offered for one material tile. */
-export interface MaterialBrowserContextActions {
-  onSelectFacesUsingMaterial: (entry: TextureBrowserEntry) => void;
-  onSelectObjectsUsingMaterial: (entry: TextureBrowserEntry) => void;
-  onCopyName: (entry: TextureBrowserEntry) => void;
+  contextActions?: MaterialBrowserContextMenuHandlers;
 }
 
 /**

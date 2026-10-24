@@ -8,9 +8,9 @@ import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
 
 /**
  * End-to-end acceptance of the face UV MCP tools in the built desktop app: a
- * face is painted and its UV rows written, another face is rotated, and each
- * edit is one undo step. Skipped unless BROOM_E2E_DESKTOP_EXE names the app
- * launcher.
+ * face is painted and its UV rows written, another face is rotated, a material
+ * is replaced on every face using it, and each edit is one undo step. Skipped
+ * unless BROOM_E2E_DESKTOP_EXE names the app launcher.
  */
 const desktopExecutable = process.env['BROOM_E2E_DESKTOP_EXE'] ? resolve(process.env['BROOM_E2E_DESKTOP_EXE']) : '';
 e2eRequiredConfigurationAssert(desktopExecutable !== '', ['BROOM_E2E_DESKTOP_EXE']);
@@ -110,6 +110,28 @@ describe.skipIf(desktopExecutable === '')('desktop app face UV tools end to end'
       await client.toolCallExpectOk('undo');
       await client.toolCallExpectOk('undo');
       expect((await faceRowRead(brushId, 0)).textureId).toBe(original.textureId);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'replaces a material on every face using it through replace_texture',
+    async () => {
+      const brushId = await brushCreate();
+      const faceIndices = [0, 2];
+      await client.toolCallExpectOk('set_face_material', { brushId, faceIndices, textureId: 'e2e-replace-old' });
+      const otherTextureId = (await faceRowRead(brushId, 1)).textureId;
+      const result = await client.toolCallExpectOk('replace_texture', {
+        findTextureId: 'e2e-replace-old',
+        replaceTextureId: 'e2e-replace-new',
+      });
+      expect(toolDataRead<{ faceCount: number }>(result).faceCount).toBeGreaterThanOrEqual(faceIndices.length);
+      for (const faceIndex of faceIndices) {
+        expect((await faceRowRead(brushId, faceIndex)).textureId).toBe('e2e-replace-new');
+      }
+      expect((await faceRowRead(brushId, 1)).textureId).toBe(otherTextureId);
+      await client.toolCallExpectOk('undo');
+      expect((await faceRowRead(brushId, 0)).textureId).toBe('e2e-replace-old');
     },
     STEP_TIMEOUT_MILLISECONDS,
   );

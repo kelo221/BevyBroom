@@ -1,17 +1,24 @@
 import { MenuContext, type MenuContextItem } from '@/ui/menu/menu_context.js';
 import type { TextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
 
-/** Actions the material browser context menu runs. */
+/** Right-click actions offered for one material tile. */
 export interface MaterialBrowserContextMenuHandlers {
+  /** Selects the faces painted with the material. */
   onSelectFacesUsingMaterial: (entry: TextureBrowserEntry) => void;
+  /** Selects the brushes and objects painted with the material. */
   onSelectObjectsUsingMaterial: (entry: TextureBrowserEntry) => void;
+  /** Repaints the faces using the material with the selected material. */
+  onReplaceWithSelectedMaterial: (entry: TextureBrowserEntry) => void;
+  /** Returns the id of the material selected in the browser, or ''. */
+  selectedMaterialIdRead: () => string;
+  /** Copies the material name. */
   onCopyName: (entry: TextureBrowserEntry) => void;
 }
 
 /**
  * Right-click menu of one material tile: select the faces or objects using the
- * material, or copy its name. The browser opens it for the tile that received
- * the right click.
+ * material, replace it with the selected material, or copy its name. The
+ * browser opens it for the tile that received the right click.
  */
 export class MaterialBrowserContextMenu {
   private readonly hostElement: HTMLElement;
@@ -65,8 +72,25 @@ export class MaterialBrowserContextMenu {
         callback: () => this.handlers.onSelectObjectsUsingMaterial(entry),
       },
       { kind: 'separator' },
+      {
+        label: 'Replace With Selected Material',
+        callback: () => this.handlers.onReplaceWithSelectedMaterial(entry),
+        disabled: !this.replacementAvailableIs(entry),
+      },
+      { kind: 'separator' },
       { label: 'Copy Name', callback: () => this.handlers.onCopyName(entry) },
     ];
+  }
+
+  /**
+   * Returns whether another material is selected to replace this one with.
+   *
+   * @param entry Right-clicked material entry.
+   * @returns True when a different material is selected.
+   */
+  private replacementAvailableIs(entry: TextureBrowserEntry): boolean {
+    const selectedMaterialId = this.handlers.selectedMaterialIdRead();
+    return selectedMaterialId !== '' && selectedMaterialId !== entry.id;
   }
 
   /** Closes and releases the open menu. */
