@@ -72,6 +72,9 @@ const WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, stri
   ['toolbar_toggle', 'Toggle Toolbar'],
   ['select_all', 'Select All'],
   ['select_none', 'Select None'],
+  ['visibility_hide', 'Hide Selected'],
+  ['visibility_isolate', 'Isolate Selected'],
+  ['visibility_show_all', 'Show All'],
 ];
 
 /**

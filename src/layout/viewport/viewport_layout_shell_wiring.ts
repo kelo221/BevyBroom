@@ -10,7 +10,11 @@ import {
   type LayoutShellPanelsSource,
 } from '@/layout/shell/mount/layout_shell_panels_source.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
-import { ShellWindowActionsLayout } from '@/layout/shell/actions/shell_window_actions_layout.js';
+import {
+  ShellWindowActionsLayout,
+  type ShellWindowActionsLayoutSource,
+} from '@/layout/shell/actions/shell_window_actions_layout.js';
+import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
 import {
   LayoutViewportFileActions,
   type LayoutViewportFileActionsContext,
@@ -21,6 +25,7 @@ import {
 } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import type { FaceSelection } from '@/selection/face/manager_face_selection.js';
 import { SelectionMode } from '@/types/selection_mode.js';
+import { HandlerSelectionVisibility } from '@/selection/visibility/handler_selection_visibility.js';
 import { LayoutClipboardSystem } from '@/layout/setup/layout_clipboard_setup.js';
 
 /**
@@ -30,6 +35,7 @@ import { LayoutClipboardSystem } from '@/layout/setup/layout_clipboard_setup.js'
 export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
   protected readonly fileActions = new LayoutViewportFileActions(() => this.fileActionsContextRead());
   private solidBrushTools: HandlerSolidBrushTools | null = null;
+  private selectionVisibility: HandlerSelectionVisibility | null = null;
 
   /**
    * Returns the current editor parts the File menu actions use.
@@ -94,24 +100,44 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
    */
   protected createShellWindowActions(): ShellWindowActions {
     const layout = this;
-    return new ShellWindowActionsLayout({
-      viewportChromeHostRead: () => layout.getViewportChromeHost(),
-      cameraFitCoordinatorRead: () => layout.cameraFitCoordinator,
-      toolChromeRead: () => layout.toolsPaletteController,
-      playModeStart: () => layout.playerSystem?.playModeStart(),
-      shortcutLabelRead: (action) => layout.fileActions.shortcutLabelRead(action),
-      clipboardEditCommandsRead: () => layout.clipboardSystem?.editCommands ?? null,
-      solidBrushToolsRead: () => layout.solidBrushToolsEnsure(),
+    return new ShellWindowActionsLayout(
+      Object.assign(this.shellWindowActionsScenePartsCreate(), {
+        viewportChromeHostRead: () => layout.getViewportChromeHost(),
+        cameraFitCoordinatorRead: () => layout.cameraFitCoordinator,
+        toolChromeRead: () => layout.toolsPaletteController,
+        playModeStart: () => layout.playerSystem?.playModeStart(),
+        shortcutLabelRead: (action: KeyboardShortcutAction) => layout.fileActions.shortcutLabelRead(action),
+        clipboardEditCommandsRead: () => layout.clipboardSystem?.editCommands ?? null,
+        solidBrushToolsRead: () => layout.solidBrushToolsEnsure(),
+        selectionVisibilityRead: () => layout.selectionVisibilityEnsure(),
+      }),
+    );
+  }
+
+  /**
+   * Builds the late-bound scene parts the window actions read on every call.
+   *
+   * @returns Selection, scene root and grid size getters.
+   */
+  private shellWindowActionsScenePartsCreate(): Pick<
+    ShellWindowActionsLayoutSource,
+    'selectionManager' | 'worldObject' | 'snapManager'
+  > {
+    const layout = this;
+    return {
+      /** @returns The object selection. */
       get selectionManager() {
         return layout.selectionManager;
       },
+      /** @returns The scene root. */
       get worldObject() {
         return layout.worldObject;
       },
+      /** @returns The grid size source. */
       get snapManager() {
         return layout.snapManager;
       },
-    });
+    };
   }
 
   /**
@@ -122,6 +148,22 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
   protected solidBrushToolsEnsure(): HandlerSolidBrushTools {
     this.solidBrushTools ??= new HandlerSolidBrushTools(this.solidBrushToolsDepsRead());
     return this.solidBrushTools;
+  }
+
+  /**
+   * Returns the Hide, Isolate and Show All commands, creating them on first
+   * use.
+   *
+   * @returns Visibility commands bound to this layout.
+   */
+  protected selectionVisibilityEnsure(): HandlerSelectionVisibility {
+    this.selectionVisibility ??= new HandlerSelectionVisibility({
+      commandStack: this.commandStack,
+      selectionManager: this.selectionManager,
+      worldObject: this.worldObject,
+      afterVisibilityChange: () => this.refreshAfterWorldMutation(),
+    });
+    return this.selectionVisibility;
   }
 
   /**

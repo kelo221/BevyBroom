@@ -6,11 +6,13 @@ import { EditorApiBrushTools } from './editor_api_brush_tools.js';
 import { EditorApiFaceUv } from './editor_api_face_uv.js';
 import { EditorApiViewportInput } from './editor_api_viewport_input.js';
 import { EditorApiSelectionQuery } from './editor_api_selection_query.js';
+import { EditorApiSelectionVisibility } from './editor_api_selection_visibility.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 
 /**
  * Tool groups that each answer only their own tool names: layers, main window,
- * clipboard, brush editing, face UV, viewport input and selection queries.
+ * clipboard, brush editing, face UV, viewport input, selection queries and
+ * selection visibility.
  */
 export class EditorApiToolGroups {
   private readonly layers: EditorApiLayers;
@@ -20,6 +22,7 @@ export class EditorApiToolGroups {
   private readonly faceUv: EditorApiFaceUv;
   private readonly viewportInput: EditorApiViewportInput;
   private readonly selectionQuery: EditorApiSelectionQuery;
+  private readonly selectionVisibility: EditorApiSelectionVisibility;
 
   /**
    * Creates every tool group over the editor host.
@@ -36,6 +39,7 @@ export class EditorApiToolGroups {
     this.faceUv = new EditorApiFaceUv(host);
     this.viewportInput = new EditorApiViewportInput(host, selectionRead);
     this.selectionQuery = new EditorApiSelectionQuery(host);
+    this.selectionVisibility = new EditorApiSelectionVisibility(host);
   }
 
   /**
@@ -53,7 +57,8 @@ export class EditorApiToolGroups {
       this.brushTools.brushToolDispatch(name, args) ??
       this.faceUv.faceUvToolDispatch(name, args) ??
       this.viewportInput.viewportInputToolDispatch(name, args) ??
-      this.selectionQuery.selectionQueryToolDispatch(name, args)
+      this.selectionQuery.selectionQueryToolDispatch(name, args) ??
+      this.selectionVisibility.selectionVisibilityToolDispatch(name, args)
     );
   }
 }

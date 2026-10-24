@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { HandlerSelectionVisibility } from '@/selection/visibility/handler_selection_visibility.js';
 import { ShellMenuView } from '@/layout/shell/menubar/menus/shell_menu_view.js';
 import type { ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 import type { ShellInspectorTabId } from '@/layout/shell/inspector/shell_inspector.js';
@@ -41,6 +42,28 @@ const SHELL_MENU_VIEW_TEST_WINDOW_ROWS: ReadonlyArray<
   ['Cycle View', 'viewCycle', 'view_cycle'],
   ['Maximize View', 'viewMaximize', 'view_maximize'],
 ];
+
+/**
+ * View menu visibility rows with the command they run, the shortcut action they
+ * show and whether they need a selection.
+ */
+const SHELL_MENU_VIEW_TEST_VISIBILITY_ROWS: ReadonlyArray<
+  readonly [string, 'hideSelected' | 'isolateSelected' | 'showAll', KeyboardShortcutAction, boolean]
+> = [
+  ['Hide Selected', 'hideSelected', 'visibility_hide', true],
+  ['Isolate Selected', 'isolateSelected', 'visibility_isolate', true],
+  ['Show All', 'showAll', 'visibility_show_all', false],
+];
+
+/**
+ * Creates visibility commands whose every command is a spy.
+ *
+ * @returns Spy visibility commands.
+ */
+function shellMenuViewTestVisibilitySpyCreate(): HandlerSelectionVisibility {
+  const spies = { hideSelected: vi.fn(() => 0), isolateSelected: vi.fn(() => 0), showAll: vi.fn(() => 0) };
+  return spies as unknown as HandlerSelectionVisibility;
+}
 
 /** Docks, actions and View menu entries shared by one test. */
 interface ShellMenuViewTestRig {
@@ -136,6 +159,22 @@ describe('ShellMenuView', () => {
       const row = shellTestMenuActionFind(entries, label);
       row.onClick();
       expect(windowActions[member]).toHaveBeenCalledTimes(1);
+      expect(shellTestMenuShortcutRead(row)).toBe(shellTestShortcutLabelFormat(shortcutAction));
+    });
+  });
+
+  SHELL_MENU_VIEW_TEST_VISIBILITY_ROWS.forEach(([label, member, shortcutAction, needsSelection]) => {
+    it(`runs ${label} through the visibility commands and enables it by selection`, () => {
+      const { entries, windowActions } = shellMenuViewTestRigCreate();
+      const visibility = shellMenuViewTestVisibilitySpyCreate();
+      windowActions.selectionVisibility = visibility;
+      const row = shellTestMenuActionFind(entries, label);
+      windowActions.clipboardSelectionHasObjects = false;
+      expect(row.isEnabled?.() ?? true).toBe(!needsSelection);
+      windowActions.clipboardSelectionHasObjects = true;
+      expect(row.isEnabled?.() ?? true).toBe(true);
+      row.onClick();
+      expect(visibility[member]).toHaveBeenCalledTimes(1);
       expect(shellTestMenuShortcutRead(row)).toBe(shellTestShortcutLabelFormat(shortcutAction));
     });
   });

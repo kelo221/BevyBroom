@@ -13,6 +13,7 @@ import { selectionQueryFind } from '@/selection/query/selection_query_registry.j
 import { selectionQueryRun } from '@/selection/query/selection_query_run.js';
 import { viewCycleHoveredPane, viewMaximizeHoveredPane } from '@/layout/view_cycle/layout_view_cycle.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
+import type { HandlerSelectionVisibility } from '@/selection/visibility/handler_selection_visibility.js';
 import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import type { ClipboardEditCommands } from '@/clipboard/controller/clipboard_edit_commands.js';
 
@@ -57,6 +58,12 @@ export interface ShellWindowActionsLayoutSource {
    * @returns Brush tools.
    */
   solidBrushToolsRead(): HandlerSolidBrushTools | null;
+  /**
+   * Returns the Hide, Isolate and Show All commands, or null before they exist.
+   *
+   * @returns Visibility commands.
+   */
+  selectionVisibilityRead(): HandlerSelectionVisibility | null;
   /** Object selection the selection commands change. */
   readonly selectionManager: ManagerSelection;
   /** Scene root whose selectable objects Select All picks. */
@@ -223,6 +230,15 @@ export class ShellWindowActionsLayout implements ShellWindowActions {
    */
   selectionHasObjectsIs(): boolean {
     return this.source.selectionManager.getSelectedObjectCount() > 0;
+  }
+
+  /**
+   * Returns the Hide, Isolate and Show All commands.
+   *
+   * @returns Visibility commands, or null before they exist.
+   */
+  selectionVisibilityRead(): HandlerSelectionVisibility | null {
+    return this.source.selectionVisibilityRead();
   }
 
   /**

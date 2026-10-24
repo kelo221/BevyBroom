@@ -1,6 +1,7 @@
 import type { SelectionQueryId } from '@/selection/query/selection_query.js';
 import { vi, type Mock } from 'vitest';
 import type { EditorToolbarActions } from '@/layout/shell/builder_editor_shell.js';
+import type { HandlerSelectionVisibility } from '@/selection/visibility/handler_selection_visibility.js';
 import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
 import type { ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
@@ -158,6 +159,10 @@ export class ShellTestWindowActions implements ShellWindowActions {
   solidBrushTools: HandlerSolidBrushTools | null = null;
   /** Spy that returns the brush tools. */
   readonly solidBrushToolsRead = vi.fn(() => this.solidBrushTools);
+  /** Hide, Isolate and Show All commands the menus run, or null for none. */
+  selectionVisibility: HandlerSelectionVisibility | null = null;
+  /** Spy that returns the visibility commands. */
+  readonly selectionVisibilityRead = vi.fn(() => this.selectionVisibility);
 
   /**
    * Changes the grid size and tells every registered listener.

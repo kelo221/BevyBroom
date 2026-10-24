@@ -1,3 +1,4 @@
+import { MCP_SELECTION_VISIBILITY_ACTIONS } from '@/ai/shared/mcp_selection_visibility_actions.js';
 import { SELECTION_QUERY_IDS } from '@/selection/query/selection_query.js';
 import { tool, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
@@ -80,6 +81,17 @@ export const MCP_BRUSH_TOOL_DEFINITIONS: McpToolDefinition[] = [
         query: { type: 'string', enum: [...SELECTION_QUERY_IDS] },
       },
       required: ['query'],
+    },
+  ),
+  tool(
+    'set_selection_visibility',
+    'Change object visibility like the View menu, as one undo step: hide (hide the selected objects and clear the selection), isolate (hide every visible object that is not selected), show_all (show every hidden object and its hidden parents). Hidden brushes leave CSG evaluation. Returns { action, changedCount }.',
+    {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: [...MCP_SELECTION_VISIBILITY_ACTIONS] },
+      },
+      required: ['action'],
     },
   ),
 ];

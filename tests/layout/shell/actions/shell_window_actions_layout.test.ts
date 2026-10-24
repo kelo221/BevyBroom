@@ -61,18 +61,13 @@ function fixtureCreate(
     shortcutLabelRead: (action) => `label:${action}`,
     clipboardEditCommandsRead: () => clipboardEditCommands,
     solidBrushToolsRead: () => null,
+    selectionVisibilityRead: () => null,
     selectionManager,
     worldObject,
     snapManager,
   };
-  return {
-    actions: new ShellWindowActionsLayout(source),
-    source,
-    worldObject,
-    selectionManager,
-    snapManager,
-    cameraFit,
-  };
+  const actions = new ShellWindowActionsLayout(source);
+  return { actions, source, worldObject, selectionManager, snapManager, cameraFit };
 }
 
 describe('ShellWindowActionsLayout', () => {

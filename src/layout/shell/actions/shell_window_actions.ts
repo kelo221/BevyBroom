@@ -1,4 +1,5 @@
 import type { SelectionQueryId } from '@/selection/query/selection_query.js';
+import type { HandlerSelectionVisibility } from '@/selection/visibility/handler_selection_visibility.js';
 import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import type { EditorToolId } from '@/types/editor_tool_id.js';
 import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
@@ -94,4 +95,10 @@ export interface ShellWindowActions {
    * @returns True while the object selection is not empty.
    */
   selectionHasObjectsIs(): boolean;
+  /**
+   * Returns the Hide, Isolate and Show All commands.
+   *
+   * @returns Visibility commands, or null before the editor finished starting.
+   */
+  selectionVisibilityRead(): HandlerSelectionVisibility | null;
 }

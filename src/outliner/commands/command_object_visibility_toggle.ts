@@ -1,16 +1,12 @@
-import * as THREE from 'three';
-import { UndoCommand } from '@/commands/command_undo.js';
-import { SolidModel } from '@/solid/model/solid_model.js';
+import type * as THREE from 'three';
+import { CommandObjectsVisibilitySet } from './command_objects_visibility_set.js';
 
 /**
- * Undoable command for toggling the visibility of a Three.js object. Solid
- * brushes also leave or re-enter CSG evaluation via partial rebuild.
+ * Undoable command for toggling the visibility of one object. Solid brushes
+ * also leave or re-enter CSG evaluation via partial rebuild.
  */
-export class CommandObjectVisibilityToggle implements UndoCommand {
-  private object: THREE.Object3D;
-  private previousVisibility: boolean;
-  private newVisibility: boolean;
-  private executed: boolean;
+export class CommandObjectVisibilityToggle extends CommandObjectsVisibilitySet {
+  private readonly newVisibility: boolean;
 
   /**
    * Creates a new toggle visibility command for the specified object.
@@ -18,35 +14,8 @@ export class CommandObjectVisibilityToggle implements UndoCommand {
    * @param object The Three.js object whose visibility to toggle.
    */
   constructor(object: THREE.Object3D) {
-    this.object = object;
-    this.previousVisibility = object.visible;
+    super([{ object, visible: !object.visible }]);
     this.newVisibility = !object.visible;
-    this.executed = false;
-  }
-
-  /** Executes the visibility toggle by setting the new visibility state. */
-  execute(): void {
-    if (this.executed) return;
-    this.object.visible = this.newVisibility;
-    this.syncSolidBrushCsgVisibility();
-    this.executed = true;
-  }
-
-  /** Undoes the toggle by restoring the object's previous visibility state. */
-  undo(): void {
-    this.object.visible = this.previousVisibility;
-    this.syncSolidBrushCsgVisibility();
-    this.executed = false;
-  }
-
-  /**
-   * When the object is a solid brush, updates CSG membership for the new
-   * visibility using the model's partial recompile path.
-   */
-  private syncSolidBrushCsgVisibility(): void {
-    const model = SolidModel.fromObject(this.object);
-    if (!model) return;
-    model.applyBrushVisibilityChange(this.object);
   }
 
   /**

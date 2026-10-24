@@ -9,7 +9,8 @@ import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
 /**
  * End-to-end acceptance of the brush editing MCP tools in the built desktop
  * app: hollow, flip, shear, vertex snap and convex merge each edit real brushes
- * as one undo step, and select_by_query picks touching brushes. Skipped unless
+ * as one undo step, select_by_query picks touching brushes and
+ * set_selection_visibility hides, isolates and shows brushes. Skipped unless
  * BROOM_E2E_DESKTOP_EXE names the app launcher.
  */
 const desktopExecutable = process.env['BROOM_E2E_DESKTOP_EXE'] ? resolve(process.env['BROOM_E2E_DESKTOP_EXE']) : '';
@@ -151,6 +152,21 @@ describe.skipIf(desktopExecutable === '')('desktop app brush tools end to end', 
     return result;
   }
 
+  /**
+   * Returns whether each brush takes part in evaluation.
+   *
+   * @param brushIds Brush ids.
+   * @returns Visibility flags in the same order.
+   */
+  async function brushVisibilityRead(brushIds: readonly string[]): Promise<boolean[]> {
+    const flags: boolean[] = [];
+    for (const brushId of brushIds) {
+      const result = await client.toolCallExpectOk('get_brush', { brushId });
+      flags.push(toolDataRead<{ visible: boolean }>(result).visible);
+    }
+    return flags;
+  }
+
   beforeAll(async () => {
     await appLaunch();
   }, LAUNCH_TIMEOUT_MILLISECONDS * 2);
@@ -238,6 +254,28 @@ describe.skipIf(desktopExecutable === '')('desktop app brush tools end to end', 
       await client.toolCallExpectOk('select', { brushIds: [anchorId] });
       const result = await client.toolCallExpectOk('select_by_query', { query: 'touching' });
       expect(toolDataRead<{ brushIds: string[] }>(result).brushIds).toEqual([touchingId]);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'hides, isolates and shows brushes through set_selection_visibility as one undo step each',
+    async () => {
+      const modelId = await modelCreate('BrushToolsVisibilityE2e');
+      const brushIds = [
+        await cubeAdd(modelId, 1, { x: 40, y: 0.5, z: 0 }),
+        await cubeAdd(modelId, 1, { x: 43, y: 0.5, z: 0 }),
+      ];
+      const [firstId, secondId] = brushIds;
+      await client.toolCallExpectOk('select', { brushIds: [firstId] });
+      await toolCallOneUndoStep('set_selection_visibility', { action: 'hide' });
+      expect(await brushVisibilityRead(brushIds)).toEqual([false, true]);
+      await toolCallOneUndoStep('set_selection_visibility', { action: 'show_all' });
+      await client.toolCallExpectOk('select', { brushIds: [secondId] });
+      await toolCallOneUndoStep('set_selection_visibility', { action: 'isolate' });
+      expect(await brushVisibilityRead(brushIds)).toEqual([false, true]);
+      await client.toolCallExpectOk('undo');
+      expect(await brushVisibilityRead(brushIds)).toEqual([true, true]);
     },
     STEP_TIMEOUT_MILLISECONDS,
   );

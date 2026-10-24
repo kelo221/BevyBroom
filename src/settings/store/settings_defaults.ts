@@ -146,6 +146,9 @@ function createDefaultWindowShortcuts(): Pick<
   | 'toolbar_toggle'
   | 'select_all'
   | 'select_none'
+  | 'visibility_hide'
+  | 'visibility_isolate'
+  | 'visibility_show_all'
 > {
   return {
     view_cycle: createShortcut('Space'),
@@ -159,6 +162,9 @@ function createDefaultWindowShortcuts(): Pick<
     toolbar_toggle: createShortcut('KeyT', true, false, true),
     select_all: createShortcut('KeyA', true),
     select_none: createShortcut('KeyA', true, true),
+    visibility_hide: createShortcut('KeyH', true),
+    visibility_isolate: createShortcut('KeyI', true),
+    visibility_show_all: createShortcut('KeyH', true, true),
   };
 }
 

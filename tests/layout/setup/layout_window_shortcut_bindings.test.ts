@@ -64,8 +64,8 @@ function windowActionsSpyCreate(): ShellWindowActions {
 }
 
 /**
- * Creates the clipboard, selection query and brush tool members of spy window
- * actions.
+ * Creates the clipboard, selection query, brush tool and visibility members of
+ * spy window actions.
  *
  * @returns Spy edit members.
  */
@@ -79,6 +79,7 @@ function windowActionsEditSpyCreate(): Pick<
   | 'selectionQueryRun'
   | 'selectionHasObjectsIs'
   | 'solidBrushToolsRead'
+  | 'selectionVisibilityRead'
 > {
   return {
     clipboardCopy: vi.fn(),
@@ -89,6 +90,7 @@ function windowActionsEditSpyCreate(): Pick<
     selectionQueryRun: () => 0,
     selectionHasObjectsIs: () => false,
     solidBrushToolsRead: () => null,
+    selectionVisibilityRead: () => null,
   };
 }
 
