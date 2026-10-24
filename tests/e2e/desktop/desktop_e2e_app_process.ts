@@ -1,5 +1,8 @@
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
+import { mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   DESKTOP_MCP_AUTOSTART_ENVIRONMENT_KEY,
   DESKTOP_MCP_AUTOSTART_URL_PREFIX,
@@ -9,13 +12,63 @@ import { DESKTOP_WINDOW_HIDDEN_ENVIRONMENT_KEY } from '@/desktop/desktop_window_
 /** Interval between two looks at the app output while waiting for the MCP URL. */
 const DESKTOP_E2E_OUTPUT_CHECK_MILLISECONDS = 100;
 
-/** Starts and stops the built desktop app with its MCP server started at launch. */
+/**
+ * Environment variable WebView2 reads its user data folder from, ahead of the
+ * app's choice.
+ */
+const WEBVIEW2_USER_DATA_FOLDER_ENVIRONMENT_KEY = 'WEBVIEW2_USER_DATA_FOLDER';
+
+/** Name prefix of the per-app WebView2 data folders in the temp directory. */
+const WEBVIEW_DATA_DIRECTORY_PREFIX = 'broom_e2e_webview_';
+
+/** Age after which a data folder left by an earlier run is removed. */
+const WEBVIEW_DATA_STALE_MILLISECONDS = 60 * 60 * 1000;
+
+/**
+ * Removes a folder, retrying while the webview processes of a stopped app still
+ * release their files.
+ *
+ * @param directory Folder to remove.
+ */
+function webviewDataDirectoryRemove(directory: string): void {
+  try {
+    rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+  } catch {
+    // Still locked; a later run removes it once it is stale.
+  }
+}
+
+/** Removes data folders that earlier runs could not remove. */
+function webviewDataStaleRemove(): void {
+  const now = Date.now();
+  for (const name of readdirSync(tmpdir())) {
+    const directory = join(tmpdir(), name);
+    try {
+      if (
+        name.startsWith(WEBVIEW_DATA_DIRECTORY_PREFIX) &&
+        now - statSync(directory).mtimeMs > WEBVIEW_DATA_STALE_MILLISECONDS
+      ) {
+        webviewDataDirectoryRemove(directory);
+      }
+    } catch {
+      // Removed meanwhile by another run.
+    }
+  }
+}
+
+/**
+ * Starts and stops the built desktop app with its MCP server started at launch.
+ * Each instance has its own WebView2 data folder: apps sharing one share a
+ * browser process and local storage, so stopping one app could take another
+ * suite's editor down with it.
+ */
 export class DesktopE2eAppProcess {
   private readonly executable: string;
   private readonly mcpBasePort: number;
   private readonly isWindowShown: boolean;
   private child: ChildProcess | null = null;
   private output = '';
+  private readonly webviewDataDirectory: string;
 
   /**
    * Creates a stopped app process.
@@ -29,6 +82,9 @@ export class DesktopE2eAppProcess {
     this.executable = executable;
     this.mcpBasePort = mcpBasePort;
     this.isWindowShown = isWindowShown;
+    webviewDataStaleRemove();
+    this.webviewDataDirectory = mkdtempSync(join(tmpdir(), WEBVIEW_DATA_DIRECTORY_PREFIX));
+    process.once('exit', () => webviewDataDirectoryRemove(this.webviewDataDirectory));
   }
 
   /**
@@ -49,6 +105,7 @@ export class DesktopE2eAppProcess {
       ...process.env,
       [DESKTOP_MCP_AUTOSTART_ENVIRONMENT_KEY]: String(this.mcpBasePort),
       [DESKTOP_WINDOW_HIDDEN_ENVIRONMENT_KEY]: this.isWindowShown ? '0' : '1',
+      [WEBVIEW2_USER_DATA_FOLDER_ENVIRONMENT_KEY]: this.webviewDataDirectory,
     };
     const child = spawn(this.executable, [], { env: environment, stdio: ['ignore', 'pipe', 'pipe'] });
     child.stdout?.on('data', (chunk: Buffer) => this.outputAppend(chunk));

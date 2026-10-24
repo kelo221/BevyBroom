@@ -36,6 +36,7 @@ export class PreviewLinkService {
   private tickTimer: ReturnType<typeof setInterval> | null = null;
   private removeControllerListener: (() => void) | null = null;
   private consoleReporter: PreviewLinkConsoleReporter | null = null;
+  private endpoint: string | null = null;
 
   /**
    * Creates a disconnected service.
@@ -49,21 +50,27 @@ export class PreviewLinkService {
   }
 
   /**
-   * Returns the remembered endpoint.
+   * Returns this editor's endpoint: the last one written, or the one stored by
+   * an earlier session.
    *
    * @returns Endpoint URL.
    */
   endpointRead(): string {
-    return globalThis.localStorage?.getItem(PREVIEW_ENDPOINT_STORAGE_KEY) || PREVIEW_DEFAULT_ENDPOINT;
+    return (
+      this.endpoint ?? (globalThis.localStorage?.getItem(PREVIEW_ENDPOINT_STORAGE_KEY) || PREVIEW_DEFAULT_ENDPOINT)
+    );
   }
 
   /**
-   * Remembers an endpoint; it is used by the next connect.
+   * Sets the endpoint the next connect uses, and stores it for later sessions.
+   * The editor keeps its own copy because local storage is shared by every
+   * editor window of the same profile.
    *
    * @param endpoint Endpoint URL; blank restores the default.
    */
   endpointWrite(endpoint: string): void {
-    globalThis.localStorage?.setItem(PREVIEW_ENDPOINT_STORAGE_KEY, endpoint.trim() || PREVIEW_DEFAULT_ENDPOINT);
+    this.endpoint = endpoint.trim() || PREVIEW_DEFAULT_ENDPOINT;
+    globalThis.localStorage?.setItem(PREVIEW_ENDPOINT_STORAGE_KEY, this.endpoint);
   }
 
   /** Connects to the remembered endpoint and starts the update timer. */
