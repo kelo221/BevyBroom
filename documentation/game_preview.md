@@ -81,7 +81,7 @@ Lights are saved in the scene file and duplicate with `Ctrl+D`. GLB exports carr
 
 ## Rooms and portals
 
-Rooms and portals let the game skip drawing (and lighting) whatever the camera cannot see through a doorway. DynLight calls this portal culling.
+Rooms and portals let the game skip the realtime lights, shadow cubemaps and fog that the camera cannot see through a doorway. DynLight calls this portal culling. It does not skip drawing geometry; meshes are culled only by the camera's view.
 
 - **Add > Portals > Room** adds a room: a box drawn as a wireframe, with a small box and floor plan icon at its center that you click to select it. A selected room's selection box is the whole room, so its resize bars resize the room. Size it exactly in the Properties panel with **Half size X / Y / Z** (meters from its center), then move, rotate and scale it like any object. Cover each walkable space with one room.
 - **Add > Portals > Portal** adds a portal: a rectangle with an arrow on its front side. Set **Width** and **Height** in the Properties panel and place it in a doorway, in the wall between two rooms.
@@ -125,7 +125,7 @@ Before anything is written, the build checks the scene with the same checks as t
 
 A package holds:
 
-- `geometry_<revision>.glb`: the scene exported for the game, with lights, rooms, portals and `broom_components` as node extras and no editor helper meshes.
+- `geometry_<revision>.glb`: the level geometry, exported the same way the game preview receives it: in editor axes and meters, with no editor helper meshes. Lights, rooms, portals and game components are not in this file; they come from the manifest, so the game never creates them twice.
 - `level.broom.json`: a version 2 manifest naming that geometry file, the authored state (lights, rooms, portals, transforms, visibility, components) and the game materials the geometry uses.
 
 The new geometry file is written next to the old one and the manifest is replaced in one rename, so a build that is interrupted leaves the previous package loadable. Older geometry files are removed only after the new manifest is in place.
