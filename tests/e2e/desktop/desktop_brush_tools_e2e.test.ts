@@ -9,8 +9,8 @@ import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
 /**
  * End-to-end acceptance of the brush editing MCP tools in the built desktop
  * app: hollow, flip, shear, vertex snap and convex merge each edit real brushes
- * as one undo step. Skipped unless BROOM_E2E_DESKTOP_EXE names the app
- * launcher.
+ * as one undo step, and select_by_query picks touching brushes. Skipped unless
+ * BROOM_E2E_DESKTOP_EXE names the app launcher.
  */
 const desktopExecutable = process.env['BROOM_E2E_DESKTOP_EXE'] ? resolve(process.env['BROOM_E2E_DESKTOP_EXE']) : '';
 e2eRequiredConfigurationAssert(desktopExecutable !== '', ['BROOM_E2E_DESKTOP_EXE']);
@@ -224,6 +224,20 @@ describe.skipIf(desktopExecutable === '')('desktop app brush tools end to end', 
       expect(merged.min.x).toBeCloseTo(expected.min.x, 3);
       expect(merged.max.y).toBeCloseTo(expected.max.y, 3);
       expect(await brushCountRead(modelId)).toBe(countBefore - 1);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'selects the brushes touching a selected brush through select_by_query',
+    async () => {
+      const modelId = await modelCreate('BrushToolsSelectE2e');
+      const anchorId = await cubeAdd(modelId, 2, { x: 20, y: 1, z: 0 });
+      const touchingId = await cubeAdd(modelId, 1, { x: 21.5, y: 1, z: 0 });
+      await cubeAdd(modelId, 1, { x: 30, y: 1, z: 0 });
+      await client.toolCallExpectOk('select', { brushIds: [anchorId] });
+      const result = await client.toolCallExpectOk('select_by_query', { query: 'touching' });
+      expect(toolDataRead<{ brushIds: string[] }>(result).brushIds).toEqual([touchingId]);
     },
     STEP_TIMEOUT_MILLISECONDS,
   );

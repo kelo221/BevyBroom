@@ -129,3 +129,22 @@ describe('EditorApi brush tools', () => {
     expect(result.message).toContain('needs selected solid brushes');
   });
 });
+
+/** Unit tests for the select_by_query MCP tool. */
+describe('EditorApi select_by_query', () => {
+  it('selects the brushes touching the selected brush and reports their ids', () => {
+    const { api, parts, model, brushes } = brushToolsApiRigCreate();
+    const first = brushes[0];
+    const touching = solidBrushToolsTestBoxAdd(model, new THREE.Vector3(1, 1, 1), new THREE.Vector3(2.5, 0, 0));
+    if (first?.mesh) parts.host.selectionManager.setSelection([first.mesh]);
+    const result = api.invokeTool('select_by_query', { query: 'touching' });
+    expect(result.ok, result.message).toBe(true);
+    expect((result.data as { brushIds: string[] }).brushIds).toEqual([touching.id]);
+    expect(parts.host.selectionManager.getSelectedObjectCount()).toBe(1);
+  });
+
+  it('rejects an unknown query', () => {
+    const { api } = brushToolsApiRigCreate();
+    expect(api.invokeTool('select_by_query', { query: 'nearby' }).ok).toBe(false);
+  });
+});

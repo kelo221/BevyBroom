@@ -8,6 +8,9 @@ import type { ControllerViewportToolChrome } from '@/tools/chrome/controller/con
 import type { LayoutViewportChromeHost } from '@/layout/setup/layout_viewport_chrome.js';
 import type { ViewportEditor } from '@/viewports/core/viewport_editor.js';
 import { selectableMeshesCollect } from '@/selection/object/selectable_mesh_filter.js';
+import type { SelectionQueryId } from '@/selection/query/selection_query.js';
+import { selectionQueryFind } from '@/selection/query/selection_query_registry.js';
+import { selectionQueryRun } from '@/selection/query/selection_query_run.js';
 import { viewCycleHoveredPane, viewMaximizeHoveredPane } from '@/layout/view_cycle/layout_view_cycle.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
 import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
@@ -200,6 +203,26 @@ export class ShellWindowActionsLayout implements ShellWindowActions {
    */
   solidBrushToolsRead(): HandlerSolidBrushTools | null {
     return this.source.solidBrushToolsRead();
+  }
+
+  /**
+   * Replaces the object selection with the result of a selection query.
+   *
+   * @param queryId Query to run.
+   * @returns Number of selected objects afterwards, zero for an unknown query.
+   */
+  selectionQueryRun(queryId: SelectionQueryId): number {
+    const query = selectionQueryFind(queryId);
+    return query ? selectionQueryRun(query, this.source.selectionManager, this.source.worldObject) : 0;
+  }
+
+  /**
+   * Returns whether any object is selected.
+   *
+   * @returns True while the object selection is not empty.
+   */
+  selectionHasObjectsIs(): boolean {
+    return this.source.selectionManager.getSelectedObjectCount() > 0;
   }
 
   /**

@@ -1,3 +1,4 @@
+import { SELECTION_QUERY_IDS } from '@/selection/query/selection_query.js';
 import { tool, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
 /** Brush id list shared by every brush editing tool. */
@@ -68,6 +69,17 @@ export const MCP_BRUSH_TOOL_DEFINITIONS: McpToolDefinition[] = [
         brushIds: brushIdsProperty,
         step: { type: 'string', enum: ['grid', 'integer'] },
       },
+    },
+  ),
+  tool(
+    'select_by_query',
+    'Replace the object selection like the Edit > Select menu: inverse (every unselected object), siblings (objects sharing a parent with the selection), touching (bounds touch or overlap the selection), inside (bounds inside a selected object), tall (floor footprint inside a selected object at any height), by_material (brushes using a texture of a selected brush). Every query but inverse needs a selection. Returns { count, brushIds, objectIds }.',
+    {
+      type: 'object',
+      properties: {
+        query: { type: 'string', enum: [...SELECTION_QUERY_IDS] },
+      },
+      required: ['query'],
     },
   ),
 ];

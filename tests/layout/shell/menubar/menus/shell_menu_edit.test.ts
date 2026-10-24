@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ShellMenuEdit } from '@/layout/shell/menubar/menus/shell_menu_edit.js';
+import { selectionQueriesList } from '@/selection/query/selection_query_registry.js';
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import {
@@ -143,5 +144,30 @@ describe('ShellMenuEdit brush entries', () => {
   it('does nothing before the brush tools exist', () => {
     const { entries } = shellMenuEditTestRigCreate();
     expect(() => shellTestMenuActionFind(entries, 'CSG', 'Hollow').onClick()).not.toThrow();
+  });
+});
+
+/** Select submenu of selection queries. */
+describe('ShellMenuEdit select entries', () => {
+  it('lists every selection query right after Select None and runs it by id', () => {
+    const { entries, windowActions } = shellMenuEditTestRigCreate();
+    const labels = shellTestMenuLabelsRead(entries);
+    expect(labels[labels.indexOf('Select None') + 1]).toBe('Select');
+    for (const query of selectionQueriesList()) {
+      shellTestMenuActionFind(entries, 'Select', query.label).onClick();
+      expect(windowActions.selectionQueryRun).toHaveBeenLastCalledWith(query.id);
+    }
+  });
+
+  it('enables selection-based queries only while objects are selected', () => {
+    const { entries, windowActions } = shellMenuEditTestRigCreate();
+    for (const query of selectionQueriesList()) {
+      const entry = shellTestMenuActionFind(entries, 'Select', query.label);
+      expect(entry.isEnabled?.() ?? true).toBe(!query.needsSelection);
+    }
+    windowActions.clipboardSelectionHasObjects = true;
+    for (const query of selectionQueriesList()) {
+      expect(shellTestMenuActionFind(entries, 'Select', query.label).isEnabled?.() ?? true).toBe(true);
+    }
   });
 });

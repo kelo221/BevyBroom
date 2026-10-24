@@ -1,5 +1,6 @@
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
+import { selectionQueriesList } from '@/selection/query/selection_query_registry.js';
 import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 
 /** Edit menu: history, selection, grouping, CSG and alignment commands. */
@@ -14,7 +15,6 @@ export class ShellMenuEdit extends ShellMenu {
    */
   entriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
     const actions = context.toolbarActions;
-    const window = context.windowActions;
     return [
       this.actionEntry(context, 'Undo', () => actions.onUndo(), { shortcutAction: 'undo' }),
       this.actionEntry(context, 'Redo', () => actions.onRedo(), { shortcutAction: 'redo' }),
@@ -23,8 +23,7 @@ export class ShellMenuEdit extends ShellMenu {
       this.actionEntry(context, 'Duplicate', () => actions.onDuplicateSelected(), { shortcutAction: 'duplicate' }),
       this.actionEntry(context, 'Delete', () => actions.onDeleteSelected(), { shortcutAction: 'delete_selected' }),
       this.separatorEntry(),
-      this.actionEntry(context, 'Select All', () => window.selectAll(), { shortcutAction: 'select_all' }),
-      this.actionEntry(context, 'Select None', () => window.selectNone(), { shortcutAction: 'select_none' }),
+      ...this.selectionEntriesBuild(context),
       this.separatorEntry(),
       this.actionEntry(context, 'Group', () => actions.onGroupSelected(), { shortcutAction: 'group' }),
       this.actionEntry(context, 'Ungroup', () => actions.onUngroupSelected(), { shortcutAction: 'ungroup' }),
@@ -54,6 +53,41 @@ export class ShellMenuEdit extends ShellMenu {
         shortcutAction: 'paste_original',
       }),
     ];
+  }
+
+  /**
+   * Builds the Select All, Select None and Select submenu entries.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Selection entries.
+   */
+  private selectionEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    const window = context.windowActions;
+    return [
+      this.actionEntry(context, 'Select All', () => window.selectAll(), { shortcutAction: 'select_all' }),
+      this.actionEntry(context, 'Select None', () => window.selectNone(), { shortcutAction: 'select_none' }),
+      this.selectSubmenuBuild(context),
+    ];
+  }
+
+  /**
+   * Builds the Select submenu of selection queries; queries that start from the
+   * selection are enabled only while something is selected.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Submenu entry.
+   */
+  private selectSubmenuBuild(context: ShellMenuContext): ToolbarMenuEntry {
+    const window = context.windowActions;
+    return {
+      kind: 'submenu',
+      label: 'Select',
+      children: selectionQueriesList().map((query) =>
+        this.actionEntry(context, query.label, () => window.selectionQueryRun(query.id), {
+          isEnabled: () => !query.needsSelection || window.selectionHasObjectsIs(),
+        }),
+      ),
+    };
   }
 
   /**

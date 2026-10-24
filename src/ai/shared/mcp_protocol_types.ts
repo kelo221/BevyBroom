@@ -66,6 +66,7 @@ export type McpToolName =
   | 'set_face_material'
   | 'set_face_uv'
   | 'transform_face_uv'
+  | 'select_by_query'
   | 'reorder_brushes'
   | 'reorder_brush_relative'
   | 'set_inverted_world'

@@ -5,11 +5,12 @@ import { EditorApiClipboard } from './editor_api_clipboard.js';
 import { EditorApiBrushTools } from './editor_api_brush_tools.js';
 import { EditorApiFaceUv } from './editor_api_face_uv.js';
 import { EditorApiViewportInput } from './editor_api_viewport_input.js';
+import { EditorApiSelectionQuery } from './editor_api_selection_query.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 
 /**
  * Tool groups that each answer only their own tool names: layers, main window,
- * clipboard, brush editing, face UV and viewport input.
+ * clipboard, brush editing, face UV, viewport input and selection queries.
  */
 export class EditorApiToolGroups {
   private readonly layers: EditorApiLayers;
@@ -18,12 +19,14 @@ export class EditorApiToolGroups {
   private readonly brushTools: EditorApiBrushTools;
   private readonly faceUv: EditorApiFaceUv;
   private readonly viewportInput: EditorApiViewportInput;
+  private readonly selectionQuery: EditorApiSelectionQuery;
 
   /**
    * Creates every tool group over the editor host.
    *
    * @param host Live editor systems.
-   * @param selectionRead Returns the selection summary the viewport input tools report.
+   * @param selectionRead Returns the selection summary the viewport input tools
+   *   report.
    */
   constructor(host: EditorApiHost, selectionRead: () => McpToolResult) {
     this.layers = new EditorApiLayers(host);
@@ -32,6 +35,7 @@ export class EditorApiToolGroups {
     this.brushTools = new EditorApiBrushTools(host);
     this.faceUv = new EditorApiFaceUv(host);
     this.viewportInput = new EditorApiViewportInput(host, selectionRead);
+    this.selectionQuery = new EditorApiSelectionQuery(host);
   }
 
   /**
@@ -48,7 +52,8 @@ export class EditorApiToolGroups {
       this.clipboard.clipboardToolDispatch(name, args) ??
       this.brushTools.brushToolDispatch(name, args) ??
       this.faceUv.faceUvToolDispatch(name, args) ??
-      this.viewportInput.viewportInputToolDispatch(name, args)
+      this.viewportInput.viewportInputToolDispatch(name, args) ??
+      this.selectionQuery.selectionQueryToolDispatch(name, args)
     );
   }
 }

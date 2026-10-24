@@ -1,3 +1,4 @@
+import type { SelectionQueryId } from '@/selection/query/selection_query.js';
 import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import type { EditorToolId } from '@/types/editor_tool_id.js';
 import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
@@ -80,4 +81,17 @@ export interface ShellWindowActions {
    * @returns Brush tools, or null before the editor finished starting.
    */
   solidBrushToolsRead(): HandlerSolidBrushTools | null;
+  /**
+   * Replaces the object selection with the result of a selection query.
+   *
+   * @param queryId Query to run.
+   * @returns Number of selected objects afterwards.
+   */
+  selectionQueryRun(queryId: SelectionQueryId): number;
+  /**
+   * Returns whether any object is selected.
+   *
+   * @returns True while the object selection is not empty.
+   */
+  selectionHasObjectsIs(): boolean;
 }
