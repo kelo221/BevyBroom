@@ -107,6 +107,7 @@ export type McpToolName =
   | 'viewport_click'
   | 'project_open'
   | 'project_status'
+  | 'build_level'
   | 'game_launch'
   | 'game_rebuild'
   | 'game_restart'

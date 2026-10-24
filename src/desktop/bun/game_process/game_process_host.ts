@@ -95,6 +95,15 @@ export class GameProcessHost {
   }
 
   /**
+   * Returns the definition of the open project.
+   *
+   * @returns Project definition, or null when no project is open.
+   */
+  projectDefinitionRead(): ProjectDefinition | null {
+    return this.project?.definition ?? null;
+  }
+
+  /**
    * Returns everything about the managed game.
    *
    * @returns Status snapshot.

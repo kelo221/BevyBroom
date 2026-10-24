@@ -5,6 +5,8 @@ import type { ProjectRecentStore } from '@/project/recent/project_recent_store.j
 import { documentProjectLinkRead, documentProjectLinkWrite } from '@/project/document/document_project_link.js';
 import { ProjectIssueBoard } from '@/project/issues/project_issue_board.js';
 import { ProjectWorkbenchConsoleReporter } from '@/project/workbench/project_workbench_console_reporter.js';
+import type { ControllerLevelBuild, LevelBuildResult } from '@/level_build/controller_level_build.js';
+import { levelBuildConsoleReport } from '@/level_build/level_build_console_report.js';
 
 /** Interval between status reads of the managed game. */
 export const PROJECT_WORKBENCH_POLL_MILLISECONDS = 500;
@@ -31,6 +33,8 @@ export interface ProjectWorkbenchHosts {
   recentStore: ProjectRecentStore;
   /** Writes status changes to the console; defaults to the shared log. */
   consoleReporter?: ProjectWorkbenchConsoleReporter;
+  /** Builds level packages into the open project; Build Level fails without it. */
+  levelBuilder?: ControllerLevelBuild;
 }
 
 /**
@@ -61,6 +65,21 @@ export class ProjectWorkbench {
    */
   isAvailable(): boolean {
     return this.hosts.control.isAvailable;
+  }
+
+  /**
+   * Builds the open document into a level package of the open project and
+   * reports the outcome in the console.
+   *
+   * @param levelName Level name; the scene-derived name when omitted.
+   * @returns Where the package went, or why nothing was written.
+   */
+  async levelBuild(levelName?: string): Promise<LevelBuildResult> {
+    const result = this.hosts.levelBuilder
+      ? await this.hosts.levelBuilder.build(levelName)
+      : { ok: false as const, message: 'Build Level is not available in this editor.', problems: [] };
+    levelBuildConsoleReport(result);
+    return result;
   }
 
   /**

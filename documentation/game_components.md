@@ -105,7 +105,7 @@ A shipped game gets the components in two ways, so use whichever loader your gam
 - The level manifest (`level.broom.json`) the preview writes holds every object's components, and `BroomLevelPlugin` applies them when it loads the level.
 - **File > Export GLB** writes the components into the glTF node extras under the key `broom_components`, and Game Entities become empty nodes. Add `BroomGltfComponentsPlugin` to a game that spawns such GLB scenes itself; it does not need the rest of the bridge.
 
-Two limits apply to the GLB route. Lights are left out of GLB exports, so components on lights only ship through the manifest. Inside a solid model only the model itself is a node, so put components on the solid model rather than on single brushes.
+One limit applies to the GLB route: inside a solid model only the model itself is a node, so put components on the solid model rather than on single brushes. **Build Level** refuses to build while a brush carries components and lists it in the Issues panel.
 
 ## AI tools
 

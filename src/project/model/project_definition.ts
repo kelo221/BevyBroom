@@ -15,6 +15,8 @@ export interface ProjectDefinition {
   name: string;
   /** Absolute asset root of the game, forward slashes. */
   assetRoot: string;
+  /** Absolute directory holding the game's level packages, forward slashes. */
+  levelDirectory: string;
   /** Command that starts the game preview. */
   launch: PreviewLaunchCommand;
   /**

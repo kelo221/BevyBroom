@@ -1,3 +1,7 @@
+import type {
+  LevelBuildPublishRequest,
+  LevelBuildPublishResult,
+} from '@/level_build/publish/level_build_publish_types.js';
 import type { StandaloneHostUpdateCheck } from '@/updater/update_types.js';
 import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
 import type {
@@ -20,6 +24,7 @@ export interface ElectrobunDesktopRpcSchema {
       projectOpen: { params: { projectFile: string }; response: ProjectOpenResult };
       gameProcessAction: { params: { action: GameProcessAction }; response: GameProcessStatus };
       gameProcessStatus: { params: undefined; response: GameProcessStatus };
+      levelPackagePublish: { params: LevelBuildPublishRequest; response: LevelBuildPublishResult };
     };
     messages: {};
   };
@@ -43,6 +48,7 @@ export interface ElectrobunDesktopBunRpcClient {
     projectOpen: (params: { projectFile: string }) => Promise<ProjectOpenResult>;
     gameProcessAction: (params: { action: GameProcessAction }) => Promise<GameProcessStatus>;
     gameProcessStatus: () => Promise<GameProcessStatus>;
+    levelPackagePublish: (params: LevelBuildPublishRequest) => Promise<LevelBuildPublishResult>;
   };
 }
 

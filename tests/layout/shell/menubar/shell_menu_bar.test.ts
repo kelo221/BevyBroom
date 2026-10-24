@@ -259,6 +259,20 @@ describe('ShellMenuFile projects', () => {
     ]);
     rig.workbench.dispose();
   });
+
+  it('enables Build Level once a project is open and builds through the workbench', async () => {
+    const rig = workbenchRigCreate();
+    const toolbarActions = shellTestToolbarActionsCreate({ gameProjectWorkbenchRead: () => rig.workbench });
+    const { context } = shellMenuBarTestRigCreate(toolbarActions);
+    const buildLevel = shellTestMenuActionFind(shellMenuBarTestEntriesBuild(context, 'File'), 'Build Level');
+    expect(buildLevel.isEnabled?.()).toBe(false);
+    await rig.workbench.projectOpen('/games/build game/broom.project.json');
+    expect(buildLevel.isEnabled?.()).toBe(true);
+    buildLevel.onClick();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(rig.control.publishedLevels).toHaveLength(1);
+    rig.workbench.dispose();
+  });
 });
 
 describe('ShellMenuHelp', () => {

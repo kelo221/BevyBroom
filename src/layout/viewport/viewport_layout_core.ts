@@ -1327,6 +1327,7 @@ export abstract class ViewportLayoutCore {
       textureBrowserControllerRead: () => this.textureBrowserController,
       sceneFileNameRead: () => this.sceneIOHandler.sceneDocumentFileNameRead(),
       statusMessageShow: (message) => this.showStatusMessage(message),
+      gameProfileRead: () => this.settingsStore?.getActiveGameProfile() ?? null,
     });
     return this.gamePreviewLayout;
   }

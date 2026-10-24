@@ -9,6 +9,9 @@ import { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
 import { ProjectWorkbenchLinkPreview } from '@/project/workbench/project_workbench_link_preview.js';
 import { ProjectRecentStore } from '@/project/recent/project_recent_store.js';
 import { gameProcessControlResolve } from '@/project/control/game_process_control_desktop.js';
+import { ControllerLevelBuild } from '@/level_build/controller_level_build.js';
+import { GlbExporter } from '@/io/glb/glb_exporter.js';
+import type { GameProfile } from '@/settings/store/settings_types.js';
 
 /** Texture browser folder name shown for the game material catalog. */
 export const LAYOUT_GAME_PREVIEW_CATALOG_FOLDER_NAME = 'Game materials';
@@ -28,6 +31,8 @@ export interface LayoutGamePreviewHosts {
   sceneFileNameRead: () => string | null;
   /** Shows a short message in the status bar. */
   statusMessageShow: (message: string) => void;
+  /** Returns the active game profile exports convert through, or null. */
+  gameProfileRead: () => GameProfile | null;
 }
 
 /**
@@ -82,9 +87,25 @@ export class LayoutGamePreview {
         link: new ProjectWorkbenchLinkPreview(this.serviceEnsure()),
         worldGroup: this.hosts.worldGroup,
         recentStore: new ProjectRecentStore(),
+        levelBuilder: this.levelBuilderCreate(),
       });
     }
     return this.workbench;
+  }
+
+  /**
+   * Creates the Build Level controller over the editor world.
+   *
+   * @returns Level build controller.
+   */
+  private levelBuilderCreate(): ControllerLevelBuild {
+    const glbExporter = new GlbExporter();
+    return new ControllerLevelBuild({
+      worldGroup: this.hosts.worldGroup,
+      gameProcessControlRead: () => gameProcessControlResolve(),
+      levelNameRead: () => this.levelNameRead(),
+      glbExport: (worldGroup) => glbExporter.exportForFile(worldGroup, this.hosts.gameProfileRead()),
+    });
   }
 
   /**

@@ -7,9 +7,14 @@ import type {
   ProjectOpenResult,
   ProjectSummary,
 } from '@/project/process/game_process_types.js';
+import type {
+  LevelBuildPublishRequest,
+  LevelBuildPublishResult,
+} from '@/level_build/publish/level_build_publish_types.js';
 import { ProjectRecentStore } from '@/project/recent/project_recent_store.js';
 import { ProjectWorkbench, type ProjectWorkbenchLink } from '@/project/workbench/project_workbench.js';
 import { ProjectWorkbenchConsoleReporter } from '@/project/workbench/project_workbench_console_reporter.js';
+import { ControllerLevelBuild } from '@/level_build/controller_level_build.js';
 
 /** Process control that opens any file as a project named after it. */
 export class GameProcessControlFake extends GameProcessControl {
@@ -17,6 +22,8 @@ export class GameProcessControlFake extends GameProcessControl {
   readonly actions: GameProcessAction[] = [];
   chosenFile: string | null = null;
   nextStatus: GameProcessStatus | null = null;
+  readonly publishedLevels: LevelBuildPublishRequest[] = [];
+  nextPublishResult: LevelBuildPublishResult | null = null;
 
   /** @inheritdoc */
   async projectChooseFile(): Promise<string | null> {
@@ -41,6 +48,20 @@ export class GameProcessControlFake extends GameProcessControl {
   /** @inheritdoc */
   async statusRead(): Promise<GameProcessStatus> {
     return this.nextStatus ?? gameStatusCreate(null, 'idle');
+  }
+
+  /** @inheritdoc */
+  async levelPackagePublish(request: LevelBuildPublishRequest): Promise<LevelBuildPublishResult> {
+    this.publishedLevels.push(request);
+    return (
+      this.nextPublishResult ?? {
+        ok: true,
+        levelDirectory: `/levels/${request.levelName}`,
+        geometryFile: 'geometry_0000000000000001.glb',
+        geometryRevision: 1,
+        removedGeometryFiles: [],
+      }
+    );
   }
 }
 
@@ -117,6 +138,13 @@ export function workbenchRigCreate(worldGroup: THREE.Group = new THREE.Group()) 
   const recentStore = new ProjectRecentStore(null);
   const consoleLog = new ConsoleLog();
   const consoleReporter = new ProjectWorkbenchConsoleReporter(() => consoleLog);
-  const workbench = new ProjectWorkbench({ control, link, worldGroup, recentStore, consoleReporter });
+  const levelBuilder = new ControllerLevelBuild({
+    worldGroup,
+    gameProcessControlRead: () => control,
+    levelNameRead: () => 'rig_level',
+    glbExport: async () => new ArrayBuffer(0),
+    issuesCollect: () => [],
+  });
+  const workbench = new ProjectWorkbench({ control, link, worldGroup, recentStore, consoleReporter, levelBuilder });
   return { control, link, worldGroup, recentStore, consoleLog, workbench };
 }

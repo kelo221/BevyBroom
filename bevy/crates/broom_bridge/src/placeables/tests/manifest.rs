@@ -12,7 +12,7 @@ use super::*;
 use crate::level::files::write_manifest;
 use crate::level::{LevelLoadRequest, LevelPlugin};
 use crate::placeables::AuthoredGameEntity;
-use crate::protocol::{AuthoredObjectKind, LevelManifest, PROTOCOL_VERSION, sanitize_level_name};
+use crate::protocol::{AuthoredObjectKind, LevelManifest, sanitize_level_name};
 use crate::test_support::{TemporaryDirectory, object_mut, sample_project_paths, sample_state};
 
 /// The most frames the test waits for the manifest's state to apply.
@@ -67,13 +67,13 @@ fn manifest_loads_restore_placed_components() {
         [("uses".to_owned(), json!(uses))].into(),
     )]
     .into();
-    let manifest = LevelManifest {
-        protocol: PROTOCOL_VERSION,
-        level_name: LEVEL_NAME.to_owned(),
-        geometry_file: "level_1.glb".to_owned(),
-        geometry_revision: state.geometry_revision,
+    let geometry_revision = state.geometry_revision;
+    let manifest = LevelManifest::new(
+        LEVEL_NAME.to_owned(),
+        "level_1.glb".to_owned(),
+        geometry_revision,
         state,
-    };
+    );
     let level_name = sanitize_level_name(LEVEL_NAME);
     write_manifest(&paths.level_directory_of(&level_name), &manifest).expect("written");
     app.world_mut()

@@ -76,7 +76,7 @@ Things to know:
 - Fog only shows on cameras with DynLight's `FogPostProcess` component. The preview program adds it; add it to your game's camera too.
 - Effect, cookie, fog, shimmer and the bounce light's visibility change live and never make the bake out of date. Illumination, transparency and the other bounce settings are baked, so changing them asks for a new bake.
 
-Lights are saved in the scene file, duplicate with `Ctrl+D`, and are left out of normal GLB exports because the game creates them itself. Shipped levels carry every light setting in the level manifest.
+Lights are saved in the scene file and duplicate with `Ctrl+D`. GLB exports carry every light as an empty node with DynLight light extras, never as a marker mesh, and shipped levels also carry every light setting in the level manifest.
 
 ## Rooms and portals
 
@@ -115,3 +115,18 @@ Baked shadows use the second UV set (`TEXCOORD_1`) the editor writes on every ex
 The game stores each level in a folder named after the scene file. When a document is saved under a new name, the game moves it to the new folder and deletes its own files (`geometry_*.glb` and `level.broom.json`) from the old one. It never deletes anything else, and never touches another document's folder.
 
 If the game fails to load a geometry revision, the editor sends it once more. If that fails too, the error stays in the panel until the next geometry edit.
+
+## Build Level
+
+**File > Build Level** (desktop app, with a project open) writes the current document as a level the shipped game loads without the editor. The level is named after the scene file and goes to `<asset_root>/<level_directory>/<name>/` of the open project, the folder `broom_preview --level <name>` and `BroomLevelPlugin` read.
+
+Before anything is written, the build checks the scene with the same checks as the Issues panel. Any error, such as game components on a single brush inside a solid model, stops the build and is listed in the Console.
+
+A package holds:
+
+- `geometry_<revision>.glb`: the scene exported for the game, with lights, rooms, portals and `broom_components` as node extras and no editor helper meshes.
+- `level.broom.json`: a version 2 manifest naming that geometry file, the authored state (lights, rooms, portals, transforms, visibility, components) and the game materials the geometry uses.
+
+The new geometry file is written next to the old one and the manifest is replaced in one rename, so a build that is interrupted leaves the previous package loadable. Older geometry files are removed only after the new manifest is in place.
+
+The MCP tool `build_level` (optional `levelName`) runs the same build and returns the level folder, the geometry file and the materials, or the problems that stopped it.

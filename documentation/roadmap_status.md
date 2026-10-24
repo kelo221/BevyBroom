@@ -51,7 +51,7 @@ Open:
 - Undo granularity audit (one gesture, one undoable step) and reporting rejected edits in the Console beyond the existing status errors.
 - BakeId mapping for objects made of several primitives is not covered by a dedicated test.
 
-## M04 Build and ship complete levels (#6): started
+## M04 Build and ship complete levels (#6): mostly done
 
 Done:
 
@@ -60,10 +60,14 @@ Done:
 - Every light setting ships: each light node also carries `broom_light` (the complete light definition) and `broom_light_of` (its editor id). The bridge applies the complete definition on top of DynLight's import, so shadow mode, bounce, cookie, fog density and effect timing no longer need a renderer change. A shared fixture (`bevy/fixtures/light_extras_sample.json`) is written exactly by the editor's exporter and read by the bridge's tests.
 - No doubled lights: while the shown document (live editor or level manifest) has an object with a shipped light's editor id, the shipped light is switched off (`ShippedLightReplaced`) and the bridge's light stands for it; it comes back when the document no longer has the id. Rust tests in `bevy/crates/broom_bridge/src/authoring/tests/shipped.rs`; end-to-end in `tests/e2e/preview_bridge_shipped_lights_e2e.test.ts` (realtime shadows from the GLB alone, one light with the editor attached, the shipped light back after the editor deletes its light).
 
+- **Build Level** (branch `feature/tb_parity_uv_milestones`): **File > Build Level** and the MCP `build_level` tool. A preflight run of the Issues checks stops the build on any error (new check: game components on a brush inside a solid model, which a GLB cannot carry). The package is the game GLB plus a version 2 `level.broom.json` (`manifest_version`, the authored state and the `materials` read back from the GLB), written into `<asset_root>/<level_directory>/<name>/` of the open project by the desktop app: a new immutable `geometry_<stamp>.glb`, the manifest replaced by one rename, older geometry pruned afterwards. A failure at any step leaves the previous package loadable (unit tested on real temporary folders, including a failing manifest rename).
+- Manifest version 2 in the companion: `LevelManifest` gains `manifest_version` (missing reads as 1, newer is refused) and `materials`; the bridge writes version 2 itself. `bevy/fixtures/level_manifest_sample.json` is parsed by the Rust tests and by `tests/level_build/manifest/level_build_manifest.test.ts`, which also checks the editor's manifest keys match it exactly.
+- End-to-end step written (`tests/e2e/desktop/desktop_level_build_e2e.test.ts`): the desktop app opens a temporary project, builds a floor, a room and a light, runs `build_level`, checks the manifest and geometry on disk, then a fresh `broom_preview --level` with no editor shows the room and the light. **Not run yet**: the desktop build fails on this machine (`hutch electrobun: could not project the Electrobun 2.0.4 devkit: AccessDenied`).
+
 Open:
 
-- The **Build Level** command (preflight validation, a package with a version 2 `level.broom.json`, GLB, material and data references and an optional bake, written to a temporary folder and renamed into place), with its menu entry, `bun run build:level` and the MCP `build_level` tool.
-- The companion's loader for manifest version 2 (keeping version 1).
-- End-to-end check of a full package (textured room, lit doorway, component, data asset, rooms, portals, bake) and of an interrupted build keeping the last good output.
+- `bun run build:level` (a command line build without the editor window).
+- Data asset references and an optional bake in the package.
+- End-to-end check of a full package (textured room, lit doorway, component, data asset, portals, bake) and of an interrupted build on a real game; run the Build Level end-to-end step once the desktop build works.
 
 ## M05 to M10: not started

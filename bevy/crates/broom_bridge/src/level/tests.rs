@@ -12,8 +12,8 @@ use super::files::{remove_level_package, write_manifest};
 use super::{GeometrySource, LevelGeometry, LevelGeometryRoot, LevelPlugin, ShownGeometry};
 use crate::project::ProjectPaths;
 use crate::protocol::{
-    AuthoredState, LevelManifest, MANIFEST_FILE_NAME, PROTOCOL_VERSION, RevisionVerdict,
-    geometry_file_name, is_geometry_file_name, sanitize_level_name,
+    AuthoredState, LevelManifest, MANIFEST_FILE_NAME, RevisionVerdict, geometry_file_name,
+    is_geometry_file_name, sanitize_level_name,
 };
 use crate::status::BridgeStatus;
 use crate::test_support::{
@@ -299,13 +299,12 @@ fn switching_documents_drops_the_other_documents_geometry() {
 
 /// A manifest of `state` naming `geometry_file` in level `level_name`.
 fn manifest_of(state: &AuthoredState, level_name: &str, geometry_file: &str) -> LevelManifest {
-    LevelManifest {
-        protocol: PROTOCOL_VERSION,
-        level_name: level_name.to_owned(),
-        geometry_file: geometry_file.to_owned(),
-        geometry_revision: state.geometry_revision,
-        state: state.clone(),
-    }
+    LevelManifest::new(
+        level_name.to_owned(),
+        geometry_file.to_owned(),
+        state.geometry_revision,
+        state.clone(),
+    )
 }
 
 /// Publishes revision `geometry_revision` of `state` under `level_name` and lets it be shown.

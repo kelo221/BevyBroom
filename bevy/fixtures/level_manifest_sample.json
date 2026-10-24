@@ -1,0 +1,28 @@
+{
+  "manifest_version": 2,
+  "protocol": 4,
+  "level_name": "sample_hall",
+  "geometry_file": "geometry_0000000000000007.glb",
+  "geometry_revision": 7,
+  "materials": ["broom/materials/stone_wall", "broom/materials/wood_floor"],
+  "state": {
+    "protocol": 4,
+    "project_id": "broom-sample-project",
+    "document_id": "7c1f4e9a-2b6d-4c8e-9f10-5a3b2c1d0e0f",
+    "session_id": "build",
+    "revision": 1,
+    "geometry_revision": 7,
+    "objects": [
+      {
+        "id": "solid-hall",
+        "parent_id": null,
+        "name": "Hall",
+        "kind": "solid",
+        "visible": true,
+        "translation": [0.0, 0.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0, 1.0],
+        "scale": [1.0, 1.0, 1.0]
+      }
+    ]
+  }
+}

@@ -42,4 +42,14 @@ export const MCP_PROJECT_TOOL_DEFINITIONS: McpToolDefinition[] = [
     `Stop the game this editor started. A game started any other way is never stopped. ${MCP_PROJECT_DESKTOP_NOTE}`,
     emptySchema(),
   ),
+  tool(
+    'build_level',
+    `Build the open document into a level package of the open project: errors in the Issues list stop the build, then the geometry GLB and a version 2 level.broom.json (authored state and material ids) are written into the project's level directory. The manifest is replaced in one step, so an interrupted build keeps the previous package loadable. The game loads it without the editor (broom_preview --level <levelName>). Returns { levelName, levelDirectory, geometryFile, geometryRevision, objectCount, materials, removedGeometryFiles }, or the problems that stopped it. ${MCP_PROJECT_DESKTOP_NOTE}`,
+    {
+      type: 'object',
+      properties: {
+        levelName: { type: 'string', description: 'Level name; defaults to the name derived from the scene file.' },
+      },
+    },
+  ),
 ];
