@@ -70,4 +70,50 @@ Open:
 - Data asset references and an optional bake in the package.
 - End-to-end check of a full package (textured room, lit doorway, component, data asset, portals, bake) and of an interrupted build on a real game; run the Build Level end-to-end step once the desktop build works.
 
-## M05 to M10: not started
+## M05 Real game materials and assets (#7): not started
+
+The material browser gained **Replace With Selected Material** (swap one material for another on every face, or only on the selection, as one undo step; also the MCP `replace_texture` tool). Everything the issue lists is still open: the game material authoring adapter for `DynLitMaterial`, shared versus per-instance materials, game-rendered previews, reimport and override precedence, and an isolated preview world. Most of it needs game-side work in the companion and a decision on how material previews are isolated from the authored scene's lighting.
+
+## M06 DynLight authoring and dependable baking (#8): started
+
+Done:
+
+- The Game Preview panel counts realtime lights and realtime shadows against the game's `realtime_light_budget` and `shadow_cubemap_budget`, and explains a budget the scene goes over with DynLight's own rule (only the realtime lights nearest the camera stay realtime; only that many lights cast realtime shadows at once). Unit tested in `tests/preview/ui/preview_status_lines.test.ts`.
+
+Open:
+
+- Rectangle and tube lights, fixture presets, and the reason a single selected light falls back (the status reports totals, not per-light decisions; that needs a protocol addition).
+- Full bake, progress and cancellation in the UI, bake identity per project, document and input revision, and the wider freshness checks (moved occluders, alpha and bounce inputs).
+- Shader feature prewarming.
+
+## M07 Connected game view and Play mode (#9): not started
+
+Camera synchronization, shared selection and Play / Pause / Exit hooks all need new protocol methods and a lighting-viewer policy in the companion. Nothing is implemented yet.
+
+## M08 Reusable content and safe game data (#10): not started
+
+Reusable instances with overrides, stable entity references, richer reflected field types and transactional data-asset writes are all open. Linked groups were left out of the editor work for the same reason: they should be built on the instance model this milestone defines.
+
+## M09 Environment lighting and spatial tools (#11): not started
+
+Sun, sky, reflection probes and fog authoring are open. Room and portal diagnostics already show the game's culling reason in the Game Preview panel (from M01 to M03).
+
+## M10 Daily-use quality and release readiness (#12): started
+
+Done:
+
+- **Unsaved changes** in the status bar while the scene differs from its saved file; undoing back to the save clears it (the saved point is the newest undo step at save time).
+- **Autosave and recovery**: about fifteen seconds after an edit, and when the window closes, the unsaved scene is written to the editor's local storage, never to the scene file. Save, New and Load remove it. At startup the editor offers **Restore** (loads it as an unsaved scene that stays protected) or **Discard** (deletes it). A snapshot that fails to load is kept. A storage that refuses the write is reported once in the Console.
+- **Safe saves**: the scene file is replaced only when the whole write finishes, and a failed write is aborted, so the previous file stays intact.
+- **Newer file on disk**: when another program changed the scene file after it was opened or saved, Save asks before overwriting it and never overwrites it unasked.
+- Unit tests in `tests/scene_recovery/`, `tests/io/dialog/` and `tests/tools/io/handler_scene_io.test.ts`, on real scenes, history and status bar.
+
+Open:
+
+- Autosave lives in web storage, which limits scene size (the failure is reported); the desktop app could write it to a file in the app's data folder instead.
+- No end-to-end step yet for a desktop session that is killed and restarted.
+- Workspace restore (open project, layout, camera bookmarks), the performance scene and measurements, long-session and fault-injection runs, and the release checklist with a playable example.
+
+## Verification of this branch
+
+Branch `feature/tb_parity_uv_milestones` passes `bun run testrun`, `bun run build`, `bun run typecheck:strict` and `bun run format:check`, and `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` in `bevy/`. The preview end-to-end suites pass against a fresh `broom_preview` (42 of 43 steps). The one failure, "reloads a game material changed twice and a replaced texture in place", fails the same way on `master`, so it predates this branch. The desktop end-to-end suites, including the new Build Level step, could not run: `bun run desktop:build:dev` fails on this machine with `hutch electrobun: could not project the Electrobun 2.0.4 devkit: AccessDenied`.
