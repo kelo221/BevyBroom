@@ -68,7 +68,7 @@ Open:
 
 - `bun run build:level` (a command line build without the editor window).
 - Data asset references and an optional bake in the package.
-- End-to-end check of a full package (textured room, lit doorway, component, data asset, portals, bake) and of an interrupted build on a real game; run the Build Level end-to-end step once the desktop build works.
+- End-to-end check of a full package (textured room, lit doorway, component, data asset, portals, bake) and of an interrupted build on a real game. The current Build Level end-to-end step (a floor, a room and a light loaded with `--level`) passes.
 
 ## M05 Real game materials and assets (#7): not started
 
@@ -94,9 +94,17 @@ Camera synchronization, shared selection and Play / Pause / Exit hooks all need 
 
 Reusable instances with overrides, stable entity references, richer reflected field types and transactional data-asset writes are all open. Linked groups were left out of the editor work for the same reason: they should be built on the instance model this milestone defines.
 
-## M09 Environment lighting and spatial tools (#11): not started
+## M09 Environment lighting and spatial tools (#11): started
 
-Sun, sky, reflection probes and fog authoring are open. Room and portal diagnostics already show the game's culling reason in the Game Preview panel (from M01 to M03).
+Done:
+
+- **Tight culling bounds for level geometry.** A solid model that uses several materials exports one glTF primitive per material, all sharing one vertex list, and Bevy gave each of them the box of the whole list. The bridge now gives every level primitive the box of the vertices its triangles use and keeps Bevy from overwriting it, so camera culling and shadow caster selection see each part where it is. Unit tested in `bevy/crates/broom_bridge/src/level/bounds.rs`; end-to-end step in `tests/e2e/preview_bridge_bounds_e2e.test.ts`.
+
+Open:
+
+- **Split level geometry by room** (added to #11). A solid model still exports as one mesh per material, so it is drawn whenever any part of it is on screen and redrawn into every shadow cubemap face it touches. Writing one piece per room, plus one for geometry outside the rooms, lets culling work room by room. The split must be deterministic so bakes, lightmap UVs and bake freshness stay valid.
+- **Room-based mesh culling in DynLight** (added to #11). Portal culling drops only realtime lights, shadow cubemaps and fog; meshes are culled by the camera frustum alone. Hiding pieces whose room the camera's portal view does not reach needs the split above.
+- Sun, sky, reflection probes and fog authoring. Room and portal diagnostics already show the game's culling reason in the Game Preview panel (from M01 to M03).
 
 ## M10 Daily-use quality and release readiness (#12): started
 
@@ -110,10 +118,10 @@ Done:
 
 Open:
 
-- Autosave lives in web storage, which limits scene size (the failure is reported); the desktop app could write it to a file in the app's data folder instead.
+- Autosave lives in web storage, which limits scene size (the failure is reported); the desktop app could write it to a file in the app's data folder instead. Web storage is also shared by every editor window of the same profile, so two windows open at once keep one recovery snapshot between them. The game preview endpoint had the same problem and now stays per window.
 - No end-to-end step yet for a desktop session that is killed and restarted.
 - Workspace restore (open project, layout, camera bookmarks), the performance scene and measurements, long-session and fault-injection runs, and the release checklist with a playable example.
 
 ## Verification of this branch
 
-Branch `feature/tb_parity_uv_milestones` passes `bun run testrun`, `bun run build`, `bun run typecheck:strict` and `bun run format:check`, and `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` in `bevy/`. The preview end-to-end suites pass against a fresh `broom_preview` (42 of 43 steps). The one failure, "reloads a game material changed twice and a replaced texture in place", fails the same way on `master`, so it predates this branch. The desktop end-to-end suites, including the new Build Level step, could not run: `bun run desktop:build:dev` fails on this machine with `hutch electrobun: could not project the Electrobun 2.0.4 devkit: AccessDenied`.
+Branch `feature/tb_parity_uv_milestones` passes `bun run testrun`, `bun run build`, `bun run typecheck:strict` and `bun run format:check`, and `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` in `bevy/`. All end-to-end suites, preview and desktop, pass against a fresh `broom_preview` and desktop build. `bun run desktop:build:dev` fails with `hutch electrobun: could not project the Electrobun 2.0.4 devkit: AccessDenied` while a Vite dev server watches the repository, because Windows cannot rename a watched folder; `vite.config.ts` now leaves the build folders out of the watch.
