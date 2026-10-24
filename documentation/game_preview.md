@@ -75,6 +75,7 @@ Things to know:
 - A cookie only shows on a spot light whose **Outer** angle is 90° or less; the Cookie group says so when the cone is wider. The image must be inside the game's assets folder.
 - Fog only shows on cameras with DynLight's `FogPostProcess` component. The preview program adds it; add it to your game's camera too.
 - Effect, cookie, fog, shimmer and the bounce light's visibility change live and never make the bake out of date. Illumination, transparency and the other bounce settings are baked, so changing them asks for a new bake.
+- The Game Preview panel's **Lights** line counts realtime lights and realtime shadows against the game's budgets (`realtime_light_budget` and `shadow_cubemap_budget` in DynLight's settings). When the scene goes over one, the panel says so: past the light budget only the realtime lights nearest the camera are lit in real time, and past the shadow budget only that many lights cast realtime shadows at once.
 
 Lights are saved in the scene file and duplicate with `Ctrl+D`. GLB exports carry every light as an empty node with DynLight light extras, never as a marker mesh, and shipped levels also carry every light setting in the level manifest.
 

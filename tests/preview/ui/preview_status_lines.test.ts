@@ -112,4 +112,27 @@ describe('previewStatusLinesBuild', () => {
     expect(joined).not.toContain('older problem');
     expect(lines[lines.length - 1]).toBe('Last error: request failed');
   });
+
+  it('counts realtime lights and realtime shadows against the game budgets', () => {
+    const status = statusCreate();
+    const joined = previewStatusLinesBuild(snapshotCreate({ status })).join('\n');
+    expect(joined).toContain(`${status.realtime_light_count}/${status.realtime_light_budget} realtime,`);
+    expect(joined).toContain(`${status.realtime_shadow_count}/${status.shadow_cubemap_budget} realtime shadows`);
+    expect(joined).not.toContain('Over the');
+  });
+
+  it('explains a realtime light or shadow budget the scene goes over', () => {
+    const budgets = statusCreate();
+    const status = statusCreate({
+      realtime_light_count: budgets.realtime_light_budget + 1,
+      realtime_shadow_count: budgets.shadow_cubemap_budget + 1,
+    });
+    const joined = previewStatusLinesBuild(snapshotCreate({ status })).join('\n');
+    expect(joined).toContain(
+      `Over the realtime light budget: ${status.realtime_light_count} of ${status.realtime_light_budget}`,
+    );
+    expect(joined).toContain(
+      `Over the realtime shadow budget: ${status.realtime_shadow_count} of ${status.shadow_cubemap_budget}`,
+    );
+  });
 });
