@@ -1,4 +1,4 @@
-import type { Object3D } from 'three';
+import type { Mesh, Object3D } from 'three';
 import { CommandStack } from '@/commands/command_stack.js';
 import { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
@@ -40,7 +40,7 @@ export class HandlerSolidHollow {
    *
    * @returns Created wall meshes, or null when nothing could hollow.
    */
-  run(): Object3D[] | null {
+  run(): Mesh[] | null {
     const brushes = solidBrushHullSelection(this.deps.getSelectedObjects());
     if (brushes.length === 0) {
       this.deps.showStatusMessage('Hollow needs selected solid brushes');
@@ -93,7 +93,7 @@ export class HandlerSolidHollow {
    * @param skippedCount Brushes left unchanged.
    * @returns Created wall meshes, or null.
    */
-  private commit(entries: readonly CommandSolidBrushHollowEntry[], skippedCount: number): Object3D[] | null {
+  private commit(entries: readonly CommandSolidBrushHollowEntry[], skippedCount: number): Mesh[] | null {
     const command = new CommandSolidBrushHollow(entries);
     this.deps.commandStack.push(command);
     const meshes = command.getCreatedMeshes();

@@ -20,6 +20,7 @@ import {
   brushLocalMatrixCompose,
   type SolidBrushVertexMatrixEntry,
 } from '@/solid/commands/brushes/command_solid_brushes_vertex_matrix.js';
+import type { SolidBrushGeometryEditResult } from '@/solid/commands/brushes/command_solid_brushes_geometry_edit.js';
 import { shearFaceAxisIndex, shearFaceSign, shearMatrixFromBoundsSlide } from '@/transform/shear/shear_matrix.js';
 import type { CadViewPlane } from '@/rulers/view/cad_view_plane.js';
 
@@ -146,7 +147,18 @@ export class ControllerShearDrag {
     return true;
   }
 
-  /** Captures the session state and brush snapshots for the drag. */
+  /**
+   * Captures the session state and brush snapshots for the drag.
+   *
+   * @param camera Viewport camera.
+   * @param pickElement Element receiving the drag.
+   * @param event Mouse event that started the drag.
+   * @param selectedObjects Selected objects to shear.
+   * @param pivot Drag pivot in world space.
+   * @param bounds Selection bounds at drag start.
+   * @param face Bounds face being dragged.
+   * @param picked Picked gizmo handle, or null.
+   */
   private beginSession(
     camera: THREE.Camera,
     pickElement: HTMLElement,
@@ -161,6 +173,36 @@ export class ControllerShearDrag {
     if (this.snapshots.length === 0) {
       return;
     }
+    this.sessionDragStateBegin(camera, pickElement, selectedObjects, pivot, bounds, face, picked);
+    this.slideDirectionWorld = this.slideDirectionResolve(bounds, face, camera, event.altKey);
+    this.initialMousePosition = this.faceCenterProjection(camera, pickElement, event, bounds, face);
+    this.lastAppliedOffset = 0;
+    this.shearActive = true;
+    this.transformGizmo.setActiveHandle(picked);
+    this.transformGizmo.setHighlightedBoundsFace(face);
+    this.transformGizmo.setBoundsGuideLinesVisible(true);
+  }
+
+  /**
+   * Stores the drag start state on the shared transform session.
+   *
+   * @param camera Viewport camera.
+   * @param pickElement Element receiving the drag.
+   * @param selectedObjects Selected objects to shear.
+   * @param pivot Drag pivot in world space.
+   * @param bounds Selection bounds at drag start.
+   * @param face Bounds face being dragged.
+   * @param picked Picked gizmo handle, or null.
+   */
+  private sessionDragStateBegin(
+    camera: THREE.Camera,
+    pickElement: HTMLElement,
+    selectedObjects: THREE.Object3D[],
+    pivot: THREE.Vector3,
+    bounds: DataOrientedBounds,
+    face: BoundsFace,
+    picked: GizmoHandle | null,
+  ): void {
     this.session.snapshotPreDragState(selectedObjects);
     this.session.resetDragAccumulator();
     this.session.dragPivot.copy(pivot);
@@ -171,13 +213,6 @@ export class ControllerShearDrag {
     this.session.startBounds = cloneOrientedBounds(bounds);
     this.session.dragCamera = camera;
     this.session.dragRenderer = pickElement;
-    this.slideDirectionWorld = this.slideDirectionResolve(bounds, face, camera, event.altKey);
-    this.initialMousePosition = this.faceCenterProjection(camera, pickElement, event, bounds, face);
-    this.lastAppliedOffset = 0;
-    this.shearActive = true;
-    this.transformGizmo.setActiveHandle(picked);
-    this.transformGizmo.setHighlightedBoundsFace(face);
-    this.transformGizmo.setBoundsGuideLinesVisible(true);
   }
 
   /**
@@ -313,7 +348,7 @@ export class ControllerShearDrag {
     }
     const command = new CommandSolidBrushesVertexMatrix(this.entriesBuild(matrix));
     this.deps.commandStack.push(command);
-    this.deps.showStatusMessage(this.statusTextBuild(command.getResult()));
+    this.deps.showStatusMessage(this.statusTextBuild(command.getEditResult()));
   }
 
   /**
@@ -346,9 +381,9 @@ export class ControllerShearDrag {
    * @param result Command result.
    * @returns Status message.
    */
-  private statusTextBuild(result: { transformed: SolidBrushInstance[]; skipped: SolidBrushInstance[] }): string {
+  private statusTextBuild(result: SolidBrushGeometryEditResult): string {
     const skippedSuffix = result.skipped.length > 0 ? `, ${result.skipped.length} refused` : '';
-    return `Sheared ${result.transformed.length} brush(es)${skippedSuffix}`;
+    return `Sheared ${result.edited.length} brush(es)${skippedSuffix}`;
   }
 
   /**

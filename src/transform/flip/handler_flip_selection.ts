@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { CommandStack } from '@/commands/command_stack.js';
 import { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
-import { SolidModel } from '@/solid/model/solid_model.js';
 import {
   CommandSolidBrushesVertexMatrix,
-  type SolidBrushVertexMatrixEntry,
+  solidBrushVertexMatrixEntriesBuild,
 } from '@/solid/commands/brushes/command_solid_brushes_vertex_matrix.js';
 import { solidBrushHullSelection } from '@/tools/hull/handler_solid_brush_hull.js';
+import { solidBrushesWorldVertexBounds } from '@/solid/model/solid_brush_world_bounds.js';
 import { flipMirrorMatrixBuild, type FlipAxis } from '@/transform/flip/flip_axis.js';
 import type { GridSnap } from '@/transform/snap/grid_snap.js';
 
@@ -64,10 +64,10 @@ export class HandlerFlipSelection {
     }
     const center = this.selectionMirrorCenter(brushes, axis);
     const matrix = flipMirrorMatrixBuild(axis, center);
-    const entries = this.entriesBuild(brushes, matrix);
+    const entries = solidBrushVertexMatrixEntriesBuild(brushes, matrix, this.deps.isTexturePositionLockEnabled());
     const command = new CommandSolidBrushesVertexMatrix(entries);
     this.deps.commandStack.push(command);
-    return this.resultBuild(command.getResult().transformed, axis, center);
+    return this.resultBuild(command.getEditResult().edited, axis, center);
   }
 
   /**
@@ -78,7 +78,7 @@ export class HandlerFlipSelection {
    * @returns Plane coordinate along the axis.
    */
   private selectionMirrorCenter(brushes: readonly SolidBrushInstance[], axis: FlipAxis): number {
-    const bounds = this.selectionWorldBounds(brushes);
+    const bounds = solidBrushesWorldVertexBounds(brushes);
     const rawCenter = (bounds.min[axis] + bounds.max[axis]) / 2;
     return this.centerSnap(rawCenter);
   }
@@ -95,71 +95,6 @@ export class HandlerFlipSelection {
       return rawCenter;
     }
     return gridSnap.snapValue(rawCenter);
-  }
-
-  /**
-   * Builds the world bounds of the selection brush vertices.
-   *
-   * @param brushes Selected brushes.
-   * @returns World bounds.
-   */
-  private selectionWorldBounds(brushes: readonly SolidBrushInstance[]): THREE.Box3 {
-    const bounds = new THREE.Box3();
-    for (const brush of brushes) {
-      this.brushWorldBoundsExpand(bounds, brush);
-    }
-    return bounds;
-  }
-
-  /**
-   * Grows bounds by one brush's world vertices.
-   *
-   * @param bounds Bounds accumulator.
-   * @param brush Brush instance.
-   */
-  private brushWorldBoundsExpand(bounds: THREE.Box3, brush: SolidBrushInstance): void {
-    const modelBrush = brush.getModelSpaceBrush();
-    const model = brush.mesh ? SolidModel.fromObject(brush.mesh) : null;
-    if (!model) {
-      modelBrush.vertices.forEach((vertex) => bounds.expandByPoint(vertex));
-      return;
-    }
-    model.root.updateWorldMatrix(true, false);
-    for (const vertex of modelBrush.vertices) {
-      bounds.expandByPoint(vertex.clone().applyMatrix4(model.root.matrixWorld));
-    }
-  }
-
-  /**
-   * Builds one command entry per selected brush.
-   *
-   * @param brushes Selected brushes.
-   * @param matrix World mirror matrix.
-   * @returns Command entries.
-   */
-  private entriesBuild(brushes: readonly SolidBrushInstance[], matrix: THREE.Matrix4): SolidBrushVertexMatrixEntry[] {
-    const lockTextures = this.deps.isTexturePositionLockEnabled();
-    return brushes.flatMap((brush) => this.entryBuild(brush, matrix, lockTextures));
-  }
-
-  /**
-   * Builds the command entry of one brush.
-   *
-   * @param brush Selected brush.
-   * @param matrix World mirror matrix.
-   * @param lockTextures True when UV rows follow the vertices.
-   * @returns One entry, or none when the brush has no model.
-   */
-  private entryBuild(
-    brush: SolidBrushInstance,
-    matrix: THREE.Matrix4,
-    lockTextures: boolean,
-  ): SolidBrushVertexMatrixEntry[] {
-    const model = brush.mesh ? SolidModel.fromObject(brush.mesh) : null;
-    if (!model) {
-      return [];
-    }
-    return [{ model, brushId: brush.id, matrix: matrix.clone(), lockTextures }];
   }
 
   /**

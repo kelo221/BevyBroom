@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ShellMenuEdit } from '@/layout/shell/menubar/menus/shell_menu_edit.js';
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
+import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import {
   ShellTestWindowActions,
   shellTestDocksCreate,
@@ -90,5 +91,57 @@ describe('ShellMenuEdit clipboard entries', () => {
     expect(windowActions.clipboardCopy).toHaveBeenCalledOnce();
     expect(windowActions.clipboardPaste).toHaveBeenCalledOnce();
     expect(windowActions.clipboardPasteAtOriginalPosition).toHaveBeenCalledOnce();
+  });
+});
+
+/**
+ * Builds brush tools whose every command is a spy.
+ *
+ * @returns Spy brush tools.
+ */
+function brushToolsSpyCreate(): HandlerSolidBrushTools {
+  return {
+    hollow: vi.fn(() => null),
+    convexMerge: vi.fn(() => null),
+    flip: vi.fn(() => null),
+    snapVertices: vi.fn(() => 0),
+  } as unknown as HandlerSolidBrushTools;
+}
+
+/** Brush editing rows of the Edit menu. */
+describe('ShellMenuEdit brush entries', () => {
+  it('runs hollow and convex merge from the CSG submenu', () => {
+    const { entries, windowActions } = shellMenuEditTestRigCreate();
+    const brushTools = brushToolsSpyCreate();
+    windowActions.solidBrushTools = brushTools;
+    shellTestMenuActionFind(entries, 'CSG', 'Hollow').onClick();
+    shellTestMenuActionFind(entries, 'CSG', 'Convex Merge').onClick();
+    expect(brushTools.hollow).toHaveBeenCalledOnce();
+    expect(brushTools.convexMerge).toHaveBeenCalledOnce();
+  });
+
+  it('flips horizontally and vertically', () => {
+    const { entries, windowActions } = shellMenuEditTestRigCreate();
+    const brushTools = brushToolsSpyCreate();
+    windowActions.solidBrushTools = brushTools;
+    shellTestMenuActionFind(entries, 'Flip Horizontally').onClick();
+    shellTestMenuActionFind(entries, 'Flip Vertically').onClick();
+    expect(brushTools.flip).toHaveBeenNthCalledWith(1, 'horizontal');
+    expect(brushTools.flip).toHaveBeenNthCalledWith(2, 'vertical');
+  });
+
+  it('snaps vertices to the grid or to whole units', () => {
+    const { entries, windowActions } = shellMenuEditTestRigCreate();
+    const brushTools = brushToolsSpyCreate();
+    windowActions.solidBrushTools = brushTools;
+    shellTestMenuActionFind(entries, 'Snap Vertices', 'To Grid').onClick();
+    shellTestMenuActionFind(entries, 'Snap Vertices', 'To Whole Units').onClick();
+    expect(brushTools.snapVertices).toHaveBeenNthCalledWith(1, 'grid');
+    expect(brushTools.snapVertices).toHaveBeenNthCalledWith(2, 'integer');
+  });
+
+  it('does nothing before the brush tools exist', () => {
+    const { entries } = shellMenuEditTestRigCreate();
+    expect(() => shellTestMenuActionFind(entries, 'CSG', 'Hollow').onClick()).not.toThrow();
   });
 });

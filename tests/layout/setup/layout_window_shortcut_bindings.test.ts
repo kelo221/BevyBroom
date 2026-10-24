@@ -64,6 +64,7 @@ function windowActionsSpyCreate(): ShellWindowActions {
     clipboardPaste: vi.fn(),
     clipboardPasteAtOriginalPosition: vi.fn(),
     clipboardSelectionHasObjectsIs: () => false,
+    solidBrushToolsRead: () => null,
   };
 }
 

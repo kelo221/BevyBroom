@@ -10,6 +10,7 @@ import type { ViewportEditor } from '@/viewports/core/viewport_editor.js';
 import { selectableMeshesCollect } from '@/selection/object/selectable_mesh_filter.js';
 import { viewCycleHoveredPane, viewMaximizeHoveredPane } from '@/layout/view_cycle/layout_view_cycle.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
+import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import type { ClipboardEditCommands } from '@/clipboard/controller/clipboard_edit_commands.js';
 
 /** Late-bound editor parts the main window commands act on. */
@@ -47,6 +48,12 @@ export interface ShellWindowActionsLayoutSource {
    * @returns Shortcut label.
    */
   shortcutLabelRead(action: KeyboardShortcutAction): string;
+  /**
+   * Returns the solid brush tools, or null before they exist.
+   *
+   * @returns Brush tools.
+   */
+  solidBrushToolsRead(): HandlerSolidBrushTools | null;
   /** Object selection the selection commands change. */
   readonly selectionManager: ManagerSelection;
   /** Scene root whose selectable objects Select All picks. */
@@ -184,6 +191,15 @@ export class ShellWindowActionsLayout implements ShellWindowActions {
    */
   shortcutLabelRead(action: KeyboardShortcutAction): string {
     return this.source.shortcutLabelRead(action);
+  }
+
+  /**
+   * Returns the solid brush tools.
+   *
+   * @returns Brush tools, or null before they exist.
+   */
+  solidBrushToolsRead(): HandlerSolidBrushTools | null {
+    return this.source.solidBrushToolsRead();
   }
 
   /**

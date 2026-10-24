@@ -1,3 +1,4 @@
+import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import type { EditorToolId } from '@/types/editor_tool_id.js';
 import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
 
@@ -73,4 +74,10 @@ export interface ShellWindowActions {
    * @returns Shortcut label such as "Ctrl+A".
    */
   shortcutLabelRead(action: KeyboardShortcutAction): string;
+  /**
+   * Returns the solid brush tools (hollow, convex merge, flip, vertex snap).
+   *
+   * @returns Brush tools, or null before the editor finished starting.
+   */
+  solidBrushToolsRead(): HandlerSolidBrushTools | null;
 }

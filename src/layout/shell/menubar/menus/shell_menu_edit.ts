@@ -1,4 +1,5 @@
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
+import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 
 /** Edit menu: history, selection, grouping, CSG and alignment commands. */
@@ -28,6 +29,7 @@ export class ShellMenuEdit extends ShellMenu {
       this.actionEntry(context, 'Group', () => actions.onGroupSelected(), { shortcutAction: 'group' }),
       this.actionEntry(context, 'Ungroup', () => actions.onUngroupSelected(), { shortcutAction: 'ungroup' }),
       this.separatorEntry(),
+      ...this.brushEntriesBuild(context),
       this.csgSubmenuBuild(context),
       this.alignSubmenuBuild(context),
     ];
@@ -70,8 +72,45 @@ export class ShellMenuEdit extends ShellMenu {
         this.actionEntry(context, 'Union', () => actions.onCsgUnion(), { isEnabled }),
         this.actionEntry(context, 'Subtract', () => actions.onCsgSubtract(), { isEnabled }),
         this.actionEntry(context, 'Intersect', () => actions.onCsgIntersect(), { isEnabled }),
+        this.separatorEntry(),
+        this.actionEntry(context, 'Hollow', () => context.windowActions.solidBrushToolsRead()?.hollow()),
+        this.actionEntry(context, 'Convex Merge', () => context.windowActions.solidBrushToolsRead()?.convexMerge()),
       ],
     };
+  }
+
+  /**
+   * Builds the Flip Horizontally, Flip Vertically and Snap Vertices entries.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Brush editing entries.
+   */
+  private brushEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    const brushTools = this.brushToolsReader(context);
+    return [
+      this.actionEntry(context, 'Flip Horizontally', () => brushTools()?.flip('horizontal')),
+      this.actionEntry(context, 'Flip Vertically', () => brushTools()?.flip('vertical')),
+      {
+        kind: 'submenu',
+        label: 'Snap Vertices',
+        children: [
+          this.actionEntry(context, 'To Grid', () => brushTools()?.snapVertices('grid')),
+          this.actionEntry(context, 'To Whole Units', () => brushTools()?.snapVertices('integer')),
+        ],
+      },
+      this.separatorEntry(),
+    ];
+  }
+
+  /**
+   * Returns a reader of the solid brush tools.
+   *
+   * @param context Actions the tools come from.
+   * @returns Function returning the brush tools, or null before the editor is
+   *   ready.
+   */
+  private brushToolsReader(context: ShellMenuContext): () => HandlerSolidBrushTools | null {
+    return () => context.windowActions.solidBrushToolsRead();
   }
 
   /**

@@ -30,6 +30,20 @@ describe('SolidHalfspaceIntersection', () => {
     expect(bounds.min.x).toBeCloseTo(-0.5, 3);
   });
 
+  it('keeps a thin slab cut from every face of a symmetric box', () => {
+    const edge = 4;
+    const slabThickness = edge / 8;
+    const brush = SolidBrushFactory.createCenteredBox(edge, edge, edge);
+    for (const plane of brush.planes) {
+      const slabCut = new SolidPlane(plane.normal.clone().negate(), -(plane.offset + slabThickness));
+      const slab = SolidHalfspaceIntersection.build(brush, [slabCut]);
+      expect(slab, `slab against normal ${plane.normal.toArray().join(',')}`).not.toBeNull();
+      if (!slab) continue;
+      const size = slab.computeLocalBounds().getSize(new THREE.Vector3());
+      expect(Math.min(size.x, size.y, size.z)).toBeCloseTo(slabThickness, 4);
+    }
+  });
+
   it('matches one-plane clipping for a short bevel profile', () => {
     expect(bevelMatchesSequential(1)).toBe(true);
     expect(bevelMatchesSequential(3)).toBe(true);

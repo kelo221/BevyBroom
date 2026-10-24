@@ -1,21 +1,18 @@
 import * as THREE from 'three';
-import { UndoCommand } from '@/commands/command_undo.js';
 import { SolidBrush } from '@/solid/brush/solid_brush.js';
 import { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidPlane } from '@/solid/brush/solid_plane.js';
-import { SolidBrushValidator } from '@/solid/brush/solid_brush_validator.js';
-import { solidBrushPreviewSwap } from '@/solid/brush/solid_brush_preview_swap.js';
 import { solidHullBrushFromPoints } from '@/solid/algorithm/surface/solid_hull_brush.js';
 import {
   brushVertexSurfaceTransform,
   brushVertexSurfacesTransformAll,
 } from '@/transform/vertex/brush_vertex_surface_transform.js';
+import { deserializeFaceSurface, type FaceSurfaceDescription } from '@/texture/uv_matrix/face_surface_description.js';
 import {
-  deserializeFaceSurface,
-  type FaceSurfaceDescription,
-  type FaceSurfaceDescriptionSerialized,
-} from '@/texture/uv_matrix/face_surface_description.js';
+  CommandSolidBrushesGeometryEdit,
+  type SolidBrushGeometryEditRecord,
+} from './command_solid_brushes_geometry_edit.js';
 
 /** One brush and the world-space matrix applied to its vertices. */
 export interface SolidBrushVertexMatrixEntry {
@@ -29,34 +26,22 @@ export interface SolidBrushVertexMatrixEntry {
   lockTextures: boolean;
 }
 
-/** Result of a vertex-matrix command run. */
-export interface SolidBrushVertexMatrixResult {
-  /** Brush instances that were transformed. */
-  transformed: SolidBrushInstance[];
-  /** Brush instances skipped because the result would be invalid. */
-  skipped: SolidBrushInstance[];
-}
-
-interface BrushUndoRecord {
-  model: SolidModel;
-  brushId: string;
-  previousBrush: SolidBrush;
-  previousDefaultSurface: FaceSurfaceDescriptionSerialized;
-  previousFaceSurfaces: (FaceSurfaceDescriptionSerialized | undefined)[];
+/** Pre-edit surfaces materialized from an undo record. */
+interface VertexMatrixPreviousSurfaces {
+  /** Default surface before the edit. */
+  defaultSurface: FaceSurfaceDescription;
+  /** Per-face surfaces before the edit. */
+  faceSurfaces: (FaceSurfaceDescription | undefined)[];
 }
 
 /**
  * Undoable command that applies a world-space affine matrix to the vertices of
  * several solid brushes at once. Orientation-flipping matrices (mirrors)
  * rebuild the convex topology so planes keep pointing outward. Brushes whose
- * result would be invalid are skipped and reported through the result.
+ * result would be invalid are skipped and reported through the edit result.
  */
-export class CommandSolidBrushesVertexMatrix implements UndoCommand {
+export class CommandSolidBrushesVertexMatrix extends CommandSolidBrushesGeometryEdit {
   private readonly entries: SolidBrushVertexMatrixEntry[];
-  private readonly undoRecords: BrushUndoRecord[];
-  private readonly transformed: SolidBrushInstance[];
-  private readonly skipped: SolidBrushInstance[];
-  private executed: boolean;
 
   /**
    * Creates a vertex-matrix command.
@@ -64,46 +49,12 @@ export class CommandSolidBrushesVertexMatrix implements UndoCommand {
    * @param entries Brushes with their world-space matrices.
    */
   constructor(entries: readonly SolidBrushVertexMatrixEntry[]) {
+    super();
     this.entries = entries.slice();
-    this.undoRecords = [];
-    this.transformed = [];
-    this.skipped = [];
-    this.executed = false;
   }
 
-  /**
-   * Returns which brushes transformed and which were skipped.
-   *
-   * @returns Lists of brush instances.
-   */
-  getResult(): SolidBrushVertexMatrixResult {
-    return { transformed: this.transformed.slice(), skipped: this.skipped.slice() };
-  }
-
-  /** Applies the matrix to every valid brush and rebuilds the owning models. */
-  execute(): void {
-    if (this.executed) {
-      return;
-    }
-    this.entryBrushesApply();
-    this.modelsRebuild();
-    this.executed = true;
-  }
-
-  /** Restores every transformed brush to its pre-command geometry. */
-  undo(): void {
-    if (!this.executed) {
-      return;
-    }
-    for (const record of this.undoRecords) {
-      this.recordRestore(record);
-    }
-    this.modelsRebuild();
-    this.executed = false;
-  }
-
-  /** Applies one matrix entry per brush. */
-  private entryBrushesApply(): void {
+  /** Applies every entry's matrix to its brush. */
+  protected targetsEdit(): void {
     for (const entry of this.entries) {
       this.entryApply(entry);
     }
@@ -121,45 +72,32 @@ export class CommandSolidBrushesVertexMatrix implements UndoCommand {
     }
     const localMatrix = brushLocalMatrixCompose(instance, entry.matrix);
     const mirrored = localMatrix.determinant() < 0;
-    const candidate = candidateBrushBuild(instance.brush, localMatrix, mirrored);
-    if (!candidate || !SolidBrushValidator.validate(candidate).valid) {
-      this.skipped.push(instance);
-      return;
-    }
-    const record = recordCreate(entry.model, instance);
-    solidBrushPreviewSwap(instance, candidate);
-    if (entry.lockTextures) {
-      surfacesTransform(instance, localMatrix, mirrored, record);
-    }
-    this.undoRecords.push(record);
-    this.transformed.push(instance);
+    const candidate = vertexMatrixCandidateBuild(instance.brush, localMatrix, mirrored);
+    this.brushEditApply(entry.model, instance, candidate, (record) => {
+      if (entry.lockTextures) {
+        vertexMatrixSurfacesTransform(instance, localMatrix, mirrored, record);
+      }
+    });
   }
+}
 
-  /**
-   * Restores one undo record onto its brush.
-   *
-   * @param record Stored pre-command state.
-   */
-  private recordRestore(record: BrushUndoRecord): void {
-    const instance = record.model.findBrush(record.brushId);
-    if (!instance) {
-      return;
-    }
-    solidBrushPreviewSwap(instance, record.previousBrush);
-    instance.restoreFaceSurfaces(record.previousDefaultSurface, record.previousFaceSurfaces);
-  }
-
-  /** Rebuilds every solid model touched by the command once. */
-  private modelsRebuild(): void {
-    const models = new Set<SolidModel>();
-    for (const record of this.undoRecords) {
-      models.add(record.model);
-    }
-    for (const model of models) {
-      model.markDirty();
-      model.rebuild(true);
-    }
-  }
+/**
+ * Builds one command entry per brush that belongs to a solid model.
+ *
+ * @param brushes Brush instances to transform.
+ * @param matrix World-space matrix, cloned into each entry.
+ * @param lockTextures True when UV rows follow the vertices.
+ * @returns Command entries in brush order.
+ */
+export function solidBrushVertexMatrixEntriesBuild(
+  brushes: readonly SolidBrushInstance[],
+  matrix: THREE.Matrix4,
+  lockTextures: boolean,
+): SolidBrushVertexMatrixEntry[] {
+  return brushes.flatMap((brush) => {
+    const model = brush.mesh ? SolidModel.fromObject(brush.mesh) : null;
+    return model ? [{ model, brushId: brush.id, matrix: matrix.clone(), lockTextures }] : [];
+  });
 }
 
 /**
@@ -187,7 +125,11 @@ export function brushLocalMatrixCompose(instance: SolidBrushInstance, worldMatri
  * @param mirrored True when the matrix flips orientation.
  * @returns Candidate brush, or null when a mirror hull cannot close.
  */
-function candidateBrushBuild(brush: SolidBrush, localMatrix: THREE.Matrix4, mirrored: boolean): SolidBrush | null {
+function vertexMatrixCandidateBuild(
+  brush: SolidBrush,
+  localMatrix: THREE.Matrix4,
+  mirrored: boolean,
+): SolidBrush | null {
   if (!mirrored) {
     const candidate = brush.clone();
     candidate.transformVertices(localMatrix);
@@ -198,23 +140,6 @@ function candidateBrushBuild(brush: SolidBrush, localMatrix: THREE.Matrix4, mirr
 }
 
 /**
- * Stores the pre-command geometry and surfaces of one brush.
- *
- * @param model Owning solid model.
- * @param instance Brush about to transform.
- * @returns Undo record for the brush.
- */
-function recordCreate(model: SolidModel, instance: SolidBrushInstance): BrushUndoRecord {
-  return {
-    model,
-    brushId: instance.id,
-    previousBrush: instance.brush.clone(),
-    previousDefaultSurface: instance.serializeDefaultSurface(),
-    previousFaceSurfaces: instance.serializeFaceSurfaces(),
-  };
-}
-
-/**
  * Updates face surfaces after the vertices moved.
  *
  * @param instance Brush holding the new geometry.
@@ -222,17 +147,17 @@ function recordCreate(model: SolidModel, instance: SolidBrushInstance): BrushUnd
  * @param mirrored True when the geometry was rebuilt from a mirrored hull.
  * @param record Undo record holding the previous surfaces.
  */
-function surfacesTransform(
+function vertexMatrixSurfacesTransform(
   instance: SolidBrushInstance,
   localMatrix: THREE.Matrix4,
   mirrored: boolean,
-  record: BrushUndoRecord,
+  record: SolidBrushGeometryEditRecord,
 ): void {
   if (!mirrored) {
     brushVertexSurfacesTransformAll(instance, localMatrix);
     return;
   }
-  const previous = recordSurfacesMaterialize(record);
+  const previous = vertexMatrixPreviousSurfacesRead(record);
   for (let faceIndex = 0; faceIndex < instance.brush.faces.length; faceIndex += 1) {
     const surface = mirroredSurfaceMatch(previous, record.previousBrush, instance.brush, faceIndex, localMatrix);
     instance.setFaceSurface(faceIndex, surface);
@@ -242,13 +167,10 @@ function surfacesTransform(
 /**
  * Materializes live surfaces from one undo record.
  *
- * @param record Stored pre-command state.
+ * @param record Stored pre-edit state.
  * @returns Default and per-face surfaces.
  */
-function recordSurfacesMaterialize(record: BrushUndoRecord): {
-  defaultSurface: FaceSurfaceDescription;
-  faceSurfaces: (FaceSurfaceDescription | undefined)[];
-} {
+function vertexMatrixPreviousSurfacesRead(record: SolidBrushGeometryEditRecord): VertexMatrixPreviousSurfaces {
   const faceSurfaces = record.previousFaceSurfaces.map((entry) => (entry ? deserializeFaceSurface(entry) : undefined));
   return { defaultSurface: deserializeFaceSurface(record.previousDefaultSurface), faceSurfaces };
 }
@@ -264,7 +186,7 @@ function recordSurfacesMaterialize(record: BrushUndoRecord): {
  * @returns Transformed surface, or the transformed default.
  */
 function mirroredSurfaceMatch(
-  previous: { defaultSurface: FaceSurfaceDescription; faceSurfaces: (FaceSurfaceDescription | undefined)[] },
+  previous: VertexMatrixPreviousSurfaces,
   previousBrush: SolidBrush,
   brush: SolidBrush,
   faceIndex: number,

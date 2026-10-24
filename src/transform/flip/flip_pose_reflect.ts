@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { FlipAxis } from '@/transform/flip/flip_axis.js';
+import type { FlipHorizontalAxis } from '@/transform/flip/flip_axis.js';
 
 /** Pose of one object before and after a mirror. */
 export interface FlipPoseReflection {
@@ -21,7 +21,7 @@ export interface FlipPoseReflection {
 export function flipPoseReflect(
   position: THREE.Vector3,
   rotation: THREE.Euler,
-  axis: Exclude<FlipAxis, 'y'>,
+  axis: FlipHorizontalAxis,
   plane: number,
 ): FlipPoseReflection {
   const nextPosition = position.clone();

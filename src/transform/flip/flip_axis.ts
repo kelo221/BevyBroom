@@ -3,6 +3,9 @@ import * as THREE from 'three';
 /** World axis a flip mirrors across. */
 export type FlipAxis = 'x' | 'y' | 'z';
 
+/** Horizontal world axis a flip can mirror across. */
+export type FlipHorizontalAxis = Exclude<FlipAxis, 'y'>;
+
 /**
  * Builds a world-space mirror matrix across a plane through a center.
  *
@@ -59,7 +62,7 @@ function flipMirrorTranslation(axis: FlipAxis, center: number): THREE.Vector3 {
  * @param cameraRight Camera right direction in world space.
  * @returns 'x' or 'z', whichever the camera right points along more.
  */
-export function flipHorizontalAxisForCamera(cameraRight: THREE.Vector3): FlipAxis {
+export function flipHorizontalAxisForCamera(cameraRight: THREE.Vector3): FlipHorizontalAxis {
   return Math.abs(cameraRight.x) >= Math.abs(cameraRight.z) ? 'x' : 'z';
 }
 

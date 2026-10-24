@@ -227,6 +227,39 @@ export class ToolbarIcons {
   }
 
   /**
+   * Duplicate icon: two overlapping squares.
+   *
+   * @returns SVG markup string.
+   */
+  static duplicate(): string {
+    return this.wrapSvg(
+      '<rect x="8" y="8" width="12" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M16 5.5V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h.5"/>',
+    );
+  }
+
+  /**
+   * Flip horizontally icon: two triangles mirrored across a vertical line.
+   *
+   * @returns SVG markup string.
+   */
+  static flipHorizontal(): string {
+    return this.wrapSvg(
+      '<path fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 2" d="M12 3v18"/><path fill="currentColor" d="M10 6v12L3 18z"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M14 6v12h7z"/>',
+    );
+  }
+
+  /**
+   * Flip vertically icon: two triangles mirrored across a horizontal line.
+   *
+   * @returns SVG markup string.
+   */
+  static flipVertical(): string {
+    return this.wrapSvg(
+      '<path fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 2" d="M3 12h18"/><path fill="currentColor" d="M6 10h12L18 3z"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M6 14h12l0 7z"/>',
+    );
+  }
+
+  /**
    * Undo curved arrow icon.
    *
    * @returns SVG markup string.

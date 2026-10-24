@@ -5,6 +5,7 @@ import { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { markAsSolidCsgGroup } from '@/solid/model/solid_group.js';
 import { solidBrushModelPoseApply } from '@/solid/model/solid_brush_model_pose.js';
+import { solidModelsFullRebuild } from '@/solid/commands/brushes/command_solid_brushes_geometry_edit.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
 import type { HollowWallBuild } from '@/tools/csg/solid/hollow/hollow_walls_build.js';
 
@@ -258,13 +259,6 @@ export class CommandSolidBrushHollow implements UndoCommand {
 
   /** Rebuilds every model the command touched once. */
   private modelsRebuild(): void {
-    const models = new Set<SolidModel>();
-    for (const runtime of this.runtimes) {
-      models.add(runtime.entry.model);
-    }
-    for (const model of models) {
-      model.markDirty();
-      model.rebuild(true);
-    }
+    solidModelsFullRebuild(this.runtimes.map((runtime) => runtime.entry.model));
   }
 }

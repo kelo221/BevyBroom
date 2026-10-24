@@ -60,6 +60,7 @@ function fixtureCreate(
     playModeStart: vi.fn(),
     shortcutLabelRead: (action) => `label:${action}`,
     clipboardEditCommandsRead: () => clipboardEditCommands,
+    solidBrushToolsRead: () => null,
     selectionManager,
     worldObject,
     snapManager,

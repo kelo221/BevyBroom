@@ -24,6 +24,7 @@ import { EditorApiInfoPanel, type ConsoleReadArgs } from './editor_api_info_pane
 import { EditorApiMainWindow } from './editor_api_main_window.js';
 import { EditorApiLayers } from './editor_api_layers.js';
 import { EditorApiClipboard } from './editor_api_clipboard.js';
+import { EditorApiBrushTools } from './editor_api_brush_tools.js';
 import { EditorApiViewportInput } from './editor_api_viewport_input.js';
 import { EditorApiProject } from './editor_api_project.js';
 import type {
@@ -88,6 +89,7 @@ export class EditorApi {
   private readonly layers: EditorApiLayers;
   private readonly mainWindow: EditorApiMainWindow;
   private readonly clipboard: EditorApiClipboard;
+  private readonly brushTools: EditorApiBrushTools;
   private readonly viewportInput: EditorApiViewportInput;
   private readonly project: EditorApiProject;
 
@@ -116,6 +118,7 @@ export class EditorApi {
     this.layers = new EditorApiLayers(host);
     this.mainWindow = new EditorApiMainWindow(host);
     this.clipboard = new EditorApiClipboard(host);
+    this.brushTools = new EditorApiBrushTools(host);
     this.viewportInput = new EditorApiViewportInput(host, () => this.reads.getSelection());
     this.project = new EditorApiProject(host);
   }
@@ -351,14 +354,27 @@ export class EditorApi {
       case 'issues_list':
         return this.infoPanel.issuesList();
       default:
-        return (
-          this.layers.layerToolDispatch(name, args) ??
-          this.mainWindow.mainWindowToolDispatch(name, args) ??
-          this.clipboard.clipboardToolDispatch(name, args) ??
-          this.viewportInput.viewportInputToolDispatch(name, args) ??
-          this.project.projectToolDispatchSync(name) ?? { ok: false, message: `Unknown tool: ${name}` }
-        );
+        return this.dispatchToolGroups(name, args);
     }
+  }
+
+  /**
+   * Routes the layer, main window, clipboard, brush editing, viewport input and
+   * project tools.
+   *
+   * @param name Tool name.
+   * @param args Argument object.
+   * @returns Tool result, or an unknown tool failure.
+   */
+  private dispatchToolGroups(name: string, args: Record<string, unknown>): McpToolResult {
+    return (
+      this.layers.layerToolDispatch(name, args) ??
+      this.mainWindow.mainWindowToolDispatch(name, args) ??
+      this.clipboard.clipboardToolDispatch(name, args) ??
+      this.brushTools.brushToolDispatch(name, args) ??
+      this.viewportInput.viewportInputToolDispatch(name, args) ??
+      this.project.projectToolDispatchSync(name) ?? { ok: false, message: `Unknown tool: ${name}` }
+    );
   }
 }
 

@@ -5,6 +5,7 @@ import { MCP_LAYER_TOOL_DEFINITIONS } from './registry_mcp_tool_layers.js';
 import { MCP_MAIN_WINDOW_TOOL_DEFINITIONS } from './registry_mcp_tool_main_window.js';
 import { MCP_VIEWPORT_INPUT_TOOL_DEFINITIONS } from './registry_mcp_tool_viewport_input.js';
 import { MCP_CLIPBOARD_TOOL_DEFINITIONS } from './registry_mcp_tool_clipboard.js';
+import { MCP_BRUSH_TOOL_DEFINITIONS } from './registry_mcp_tool_brush_tools.js';
 import { MCP_PROJECT_TOOL_DEFINITIONS } from './registry_mcp_tool_project.js';
 import { emptySchema, tool, vec3Schema, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
@@ -797,6 +798,7 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ...MCP_LAYER_TOOL_DEFINITIONS,
   ...MCP_MAIN_WINDOW_TOOL_DEFINITIONS,
   ...MCP_CLIPBOARD_TOOL_DEFINITIONS,
+  ...MCP_BRUSH_TOOL_DEFINITIONS,
   ...MCP_VIEWPORT_INPUT_TOOL_DEFINITIONS,
   ...MCP_PROJECT_TOOL_DEFINITIONS,
 ];

@@ -15,6 +15,12 @@ import {
   LayoutViewportFileActions,
   type LayoutViewportFileActionsContext,
 } from '@/layout/viewport/layout_viewport_file_actions.js';
+import {
+  HandlerSolidBrushTools,
+  type HandlerSolidBrushToolsDeps,
+} from '@/tools/csg/solid/handler_solid_brush_tools.js';
+import type { FaceSelection } from '@/selection/face/manager_face_selection.js';
+import { SelectionMode } from '@/types/selection_mode.js';
 import { LayoutClipboardSystem } from '@/layout/setup/layout_clipboard_setup.js';
 
 /**
@@ -23,6 +29,7 @@ import { LayoutClipboardSystem } from '@/layout/setup/layout_clipboard_setup.js'
  */
 export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
   protected readonly fileActions = new LayoutViewportFileActions(() => this.fileActionsContextRead());
+  private solidBrushTools: HandlerSolidBrushTools | null = null;
 
   /**
    * Returns the current editor parts the File menu actions use.
@@ -94,6 +101,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
       playModeStart: () => layout.playerSystem?.playModeStart(),
       shortcutLabelRead: (action) => layout.fileActions.shortcutLabelRead(action),
       clipboardEditCommandsRead: () => layout.clipboardSystem?.editCommands ?? null,
+      solidBrushToolsRead: () => layout.solidBrushToolsEnsure(),
       get selectionManager() {
         return layout.selectionManager;
       },
@@ -104,6 +112,45 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
         return layout.snapManager;
       },
     });
+  }
+
+  /**
+   * Returns the solid brush tools, creating them on first use.
+   *
+   * @returns Brush tools bound to this layout.
+   */
+  protected solidBrushToolsEnsure(): HandlerSolidBrushTools {
+    this.solidBrushTools ??= new HandlerSolidBrushTools(this.solidBrushToolsDepsRead());
+    return this.solidBrushTools;
+  }
+
+  /**
+   * Reads the editor services the solid brush tools act on.
+   *
+   * @returns Brush tools dependencies.
+   */
+  private solidBrushToolsDepsRead(): HandlerSolidBrushToolsDeps {
+    return {
+      commandStack: this.commandStack,
+      gridSnap: this.gridSnap,
+      selectedObjectsRead: () => this.selectionManager.getAllSelectedObjectsAsArray(),
+      selectedFacesRead: () => this.faceModeSelectedFacesRead(),
+      activeCameraRead: () => this.getActiveSpawnCamera(),
+      isTexturePositionLockEnabled: () => this.textureLock.isPositionLocked(),
+      showStatusMessage: (message) => this.showStatusMessage(message),
+      selectionReplace: (meshes) => this.selectionManager.setSelection([...meshes]),
+      afterWorldMutation: () => this.refreshAfterWorldMutation(),
+    };
+  }
+
+  /**
+   * Returns the selected faces while face mode is active.
+   *
+   * @returns Selected faces, empty in object mode.
+   */
+  private faceModeSelectedFacesRead(): FaceSelection[] {
+    const faceController = this.faceModeCoordinator.getFaceExtrusionController();
+    return faceController.getSelectionMode() === SelectionMode.FACE ? faceController.getSelectedFaces() : [];
   }
 
   /** Builds and mounts the docked inspector and info panel contents. */

@@ -1,5 +1,6 @@
 import { vi, type Mock } from 'vitest';
 import type { EditorToolbarActions } from '@/layout/shell/builder_editor_shell.js';
+import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
 import type { ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 import { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
@@ -145,6 +146,10 @@ export class ShellTestWindowActions implements ShellWindowActions {
   readonly clipboardPasteAtOriginalPosition = vi.fn<() => void>();
   /** Spy that returns whether objects are selected. */
   readonly clipboardSelectionHasObjectsIs = vi.fn(() => this.clipboardSelectionHasObjects);
+  /** Brush tools the menus and toolbar run, or null for none. */
+  solidBrushTools: HandlerSolidBrushTools | null = null;
+  /** Spy that returns the brush tools. */
+  readonly solidBrushToolsRead = vi.fn(() => this.solidBrushTools);
 
   /**
    * Changes the grid size and tells every registered listener.
