@@ -7,6 +7,13 @@ export default defineConfig({
   },
   // Relative base so GitHub Pages project sites resolve index.js next to index.html.
   base: './',
+  server: {
+    watch: {
+      // On Windows a watched folder cannot be renamed, which makes the desktop
+      // build fail with AccessDenied while the dev server runs.
+      ignored: ['**/.hutch/**', '**/desktop_build/**', '**/desktop_artifacts/**', '**/bevy/target/**'],
+    },
+  },
   build: {
     outDir: 'docs',
     // Single-file app bundle so GitHub Pages never needs lazy chunk URLs.

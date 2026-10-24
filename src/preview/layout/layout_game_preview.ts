@@ -104,7 +104,7 @@ export class LayoutGamePreview {
       worldGroup: this.hosts.worldGroup,
       gameProcessControlRead: () => gameProcessControlResolve(),
       levelNameRead: () => this.levelNameRead(),
-      glbExport: (worldGroup) => glbExporter.exportForFile(worldGroup, this.hosts.gameProfileRead()),
+      glbExport: (worldGroup) => glbExporter.exportForLevelPackage(worldGroup),
     });
   }
 
