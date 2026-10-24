@@ -40,7 +40,15 @@ describe('EditorApiProject', () => {
 
   it('registers every project tool', () => {
     const names = MCP_TOOL_DEFINITIONS.map((definition) => definition.name);
-    const projectTools = ['project_open', 'project_status', 'game_launch', 'game_rebuild', 'game_restart', 'game_stop'];
+    const projectTools = [
+      'project_open',
+      'project_status',
+      'game_launch',
+      'game_rebuild',
+      'game_restart',
+      'game_stop',
+      'build_level',
+    ];
     expect(names).toEqual(expect.arrayContaining(projectTools));
   });
 
@@ -63,6 +71,16 @@ describe('EditorApiProject', () => {
     const missing = await rig.api.invokeToolAsync('project_open', { path: '/games/missing/broom.project.json' });
     expect(missing.ok).toBe(false);
     expect(missing.message).toContain('missing');
+  });
+
+  it('builds the level of the open project under the requested name', async () => {
+    const rig = projectApiRigCreate();
+    expect((await rig.api.invokeToolAsync('build_level')).ok).toBe(false);
+    await rig.api.invokeToolAsync('project_open', { path: '/games/mcp game/broom.project.json' });
+    const built = await rig.api.invokeToolAsync('build_level', { levelName: 'Upper Hall' });
+    expect(built.ok, built.message).toBe(true);
+    expect(built.data).toMatchObject({ levelName: 'upper_hall' });
+    expect(rig.workbenchRig.control.publishedLevels.map((request) => request.levelName)).toEqual(['upper_hall']);
   });
 
   it('explains that only the desktop app manages games', async () => {

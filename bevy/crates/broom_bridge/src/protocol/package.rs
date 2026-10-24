@@ -9,6 +9,14 @@ use super::state::{AuthoredState, PROTOCOL_VERSION};
 /// The manifest's file name inside a level directory.
 pub const MANIFEST_FILE_NAME: &str = "level.broom.json";
 
+/// The manifest format this bridge writes. Version 1 manifests carry no version field.
+pub const LEVEL_MANIFEST_VERSION: u32 = 2;
+
+/// The manifest version of files written before the field existed.
+fn level_manifest_version_one() -> u32 {
+    1
+}
+
 /// A compiled geometry revision sent by the editor.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct GeometryPublication {
@@ -46,18 +54,48 @@ impl GeometryPublication {
 /// with it (lights and transforms).
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct LevelManifest {
+    /// The manifest format: 1 for files without the field, 2 for built level packages.
+    #[serde(default = "level_manifest_version_one")]
+    pub manifest_version: u32,
     pub protocol: u32,
     pub level_name: String,
     /// The GLB file name inside the level directory.
     pub geometry_file: String,
     pub geometry_revision: u64,
     pub state: AuthoredState,
+    /// The game material ids the level geometry uses, so a build can check they exist.
+    #[serde(default)]
+    pub materials: Vec<String>,
 }
 
 impl LevelManifest {
+    /// A current-version manifest of `state` with geometry `geometry_file` and no material list.
+    pub fn new(
+        level_name: String,
+        geometry_file: String,
+        geometry_revision: u64,
+        state: AuthoredState,
+    ) -> Self {
+        Self {
+            manifest_version: LEVEL_MANIFEST_VERSION,
+            protocol: PROTOCOL_VERSION,
+            level_name,
+            geometry_file,
+            geometry_revision,
+            state,
+            materials: Vec::new(),
+        }
+    }
+
     /// Parses a manifest and checks its protocol and state.
     pub fn parse(json: &str) -> Result<Self, String> {
         let manifest: Self = serde_json::from_str(json).map_err(|error| error.to_string())?;
+        if manifest.manifest_version == 0 || manifest.manifest_version > LEVEL_MANIFEST_VERSION {
+            return Err(format!(
+                "manifest version {} is not supported (expected 1 to {LEVEL_MANIFEST_VERSION})",
+                manifest.manifest_version
+            ));
+        }
         if !protocol_supported(manifest.protocol) {
             return Err(format!(
                 "manifest protocol {} is not supported",

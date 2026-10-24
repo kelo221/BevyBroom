@@ -4,6 +4,7 @@ import { Viewport3D } from '@/viewports/core/viewport_3d.js';
 import { Viewport2D } from '@/viewports/core/viewport_2d.js';
 import { getCadViewPlaneForKind, type ViewportEditor } from '@/viewports/core/viewport_editor.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
+import { SelectionMode } from '@/types/selection_mode.js';
 import { ControllerSelectionVisual } from '@/selection/object/controller_selection_visual.js';
 import { HandlerHierarchyReparent } from '@/outliner/hierarchy/handler_hierarchy_reparent.js';
 import { ToolPrimitiveCreation } from '@/tools/creation/tool_primitive_creation.js';
@@ -105,6 +106,7 @@ import { TransformMode } from '@/types/transform_mode.js';
 import type { ObjectApplyTransformKind } from '@/types/object_apply_transform_kind.js';
 import { HandlerObjectApplyTransform } from '@/transform/apply/handler_object_apply_transform.js';
 import { HandlerSolidBrushHull } from '@/tools/hull/handler_solid_brush_hull.js';
+import { LayoutShapeDrawSetup } from '@/tools/shape_draw/layout/layout_shape_draw_setup.js';
 import { hullBrushSelectionFinish } from '@/tools/hull/hull_brush_selection_finish.js';
 import { ViewportPaneLayout } from './viewport_pane_layout.js';
 import {
@@ -175,6 +177,12 @@ export abstract class ViewportLayoutCore {
   protected isDisposed: boolean;
   protected readonly renderLoop: LayoutRenderLoop;
   protected selectionManager!: ManagerSelection;
+  private readonly shapeDrawSetup = new LayoutShapeDrawSetup({
+    commandStackRead: () => this.commandStack,
+    selectedObjectsRead: () => this.selectionManager.getAllSelectedObjectsAsArray(),
+    statusMessageShow: (message) => this.showStatusMessage(message),
+    worldMutationRefresh: () => this.refreshAfterWorldMutation(),
+  });
   protected selectionVisualController!: ControllerSelectionVisual;
   protected hierarchyReparentHandler!: HandlerHierarchyReparent;
   protected primitiveTool!: ToolPrimitiveCreation;
@@ -604,6 +612,7 @@ export abstract class ViewportLayoutCore {
     this.setupAiBridge();
     this.setupSnapSettingsController();
     this.installToolEditorFocusSystem();
+    this.setupSceneRecovery();
   }
 
   /**
@@ -819,6 +828,19 @@ export abstract class ViewportLayoutCore {
     };
   }
 
+  /**
+   * Reveals the Face inspector tab when face mode starts and the auto-reveal
+   * setting allows it.
+   */
+  protected faceInspectorAutoRevealOnFaceMode(): void {
+    if (this.faceModeCoordinator.getSelectionMode() !== SelectionMode.FACE) {
+      return;
+    }
+    if (this.settingsStore?.getViewSettings().faceInspectorAutoReveal !== false) {
+      this.faceInspectorReveal();
+    }
+  }
+
   /** Creates the face selection/extrusion coordinator. */
   protected setupFaceModeCoordinator(): void {
     this.faceModeCoordinator = createFaceModeCoordinator({
@@ -838,6 +860,7 @@ export abstract class ViewportLayoutCore {
         this.toolsPaletteController?.onExternalSelectionModeChanged(this.faceModeCoordinator.getSelectionMode());
         this.updateGizmoVisibility();
         this.updateGizmoPivot();
+        this.faceInspectorAutoRevealOnFaceMode();
       },
     });
     this.wireOutlinerFaceModeSelection();
@@ -981,6 +1004,7 @@ export abstract class ViewportLayoutCore {
       },
       onApplyObjectTransform: (kind) => this.applyObjectTransformsFromChrome(kind),
       onConvexHull: () => this.hullBrushesFromChrome(),
+      onShapeSettingChanged: () => this.shapeDrawSetup.shapeSettingChanged(),
       onEditKnife: () => this.toolEditorSystem?.editorWindow.useSingleUseEditKnifeTool(),
       onEditLoopCut: () => this.toolEditorSystem?.editorWindow.useSingleUseEditLoopCutTool(),
       onEditMerge: (mode) => {
@@ -1304,6 +1328,7 @@ export abstract class ViewportLayoutCore {
       textureBrowserControllerRead: () => this.textureBrowserController,
       sceneFileNameRead: () => this.sceneIOHandler.sceneDocumentFileNameRead(),
       statusMessageShow: (message) => this.showStatusMessage(message),
+      gameProfileRead: () => this.settingsStore?.getActiveGameProfile() ?? null,
     });
     return this.gamePreviewLayout;
   }
@@ -1472,6 +1497,12 @@ export abstract class ViewportLayoutCore {
 
   /** Builds and mounts the docked inspector and info panel contents. */
   protected abstract setupShellPanels(): void;
+
+  /**
+   * Starts protecting unsaved work and offers work kept from an earlier
+   * session.
+   */
+  protected abstract setupSceneRecovery(): void;
 
   /**
    * Builds the main window selection, view, play, tool and grid commands.

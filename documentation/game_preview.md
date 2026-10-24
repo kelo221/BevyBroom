@@ -75,12 +75,13 @@ Things to know:
 - A cookie only shows on a spot light whose **Outer** angle is 90° or less; the Cookie group says so when the cone is wider. The image must be inside the game's assets folder.
 - Fog only shows on cameras with DynLight's `FogPostProcess` component. The preview program adds it; add it to your game's camera too.
 - Effect, cookie, fog, shimmer and the bounce light's visibility change live and never make the bake out of date. Illumination, transparency and the other bounce settings are baked, so changing them asks for a new bake.
+- The Game Preview panel's **Lights** line counts realtime lights and realtime shadows against the game's budgets (`realtime_light_budget` and `shadow_cubemap_budget` in DynLight's settings). When the scene goes over one, the panel says so: past the light budget only the realtime lights nearest the camera are lit in real time, and past the shadow budget only that many lights cast realtime shadows at once.
 
-Lights are saved in the scene file, duplicate with `Ctrl+D`, and are left out of normal GLB exports because the game creates them itself. Shipped levels carry every light setting in the level manifest.
+Lights are saved in the scene file and duplicate with `Ctrl+D`. GLB exports carry every light as an empty node with DynLight light extras, never as a marker mesh, and shipped levels also carry every light setting in the level manifest.
 
 ## Rooms and portals
 
-Rooms and portals let the game skip drawing (and lighting) whatever the camera cannot see through a doorway. DynLight calls this portal culling.
+Rooms and portals let the game skip the realtime lights, shadow cubemaps and fog that the camera cannot see through a doorway. DynLight calls this portal culling. It does not skip drawing geometry; meshes are culled only by the camera's view.
 
 - **Add > Portals > Room** adds a room: a box drawn as a wireframe, with a small box and floor plan icon at its center that you click to select it. A selected room's selection box is the whole room, so its resize bars resize the room. Size it exactly in the Properties panel with **Half size X / Y / Z** (meters from its center), then move, rotate and scale it like any object. Cover each walkable space with one room.
 - **Add > Portals > Portal** adds a portal: a rectangle with an arrow on its front side. Set **Width** and **Height** in the Properties panel and place it in a doorway, in the wall between two rooms.
@@ -115,3 +116,18 @@ Baked shadows use the second UV set (`TEXCOORD_1`) the editor writes on every ex
 The game stores each level in a folder named after the scene file. When a document is saved under a new name, the game moves it to the new folder and deletes its own files (`geometry_*.glb` and `level.broom.json`) from the old one. It never deletes anything else, and never touches another document's folder.
 
 If the game fails to load a geometry revision, the editor sends it once more. If that fails too, the error stays in the panel until the next geometry edit.
+
+## Build Level
+
+**File > Build Level** (desktop app, with a project open) writes the current document as a level the shipped game loads without the editor. The level is named after the scene file and goes to `<asset_root>/<level_directory>/<name>/` of the open project, the folder `broom_preview --level <name>` and `BroomLevelPlugin` read.
+
+Before anything is written, the build checks the scene with the same checks as the Issues panel. Any error, such as game components on a single brush inside a solid model, stops the build and is listed in the Console.
+
+A package holds:
+
+- `geometry_<revision>.glb`: the level geometry, exported the same way the game preview receives it: in editor axes and meters, with no editor helper meshes. Lights, rooms, portals and game components are not in this file; they come from the manifest, so the game never creates them twice.
+- `level.broom.json`: a version 2 manifest naming that geometry file, the authored state (lights, rooms, portals, transforms, visibility, components) and the game materials the geometry uses.
+
+The new geometry file is written next to the old one and the manifest is replaced in one rename, so a build that is interrupted leaves the previous package loadable. Older geometry files are removed only after the new manifest is in place.
+
+The MCP tool `build_level` (optional `levelName`) runs the same build and returns the level folder, the geometry file and the materials, or the problems that stopped it.

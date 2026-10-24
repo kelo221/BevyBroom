@@ -215,13 +215,7 @@ fn level_names_and_geometry_files_are_file_system_safe() {
 
 #[test]
 fn manifests_must_name_a_plain_geometry_file() {
-    let manifest = LevelManifest {
-        protocol: PROTOCOL_VERSION,
-        level_name: "level".into(),
-        geometry_file: geometry_file_name(1),
-        geometry_revision: 3,
-        state: sample_state(),
-    };
+    let manifest = LevelManifest::new("level".into(), geometry_file_name(1), 3, sample_state());
     let json = serde_json::to_string(&manifest).expect("serializes");
     assert_eq!(LevelManifest::parse(&json), Ok(manifest.clone()));
     let escaping = LevelManifest {
@@ -230,6 +224,36 @@ fn manifests_must_name_a_plain_geometry_file() {
     };
     let json = serde_json::to_string(&escaping).expect("serializes");
     assert!(LevelManifest::parse(&json).is_err());
+}
+
+#[test]
+fn the_shared_level_manifest_sample_parses_as_version_two() {
+    let json = include_str!("../../../../fixtures/level_manifest_sample.json");
+    let manifest = LevelManifest::parse(json).expect("the sample manifest parses");
+    assert_eq!(manifest.manifest_version, LEVEL_MANIFEST_VERSION);
+    assert_eq!(manifest.materials.len(), 2);
+    assert_eq!(manifest.state.geometry_revision, manifest.geometry_revision);
+}
+
+#[test]
+fn manifests_without_a_version_are_read_as_version_one() {
+    let manifest = LevelManifest::new("level".into(), geometry_file_name(1), 3, sample_state());
+    let mut value = serde_json::to_value(&manifest).expect("serializes");
+    let object = value.as_object_mut().expect("a manifest is an object");
+    object.remove("manifest_version");
+    object.remove("materials");
+    let parsed = LevelManifest::parse(&value.to_string()).expect("version 1 parses");
+    assert_eq!(parsed.manifest_version, 1);
+    assert!(parsed.materials.is_empty());
+}
+
+#[test]
+fn manifests_of_a_newer_version_are_refused() {
+    let mut manifest = LevelManifest::new("level".into(), geometry_file_name(1), 3, sample_state());
+    manifest.manifest_version = LEVEL_MANIFEST_VERSION + 1;
+    let json = serde_json::to_string(&manifest).expect("serializes");
+    let error = LevelManifest::parse(&json).expect_err("a newer manifest is refused");
+    assert!(error.contains("manifest version"));
 }
 
 /// The id of the first object of `kind` in the sample state.

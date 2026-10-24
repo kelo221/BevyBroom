@@ -29,6 +29,7 @@ function definitionCreate(root: string): ProjectDefinition {
     projectIdentifier: 'game',
     name: 'Game',
     assetRoot: `${root}/assets`,
+    levelDirectory: `${root}/assets/broom/levels`,
     launch: { program: 'bin/game.exe', arguments: [], workingDirectory: root, endpoint: 'http://127.0.0.1:15702' },
     build: { program: 'cargo', arguments: ['build'], workingDirectory: `${root}/source`, endpoint: '' },
   };

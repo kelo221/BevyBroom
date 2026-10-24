@@ -8,6 +8,7 @@ import { GizmoTransform } from '@/transform/gizmo/gizmo_transform.js';
 import { GizmoRaycaster } from '@/transform/gizmo/gizmo_raycaster.js';
 import { TransformExecutor } from '@/transform/core/transform_executor.js';
 import { HandlerTransform } from '@/transform/core/handler_transform.js';
+import { ControllerShearDrag } from '@/transform/shear/controller_shear_drag.js';
 import { HandlerComponentTransform } from '@/edit/transform/handler_component_transform.js';
 import { TransformConstraint } from '@/transform/core/transform_constraint.js';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
@@ -67,6 +68,19 @@ export function createLayoutCoreSystems(): LayoutCoreSystems {
   const snapBundle = createSnapAndTransformStack();
   const textureLock = new TextureLockSettings(true, false);
   snapBundle.transformHandler.setTextureLockSettings(textureLock);
+  snapBundle.transformHandler.setShearDragController(
+    new ControllerShearDrag(
+      snapBundle.transformHandler.getDragSession(),
+      snapBundle.transformGizmo,
+      snapBundle.gizmoRaycaster,
+      snapBundle.transformExecutor,
+      {
+        commandStack: snapBundle.commandStack,
+        isTexturePositionLockEnabled: () => textureLock.isPositionLocked(),
+        showStatusMessage: (_message: string) => undefined,
+      },
+    ),
+  );
   const sceneRoot = createSceneRootServices(worldObject, snapBundle.commandStack);
   return {
     ...createRuntimeState(),

@@ -29,6 +29,7 @@ function hostsCreate(sceneFileName: string | null): {
     textureBrowserControllerRead: () => ({ applyEntries }) as unknown as ControllerTextureBrowser,
     sceneFileNameRead: () => sceneFileName,
     statusMessageShow: (message) => statusMessages.push(message),
+    gameProfileRead: () => null,
   };
   return { hosts, applyEntries, statusMessages };
 }

@@ -1,0 +1,97 @@
+import { MCP_SELECTION_VISIBILITY_ACTIONS } from '@/ai/shared/mcp_selection_visibility_actions.js';
+import { SELECTION_QUERY_IDS } from '@/selection/query/selection_query.js';
+import { tool, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
+
+/** Brush id list shared by every brush editing tool. */
+const brushIdsProperty = {
+  type: 'array',
+  items: { type: 'string' },
+  description: 'Brush ids to edit; the selected brushes when omitted.',
+};
+
+/** World axis names. */
+const axisProperty = { type: 'string', enum: ['x', 'y', 'z'] };
+
+/**
+ * Tools that edit the geometry of solid brushes like the Edit menu brush
+ * commands.
+ */
+export const MCP_BRUSH_TOOL_DEFINITIONS: McpToolDefinition[] = [
+  tool(
+    'hollow_brushes',
+    'Replace each brush with grouped walls (one per face) as thick as thickness (default: grid size) as one undo step. Brushes thinner than twice the thickness are left unchanged. Returns { wallBrushIds, count }. The walls become the selection.',
+    {
+      type: 'object',
+      properties: {
+        brushIds: brushIdsProperty,
+        thickness: { type: 'number', description: 'Wall thickness in meters (default: grid size).' },
+      },
+    },
+  ),
+  tool(
+    'convex_merge_brushes',
+    'Replace two or more brushes of one solid model with the single convex brush around all their corners as one undo step; faces keep the closest source texture. Returns { brushId }. The merged brush becomes the selection.',
+    { type: 'object', properties: { brushIds: brushIdsProperty } },
+  ),
+  tool(
+    'flip_brushes',
+    'Mirror brush geometry across the grid-snapped center of the brushes bounds along a world axis as one undo step. Textures stay locked when lockTextures is true (default). Returns { brushIds, axis, center }.',
+    {
+      type: 'object',
+      properties: {
+        brushIds: brushIdsProperty,
+        axis: axisProperty,
+        lockTextures: { type: 'boolean', description: 'Keep textures glued to the faces (default true).' },
+      },
+      required: ['axis'],
+    },
+  ),
+  tool(
+    'shear_brushes',
+    'Shear brush geometry as one undo step: the side of the brushes bounds at the positive end of axis slides by offset along along while the opposite side stays fixed. Returns { brushIds, skippedBrushIds }.',
+    {
+      type: 'object',
+      properties: {
+        brushIds: brushIdsProperty,
+        axis: axisProperty,
+        along: axisProperty,
+        offset: { type: 'number', description: 'Slide distance in meters.' },
+        lockTextures: { type: 'boolean', description: 'Keep textures glued to the faces (default true).' },
+      },
+      required: ['axis', 'along', 'offset'],
+    },
+  ),
+  tool(
+    'snap_brush_vertices',
+    'Round every vertex of the brushes to the grid size (step "grid", default) or to whole meters (step "integer") as one undo step. Brushes that would collapse are left unchanged. Returns { brushIds, skippedBrushIds }.',
+    {
+      type: 'object',
+      properties: {
+        brushIds: brushIdsProperty,
+        step: { type: 'string', enum: ['grid', 'integer'] },
+      },
+    },
+  ),
+  tool(
+    'select_by_query',
+    'Replace the object selection like the Edit > Select menu: inverse (every unselected object), siblings (objects sharing a parent with the selection), touching (bounds touch or overlap the selection), inside (bounds inside a selected object), tall (floor footprint inside a selected object at any height), by_material (brushes using a texture of a selected brush). Every query but inverse needs a selection. Returns { count, brushIds, objectIds }.',
+    {
+      type: 'object',
+      properties: {
+        query: { type: 'string', enum: [...SELECTION_QUERY_IDS] },
+      },
+      required: ['query'],
+    },
+  ),
+  tool(
+    'set_selection_visibility',
+    'Change object visibility like the View menu, as one undo step: hide (hide the selected objects and clear the selection), isolate (hide every visible object that is not selected), show_all (show every hidden object and its hidden parents). Hidden brushes leave CSG evaluation. Returns { action, changedCount }.',
+    {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: [...MCP_SELECTION_VISIBILITY_ACTIONS] },
+      },
+      required: ['action'],
+    },
+  ),
+];

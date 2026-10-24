@@ -8,6 +8,7 @@ const HALFSPACE_INSIDE_EPSILON = 1e-4;
 const HALFSPACE_ON_PLANE_EPSILON = 2e-4;
 const HALFSPACE_CLUSTER_DISTANCE_SQUARED = 1e-8;
 const HALFSPACE_INTERIOR_MARGIN = 1e-3;
+const HALFSPACE_INTERIOR_ACCEPT_DEPTH = HALFSPACE_INTERIOR_MARGIN / 2;
 const HALFSPACE_INTERIOR_STEPS = 64;
 const HALFSPACE_PARALLEL_EPSILON = 1e-10;
 
@@ -110,7 +111,7 @@ export class SolidHalfspaceIntersection {
    */
   private static mostOutsidePlane(planes: readonly SolidPlane[], point: THREE.Vector3): SolidPlane | null {
     let worst: SolidPlane | null = null;
-    let worstDistance = -HALFSPACE_INTERIOR_MARGIN;
+    let worstDistance = -HALFSPACE_INTERIOR_ACCEPT_DEPTH;
     for (const plane of planes) {
       const distance = plane.signedDistance(point);
       if (distance <= worstDistance) continue;

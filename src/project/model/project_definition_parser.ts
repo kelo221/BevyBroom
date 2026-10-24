@@ -34,12 +34,14 @@ export class ProjectDefinitionParser {
     const projectIdentifier = previewLaunchStringRead(project, 'project_id', PROJECT_SECTION_PATH);
     const preview = previewLaunchSectionRead(project);
     const launch = previewLaunchCommandFromSection(preview, projectDirectory, 'preview');
+    const assetRoot = ProjectDefinitionParser.assetRootRead(project, projectDirectory);
     return {
       projectFile: projectFileNormalized,
       projectDirectory,
       projectIdentifier,
       name: previewLaunchOptionalStringRead(project, 'name', PROJECT_SECTION_PATH) ?? projectIdentifier,
-      assetRoot: ProjectDefinitionParser.assetRootRead(project, projectDirectory),
+      assetRoot,
+      levelDirectory: ProjectDefinitionParser.levelDirectoryRead(project, assetRoot),
       launch,
       build: ProjectBuildCommandResolver.resolve(preview, launch, projectDirectory),
     };
@@ -58,6 +60,23 @@ export class ProjectDefinitionParser {
       throw new PreviewLaunchCommandError(`project.asset_root "${assetRoot}" must be a path inside the project`);
     }
     return previewLaunchDirectoryJoin(projectDirectory, assetRoot);
+  }
+
+  /**
+   * Reads the level directory, which must stay inside the asset root.
+   *
+   * @param project Parsed project object.
+   * @param assetRoot Absolute asset root.
+   * @returns Absolute level directory.
+   */
+  private static levelDirectoryRead(project: Record<string, unknown>, assetRoot: string): string {
+    const levelDirectory = previewLaunchStringRead(project, 'level_directory', PROJECT_SECTION_PATH);
+    if (!ProjectDefinitionParser.isContainedRelativePath(levelDirectory)) {
+      throw new PreviewLaunchCommandError(
+        `project.level_directory "${levelDirectory}" must be a path inside the asset root`,
+      );
+    }
+    return previewLaunchDirectoryJoin(assetRoot, levelDirectory);
   }
 
   /**

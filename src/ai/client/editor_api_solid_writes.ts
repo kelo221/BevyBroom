@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { EditorApiHost } from './editor_api_host.js';
+import { flipPoseReflect } from '@/transform/flip/flip_pose_reflect.js';
 import type {
   AddBoxBrushArgs,
   AddBoxBrushBatchEntry,
@@ -688,17 +689,12 @@ export class EditorApiSolidWrites {
     plane: number,
     useSnap: boolean,
   ): void {
-    const nextPosition = mesh.position.clone();
-    if (axis === 'x') nextPosition.x = plane * 2 - nextPosition.x;
-    else nextPosition.z = plane * 2 - nextPosition.z;
+    const reflected = flipPoseReflect(mesh.position, mesh.rotation, axis, plane);
     if (useSnap && isEditorApiSnapActive(this.host)) {
-      this.host.gridSnap.snapWorldPosition(nextPosition);
+      this.host.gridSnap.snapWorldPosition(reflected.position);
     }
-    const nextRotation = mesh.rotation.clone();
-    // Reflect yaw: X-mirror → -yaw; Z-mirror → π - yaw (not -yaw).
-    nextRotation.y = axis === 'x' ? -nextRotation.y : Math.PI - nextRotation.y;
-    this.host.commandStack.push(new CommandTransformPositionSet([mesh], [nextPosition]));
-    this.host.commandStack.push(new CommandTransformRotationSet([mesh], [nextRotation]));
+    this.host.commandStack.push(new CommandTransformPositionSet([mesh], [reflected.position]));
+    this.host.commandStack.push(new CommandTransformRotationSet([mesh], [reflected.rotation]));
     found.brush.pullTransformFromMesh();
     this.host.solidModelController.onTransformsCommitted([mesh]);
   }

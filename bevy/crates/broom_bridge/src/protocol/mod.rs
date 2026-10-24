@@ -40,8 +40,8 @@ pub use light_features::{
     AuthoredTransparency,
 };
 pub use package::{
-    GeometryPublication, LevelManifest, MANIFEST_FILE_NAME, geometry_file_name,
-    is_geometry_file_name, sanitize_level_name,
+    GeometryPublication, LEVEL_MANIFEST_VERSION, LevelManifest, MANIFEST_FILE_NAME,
+    geometry_file_name, is_geometry_file_name, sanitize_level_name,
 };
 pub(crate) use placeable::validate_components;
 pub use placeable::{

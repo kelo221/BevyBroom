@@ -1,7 +1,6 @@
 //! Watching the catalog file and its textures, and rebuilding materials in place.
 
 use std::path::Path;
-use std::time::SystemTime;
 
 use bevy::asset::RenderAssetUsages;
 use bevy::ecs::system::SystemParam;
@@ -10,7 +9,7 @@ use bevy::prelude::*;
 use dynlight::surface::DynLitMaterial;
 
 use super::build::CatalogResolvers;
-use super::{CatalogState, WatchedTexture};
+use super::{CatalogState, FileStamp, WatchedTexture};
 use crate::project::ProjectPaths;
 use crate::protocol::{CatalogMaterial, MaterialCatalog};
 use crate::status::BridgeStatus;
@@ -30,11 +29,10 @@ impl Default for CatalogPollTimer {
     }
 }
 
-/// The modification time of `path`, `None` when it can't be read.
-fn modified(path: &Path) -> Option<SystemTime> {
-    std::fs::metadata(path)
-        .and_then(|meta| meta.modified())
-        .ok()
+/// The modification time and size of `path`, `None` when it can't be read.
+fn file_stamp(path: &Path) -> Option<FileStamp> {
+    let meta = std::fs::metadata(path).ok()?;
+    Some((meta.modified().ok()?, meta.len()))
 }
 
 /// The asset stores catalog reloads write into.
@@ -58,9 +56,9 @@ pub(super) fn poll_catalog_files(
     if !timer.0.tick(time.delta()).just_finished() {
         return;
     }
-    let catalog_time = modified(&paths.catalog_file);
-    if catalog_time != state.catalog_modified {
-        state.catalog_modified = catalog_time;
+    let catalog_stamp = file_stamp(&paths.catalog_file);
+    if catalog_stamp != state.catalog_stamp {
+        state.catalog_stamp = catalog_stamp;
         let CatalogAssets {
             assets, materials, ..
         } = &mut stores;
@@ -148,8 +146,8 @@ fn watch_textures(state: &mut CatalogState, catalog: &MaterialCatalog, paths: &P
             let Some(path) = path.as_deref() else {
                 continue;
             };
-            let modified = modified(&paths.asset_root.join(path));
-            watched.insert(path.replace('\\', "/"), WatchedTexture { srgb, modified });
+            let stamp = file_stamp(&paths.asset_root.join(path));
+            watched.insert(path.replace('\\', "/"), WatchedTexture { srgb, stamp });
         }
     }
     state.textures = watched;
@@ -167,11 +165,11 @@ fn reload_changed_textures(
     let mut reloaded = 0;
     for (path, texture) in &mut state.textures {
         let file = paths.asset_root.join(path);
-        let now = modified(&file);
-        if now == texture.modified || now.is_none() {
+        let now = file_stamp(&file);
+        if now == texture.stamp || now.is_none() {
             continue;
         }
-        texture.modified = now;
+        texture.stamp = now;
         let Some(handle) = assets.get_handle::<Image>(path.clone()) else {
             continue;
         };
@@ -205,4 +203,36 @@ fn decode_texture(file: &Path, srgb: bool) -> Result<Image, String> {
         RenderAssetUsages::default(),
     )
     .map_err(|error| error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::file_stamp;
+    use crate::test_support::TemporaryDirectory;
+
+    #[test]
+    fn a_file_replaced_with_its_modification_time_kept_counts_as_changed() {
+        let directory = TemporaryDirectory::new("file_stamp");
+        let file = directory.path().join("castle_wall_base.png");
+        std::fs::write(&file, b"original texture bytes").unwrap();
+        let before = file_stamp(&file).expect("the file has a stamp");
+
+        std::fs::write(&file, b"replacement").unwrap();
+        std::fs::File::options()
+            .write(true)
+            .open(&file)
+            .unwrap()
+            .set_modified(before.0)
+            .unwrap();
+
+        let after = file_stamp(&file).expect("the file has a stamp");
+        assert_eq!(after.0, before.0);
+        assert_ne!(after, before);
+    }
+
+    #[test]
+    fn a_missing_file_has_no_stamp() {
+        let directory = TemporaryDirectory::new("file_stamp_missing");
+        assert_eq!(file_stamp(&directory.path().join("missing.png")), None);
+    }
 }

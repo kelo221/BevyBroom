@@ -36,6 +36,7 @@ describe('ProjectDefinitionParser', () => {
     expect(definition.projectDirectory).toBe(directory);
     expect(definition.projectFile).toBe(`${directory}/broom.project.json`);
     expect(definition.assetRoot).toBe(`${directory}/assets`);
+    expect(definition.levelDirectory).toBe(`${definition.assetRoot}/broom/levels`);
     expect(definition.launch.workingDirectory).toBe(directory);
     expect(definition.launch.endpoint).toBe('http://127.0.0.1:15702');
   });
@@ -87,6 +88,9 @@ describe('ProjectDefinitionParser', () => {
     expect(() =>
       ProjectDefinitionParser.parse(projectJsonCreate({ asset_root: '../outside' }), '/g/broom.project.json'),
     ).toThrow(PreviewLaunchCommandError);
+    expect(() =>
+      ProjectDefinitionParser.parse(projectJsonCreate({ level_directory: '../levels' }), '/g/broom.project.json'),
+    ).toThrow(/level_directory/);
     expect(() => ProjectDefinitionParser.parse('{ not json', '/g/broom.project.json')).toThrow(/not valid JSON/);
   });
 });

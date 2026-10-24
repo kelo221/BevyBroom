@@ -7,6 +7,7 @@ import { EditorApiFind } from './editor_api_find.js';
 import { EditorApiHierarchy } from './editor_api_hierarchy.js';
 import { EditorApiSolidReads } from './editor_api_solid_reads.js';
 import { EditorApiSolidWrites } from './editor_api_solid_writes.js';
+import { EditorApiShapeWrites, type CreateShapeBrushArgs } from './editor_api_shape_writes.js';
 import { EditorApiSpatial } from './editor_api_spatial.js';
 import { EditorApiValidation } from './editor_api_validation.js';
 import { EditorApiEntities, type EntityAddArgs, type EntitySettingsSetArgs } from './editor_api_entities.js';
@@ -20,11 +21,8 @@ import {
 import { EditorApiPreview, type PreviewConnectArgs } from './editor_api_preview.js';
 import { EditorApiSceneDocument, type SceneDocumentLoadArgs } from './editor_api_scene_document.js';
 import { EditorApiInfoPanel, type ConsoleReadArgs } from './editor_api_info_panel.js';
-import { EditorApiMainWindow } from './editor_api_main_window.js';
-import { EditorApiLayers } from './editor_api_layers.js';
-import { EditorApiClipboard } from './editor_api_clipboard.js';
-import { EditorApiViewportInput } from './editor_api_viewport_input.js';
 import { EditorApiProject } from './editor_api_project.js';
+import { EditorApiToolGroups } from './editor_api_tool_groups.js';
 import type {
   AddBoxBrushArgs,
   AddBoxBrushesArgs,
@@ -70,6 +68,7 @@ import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 export class EditorApi {
   private readonly reads: EditorApiSolidReads;
   private readonly writes: EditorApiSolidWrites;
+  private readonly shapeWrites: EditorApiShapeWrites;
   private readonly spatial: EditorApiSpatial;
   private readonly validation: EditorApiValidation;
   private readonly find: EditorApiFind;
@@ -83,11 +82,8 @@ export class EditorApi {
   private readonly gameEntities: EditorApiGameEntities;
   private readonly sceneDocument: EditorApiSceneDocument;
   private readonly infoPanel: EditorApiInfoPanel;
-  private readonly layers: EditorApiLayers;
-  private readonly mainWindow: EditorApiMainWindow;
-  private readonly clipboard: EditorApiClipboard;
-  private readonly viewportInput: EditorApiViewportInput;
   private readonly project: EditorApiProject;
+  private readonly toolGroups: EditorApiToolGroups;
 
   /**
    * Creates an editor API bound to live editor systems.
@@ -97,6 +93,7 @@ export class EditorApi {
   constructor(host: EditorApiHost) {
     this.reads = new EditorApiSolidReads(host);
     this.writes = new EditorApiSolidWrites(host);
+    this.shapeWrites = new EditorApiShapeWrites(host);
     this.spatial = new EditorApiSpatial(host);
     this.validation = new EditorApiValidation(host);
     this.find = new EditorApiFind(host);
@@ -110,10 +107,7 @@ export class EditorApi {
     this.gameEntities = new EditorApiGameEntities(host);
     this.sceneDocument = new EditorApiSceneDocument(host);
     this.infoPanel = new EditorApiInfoPanel(host);
-    this.layers = new EditorApiLayers(host);
-    this.mainWindow = new EditorApiMainWindow(host);
-    this.clipboard = new EditorApiClipboard(host);
-    this.viewportInput = new EditorApiViewportInput(host, () => this.reads.getSelection());
+    this.toolGroups = new EditorApiToolGroups(host, () => this.reads.getSelection());
     this.project = new EditorApiProject(host);
   }
 
@@ -237,6 +231,8 @@ export class EditorApi {
         return this.writes.addBoxBrush(args as unknown as AddBoxBrushArgs);
       case 'add_box_brushes':
         return this.writes.addBoxBrushes(args as unknown as AddBoxBrushesArgs);
+      case 'create_shape_brush':
+        return this.shapeWrites.createShapeBrush(args as unknown as CreateShapeBrushArgs);
       case 'place_wall':
         return this.builders.placeWall(args as unknown as PlaceWallArgs);
       case 'add_room_shell':
@@ -346,14 +342,23 @@ export class EditorApi {
       case 'issues_list':
         return this.infoPanel.issuesList();
       default:
-        return (
-          this.layers.layerToolDispatch(name, args) ??
-          this.mainWindow.mainWindowToolDispatch(name, args) ??
-          this.clipboard.clipboardToolDispatch(name, args) ??
-          this.viewportInput.viewportInputToolDispatch(name, args) ??
-          this.project.projectToolDispatchSync(name) ?? { ok: false, message: `Unknown tool: ${name}` }
-        );
+        return this.dispatchToolGroups(name, args);
     }
+  }
+
+  /**
+   * Routes the layer, main window, clipboard, brush editing, face UV, viewport
+   * input and project tools.
+   *
+   * @param name Tool name.
+   * @param args Argument object.
+   * @returns Tool result, or an unknown tool failure.
+   */
+  private dispatchToolGroups(name: string, args: Record<string, unknown>): McpToolResult {
+    return (
+      this.toolGroups.toolGroupDispatch(name, args) ??
+      this.project.projectToolDispatchSync(name) ?? { ok: false, message: `Unknown tool: ${name}` }
+    );
   }
 }
 

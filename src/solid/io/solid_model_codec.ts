@@ -5,6 +5,11 @@ import { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { getSolidGroupOperation, isSolidCsgGroup, markAsSolidCsgGroup } from '@/solid/model/solid_group.js';
+import {
+  solidGroupShapeRecipeRead,
+  solidGroupShapeRecipeWrite,
+  type SolidGroupShapeRecipe,
+} from '@/solid/model/solid_group_shape_recipe.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { createWingEdge, createSolidFace } from '@/solid/types/wing_edge.js';
 import { DEFAULT_CHECKER_TEXTURE_ID } from '@/texture/library/texture_id.js';
@@ -78,6 +83,8 @@ export interface SerializedSolidTreeGroupNode {
   scale: { x: number; y: number; z: number };
   /** Nested brushes and groups in evaluation order. */
   children: SerializedSolidTreeNode[];
+  /** Recipe of a group a shape draw tool created, when present. */
+  shape?: SolidGroupShapeRecipe;
 }
 
 /** Serializable solid CSG tree node. */
@@ -384,7 +391,19 @@ export class SolidModelCodec {
       rotation: this.encodeEuler(group.rotation),
       scale: this.encodeVector3(group.scale),
       children,
+      ...this.groupShapeRecipeEncode(group),
     };
+  }
+
+  /**
+   * Reads a group's shape recipe for serialization.
+   *
+   * @param group Solid CSG group.
+   * @returns Object with the recipe, or an empty object for plain groups.
+   */
+  private static groupShapeRecipeEncode(group: THREE.Group): { shape?: SolidGroupShapeRecipe } {
+    const recipe = solidGroupShapeRecipeRead(group);
+    return recipe ? { shape: recipe } : {};
   }
 
   /**
@@ -492,6 +511,9 @@ export class SolidModelCodec {
     group.position.set(node.position.x, node.position.y, node.position.z);
     group.rotation.set(node.rotation.x, node.rotation.y, node.rotation.z, 'XYZ');
     group.scale.set(node.scale.x, node.scale.y, node.scale.z);
+    if (node.shape) {
+      solidGroupShapeRecipeWrite(group, node.shape);
+    }
     parent.add(group);
     for (const child of node.children) {
       this.attachHierarchyNode(group, child, brushMeshById);

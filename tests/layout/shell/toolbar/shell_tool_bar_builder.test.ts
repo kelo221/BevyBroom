@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import { Toolbar } from '@/ui/toolbar/toolbar.js';
 import { SHELL_TOOL_BAR_TOOL_SLOT_CLASS, ShellToolBarBuilder } from '@/layout/shell/toolbar/shell_tool_bar_builder.js';
 import { formatGridIntervalLabel } from '@/layout/shell/toolbar/shell_grid_interval_label.js';
@@ -131,6 +132,19 @@ describe('ShellToolBarBuilder', () => {
     shellToolBarBuilderTestButtonRead(toolbar, 'Redo').click();
     expect(toolbarActions.onUndo).toHaveBeenCalledTimes(1);
     expect(toolbarActions.onRedo).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs duplicate and both flips from the object edit buttons', () => {
+    const windowActions = new ShellTestWindowActions();
+    const flip = vi.fn(() => null);
+    windowActions.solidBrushTools = { flip } as unknown as HandlerSolidBrushTools;
+    const { toolbar, toolbarActions } = shellToolBarBuilderTestRigCreate(undefined, windowActions);
+    shellToolBarBuilderTestButtonRead(toolbar, 'Duplicate').click();
+    shellToolBarBuilderTestButtonRead(toolbar, 'Flip Horizontally').click();
+    shellToolBarBuilderTestButtonRead(toolbar, 'Flip Vertically').click();
+    expect(toolbarActions.onDuplicateSelected).toHaveBeenCalledOnce();
+    expect(flip).toHaveBeenNthCalledWith(1, 'horizontal');
+    expect(flip).toHaveBeenNthCalledWith(2, 'vertical');
   });
 
   it('has no object creation buttons, which live in the Add menu', () => {

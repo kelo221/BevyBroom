@@ -7,6 +7,17 @@ export enum TransformMode {
   ROTATE = 'rotate',
   SCALE = 'scale',
   BOUNDS = 'bounds',
+  SHEAR = 'shear',
+}
+
+/**
+ * Returns whether a mode shows the bounds widget handles.
+ *
+ * @param mode Transform mode.
+ * @returns True for Bounds and Shear, which both drag bounds sides.
+ */
+export function isBoundsWidgetMode(mode: TransformMode): boolean {
+  return mode === TransformMode.BOUNDS || mode === TransformMode.SHEAR;
 }
 
 /**

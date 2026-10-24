@@ -41,6 +41,9 @@ export class EditorApiProject {
     if (name === 'project_status') {
       return this.projectStatus();
     }
+    if (name === 'build_level') {
+      return this.levelBuild(args);
+    }
     const action = EDITOR_API_PROJECT_ACTION_TOOLS[name];
     return action === undefined ? null : this.gameActionRun(action);
   }
@@ -55,7 +58,10 @@ export class EditorApiProject {
    */
   projectToolDispatchSync(name: string): McpToolResult | null {
     const isProjectTool =
-      name === 'project_open' || name === 'project_status' || EDITOR_API_PROJECT_ACTION_TOOLS[name] !== undefined;
+      name === 'project_open' ||
+      name === 'project_status' ||
+      name === 'build_level' ||
+      EDITOR_API_PROJECT_ACTION_TOOLS[name] !== undefined;
     return isProjectTool ? failResult(`${name} waits for the desktop app; call it through invokeToolAsync`) : null;
   }
 
@@ -92,6 +98,25 @@ export class EditorApiProject {
     }
     const status = await workbench.statusRefresh();
     return okResult(`Game ${status.phase}`, this.statusDataBuild(workbench, status));
+  }
+
+  /**
+   * Builds the open document into a level package of the open project.
+   *
+   * @param args Argument object with an optional levelName.
+   * @returns Result with where the package went, or the problems that stopped
+   *   it.
+   */
+  private async levelBuild(args: Record<string, unknown>): Promise<McpToolResult> {
+    const workbench = this.workbenchAvailableRead();
+    if (workbench === null) {
+      return failResult(GAME_PROCESS_DESKTOP_ONLY_MESSAGE);
+    }
+    const levelName = typeof args['levelName'] === 'string' && args['levelName'] !== '' ? args['levelName'] : undefined;
+    const result = await workbench.levelBuild(levelName);
+    return result.ok
+      ? okResult(`Built level ${result.levelName}`, { ...result })
+      : { ok: false, message: result.message, data: { problems: result.problems } };
   }
 
   /**

@@ -44,6 +44,9 @@ export function layoutWindowShortcutsWindowActionsCreate(
     view_maximize: () => windowActions.viewMaximize(),
     select_all: () => windowActions.selectAll(),
     select_none: () => windowActions.selectNone(),
+    visibility_hide: () => windowActions.selectionVisibilityRead()?.hideSelected(),
+    visibility_isolate: () => windowActions.selectionVisibilityRead()?.isolateSelected(),
+    visibility_show_all: () => windowActions.selectionVisibilityRead()?.showAll(),
   };
 }
 

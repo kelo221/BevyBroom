@@ -9,10 +9,18 @@ import {
 /** Edge length of the material preview swatch in pixels. */
 const FACE_ATTRIBUTES_MATERIAL_SWATCH_PX = 40;
 
+/** Pixel size of a material image. */
+export interface FaceAttributesMaterialSizePixels {
+  width: number;
+  height: number;
+}
+
 /** Display name and preview image of one material. */
 export interface FaceAttributesMaterialDescription {
   displayName: string;
   previewObjectUrl: string | null;
+  /** Image size in pixels when the loaded texture reports one. */
+  sizePixels?: FaceAttributesMaterialSizePixels;
 }
 
 /**
@@ -66,8 +74,24 @@ export class FaceAttributesMaterialRow {
     const description = fields.textureId === null ? null : this.descriptionResolve(fields.textureId);
     this.nameElement.textContent = this.materialNameText(fields, description);
     faceInspectorPreviewImageWrite(this.swatchElement, description?.previewObjectUrl ?? null);
-    this.statusElement.textContent =
-      fields.targetCount === 0 ? 'No surfaces selected' : `${fields.targetCount} face region(s)`;
+    this.statusElement.textContent = this.statusTextBuild(fields.targetCount, description);
+  }
+
+  /**
+   * Builds the caption text with the face count and, when known, the image
+   * size.
+   *
+   * @param targetCount Selected face region count.
+   * @param description Shared material description, or null.
+   * @returns Caption text.
+   */
+  private statusTextBuild(targetCount: number, description: FaceAttributesMaterialDescription | null): string {
+    if (targetCount === 0) {
+      return 'No surfaces selected';
+    }
+    const size = description?.sizePixels;
+    const sizeText = size && size.width > 0 && size.height > 0 ? `${size.width}×${size.height} px · ` : '';
+    return `${sizeText}${targetCount} face region(s)`;
   }
 
   /**

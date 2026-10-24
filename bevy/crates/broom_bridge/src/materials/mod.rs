@@ -23,11 +23,15 @@ use crate::protocol::MaterialCatalog;
 pub use binding::{CatalogMaterialBinding, CatalogMaterialRequest};
 pub use build::{CatalogResolver, CatalogResolvers, dynlit_from_catalog, load_catalog_texture};
 
+/// What a watched file looks like on disk: its modification time and size. The size is part of
+/// it because copying a file over another keeps the source's modification time on Windows.
+pub(crate) type FileStamp = (SystemTime, u64);
+
 /// A texture the catalog uses, watched for changes on disk.
 #[derive(Clone, Debug)]
 pub(crate) struct WatchedTexture {
     pub srgb: bool,
-    pub modified: Option<SystemTime>,
+    pub stamp: Option<FileStamp>,
 }
 
 /// The loaded catalog and the material made for each id.
@@ -39,7 +43,7 @@ pub struct CatalogState {
     handles: HashMap<String, Handle<DynLitMaterial>>,
     /// Ids whose entry needs a normal map: their meshes get tangents.
     needs_tangents: HashSet<String>,
-    catalog_modified: Option<SystemTime>,
+    catalog_stamp: Option<FileStamp>,
     textures: HashMap<String, WatchedTexture>,
     /// Bumped whenever materials are rebuilt, so bindings are re-checked.
     pub generation: u64,

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
-import type { SolidModel } from '@/solid/model/solid_model.js';
+import { SolidModel } from '@/solid/model/solid_model.js';
 
 const scratchQuaternion = new THREE.Quaternion();
 const scratchMatrix = new THREE.Matrix4();
@@ -48,4 +48,38 @@ export function computeModelWorldBounds(model: SolidModel): THREE.Box3 {
     if (!brushBounds.isEmpty()) combined.union(brushBounds);
   }
   return combined;
+}
+
+/**
+ * Builds the world bounds of every vertex of several solid brushes, exact for
+ * rotated brushes.
+ *
+ * @param brushes Brush instances.
+ * @returns World vertex bounds, empty when no brush has vertices.
+ */
+export function solidBrushesWorldVertexBounds(brushes: readonly SolidBrushInstance[]): THREE.Box3 {
+  const bounds = new THREE.Box3();
+  for (const brush of brushes) {
+    solidBrushWorldVertexBoundsExpand(bounds, brush);
+  }
+  return bounds;
+}
+
+/**
+ * Grows bounds by the world vertices of one brush.
+ *
+ * @param bounds Bounds accumulator.
+ * @param brush Brush instance.
+ */
+function solidBrushWorldVertexBoundsExpand(bounds: THREE.Box3, brush: SolidBrushInstance): void {
+  const modelBrush = brush.getModelSpaceBrush();
+  const model = brush.mesh ? SolidModel.fromObject(brush.mesh) : null;
+  if (!model) {
+    modelBrush.vertices.forEach((vertex) => bounds.expandByPoint(vertex));
+    return;
+  }
+  model.root.updateWorldMatrix(true, false);
+  for (const vertex of modelBrush.vertices) {
+    bounds.expandByPoint(vertex.clone().applyMatrix4(model.root.matrixWorld));
+  }
 }

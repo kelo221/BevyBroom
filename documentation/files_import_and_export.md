@@ -20,6 +20,18 @@ After the first save, `Ctrl+S` writes to the same file again (in browsers with f
 
 Choose **File > Save As…** or press `Ctrl+Shift+S` to save to a new file. The new file becomes a separate document with its own document id, and later `Ctrl+S` saves go to it. The original file keeps its id. Cancelling the dialog leaves the scene unchanged.
 
+## Unsaved changes, autosave and recovery
+
+While the scene differs from its saved file, the status bar shows **Unsaved changes**. Undoing back to the last save clears the mark again.
+
+About fifteen seconds after an edit, the editor autosaves the unsaved scene into its own storage (not into your scene file). Closing the window also writes a pending autosave. Saving, **File > New** and **File > Load** remove the autosaved copy, so it only ever holds work that would otherwise be lost. If the autosave cannot be written, for example because the scene is too large for the storage, the Console says so once.
+
+When the editor starts and finds autosaved work, it asks **Recover Unsaved Work**. **Restore** loads it as an unsaved scene; save it to keep it (the first save asks for a file). **Discard** deletes the autosaved copy for good.
+
+Saving is safe against interruptions: the file is replaced only once the whole scene is written, so a failed save leaves the previous file as it was.
+
+If another program changed your scene file after you opened or saved it, **Save** asks before overwriting it. Choose **Cancel** and use **Save As…** to keep both versions.
+
 ## Load a scene
 
 Choose **File > Load** or press `Ctrl+O`, then choose a previously saved BevyBroom scene.

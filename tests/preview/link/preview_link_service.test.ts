@@ -38,6 +38,16 @@ describe('PreviewLinkService', () => {
     expect(service.endpointRead()).toBe(PREVIEW_DEFAULT_ENDPOINT);
   });
 
+  it('keeps its own endpoint when another editor sharing the storage writes a different one', () => {
+    const first = serviceCreate();
+    const second = serviceCreate();
+    first.endpointWrite('http://127.0.0.1:16001');
+    second.endpointWrite('http://127.0.0.1:16002');
+    expect(first.endpointRead()).toBe('http://127.0.0.1:16001');
+    expect(second.endpointRead()).toBe('http://127.0.0.1:16002');
+    expect(serviceCreate().endpointRead()).toBe('http://127.0.0.1:16002');
+  });
+
   it('connects a fresh controller, notifies listeners and disconnects it again', () => {
     const service = serviceCreate();
     const listener = vi.fn();

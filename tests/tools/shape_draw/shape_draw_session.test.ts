@@ -8,8 +8,9 @@ import { ObjectDragGridFrame } from '@/tools/object_drag/object_drag_grid_frame.
 import { objectDragPointerSampleCreate } from '@/tools/object_drag/object_drag_pointer_sample.js';
 import { ShapeDrawBrushCommit } from '@/tools/shape_draw/shape_draw_brush_commit.js';
 import { shapeDrawRangeSnapOutward } from '@/tools/shape_draw/shape_draw_bounds_math.js';
-import { SHAPE_DRAW_PREVIEW_USERDATA_KEY } from '@/tools/shape_draw/shape_draw_preview.js';
+import { SHAPE_DRAW_PREVIEW_USERDATA_KEY, type ShapeDrawPreviewHost } from '@/tools/shape_draw/shape_draw_preview.js';
 import { ShapeDrawSession } from '@/tools/shape_draw/shape_draw_session.js';
+import { ShapeDrawSettings } from '@/tools/shape_draw/shapes/shape_draw_settings.js';
 import { ViewportKind } from '@/viewports/core/viewport_kind.js';
 import {
   objectDragTestBoxMeshCreate,
@@ -35,6 +36,7 @@ interface ShapeDrawTestRig {
   selection: ManagerSelection;
   snap: { enabled: boolean };
   referenceBounds: THREE.Box3;
+  shapeSettings: ShapeDrawSettings;
 }
 
 /**
@@ -61,6 +63,7 @@ function shapeDrawRigCreate(kind: ViewportKind): ShapeDrawTestRig {
       new THREE.Vector3(-halfEdge, -halfEdge, -halfEdge),
       new THREE.Vector3(halfEdge, halfEdge, halfEdge),
     ),
+    shapeSettings: new ShapeDrawSettings(),
   };
 }
 
@@ -73,30 +76,51 @@ function shapeDrawRigCreate(kind: ViewportKind): ShapeDrawTestRig {
  */
 function shapeDrawSessionStart(rig: ShapeDrawTestRig, pressWorld: THREE.Vector3): ShapeDrawSession {
   const press = objectDragTestClientPoint(rig.testViewport, pressWorld);
-  const brushCommit = new ShapeDrawBrushCommit({
-    commandStack: rig.commandStack,
-    worldObject: rig.world,
-    selectObject: (mesh) => rig.selection.selectObject(mesh),
-    activeModelResolve: () => rig.model,
-    brushInsertParentResolve: (model) => model.root,
-    textureIdResolve: () => null,
-    afterWorldMutation: () => {},
-  });
   return new ShapeDrawSession(
     {
       viewport: rig.testViewport.viewport,
       gridFrame: new ObjectDragGridFrame(rig.gridSnap),
       snapEnabledRead: () => rig.snap.enabled,
       referenceBoundsResolve: () => rig.referenceBounds.clone(),
-      previewHost: {
-        addHelper: (object) => rig.helpers.add(object),
-        removeHelper: (object) => rig.helpers.remove(object),
-      },
-      brushCommit,
+      previewHost: shapeDrawPreviewHostCreate(rig),
+      brushCommit: shapeDrawBrushCommitCreate(rig),
+      shapeSettings: rig.shapeSettings,
     },
     press.clientX,
     press.clientY,
   );
+}
+
+/**
+ * Builds the helper scene host of a rig.
+ *
+ * @param rig Test rig.
+ * @returns Preview host over the rig helper group.
+ */
+function shapeDrawPreviewHostCreate(rig: ShapeDrawTestRig): ShapeDrawPreviewHost {
+  return {
+    addHelper: (object) => rig.helpers.add(object),
+    removeHelper: (object) => rig.helpers.remove(object),
+  };
+}
+
+/**
+ * Builds the shape committer of a rig.
+ *
+ * @param rig Test rig.
+ * @returns Shape committer over the rig systems.
+ */
+function shapeDrawBrushCommitCreate(rig: ShapeDrawTestRig): ShapeDrawBrushCommit {
+  return new ShapeDrawBrushCommit({
+    commandStack: rig.commandStack,
+    worldObject: rig.world,
+    selectObject: (mesh) => rig.selection.selectObject(mesh),
+    selectObjects: (meshes) => rig.selection.setSelection(meshes),
+    activeModelResolve: () => rig.model,
+    brushInsertParentResolve: (model) => model.root,
+    textureIdResolve: () => null,
+    afterWorldMutation: () => {},
+  });
 }
 
 /**
@@ -277,5 +301,27 @@ describe('ShapeDrawSession', () => {
     session.commit();
     expect(rig.model.getBrushCount()).toBe(0);
     expect(rig.helpers.children.length).toBe(0);
+  });
+
+  it('draws the selected multi-piece shape as one grouped commit', () => {
+    const rig = shapeDrawRigCreate(ViewportKind.PERSPECTIVE);
+    const stepHeight = 0.5;
+    const drawnHeight = 2;
+    rig.shapeSettings.shapeSelect('stairs');
+    rig.shapeSettings.parameterSet('stairs', 'stepHeight', stepHeight);
+    const session = shapeDrawSessionStart(rig, pressWorld);
+    shapeDrawPointerMove(rig, session, cornerWorld);
+    shapeDrawPointerMove(rig, session, cornerWorld.clone().add(new THREE.Vector3(0, drawnHeight, 0)), { altKey: true });
+    session.commit();
+    const stepCount = Math.ceil(drawnHeight / stepHeight);
+    expect(rig.model.getBrushCount()).toBe(stepCount);
+    const selected = rig.selection.getAllSelectedObjectsAsArray();
+    expect(selected.length).toBe(stepCount);
+    const group = selected[0]?.parent;
+    expect(group?.name).toBe('Stairs');
+    expect(group?.children.length).toBe(stepCount);
+    expect(rig.commandStack.getUndoCount()).toBe(1);
+    rig.commandStack.undo();
+    expect(rig.model.getBrushCount()).toBe(0);
   });
 });

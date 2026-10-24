@@ -43,6 +43,7 @@ export function createDefaultViewSettings(): ViewSettings {
     textureFilterMode: 'trilinear',
     anisotropyPreference: 'max',
     toolbarButtonLabels: true,
+    faceInspectorAutoReveal: true,
   };
 }
 
@@ -85,6 +86,42 @@ export function createDefaultKeyboardShortcutSettings(): KeyboardShortcutSetting
     ...createDefaultNavigationShortcuts(),
     ...createDefaultShadingSnapClipShortcuts(),
     ...createDefaultWindowShortcuts(),
+    ...createDefaultFaceUvShortcuts(),
+  };
+}
+
+/**
+ * Default face-mode UV editing shortcuts: arrows nudge the texture relative to
+ * the camera, PageUp/PageDown rotate by the grid angle, Ctrl+F and Ctrl+Alt+F
+ * mirror, and Shift+R / Alt+Shift+R reset alignment. They only act while face
+ * mode has selected faces.
+ *
+ * @returns Partial keyboard shortcut settings.
+ */
+function createDefaultFaceUvShortcuts(): Pick<
+  KeyboardShortcutSettings,
+  | 'face_uv_nudge_left'
+  | 'face_uv_nudge_right'
+  | 'face_uv_nudge_up'
+  | 'face_uv_nudge_down'
+  | 'face_uv_rotate_ccw'
+  | 'face_uv_rotate_cw'
+  | 'face_uv_flip_h'
+  | 'face_uv_flip_v'
+  | 'face_uv_reset_face'
+  | 'face_uv_reset_world'
+> {
+  return {
+    face_uv_nudge_left: createShortcut('ArrowLeft'),
+    face_uv_nudge_right: createShortcut('ArrowRight'),
+    face_uv_nudge_up: createShortcut('ArrowUp'),
+    face_uv_nudge_down: createShortcut('ArrowDown'),
+    face_uv_rotate_ccw: createShortcut('PageUp'),
+    face_uv_rotate_cw: createShortcut('PageDown'),
+    face_uv_flip_h: createShortcut('KeyF', true),
+    face_uv_flip_v: createShortcut('KeyF', true, false, true),
+    face_uv_reset_face: createShortcut('KeyR', false, true),
+    face_uv_reset_world: createShortcut('KeyR', false, true, true),
   };
 }
 
@@ -109,6 +146,9 @@ function createDefaultWindowShortcuts(): Pick<
   | 'toolbar_toggle'
   | 'select_all'
   | 'select_none'
+  | 'visibility_hide'
+  | 'visibility_isolate'
+  | 'visibility_show_all'
 > {
   return {
     view_cycle: createShortcut('Space'),
@@ -122,6 +162,9 @@ function createDefaultWindowShortcuts(): Pick<
     toolbar_toggle: createShortcut('KeyT', true, false, true),
     select_all: createShortcut('KeyA', true),
     select_none: createShortcut('KeyA', true, true),
+    visibility_hide: createShortcut('KeyH', true),
+    visibility_isolate: createShortcut('KeyI', true),
+    visibility_show_all: createShortcut('KeyH', true, true),
   };
 }
 

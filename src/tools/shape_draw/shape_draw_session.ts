@@ -16,8 +16,11 @@ import {
 } from './shape_draw_bounds_math.js';
 import { shapeDrawStartPointResolve, type ShapeDrawStartPoint } from './shape_draw_start_point.js';
 import { ShapeDrawPreview, type ShapeDrawPreviewHost } from './shape_draw_preview.js';
-import { shapeDrawWorldBoxFromLocal } from './shape_draw_world_box.js';
 import type { ShapeDrawBrushCommit } from './shape_draw_brush_commit.js';
+import type { ShapeDrawSettings } from './shapes/shape_draw_settings.js';
+import type { ShapeDrawShape } from './shapes/shape_draw_shape.js';
+import type { ShapeDrawShapeParameterValues } from './shapes/shape_draw_shape_parameter.js';
+import { shapeDrawShapeFind } from './shapes/shape_draw_shape_registry.js';
 
 /** Editor systems a shape draw session works with. */
 export interface ShapeDrawSessionDeps {
@@ -39,8 +42,18 @@ export interface ShapeDrawSessionDeps {
   referenceBoundsResolve: () => THREE.Box3;
   /** Helper scene hosting the preview wireframe. */
   previewHost: ShapeDrawPreviewHost;
-  /** Commits the final box as a brush. */
+  /** Commits the drawn shape as brushes. */
   brushCommit: ShapeDrawBrushCommit;
+  /** Shape and parameter selection the drag uses. */
+  shapeSettings: ShapeDrawSettings;
+}
+
+/** The shape and parameters a session draws with. */
+export interface ShapeDrawShapeSelection {
+  /** Shape to build. */
+  shape: ShapeDrawShape;
+  /** Parameter values keyed by parameter id. */
+  parameters: ShapeDrawShapeParameterValues;
 }
 
 /** Depth axis and range of a 2D view drag. */
@@ -51,10 +64,10 @@ interface ShapeDrawViewDepth {
 }
 
 /**
- * Draws a new box brush by dragging. The perspective view drags a footprint on
- * the horizontal plane through the start (Shift squares it, Alt adjusts the
- * height); 2D views drag the visible rectangle and take the depth from the
- * reference bounds (Shift makes the sides equal).
+ * Draws new brushes of the selected shape by dragging. The perspective view
+ * drags a footprint on the horizontal plane through the start (Shift squares
+ * it, Alt adjusts the height); 2D views drag the visible rectangle and take the
+ * depth from the reference bounds (Shift makes the sides equal).
  */
 export class ShapeDrawSession extends ObjectDragSession {
   private readonly deps: ShapeDrawSessionDeps;
@@ -109,21 +122,51 @@ export class ShapeDrawSession extends ObjectDragSession {
     this.localBox = this.viewDepth
       ? this.viewBoxUpdate(ray, sample, this.viewDepth)
       : this.footprintBoxUpdate(ray, sample);
-    this.preview.previewShow(shapeDrawWorldBoxFromLocal(this.localBox, this.deps.gridFrame));
+    this.previewRefresh();
   }
 
-  /** Creates the brush when the box has volume and removes the preview. */
+  /** Creates the brushes when the box has volume and removes the preview. */
   protected sessionCommit(): void {
     this.preview.dispose();
+    const selection = this.shapeSelectionResolve();
     if (!this.localBox || !shapeDrawBoxHasVolume(this.localBox)) {
       return;
     }
-    this.deps.brushCommit.brushCommit(shapeDrawWorldBoxFromLocal(this.localBox, this.deps.gridFrame));
+    this.deps.brushCommit.shapeCommit({
+      shape: selection.shape,
+      parameters: selection.parameters,
+      boundsLocal: this.localBox,
+      gridFrame: this.deps.gridFrame,
+      upAxis: 'y',
+    });
   }
 
   /** Removes the preview without creating anything. */
   protected sessionCancel(): void {
     this.preview.dispose();
+  }
+
+  /**
+   * Returns the shape and parameters the session draws with.
+   *
+   * @returns Current shape selection.
+   */
+  private shapeSelectionResolve(): ShapeDrawShapeSelection {
+    const shape = shapeDrawShapeFind(this.deps.shapeSettings.getSelectedShapeId());
+    return { shape, parameters: this.deps.shapeSettings.parameterValuesRead(shape.id) };
+  }
+
+  /** Draws the preview wireframe of the selected shape in the current box. */
+  private previewRefresh(): void {
+    const selection = this.shapeSelectionResolve();
+    const box = this.localBox;
+    if (!box) {
+      return;
+    }
+    const pieces = selection.shape.piecesCreate({ bounds: box, parameters: selection.parameters, upAxis: 'y' });
+    this.preview.previewShowWorldPieces(
+      pieces.map((points) => points.map((point) => this.deps.gridFrame.positionToWorld(point))),
+    );
   }
 
   /**

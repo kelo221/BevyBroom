@@ -20,6 +20,8 @@ describe('mcp_tool_registry', () => {
     expect(findMcpTool('align_brush')).toBeDefined();
     expect(findMcpTool('preview_transform')).toBeDefined();
     expect(findMcpTool('add_box_brushes')).toBeDefined();
+    expect(findMcpTool('create_shape_brush')).toBeDefined();
+    expect(findMcpTool('create_shape_brush')?.description.toLowerCase()).toContain('undo');
     expect(findMcpTool('batch_set_brush_transform')).toBeDefined();
     expect(findMcpTool('rename_brush')).toBeDefined();
     expect(findMcpTool('mirror_brushes')).toBeDefined();

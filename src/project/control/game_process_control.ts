@@ -1,4 +1,8 @@
 import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
+import type {
+  LevelBuildPublishRequest,
+  LevelBuildPublishResult,
+} from '@/level_build/publish/level_build_publish_types.js';
 
 /** Explanation shown where only the desktop app can manage a game. */
 export const GAME_PROCESS_DESKTOP_ONLY_MESSAGE =
@@ -42,6 +46,14 @@ export abstract class GameProcessControl {
    * @returns Status snapshot.
    */
   abstract statusRead(): Promise<GameProcessStatus>;
+
+  /**
+   * Writes a built level into the open project's level directory.
+   *
+   * @param request Geometry and manifest to publish.
+   * @returns Where the package went, or why nothing was written.
+   */
+  abstract levelPackagePublish(request: LevelBuildPublishRequest): Promise<LevelBuildPublishResult>;
 }
 
 /**
@@ -85,6 +97,15 @@ export class GameProcessControlUnavailable extends GameProcessControl {
    */
   async statusRead(): Promise<GameProcessStatus> {
     return this.statusUnavailableCreate();
+  }
+
+  /**
+   * Explains that writing level packages needs the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async levelPackagePublish(): Promise<LevelBuildPublishResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
   }
 
   /**

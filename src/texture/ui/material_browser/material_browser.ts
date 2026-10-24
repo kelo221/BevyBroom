@@ -11,6 +11,10 @@ import type { MaterialBrowserView } from './material_browser_view.js';
 import { materialBrowserFilterEntries } from './material_browser_filter.js';
 import { materialBrowserTileCreate, materialBrowserTileSelectionPaint } from './material_browser_tile.js';
 import {
+  MaterialBrowserContextMenu,
+  type MaterialBrowserContextMenuHandlers,
+} from './material_browser_context_menu.js';
+import {
   MATERIAL_BROWSER_GRID_CLASS,
   MATERIAL_BROWSER_ROOT_CLASS,
   materialBrowserStylesheetEnsure,
@@ -20,6 +24,8 @@ import {
 export interface MaterialBrowserHandlers {
   onOpenFolder: () => void;
   onSelectTexture: (entryId: string) => void;
+  /** Right-click actions of a material tile; supplying them enables the menu. */
+  contextActions?: MaterialBrowserContextMenuHandlers;
 }
 
 /**
@@ -36,6 +42,7 @@ export class MaterialBrowser implements MaterialBrowserView {
   private readonly tileElements: Map<string, HTMLElement>;
   private allEntries: TextureBrowserEntry[];
   private selectedId: string | null;
+  private readonly tileContextMenu: MaterialBrowserContextMenu | null;
 
   /**
    * Creates the material browser.
@@ -53,6 +60,9 @@ export class MaterialBrowser implements MaterialBrowserView {
     this.tileElements = new Map();
     this.allEntries = [];
     this.selectedId = null;
+    this.tileContextMenu = handlers.contextActions
+      ? new MaterialBrowserContextMenu(this.gridElement, handlers.contextActions)
+      : null;
     this.rootStyleApply();
     this.gridStyleApply();
     this.element.append(this.filterRowCreate(), this.folderLabel, this.gridElement, this.statusLabel);
@@ -120,9 +130,10 @@ export class MaterialBrowser implements MaterialBrowserView {
     this.gridRender();
   }
 
-  /** Forgets the tiles and detaches the browser element. */
+  /** Forgets the tiles, closes the context menu, and detaches the element. */
   dispose(): void {
     this.tileElements.clear();
+    this.tileContextMenu?.dispose();
     this.element.remove();
   }
 
@@ -209,8 +220,27 @@ export class MaterialBrowser implements MaterialBrowserView {
   private tileAppend(entry: TextureBrowserEntry): void {
     const tile = materialBrowserTileCreate(entry, (entryId) => this.handlers.onSelectTexture(entryId));
     materialBrowserTileSelectionPaint(tile, entry.id === this.selectedId);
+    this.tileContextMenuBind(tile, entry);
     this.tileElements.set(entry.id, tile);
     this.gridElement.appendChild(tile);
+  }
+
+  /**
+   * Opens the material context menu on a tile's right click when actions are
+   * supplied.
+   *
+   * @param tile Material tile element.
+   * @param entry Material entry of the tile.
+   */
+  private tileContextMenuBind(tile: HTMLElement, entry: TextureBrowserEntry): void {
+    if (!this.tileContextMenu) {
+      return;
+    }
+    tile.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.tileContextMenu?.openForEntry(entry, event.clientX, event.clientY);
+    });
   }
 
   /**

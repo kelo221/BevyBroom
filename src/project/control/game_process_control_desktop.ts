@@ -1,6 +1,10 @@
 import type { ElectrobunDesktopBunRpcClient } from '@/ai/shared/mcp_rpc_schema.js';
 import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
 import { GameProcessControl, GameProcessControlUnavailable } from '@/project/control/game_process_control.js';
+import type {
+  LevelBuildPublishRequest,
+  LevelBuildPublishResult,
+} from '@/level_build/publish/level_build_publish_types.js';
 
 declare global {
   interface Window {
@@ -59,6 +63,16 @@ export class GameProcessControlDesktop extends GameProcessControl {
    */
   statusRead(): Promise<GameProcessStatus> {
     return this.rpc.request.gameProcessStatus();
+  }
+
+  /**
+   * Asks the main process to write a built level into the open project.
+   *
+   * @param request Geometry and manifest to publish.
+   * @returns Where the package went, or why nothing was written.
+   */
+  levelPackagePublish(request: LevelBuildPublishRequest): Promise<LevelBuildPublishResult> {
+    return this.rpc.request.levelPackagePublish(request);
   }
 }
 

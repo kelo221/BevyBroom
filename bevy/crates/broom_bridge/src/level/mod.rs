@@ -3,17 +3,21 @@
 //! the new revision fails to load. The manifest next to the geometry lets the game load the
 //! level on its own ([`LevelLoadRequest`]).
 
+mod bounds;
 pub mod files;
 mod loading;
 mod manifest;
 #[cfg(test)]
 mod tests;
 
+use bevy::camera::primitives::Aabb;
+use bevy::camera::visibility::VisibilitySystems;
 use bevy::prelude::*;
 
 use crate::authoring::BroomSystems;
 use crate::protocol::{GeometryPublication, RevisionGate, RevisionVerdict, sanitize_level_name};
 
+pub use bounds::TightBounds;
 pub use loading::LevelGeometryRoot;
 pub use manifest::LevelLoadRequest;
 
@@ -158,7 +162,9 @@ pub struct LevelPlugin;
 
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<LevelGeometry>()
+        app.register_type::<Aabb>()
+            .register_type::<bounds::TightBounds>()
+            .init_resource::<LevelGeometry>()
             .init_resource::<manifest::ManifestWriter>()
             .add_message::<LevelLoadRequest>()
             .add_systems(
@@ -172,6 +178,15 @@ impl Plugin for LevelPlugin {
                 )
                     .chain()
                     .in_set(BroomSystems::Geometry),
+            )
+            .add_systems(
+                PostUpdate,
+                (
+                    bounds::mark_new_level_primitives,
+                    bounds::tighten_level_bounds,
+                )
+                    .chain()
+                    .before(VisibilitySystems::CalculateBounds),
             );
     }
 }

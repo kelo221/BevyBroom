@@ -5,6 +5,8 @@ import { MCP_LAYER_TOOL_DEFINITIONS } from './registry_mcp_tool_layers.js';
 import { MCP_MAIN_WINDOW_TOOL_DEFINITIONS } from './registry_mcp_tool_main_window.js';
 import { MCP_VIEWPORT_INPUT_TOOL_DEFINITIONS } from './registry_mcp_tool_viewport_input.js';
 import { MCP_CLIPBOARD_TOOL_DEFINITIONS } from './registry_mcp_tool_clipboard.js';
+import { MCP_BRUSH_TOOL_DEFINITIONS } from './registry_mcp_tool_brush_tools.js';
+import { MCP_FACE_UV_TOOL_DEFINITIONS } from './registry_mcp_tool_face_uv.js';
 import { MCP_PROJECT_TOOL_DEFINITIONS } from './registry_mcp_tool_project.js';
 import { emptySchema, tool, vec3Schema, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
@@ -307,6 +309,23 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
         ...snapProps,
       },
       required: ['modelId', 'brushes'],
+    },
+  ),
+  tool(
+    'create_shape_brush',
+    'Create the brushes of a draw-tool shape (cuboid|stairs|arch|cylinder|cone|spheroid_uv|spheroid_ico) inside world min/max bounds as one undo step. Optional params per shape (e.g. stairs: stepHeight, direction; cylinder: sides, axis, hollow, wallThickness). Multi-piece shapes are grouped so parameter changes can regenerate them.',
+    {
+      type: 'object',
+      properties: {
+        shapeId: { type: 'string', description: 'Shape id from the shape catalogue.' },
+        min: vec3Schema,
+        max: vec3Schema,
+        params: {
+          type: 'object',
+          description: 'Parameter values keyed by parameter id (numbers or strings).',
+        },
+      },
+      required: ['shapeId', 'min', 'max'],
     },
   ),
   tool(
@@ -780,6 +799,8 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ...MCP_LAYER_TOOL_DEFINITIONS,
   ...MCP_MAIN_WINDOW_TOOL_DEFINITIONS,
   ...MCP_CLIPBOARD_TOOL_DEFINITIONS,
+  ...MCP_BRUSH_TOOL_DEFINITIONS,
+  ...MCP_FACE_UV_TOOL_DEFINITIONS,
   ...MCP_VIEWPORT_INPUT_TOOL_DEFINITIONS,
   ...MCP_PROJECT_TOOL_DEFINITIONS,
 ];

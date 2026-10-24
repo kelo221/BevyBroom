@@ -18,6 +18,7 @@ import type { FacePickResult } from '@/selection/face/raycaster_face_selection.j
 import { computeRegionWorldNormal } from '@/texture/uv/planar_uv_projector.js';
 import { resolveUvTransformPlaneNormal } from '@/texture/interactive/uv_transform_solid_face_plane.js';
 import { expandFaceSelectionIndices } from '@/selection/face/solid_result_face_indices.js';
+import { FaceAttributeTransferHandler } from './face_attribute_transfer_handler.js';
 
 /** Keyboard code that enables continuous UV smear while held. */
 const UV_SMEAR_KEY_CODE = 'KeyM';
@@ -59,17 +60,18 @@ export class CoordinatorFaceMode {
   private uvSmearController: ControllerUvSmear;
   private uvTransformController: ControllerUvTransform;
   private selectionMode: SelectionMode;
-  private activeDragViewport: Viewport3D | Viewport2D | null;
-  private dragOwnerWindow: Window | null;
-  private windowPointerMoveListener: ((event: PointerEvent) => void) | null;
-  private windowPointerUpListener: ((event: PointerEvent) => void) | null;
-  private isSmearStrokeLive: boolean;
-  private armedUvMove: ArmedUvMoveGesture | null;
-  private lastStatusFaceCount: number;
-  private dragPickFrame: number;
-  private pendingDragEvent: PointerEvent | null;
-  private userSnapEnabledAtSessionStart: boolean;
-  private uvTransformOwnedByDrag: boolean;
+  private activeDragViewport: Viewport3D | Viewport2D | null = null;
+  private dragOwnerWindow: Window | null = null;
+  private windowPointerMoveListener: ((event: PointerEvent) => void) | null = null;
+  private windowPointerUpListener: ((event: PointerEvent) => void) | null = null;
+  private isSmearStrokeLive: boolean = false;
+  private armedUvMove: ArmedUvMoveGesture | null = null;
+  private lastStatusFaceCount: number = -1;
+  private dragPickFrame: number = 0;
+  private pendingDragEvent: PointerEvent | null = null;
+  private userSnapEnabledAtSessionStart: boolean = false;
+  private uvTransformOwnedByDrag: boolean = false;
+  private attributeTransferHandler: FaceAttributeTransferHandler;
 
   /**
    * Creates the coordinator, initializes controllers and drag state, and binds
@@ -83,19 +85,34 @@ export class CoordinatorFaceMode {
     this.faceExtrusionController = this.createFaceExtrusionController();
     this.uvSmearController = new ControllerUvSmear(deps.commandStack);
     this.uvTransformController = new ControllerUvTransform(deps.commandStack, deps.gridSnap);
-    this.activeDragViewport = null;
-    this.dragOwnerWindow = null;
-    this.windowPointerMoveListener = null;
-    this.windowPointerUpListener = null;
-    this.isSmearStrokeLive = false;
-    this.armedUvMove = null;
-    this.lastStatusFaceCount = -1;
-    this.dragPickFrame = 0;
-    this.pendingDragEvent = null;
-    this.userSnapEnabledAtSessionStart = deps.gridSnap.isEnabled();
-    this.uvTransformOwnedByDrag = false;
+    this.dragStateInitialize();
+    this.attributeTransferHandler = this.attributeTransferHandlerCreate();
     this.bindFaceSelectionCallbacks();
     this.updateSelectionModeStatus();
+  }
+
+  /**
+   * Records the snap state the session starts with so live UV edits can restore
+   * the user's choice afterwards.
+   */
+  private dragStateInitialize(): void {
+    this.userSnapEnabledAtSessionStart = this.deps.gridSnap.isEnabled();
+  }
+
+  /**
+   * Creates the Alt+click attribute transfer handler bound to this
+   * coordinator's services.
+   *
+   * @returns Wired transfer handler.
+   */
+  private attributeTransferHandlerCreate(): FaceAttributeTransferHandler {
+    return new FaceAttributeTransferHandler({
+      commandStack: this.deps.commandStack,
+      faceExtrusionController: this.faceExtrusionController,
+      isAltDown: () => this.deps.keyboardShortcutHandler.isAltDown(),
+      updateShadingMeshes: () => this.deps.updateShadingMeshes(),
+      showStatusMessage: (message) => this.deps.showStatusMessage(message),
+    });
   }
 
   /** Enters face selection mode. */
@@ -448,6 +465,9 @@ export class CoordinatorFaceMode {
     }
     const camera = viewport.getCamera();
     const pickElement = viewport.getContentElement();
+    if (this.attributeTransferHandler.tryBegin(event, camera, pickElement)) {
+      return true;
+    }
     if (this.tryArmUvMoveOnSelectedFace(event, viewport, camera, pickElement, isShiftPressed, isCtrlPressed)) {
       this.beginWindowDragTracking(viewport);
       return true;

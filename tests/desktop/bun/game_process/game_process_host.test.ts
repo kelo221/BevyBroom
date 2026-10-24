@@ -19,6 +19,7 @@ function readerCreate(projectIdentifier: string): GameProcessProjectReader {
   const project = {
     project_id: projectIdentifier,
     asset_root: 'assets',
+    level_directory: 'broom/levels',
     preview: { program: 'cargo', arguments: ['run', '-p', 'game'], endpoint: 'http://127.0.0.1:15999' },
   };
   return {

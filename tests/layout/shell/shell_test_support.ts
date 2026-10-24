@@ -1,5 +1,8 @@
+import type { SelectionQueryId } from '@/selection/query/selection_query.js';
 import { vi, type Mock } from 'vitest';
 import type { EditorToolbarActions } from '@/layout/shell/builder_editor_shell.js';
+import type { HandlerSelectionVisibility } from '@/selection/visibility/handler_selection_visibility.js';
+import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
 import type { ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 import { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
@@ -145,6 +148,21 @@ export class ShellTestWindowActions implements ShellWindowActions {
   readonly clipboardPasteAtOriginalPosition = vi.fn<() => void>();
   /** Spy that returns whether objects are selected. */
   readonly clipboardSelectionHasObjectsIs = vi.fn(() => this.clipboardSelectionHasObjects);
+  /** Spy for running a selection query. */
+  readonly selectionQueryRun = vi.fn((_queryId: SelectionQueryId) => 0);
+  /**
+   * Spy that returns whether objects are selected, shared with the clipboard
+   * flag.
+   */
+  readonly selectionHasObjectsIs = vi.fn(() => this.clipboardSelectionHasObjects);
+  /** Brush tools the menus and toolbar run, or null for none. */
+  solidBrushTools: HandlerSolidBrushTools | null = null;
+  /** Spy that returns the brush tools. */
+  readonly solidBrushToolsRead = vi.fn(() => this.solidBrushTools);
+  /** Hide, Isolate and Show All commands the menus run, or null for none. */
+  selectionVisibility: HandlerSelectionVisibility | null = null;
+  /** Spy that returns the visibility commands. */
+  readonly selectionVisibilityRead = vi.fn(() => this.selectionVisibility);
 
   /**
    * Changes the grid size and tells every registered listener.

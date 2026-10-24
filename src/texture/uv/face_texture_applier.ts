@@ -45,6 +45,8 @@ import {
 import type { FaceTextureMappingTrs } from './face_texture_mapping.js';
 import { buildTargetsFromSolidBrushMesh, isSolidBrushPreviewMesh } from './solid_brush_texture_targets.js';
 import { readContentMeshTextureId, writeContentMeshTextureId } from './content_mesh_texture.js';
+import type { FaceUvOperation } from './operations/face_uv_operation.js';
+import type { FaceUvTargetContextFactory } from './operations/face_uv_operation_context_factory.js';
 
 /** Describes one mesh region that will receive a texture mapping update. */
 export interface TextureApplyTarget {
@@ -440,6 +442,63 @@ export function applyRelativeTrsToTargets(targets: TextureApplyTarget[], op: UvR
     const faceNormal = computeRegionWorldNormal(target.mesh, target.triangleIndices);
     const trs = applyRelativeOpToTrs(readMappingTrs(existing, faceNormal), op);
     const mapping = rebuildMappingWithTrs(existing, faceNormal, trs);
+    upsertFaceTextureMap(target.mesh, target.triangleIndices, mapping);
+    bakeFaceUVs(target.mesh, target.triangleIndices, mapping);
+    meshes.add(target.mesh);
+  });
+  meshes.forEach((mesh) => rebuildMaterialsPreservingSolidOrder(mesh));
+}
+
+/**
+ * Resolves a mapping whose UV plane actually spans the target face. A default
+ * fallback mapping whose plane collapses on the face (world-axis identity on a
+ * side face) is replaced by a unit face-plane mapping with the same texture.
+ *
+ * @param target Region the mapping is resolved for.
+ * @param faceNormal Unit world normal of the region.
+ * @returns Mapping usable as the base of a matrix operation.
+ */
+export function resolveFaceSpanningTargetMapping(
+  target: TextureApplyTarget,
+  faceNormal: THREE.Vector3,
+): FaceTextureMapping {
+  const existing = resolveTargetMapping(target);
+  const planeNormal = existing.uv.planeNormalAlignedTo(faceNormal);
+  if (Math.abs(planeNormal.dot(faceNormal)) > 0.99) {
+    return existing;
+  }
+  return createFaceTextureMappingFromTrs(
+    existing.textureId || DEFAULT_CHECKER_TEXTURE_ID,
+    faceNormal,
+    { scaleU: 1, scaleV: 1, offsetU: 0, offsetV: 0, rotationDeg: 0 },
+    'face',
+  );
+}
+
+/**
+ * Applies a pure face UV matrix operation to every target region. Each region's
+ * stored mapping matrix is transformed by the operation against a context built
+ * from the region's world polygon; texture ids and unmapped regions are left
+ * alone.
+ *
+ * @param targets Regions the operation runs on.
+ * @param operation Pure UV matrix operation.
+ * @param contextFactory Builds each region's operation context.
+ */
+export function applyMatrixOperationToTargets(
+  targets: TextureApplyTarget[],
+  operation: FaceUvOperation,
+  contextFactory: FaceUvTargetContextFactory,
+): void {
+  const meshes = new Set<THREE.Mesh>();
+  targets.forEach((target) => {
+    const context = contextFactory(target);
+    if (!context) {
+      return;
+    }
+    const existing = resolveFaceSpanningTargetMapping(target, context.faceNormal);
+    const mapping = cloneFaceTextureMapping(existing);
+    mapping.uv = operation.apply(existing.uv, context);
     upsertFaceTextureMap(target.mesh, target.triangleIndices, mapping);
     bakeFaceUVs(target.mesh, target.triangleIndices, mapping);
     meshes.add(target.mesh);

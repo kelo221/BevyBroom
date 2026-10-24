@@ -7,7 +7,7 @@ use super::files::{read_manifest, write_manifest};
 use super::{GeometryJob, GeometrySource, LevelGeometry};
 use crate::authoring::{AppliedAuthoring, AuthoringInbox};
 use crate::project::ProjectPaths;
-use crate::protocol::{LevelManifest, PROTOCOL_VERSION, sanitize_level_name};
+use crate::protocol::{LevelManifest, sanitize_level_name};
 use crate::status::BridgeStatus;
 
 /// The shortest time between two manifest writes while lights are being dragged.
@@ -64,13 +64,12 @@ pub(super) fn write_manifest_when_due(
     if state.document_id != shown.document_id {
         return;
     }
-    let manifest = LevelManifest {
-        protocol: PROTOCOL_VERSION,
-        level_name: shown.level_name.clone(),
-        geometry_file: shown.file_name.clone(),
-        geometry_revision: shown.geometry_revision,
-        state: state.clone(),
-    };
+    let manifest = LevelManifest::new(
+        shown.level_name.clone(),
+        shown.file_name.clone(),
+        shown.geometry_revision,
+        state.clone(),
+    );
     writer.due = false;
     writer.last_written = Some(now);
     if let Err(error) = write_manifest(&paths.level_directory_of(&shown.level_name), &manifest) {

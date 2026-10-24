@@ -1,4 +1,4 @@
-import { TransformMode } from '@/types/transform_mode.js';
+import { TransformMode, isBoundsWidgetMode } from '@/types/transform_mode.js';
 import type { GizmoTransform } from '@/transform/gizmo/gizmo_transform.js';
 import type { ControllerViewportToolChrome } from '@/tools/chrome/controller/controller_viewport_tool_chrome.js';
 import type { StatusBar } from '@/ui/status/status_bar.js';
@@ -100,7 +100,7 @@ export class LayoutTransformModeSwitcher {
    * @param mode Requested mode; Bounds is ignored.
    */
   private editModeTransformModeToggle(mode: TransformMode): void {
-    if (mode === TransformMode.BOUNDS) {
+    if (isBoundsWidgetMode(mode)) {
       return;
     }
     if (this.host.transformGizmo.getMode() === mode) {

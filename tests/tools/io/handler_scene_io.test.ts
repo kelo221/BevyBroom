@@ -5,6 +5,8 @@ import { SceneSerializer } from '@/io/scene/scene_serializer.js';
 import { SceneDeserializer } from '@/io/scene/scene_deserializer.js';
 import { documentIdentityEnsure, documentIdentityRead } from '@/io/document/document_identity.js';
 import type { SceneJSON } from '@/io/scene/io_types.js';
+import type { FileTargetSceneDocument } from '@/io/dialog/file_target_scene_document.js';
+import { FileTargetTestDiskFile } from '../../io/dialog/file_target_test_disk_file.js';
 
 describe('SceneIOHandler', () => {
   let handler: HandlerSceneIo;
@@ -108,6 +110,29 @@ describe('SceneIOHandler', () => {
     saveSceneDocumentAsSpy(handler).mockResolvedValue(null);
     await handler.saveSceneAs(worldGroup, null);
     expect(documentIdentityRead(worldGroup)).toBe(originalIdentifier);
+  });
+
+  it('asks before Save overwrites a scene file another program changed, and keeps it when declined', async () => {
+    worldGroup.add(createTestMesh('ConflictCube'));
+    const file = rememberedDiskFileCreate(handler, 'level.json');
+    file.externalEdit('changed elsewhere');
+    const declined = vi.fn().mockResolvedValue(false);
+    expect(await handler.saveScene(worldGroup, null, declined)).toBeNull();
+    expect(declined).toHaveBeenCalledWith('level.json');
+    expect(file.contents).toBe('changed elsewhere');
+    expect(await handler.saveScene(worldGroup, null, vi.fn().mockResolvedValue(true))).toBe('level.json');
+    const written = JSON.parse(file.contents) as SceneJSON;
+    expect(written.objects.map((object) => object.name)).toEqual(['ConflictCube']);
+  });
+
+  it('saves an unchanged scene file without asking and never overwrites a newer one unasked', async () => {
+    const file = rememberedDiskFileCreate(handler, 'level.json');
+    const confirm = vi.fn().mockResolvedValue(true);
+    expect(await handler.saveScene(worldGroup, null, confirm)).toBe('level.json');
+    expect(confirm).not.toHaveBeenCalled();
+    file.externalEdit('changed elsewhere');
+    expect(await handler.saveScene(worldGroup, null)).toBeNull();
+    expect(file.contents).toBe('changed elsewhere');
   });
 
   it('should export GLB and produce non-empty buffer for real meshes', async () => {
@@ -263,6 +288,22 @@ function saveSceneDocumentAsSpy(handler: HandlerSceneIo) {
     }
   ).fileDialogManager;
   return vi.spyOn(fileDialog, 'saveSceneDocumentAs');
+}
+
+/**
+ * Remembers an in-memory file as the scene document the handler saves to, as if
+ * the editor had just opened it.
+ *
+ * @param handler Scene IO handler.
+ * @param name File name.
+ * @returns The file.
+ */
+function rememberedDiskFileCreate(handler: HandlerSceneIo, name: string): FileTargetTestDiskFile {
+  const file = new FileTargetTestDiskFile(name, '{}');
+  const fileDialog = (handler as unknown as { fileDialogManager: { sceneDocumentTarget: FileTargetSceneDocument } })
+    .fileDialogManager;
+  fileDialog.sceneDocumentTarget.remember(file.handleCreate(), file.lastModified);
+  return file;
 }
 
 /**

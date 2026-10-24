@@ -790,6 +790,7 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
     this.keyboardShortcutHandler?.unregister();
     this.clipboardSystem?.dispose();
     this.clipboardSystem = null;
+    this.sceneRecoveryDispose();
     this.toolEditorSystem?.uninstallFocusPointerRouter();
     this.inputManager?.dispose();
     this.viewportRegistry?.dispose();

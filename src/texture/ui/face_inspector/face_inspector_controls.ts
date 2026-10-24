@@ -1,7 +1,7 @@
 import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
 
-/** Compact TrenchBroom-like metrics shared by the face inspector controls. */
+/** Compact metrics shared by the face inspector controls. */
 export const FACE_INSPECTOR_METRICS = Object.freeze({
   paddingX: 8,
   paddingY: 6,

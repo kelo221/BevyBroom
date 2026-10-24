@@ -50,6 +50,20 @@ export class GlbExporter {
   }
 
   /**
+   * Exports the geometry of a level package, the same way the game preview
+   * receives it: in editor axes and meters, with hidden objects kept and
+   * lightmap UVs. Lights, rooms, portals and game components are left out
+   * because the package manifest carries them in its state; writing them into
+   * the file too would make the game spawn them twice.
+   *
+   * @param worldGroup The live editor world root to export.
+   * @returns A promise resolving to the GLB ArrayBuffer.
+   */
+  exportForLevelPackage(worldGroup: THREE.Group): Promise<ArrayBuffer> {
+    return this.export(worldGroup, null, { includeHiddenObjects: true, includeLightmapUvs: true });
+  }
+
+  /**
    * Builds a filtered export graph and applies the optional profile transform.
    * The original world group remains untouched.
    *

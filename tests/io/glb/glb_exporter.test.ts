@@ -12,6 +12,13 @@ import { buildExportRootTransform } from '@/io/coordinates/coordinate_space_tran
 import type { GameProfile } from '@/settings/store/settings_types.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import { GameEntityOwner } from '@/game_entity/owner/game_entity_owner.js';
+import { PortalOwner } from '@/portal/model/portal_owner.js';
+import { portalSettingsCreateDefault } from '@/portal/model/portal_settings.js';
+import { RoomOwner } from '@/portal/model/room_owner.js';
+import {
+  PORTAL_EXPORT_PORTAL_EXTRAS_KEY,
+  PORTAL_EXPORT_ROOM_EXTRAS_KEY,
+} from '@/portal/export/portal_export_cell_builder.js';
 import { glbJsonRead } from './glb_json_read.js';
 
 /** GLB file format magic number (little-endian 'glTF'). */
@@ -49,6 +56,26 @@ describe('GlbExporter', () => {
     expect(nodes.find((node) => node.name === 'Spawn')?.mesh).toBeUndefined();
     const plainNodes = glbJsonRead(await exporter.export(worldGroup)).nodes ?? [];
     expect(plainNodes.some((node) => node.extras?.['broom_components'] !== undefined)).toBe(false);
+  });
+
+  it('leaves rooms, portals and game components out of level package geometry but keeps hidden meshes', async () => {
+    const typePath = 'test_game::doors::Door';
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial());
+    mesh.name = 'Pad';
+    GameEntityComponentStore.write(mesh, { [typePath]: { speed: 3 } });
+    const hidden = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial());
+    hidden.name = 'HiddenPad';
+    hidden.visible = false;
+    const room = RoomOwner.create('Hall', { halfSizeX: 3, halfSizeY: 1.5, halfSizeZ: 2 });
+    const portal = PortalOwner.create('Door', portalSettingsCreateDefault());
+    worldGroup.add(mesh, hidden, room, portal);
+    const json = glbJsonRead(await exporter.exportForLevelPackage(worldGroup));
+    const nodes = json.nodes ?? [];
+    const extras = nodes.map((node) => node.extras ?? {});
+    expect(nodes.map((node) => node.name)).toEqual(expect.arrayContaining(['Pad', 'HiddenPad']));
+    expect(extras.some((entry) => entry[PORTAL_EXPORT_ROOM_EXTRAS_KEY] !== undefined)).toBe(false);
+    expect(extras.some((entry) => entry[PORTAL_EXPORT_PORTAL_EXTRAS_KEY] !== undefined)).toBe(false);
+    expect(extras.some((entry) => entry['broom_components'] !== undefined)).toBe(false);
   });
 
   it('should produce valid GLB header for empty group', async () => {

@@ -115,6 +115,8 @@ export interface ViewSettings {
   anisotropyPreference: AnisotropyPreference;
   /** Shows text beside quick-access icons when the top toolbar is expanded. */
   toolbarButtonLabels: boolean;
+  /** Reveals the Face inspector tab when face mode starts or faces get selected. */
+  faceInspectorAutoReveal: boolean;
 }
 
 /** Settings that control mouse-driven viewport navigation. */
@@ -189,7 +191,20 @@ export type KeyboardShortcutAction =
   | 'toolbar_toggle'
   | 'select_all'
   | 'select_none'
-  | 'paste_original';
+  | 'visibility_hide'
+  | 'visibility_isolate'
+  | 'visibility_show_all'
+  | 'paste_original'
+  | 'face_uv_nudge_left'
+  | 'face_uv_nudge_right'
+  | 'face_uv_nudge_up'
+  | 'face_uv_nudge_down'
+  | 'face_uv_rotate_ccw'
+  | 'face_uv_rotate_cw'
+  | 'face_uv_flip_h'
+  | 'face_uv_flip_v'
+  | 'face_uv_reset_face'
+  | 'face_uv_reset_world';
 
 /** Keyboard code and modifier state for one configured shortcut. */
 export interface KeyboardShortcut {

@@ -12,11 +12,14 @@ import { getFaceTextureMaps, getFaceTextureMapsLive, setFaceTextureMaps } from '
 import {
   applyAlignToTargets,
   applyMappingToTargets,
+  applyMatrixOperationToTargets,
   applyPartialTrsToTargets,
   applyRelativeTrsToTargets,
   resetUvParamsOnTargets,
   TextureApplyTarget,
 } from '@/texture/uv/face_texture_applier.js';
+import type { FaceUvOperation } from '@/texture/uv/operations/face_uv_operation.js';
+import type { FaceUvTargetContextFactory } from '@/texture/uv/operations/face_uv_operation_context_factory.js';
 import { syncMeshDocumentCornerUvsFromDisplayMesh } from '@/mesh/convert/mesh_document_face_texture_sync.js';
 import { rebakeStoredFaceTextureMaps } from '@/texture/uv/planar_uv_projector.js';
 import { rebuildSurfaceMaterials } from '@/texture/material/builder_surface_material.js';
@@ -50,6 +53,10 @@ export interface ApplyFaceTextureCommandOptions {
   relativeOp?: UvRelativeTrsOp;
   /** Absolute TRS fields written onto every target. */
   partialTrs?: Partial<FaceTextureMappingTrs>;
+  /** Pure UV matrix operation applied to every target region's matrix. */
+  matrixOperation?: FaceUvOperation;
+  /** Builds each region's context for the matrix operation. */
+  matrixOperationContextFactory?: FaceUvTargetContextFactory;
 }
 
 /** Undoable command that applies a face texture mapping to mesh regions. */
@@ -60,6 +67,8 @@ export class CommandTextureFaceApply implements UndoCommand {
   private alignOnly: FaceTextureAlign | null;
   private relativeOp: UvRelativeTrsOp | null;
   private partialTrs: Partial<FaceTextureMappingTrs> | null;
+  private matrixOperation: FaceUvOperation | null;
+  private matrixOperationContextFactory: FaceUvTargetContextFactory | null;
   private beforeSnapshots: MeshTextureSnapshot[];
   private afterSolidBrushUvs: BrushUvSnapshot[] | null;
   private executed: boolean;
@@ -82,6 +91,8 @@ export class CommandTextureFaceApply implements UndoCommand {
     this.alignOnly = options.alignOnly ?? null;
     this.relativeOp = options.relativeOp ?? null;
     this.partialTrs = options.partialTrs ? { ...options.partialTrs } : null;
+    this.matrixOperation = options.matrixOperation ?? null;
+    this.matrixOperationContextFactory = options.matrixOperationContextFactory ?? null;
     this.beforeSnapshots = [];
     this.afterSolidBrushUvs = null;
     this.executed = false;
@@ -103,7 +114,10 @@ export class CommandTextureFaceApply implements UndoCommand {
     this.executed = true;
   }
 
-  /** Runs the selected apply path (reset, align, relative, partial, or full). */
+  /**
+   * Runs the selected apply path (reset, align, matrix, relative, partial, or
+   * full).
+   */
   private runApplyPath(): void {
     if (this.resetUvOnly) {
       resetUvParamsOnTargets(this.targets);
@@ -113,6 +127,15 @@ export class CommandTextureFaceApply implements UndoCommand {
       applyAlignToTargets(this.targets, this.alignOnly);
       return;
     }
+    if (this.matrixOperation && this.matrixOperationContextFactory) {
+      applyMatrixOperationToTargets(this.targets, this.matrixOperation, this.matrixOperationContextFactory);
+      return;
+    }
+    this.runTrsApplyPath();
+  }
+
+  /** Runs the relative, partial, or full TRS apply path. */
+  private runTrsApplyPath(): void {
     if (this.relativeOp) {
       applyRelativeTrsToTargets(this.targets, this.relativeOp);
       return;

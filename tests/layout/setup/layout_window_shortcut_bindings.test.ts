@@ -59,11 +59,38 @@ function windowActionsSpyCreate(): ShellWindowActions {
     gridIntervalSet: vi.fn(),
     gridIntervalChangeListenerAdd: vi.fn(),
     shortcutLabelRead: () => '',
+    ...windowActionsEditSpyCreate(),
+  };
+}
+
+/**
+ * Creates the clipboard, selection query, brush tool and visibility members of
+ * spy window actions.
+ *
+ * @returns Spy edit members.
+ */
+function windowActionsEditSpyCreate(): Pick<
+  ShellWindowActions,
+  | 'clipboardCopy'
+  | 'clipboardCut'
+  | 'clipboardPaste'
+  | 'clipboardPasteAtOriginalPosition'
+  | 'clipboardSelectionHasObjectsIs'
+  | 'selectionQueryRun'
+  | 'selectionHasObjectsIs'
+  | 'solidBrushToolsRead'
+  | 'selectionVisibilityRead'
+> {
+  return {
     clipboardCopy: vi.fn(),
     clipboardCut: vi.fn(),
     clipboardPaste: vi.fn(),
     clipboardPasteAtOriginalPosition: vi.fn(),
     clipboardSelectionHasObjectsIs: () => false,
+    selectionQueryRun: () => 0,
+    selectionHasObjectsIs: () => false,
+    solidBrushToolsRead: () => null,
+    selectionVisibilityRead: () => null,
   };
 }
 

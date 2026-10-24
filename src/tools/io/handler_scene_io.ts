@@ -81,19 +81,54 @@ export class HandlerSceneIo {
 
   /**
    * Saves the scene to the file it was opened from or last saved to, asking for
-   * a file only when none is remembered.
+   * a file only when none is remembered. When another program changed that file
+   * since the editor read or wrote it, the save goes ahead only if confirmed.
    *
    * @param worldGroup The root group containing the scene objects.
    * @param statusBar The status bar for feedback, or null.
+   * @param changedOnDiskOverwriteConfirm Asks whether to overwrite the newer
+   *   file; without it a newer file is never overwritten.
+   * @returns The written file name, or null when nothing was written.
    */
-  async saveScene(worldGroup: THREE.Group, statusBar: StatusBar | null): Promise<void> {
+  async saveScene(
+    worldGroup: THREE.Group,
+    statusBar: StatusBar | null,
+    changedOnDiskOverwriteConfirm?: (fileName: string) => Promise<boolean>,
+  ): Promise<string | null> {
     try {
-      const jsonString = this.sceneJsonBuild(worldGroup);
-      const filename = await this.fileDialogManager.saveSceneDocument(jsonString, 'scene.json');
+      if (!(await this.changedOnDiskOverwriteAllowed(statusBar, changedOnDiskOverwriteConfirm))) {
+        return null;
+      }
+      const filename = await this.fileDialogManager.saveSceneDocument(this.sceneJsonBuild(worldGroup), 'scene.json');
       this.showSaveResult(filename, statusBar);
+      return filename;
     } catch (error) {
       this.showError(statusBar, `Failed to save scene: ${this.formatError(error)}`);
+      return null;
     }
+  }
+
+  /**
+   * Returns whether Save may write the remembered file, asking first when the
+   * file on disk is newer than the editor's copy.
+   *
+   * @param statusBar The status bar for feedback, or null.
+   * @param confirm Asks whether to overwrite the newer file, or undefined.
+   * @returns True when the save may go ahead.
+   */
+  private async changedOnDiskOverwriteAllowed(
+    statusBar: StatusBar | null,
+    confirm: ((fileName: string) => Promise<boolean>) | undefined,
+  ): Promise<boolean> {
+    if (!(await this.fileDialogManager.sceneDocumentChangedOnDiskIs())) {
+      return true;
+    }
+    const fileName = this.fileDialogManager.sceneDocumentFileNameRead() ?? 'the scene file';
+    if (confirm !== undefined && (await confirm(fileName))) {
+      return true;
+    }
+    statusBar?.setLastAction(`Save cancelled: ${fileName} was changed by another program. Use Save As to keep both.`);
+    return false;
   }
 
   /**
@@ -103,8 +138,9 @@ export class HandlerSceneIo {
    *
    * @param worldGroup The root group containing the scene objects.
    * @param statusBar The status bar for feedback, or null.
+   * @returns The written file name, or null when nothing was written.
    */
-  async saveSceneAs(worldGroup: THREE.Group, statusBar: StatusBar | null): Promise<void> {
+  async saveSceneAs(worldGroup: THREE.Group, statusBar: StatusBar | null): Promise<string | null> {
     const previousDocumentIdentifier = documentIdentityRead(worldGroup);
     try {
       documentIdentityReset(worldGroup);
@@ -112,9 +148,11 @@ export class HandlerSceneIo {
       const filename = await this.fileDialogManager.saveSceneDocumentAs(jsonString, 'scene.json');
       this.documentIdentityRestoreWhenUnsaved(worldGroup, previousDocumentIdentifier, filename);
       this.showSaveResult(filename, statusBar);
+      return filename;
     } catch (error) {
       this.documentIdentityRestoreWhenUnsaved(worldGroup, previousDocumentIdentifier, null);
       this.showError(statusBar, `Failed to save scene: ${this.formatError(error)}`);
+      return null;
     }
   }
 

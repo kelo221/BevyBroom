@@ -1,7 +1,10 @@
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 
-/** File menu: new, save, load, import, export and preferences. */
+/**
+ * File menu: new, save, load, projects, Build Level, import, export and
+ * preferences.
+ */
 export class ShellMenuFile extends ShellMenu {
   readonly label = 'File';
 
@@ -20,15 +23,31 @@ export class ShellMenuFile extends ShellMenu {
       this.actionEntry(context, 'Save As…', () => actions.onSaveSceneAs(), { shortcutAction: 'save_as' }),
       this.actionEntry(context, 'Load', () => actions.onLoadScene(), { shortcutAction: 'load' }),
       this.separatorEntry(),
-      this.actionEntry(context, 'Open Project…', () => void actions.gameProjectWorkbenchRead().projectOpen(null), {
-        isEnabled: () => actions.gameProjectWorkbenchRead().isAvailable(),
-      }),
-      this.recentProjectsSubmenuBuild(context),
+      ...this.projectEntriesBuild(context),
       this.separatorEntry(),
       this.importSubmenuBuild(context),
       this.exportSubmenuBuild(context),
       this.separatorEntry(),
       this.actionEntry(context, 'Preferences…', () => actions.onToggleSettingsDialog()),
+    ];
+  }
+
+  /**
+   * Builds the Open Project, Recent Projects and Build Level rows.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Menu entries.
+   */
+  private projectEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    const workbenchRead = context.toolbarActions.gameProjectWorkbenchRead;
+    return [
+      this.actionEntry(context, 'Open Project…', () => void workbenchRead().projectOpen(null), {
+        isEnabled: () => workbenchRead().isAvailable(),
+      }),
+      this.recentProjectsSubmenuBuild(context),
+      this.actionEntry(context, 'Build Level', () => void workbenchRead().levelBuild(), {
+        isEnabled: () => workbenchRead().statusRead()?.project != null,
+      }),
     ];
   }
 

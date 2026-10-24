@@ -28,6 +28,8 @@ export class ShellToolBarBuilder {
     toolbar.addSeparator();
     const toolSlot = toolbar.addSlot(SHELL_TOOL_BAR_TOOL_SLOT_CLASS);
     toolbar.addSeparator();
+    this.objectEditGroupAdd(toolbar, actions, windowActions);
+    toolbar.addSeparator();
     this.gridGroupAdd(toolbar, actions, windowActions);
     toolbar.addSeparator();
     this.gizmoAxesGroupAdd(toolbar, actions);
@@ -47,6 +49,23 @@ export class ShellToolBarBuilder {
   private historyGroupAdd(toolbar: Toolbar, actions: EditorToolbarActions): void {
     toolbar.addIconButton('Undo', ToolbarIcons.undo(), () => actions.onUndo());
     toolbar.addIconButton('Redo', ToolbarIcons.redo(), () => actions.onRedo());
+  }
+
+  /**
+   * Adds the Duplicate, Flip Horizontally and Flip Vertically buttons.
+   *
+   * @param toolbar Main toolbar.
+   * @param actions Scene toolbar actions.
+   * @param windowActions Window actions holding the brush tools.
+   */
+  private objectEditGroupAdd(toolbar: Toolbar, actions: EditorToolbarActions, windowActions: ShellWindowActions): void {
+    toolbar.addIconButton('Duplicate', ToolbarIcons.duplicate(), () => actions.onDuplicateSelected());
+    toolbar.addIconButton('Flip Horizontally', ToolbarIcons.flipHorizontal(), () =>
+      windowActions.solidBrushToolsRead()?.flip('horizontal'),
+    );
+    toolbar.addIconButton('Flip Vertically', ToolbarIcons.flipVertical(), () =>
+      windowActions.solidBrushToolsRead()?.flip('vertical'),
+    );
   }
 
   /**

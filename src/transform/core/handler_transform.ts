@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Theme } from '@/theme.js';
-import { GizmoAxis, TransformMode } from '@/types/transform_mode.js';
+import { GizmoAxis, TransformMode, isBoundsWidgetMode } from '@/types/transform_mode.js';
 import { GizmoHandle } from '@/transform/gizmo/gizmo_handle.js';
 import { GizmoTransform } from '@/transform/gizmo/gizmo_transform.js';
 import { GizmoRaycaster } from '@/transform/gizmo/gizmo_raycaster.js';
@@ -11,6 +11,7 @@ import { TextureLockSettings } from '@/texture/lock/texture_lock_settings.js';
 import { TransformDragSession } from './session_transform_drag.js';
 import { TransformProjectionMath } from './transform_projection_math.js';
 import { ControllerBoundsDrag } from '@/transform/bounds/controller_bounds_drag.js';
+import type { ControllerShearDrag } from '@/transform/shear/controller_shear_drag.js';
 import { TransformCommandPusher } from './transform_command_pusher.js';
 import { TransformModalHandlerIntegration } from '@/transform/modal/transform_modal_handler_integration.js';
 import { TransformModalAxis } from '@/transform/modal/transform_modal_axis.js';
@@ -33,6 +34,7 @@ export class HandlerTransform {
   private transformExecutor: TransformExecutor;
   private session: TransformDragSession;
   private boundsDragController: ControllerBoundsDrag;
+  private shearDragController: ControllerShearDrag | null;
   private commandPusher: TransformCommandPusher;
   private modalIntegration: TransformModalHandlerIntegration;
   private readonly scratchKeyboardOrientation: THREE.Quaternion;
@@ -58,6 +60,7 @@ export class HandlerTransform {
   ) {
     this.transformGizmo = transformGizmo;
     this.gizmoRaycaster = gizmoRaycaster;
+    this.shearDragController = null;
     this.transformExecutor = transformExecutor;
     this.session = new TransformDragSession();
     this.boundsDragController = new ControllerBoundsDrag(
@@ -238,6 +241,24 @@ export class HandlerTransform {
   }
 
   /**
+   * Attaches the shear drag controller used while the Shear mode is active.
+   *
+   * @param controller Shear drag controller, or null to detach.
+   */
+  setShearDragController(controller: ControllerShearDrag | null): void {
+    this.shearDragController = controller;
+  }
+
+  /**
+   * Returns the shared drag session the shear controller binds to.
+   *
+   * @returns Drag session shared by all transform drag paths.
+   */
+  getDragSession(): TransformDragSession {
+    return this.session;
+  }
+
+  /**
    * Returns the active transform gizmo mode.
    *
    * @returns Current TransformMode.
@@ -270,7 +291,23 @@ export class HandlerTransform {
   ): void {
     if (this.isMultiSelectModifierHeld(event)) return;
     this.commitActiveDragIfNeeded();
-    if (this.transformGizmo.getMode() === TransformMode.BOUNDS) {
+    if (isBoundsWidgetMode(this.transformGizmo.getMode())) {
+      if (
+        this.shearDragController?.tryBegin(
+          camera,
+          pickElement,
+          event,
+          handles,
+          selectedObjects,
+          pivot,
+          gizmoGroup,
+          viewPlane,
+        )
+      ) {
+        this.session.dragObjects = selectedObjects.slice();
+        this.modalIntegration.beginDrag();
+        return;
+      }
       this.boundsDragController.beginPointerDown(
         camera,
         pickElement,
@@ -323,7 +360,7 @@ export class HandlerTransform {
     viewPlane: CadViewPlane = 'xyz',
   ): void {
     if (this.session.dragActive) return;
-    if (this.transformGizmo.getMode() !== TransformMode.BOUNDS) {
+    if (!isBoundsWidgetMode(this.transformGizmo.getMode())) {
       this.clearBoundsHover(pickElement);
       return;
     }
@@ -479,7 +516,11 @@ export class HandlerTransform {
       return;
     }
     const mode = this.transformGizmo.getMode();
-    if (mode === TransformMode.BOUNDS && !this.session.isSingleUseDrag) {
+    if (isBoundsWidgetMode(mode) && !this.session.isSingleUseDrag) {
+      if (this.shearDragController?.isActive()) {
+        this.shearDragController.handleMove(camera, pickElement, event);
+        return;
+      }
       this.boundsDragController.handleMove(camera, pickElement, event, selectedObjects);
       return;
     }
@@ -506,6 +547,7 @@ export class HandlerTransform {
    */
   onPointerUp(pivot: THREE.Vector3 = new THREE.Vector3(), selectedObjects: THREE.Object3D[] = []): void {
     if (this.session.dragActive) {
+      this.shearDragController?.finishDrag();
       this.commandPusher.pushUndoCommand(pivot, selectedObjects);
     }
     this.finishDragInteraction();

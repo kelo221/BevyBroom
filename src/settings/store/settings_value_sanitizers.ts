@@ -160,6 +160,25 @@ export function areMouseSettingsEqual(first: MouseSettings, second: MouseSetting
 export function mergeParsedViewSettings(defaults: ViewSettings, parsed: Partial<ViewSettings>): ViewSettings {
   return {
     theme: sanitizeTheme(parsed.theme, defaults.theme),
+    ...mergeParsedViewNumbers(defaults, parsed),
+    textureFilterMode: sanitizeTextureFilterMode(parsed.textureFilterMode, defaults.textureFilterMode),
+    anisotropyPreference: sanitizeAnisotropyPreference(parsed.anisotropyPreference, defaults.anisotropyPreference),
+    ...mergeParsedViewToggles(defaults, parsed),
+  };
+}
+
+/**
+ * Merges the numeric view preferences over defaults with validation.
+ *
+ * @param defaults Default view settings.
+ * @param parsed Partial stored view fields.
+ * @returns Sanitized numeric preferences.
+ */
+function mergeParsedViewNumbers(
+  defaults: ViewSettings,
+  parsed: Partial<ViewSettings>,
+): Pick<ViewSettings, 'brightness' | 'materialBrowserIconSizePercent' | 'rendererFontSize' | 'viewportPaneCount'> {
+  return {
     brightness: clampNumber(Number(parsed.brightness ?? defaults.brightness), BRIGHTNESS_MIN, BRIGHTNESS_MAX),
     materialBrowserIconSizePercent: clampNumber(
       Number(parsed.materialBrowserIconSizePercent ?? defaults.materialBrowserIconSizePercent),
@@ -176,10 +195,27 @@ export function mergeParsedViewSettings(defaults: ViewSettings, parsed: Partial<
       1,
       4,
     ) as ViewportPaneCount,
-    textureFilterMode: sanitizeTextureFilterMode(parsed.textureFilterMode, defaults.textureFilterMode),
-    anisotropyPreference: sanitizeAnisotropyPreference(parsed.anisotropyPreference, defaults.anisotropyPreference),
+  };
+}
+
+/**
+ * Merges the boolean view toggles over defaults with validation.
+ *
+ * @param defaults Default view settings.
+ * @param parsed Partial stored view fields.
+ * @returns Sanitized boolean toggles.
+ */
+function mergeParsedViewToggles(
+  defaults: ViewSettings,
+  parsed: Partial<ViewSettings>,
+): Pick<ViewSettings, 'toolbarButtonLabels' | 'faceInspectorAutoReveal'> {
+  return {
     toolbarButtonLabels:
       typeof parsed.toolbarButtonLabels === 'boolean' ? parsed.toolbarButtonLabels : defaults.toolbarButtonLabels,
+    faceInspectorAutoReveal:
+      typeof parsed.faceInspectorAutoReveal === 'boolean'
+        ? parsed.faceInspectorAutoReveal
+        : defaults.faceInspectorAutoReveal,
   };
 }
 

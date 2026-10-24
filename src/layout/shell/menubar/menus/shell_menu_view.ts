@@ -35,6 +35,8 @@ export class ShellMenuView extends ShellMenu {
       this.actionEntry(context, 'Cycle View', () => window.viewCycle(), { shortcutAction: 'view_cycle' }),
       this.actionEntry(context, 'Maximize View', () => window.viewMaximize(), { shortcutAction: 'view_maximize' }),
       this.separatorEntry(),
+      ...this.visibilityEntriesBuild(context),
+      this.separatorEntry(),
       ...SHELL_MENU_VIEW_INSPECTOR_TABS.map((tab) => this.inspectorTabEntryBuild(context, tab)),
       this.separatorEntry(),
       ...this.dockToggleEntriesBuild(context),
@@ -80,6 +82,29 @@ export class ShellMenuView extends ShellMenu {
         isChecked: () => window.gridIntervalRead() === interval,
       }),
     );
+  }
+
+  /**
+   * Builds the Hide Selected, Isolate Selected and Show All rows.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Menu action entries.
+   */
+  private visibilityEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    const window = context.windowActions;
+    return [
+      this.actionEntry(context, 'Hide Selected', () => window.selectionVisibilityRead()?.hideSelected(), {
+        shortcutAction: 'visibility_hide',
+        isEnabled: () => window.selectionHasObjectsIs(),
+      }),
+      this.actionEntry(context, 'Isolate Selected', () => window.selectionVisibilityRead()?.isolateSelected(), {
+        shortcutAction: 'visibility_isolate',
+        isEnabled: () => window.selectionHasObjectsIs(),
+      }),
+      this.actionEntry(context, 'Show All', () => window.selectionVisibilityRead()?.showAll(), {
+        shortcutAction: 'visibility_show_all',
+      }),
+    ];
   }
 
   /**

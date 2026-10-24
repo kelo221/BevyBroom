@@ -23,10 +23,7 @@ const KNOWN_MATERIAL: FaceAttributesMaterialDescription = {
 describe('FaceAttributesEditor', () => {
   let host: HTMLElement;
   let handlers: {
-    onAlign: Mock<FaceAttributesEditorHandlers['onAlign']>;
-    onApplyPartialTrs: Mock<FaceAttributesEditorHandlers['onApplyPartialTrs']>;
-    onRelativeOp: Mock<FaceAttributesEditorHandlers['onRelativeOp']>;
-    onReset: Mock<FaceAttributesEditorHandlers['onReset']>;
+    [Key in keyof FaceAttributesEditorHandlers]: Mock<FaceAttributesEditorHandlers[Key]>;
   };
   let editor: FaceAttributesEditor;
 
@@ -38,6 +35,14 @@ describe('FaceAttributesEditor', () => {
       onApplyPartialTrs: vi.fn<FaceAttributesEditorHandlers['onApplyPartialTrs']>(),
       onRelativeOp: vi.fn<FaceAttributesEditorHandlers['onRelativeOp']>(),
       onReset: vi.fn<FaceAttributesEditorHandlers['onReset']>(),
+      onFit: vi.fn<FaceAttributesEditorHandlers['onFit']>(),
+      onJustify: vi.fn<FaceAttributesEditorHandlers['onJustify']>(),
+      onAlignEdge: vi.fn<FaceAttributesEditorHandlers['onAlignEdge']>(),
+      onFlip: vi.fn<FaceAttributesEditorHandlers['onFlip']>(),
+      onRotate: vi.fn<FaceAttributesEditorHandlers['onRotate']>(),
+      onResetFace: vi.fn<FaceAttributesEditorHandlers['onResetFace']>(),
+      onResetWorld: vi.fn<FaceAttributesEditorHandlers['onResetWorld']>(),
+      onShearCommit: vi.fn<FaceAttributesEditorHandlers['onShearCommit']>(),
     };
     editor = new FaceAttributesEditor(handlers, (textureId) =>
       textureId === KNOWN_MATERIAL_ID ? KNOWN_MATERIAL : null,

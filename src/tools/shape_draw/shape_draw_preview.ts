@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Theme } from '@/theme.js';
-import type { ShapeDrawWorldBox } from './shape_draw_world_box.js';
+import { shapeDrawPreviewSegmentsCreate } from './shape_draw_preview_edges.js';
 
 /** UserData key marking the editor-only shape draw preview wireframe. */
 export const SHAPE_DRAW_PREVIEW_USERDATA_KEY = 'isShapeDrawPreview';
@@ -15,12 +15,13 @@ export interface ShapeDrawPreviewHost {
 }
 
 /**
- * Orange wireframe box showing the brush a shape drag will create. It lives in
+ * Orange wireframe showing the brushes a shape drag will create. It lives in
  * the helper scene, so it never reaches exports or the game preview.
  */
 export class ShapeDrawPreview {
   private readonly host: ShapeDrawPreviewHost;
   private readonly wireframe: THREE.LineSegments;
+  private segmentCapacity: number;
 
   /**
    * Creates a hidden preview and adds it to the helper scene.
@@ -29,6 +30,7 @@ export class ShapeDrawPreview {
    */
   constructor(host: ShapeDrawPreviewHost) {
     this.host = host;
+    this.segmentCapacity = 0;
     this.wireframe = this.wireframeCreate();
     this.host.addHelper(this.wireframe);
   }
@@ -43,14 +45,13 @@ export class ShapeDrawPreview {
   }
 
   /**
-   * Shows the preview around a world box.
+   * Shows the preview wireframe of the shape pieces in world coordinates.
    *
-   * @param worldBox Box to outline.
+   * @param worldPieces Convex point sets in world coordinates.
    */
-  previewShow(worldBox: ShapeDrawWorldBox): void {
-    this.wireframe.position.copy(worldBox.center);
-    this.wireframe.quaternion.copy(worldBox.orientation);
-    this.wireframe.scale.copy(worldBox.size);
+  previewShowWorldPieces(worldPieces: readonly THREE.Vector3[][]): void {
+    const segments = shapeDrawPreviewSegmentsCreate(worldPieces);
+    this.segmentsBufferEnsure(segments);
     this.wireframe.visible = true;
     this.wireframe.updateMatrixWorld(true);
   }
@@ -66,16 +67,36 @@ export class ShapeDrawPreview {
   }
 
   /**
-   * Builds the unit-cube wireframe drawn on top of the scene.
+   * Writes the segment endpoints into the geometry, reallocating it only when
+   * the piece count changed.
+   *
+   * @param segments Flat segment endpoint coordinates.
+   */
+  private segmentsBufferEnsure(segments: Float32Array): void {
+    if (segments.length !== this.segmentCapacity) {
+      this.wireframe.geometry.dispose();
+      this.wireframe.geometry = new THREE.BufferGeometry();
+      this.wireframe.geometry.setAttribute('position', new THREE.BufferAttribute(segments, 3));
+      this.segmentCapacity = segments.length;
+      return;
+    }
+    const attribute = this.wireframe.geometry.getAttribute('position');
+    if (attribute instanceof THREE.BufferAttribute) {
+      attribute.array.set(segments);
+      attribute.needsUpdate = true;
+    }
+  }
+
+  /**
+   * Builds the hidden wireframe drawn on top of the scene.
    *
    * @returns Hidden wireframe.
    */
   private wireframeCreate(): THREE.LineSegments {
-    const unitBox = new THREE.BoxGeometry(1, 1, 1);
-    const edges = new THREE.EdgesGeometry(unitBox);
-    unitBox.dispose();
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(0), 3));
     const material = new THREE.LineBasicMaterial({ color: Theme.selectionColor, depthTest: false, transparent: true });
-    const wireframe = new THREE.LineSegments(edges, material);
+    const wireframe = new THREE.LineSegments(geometry, material);
     wireframe.name = 'shape_draw_preview';
     wireframe.renderOrder = SHAPE_DRAW_PREVIEW_RENDER_ORDER;
     wireframe.userData[SHAPE_DRAW_PREVIEW_USERDATA_KEY] = true;
