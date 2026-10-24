@@ -4,6 +4,7 @@ import {
   isFileTargetHandle,
   type FileTargetHandle,
 } from '@/io/dialog/file_target_scene_document.js';
+import { FileTargetTestDiskFile } from './file_target_test_disk_file.js';
 
 /**
  * Creates an in-memory writable file handle.
@@ -62,5 +63,42 @@ describe('FileTargetSceneDocument', () => {
     expect(isFileTargetHandle(createMemoryHandle('a.json', []))).toBe(true);
     expect(isFileTargetHandle({ name: 'a.json' })).toBe(false);
     expect(isFileTargetHandle(null)).toBe(false);
+  });
+
+  it('reports a file another program changed after the editor read it', async () => {
+    const file = new FileTargetTestDiskFile('level.json', 'opened');
+    const target = new FileTargetSceneDocument();
+    target.remember(file.handleCreate(), file.lastModified);
+    expect(await target.isChangedOnDisk()).toBe(false);
+    file.externalEdit('edited elsewhere');
+    expect(await target.isChangedOnDisk()).toBe(true);
+  });
+
+  it('counts its own save as the newest known version of the file', async () => {
+    const file = new FileTargetTestDiskFile('level.json', 'opened');
+    const target = new FileTargetSceneDocument();
+    target.remember(file.handleCreate(), file.lastModified);
+    file.externalEdit('edited elsewhere');
+    expect(await target.textWrite('saved here')).toBe('level.json');
+    expect(await target.isChangedOnDisk()).toBe(false);
+    expect(file.contents).toBe('saved here');
+  });
+
+  it('never reports a change for a file it has not read or written', async () => {
+    const file = new FileTargetTestDiskFile('level.json', 'unknown');
+    const target = new FileTargetSceneDocument();
+    target.remember(file.handleCreate());
+    file.externalEdit('edited elsewhere');
+    expect(await target.isChangedOnDisk()).toBe(false);
+  });
+
+  it('aborts a failed write so the file keeps its previous contents', async () => {
+    const file = new FileTargetTestDiskFile('level.json', 'previous');
+    const target = new FileTargetSceneDocument();
+    target.remember(file.handleCreate(), file.lastModified);
+    file.isWriteFailing = true;
+    expect(await target.textWrite('lost')).toBeNull();
+    expect(file.contents).toBe('previous');
+    expect(file.abortCount).toBe(1);
   });
 });

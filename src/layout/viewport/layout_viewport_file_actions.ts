@@ -15,6 +15,8 @@ import {
 } from '@/layout/setup/layout_scene_io_actions.js';
 import { formatKeyboardShortcut } from '@/settings/keyboard/keyboard_shortcut_format.js';
 import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
+import type { SystemSceneRecovery } from '@/scene_recovery/system_scene_recovery.js';
+import { dialogSceneFileChangedOnDiskConfirm } from '@/io/dialog/dialog_scene_file_changed_on_disk.js';
 
 /** Current editor parts the File menu actions use. */
 export interface LayoutViewportFileActionsContext {
@@ -31,6 +33,8 @@ export interface LayoutViewportFileActionsContext {
   onSceneLoaded(): void;
   /** Refreshes the editor after objects were added to the world. */
   refreshAfterWorldMutation(): void;
+  /** Returns the unsaved work protection, or null before it exists. */
+  sceneRecoveryRead(): SystemSceneRecovery | null;
 }
 
 /**
@@ -69,27 +73,60 @@ export class LayoutViewportFileActions {
       host.commandStack,
       host.statusBar,
       host.solidModelController,
-      () => host.onSceneLoaded(),
+      () => this.sceneReplacedRefresh(),
     );
   }
 
   /**
    * Saves the scene to its remembered file, asking for one when none is
-   * remembered.
+   * remembered and before overwriting a file another program changed.
+   *
+   * @returns The written file name, or null when nothing was written.
    */
-  sceneSave(): void {
-    void this.host.sceneIOHandler.saveScene(this.host.worldObject, this.host.statusBar);
+  async sceneSave(): Promise<string | null> {
+    const host = this.host;
+    const fileName = await host.sceneIOHandler.saveScene(host.worldObject, host.statusBar, (changedFileName) =>
+      dialogSceneFileChangedOnDiskConfirm(host.toolbarContainer, changedFileName),
+    );
+    this.savedStateAdoptWhenWritten(fileName);
+    return fileName;
   }
 
-  /** Saves the scene to a newly chosen file as a new document. */
-  sceneSaveAs(): void {
-    void this.host.sceneIOHandler.saveSceneAs(this.host.worldObject, this.host.statusBar);
+  /**
+   * Saves the scene to a newly chosen file as a new document.
+   *
+   * @returns The written file name, or null when nothing was written.
+   */
+  async sceneSaveAs(): Promise<string | null> {
+    const fileName = await this.host.sceneIOHandler.saveSceneAs(this.host.worldObject, this.host.statusBar);
+    this.savedStateAdoptWhenWritten(fileName);
+    return fileName;
   }
 
   /** Asks for a scene file and loads it. */
   sceneLoad(): void {
     const host = this.host;
-    void host.sceneIOHandler.loadScene(host.worldObject, () => host.onSceneLoaded(), host.statusBar);
+    void host.sceneIOHandler.loadScene(host.worldObject, () => this.sceneReplacedRefresh(), host.statusBar);
+  }
+
+  /**
+   * Refreshes the editor after New or Load replaced the scene, which starts out
+   * saved.
+   */
+  private sceneReplacedRefresh(): void {
+    this.host.onSceneLoaded();
+    this.host.sceneRecoveryRead()?.savedStateAdopt();
+  }
+
+  /**
+   * Counts the scene as saved once a save wrote its file.
+   *
+   * @param fileName The written file name, or null when nothing was written.
+   */
+  private savedStateAdoptWhenWritten(fileName: string | null): void {
+    if (fileName !== null) {
+      this.host.sceneRecoveryRead()?.savedStateAdopt();
+    }
   }
 
   /** Exports the world as GLB with the active game profile. */

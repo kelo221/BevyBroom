@@ -16,6 +16,7 @@ export class StatusBar {
   private snapText!: HTMLElement;
   private snapIntervalFormatted: string;
   private savedInfoText!: HTMLElement;
+  private unsavedChangesText!: HTMLElement;
   private fitFeedbackText!: HTMLElement;
   private shadingModeText!: HTMLElement;
   private selectionModeText!: HTMLElement;
@@ -57,6 +58,7 @@ export class StatusBar {
     this.modeText = document.createElement('span');
     this.snapText = document.createElement('span');
     this.savedInfoText = document.createElement('span');
+    this.unsavedChangesText = document.createElement('span');
     this.fitFeedbackText = document.createElement('span');
     this.shadingModeText = document.createElement('span');
     this.selectionModeText = document.createElement('span');
@@ -69,6 +71,7 @@ export class StatusBar {
     this.applyTextStyle(this.modeText);
     this.applyTextStyle(this.snapText);
     this.applyTextStyle(this.savedInfoText);
+    this.applyTextStyle(this.unsavedChangesText);
     this.applyTextStyle(this.fitFeedbackText);
     this.applyTextStyle(this.shadingModeText);
     this.applyTextStyle(this.selectionModeText);
@@ -83,6 +86,7 @@ export class StatusBar {
     this.leftPanel.appendChild(this.undoRedoText);
     this.leftPanel.appendChild(this.lastActionText);
     this.leftPanel.appendChild(this.savedInfoText);
+    this.leftPanel.appendChild(this.unsavedChangesText);
     this.leftPanel.appendChild(this.fitFeedbackText);
     this.leftPanel.appendChild(this.selectionModeText);
     this.rightPanel.appendChild(this.modeText);
@@ -202,6 +206,25 @@ export class StatusBar {
   setLastSavedInfo(filename: string): void {
     if (this.isDisposed) return;
     this.savedInfoText.textContent = ` | Saved: ${filename}`;
+  }
+
+  /**
+   * Shows or hides the marker telling that the scene has unsaved changes.
+   *
+   * @param hasUnsavedChanges True while the scene differs from its saved file.
+   */
+  setUnsavedChanges(hasUnsavedChanges: boolean): void {
+    if (this.isDisposed) return;
+    this.unsavedChangesText.textContent = hasUnsavedChanges ? ' | Unsaved changes' : '';
+  }
+
+  /**
+   * Returns whether the unsaved changes marker is shown.
+   *
+   * @returns True while the marker is visible.
+   */
+  isUnsavedChangesShown(): boolean {
+    return this.unsavedChangesText.textContent !== '';
   }
 
   /**

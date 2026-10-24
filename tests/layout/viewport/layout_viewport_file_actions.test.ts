@@ -8,6 +8,11 @@ import { HandlerSceneIo } from '@/tools/io/handler_scene_io.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
 import { formatKeyboardShortcut } from '@/settings/keyboard/keyboard_shortcut_format.js';
+import { SystemSceneRecovery } from '@/scene_recovery/system_scene_recovery.js';
+import {
+  SceneRecoveryStoreMemory,
+  sceneRecoveryTestCommandCreate,
+} from '../../scene_recovery/scene_recovery_test_support.js';
 
 /**
  * Builds a file actions context around a real scene IO handler and world.
@@ -27,6 +32,7 @@ function contextCreate(worldObject: THREE.Group): LayoutViewportFileActionsConte
     ensureSettingsSystem: vi.fn(),
     onSceneLoaded: vi.fn(),
     refreshAfterWorldMutation: vi.fn(),
+    sceneRecoveryRead: () => null,
   };
 }
 
@@ -35,18 +41,41 @@ function contextCreate(worldObject: THREE.Group): LayoutViewportFileActionsConte
  * run.
  */
 describe('LayoutViewportFileActions', () => {
-  it('saves and saves as the world that is current when the action runs', () => {
+  it('saves and saves as the world that is current when the action runs', async () => {
     const firstContext = contextCreate(new THREE.Group());
     const secondContext = contextCreate(new THREE.Group());
     let currentContext = firstContext;
     const actions = new LayoutViewportFileActions(() => currentContext);
     currentContext = secondContext;
-    const saveAs = vi.spyOn(secondContext.sceneIOHandler, 'saveSceneAs').mockResolvedValue();
-    const save = vi.spyOn(secondContext.sceneIOHandler, 'saveScene').mockResolvedValue();
-    actions.sceneSaveAs();
-    actions.sceneSave();
+    const saveAs = vi.spyOn(secondContext.sceneIOHandler, 'saveSceneAs').mockResolvedValue('copy.json');
+    const save = vi.spyOn(secondContext.sceneIOHandler, 'saveScene').mockResolvedValue('level.json');
+    expect(await actions.sceneSaveAs()).toBe('copy.json');
+    expect(await actions.sceneSave()).toBe('level.json');
     expect(saveAs).toHaveBeenCalledWith(secondContext.worldObject, null);
-    expect(save).toHaveBeenCalledWith(secondContext.worldObject, null);
+    expect(save).toHaveBeenCalledWith(secondContext.worldObject, null, expect.any(Function));
+  });
+
+  it('counts the scene as saved only after a save wrote its file', async () => {
+    const context = contextCreate(new THREE.Group());
+    const recovery = new SystemSceneRecovery({
+      host: context.toolbarContainer,
+      commandStack: context.commandStack,
+      worldObject: context.worldObject,
+      sceneIOHandler: context.sceneIOHandler,
+      statusBar: null,
+      onSceneLoaded: () => undefined,
+      store: new SceneRecoveryStoreMemory(),
+      windowObject: null,
+    });
+    const actions = new LayoutViewportFileActions(() => ({ ...context, sceneRecoveryRead: () => recovery }));
+    context.commandStack.push(sceneRecoveryTestCommandCreate());
+    const save = vi.spyOn(context.sceneIOHandler, 'saveScene').mockResolvedValue(null);
+    await actions.sceneSave();
+    expect(recovery.tracker.hasUnsavedChanges()).toBe(true);
+    save.mockResolvedValue('level.json');
+    await actions.sceneSave();
+    expect(recovery.tracker.hasUnsavedChanges()).toBe(false);
+    recovery.dispose();
   });
 
   it('labels Save As with its own default shortcut, distinct from Save', () => {

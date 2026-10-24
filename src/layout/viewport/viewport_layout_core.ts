@@ -612,6 +612,7 @@ export abstract class ViewportLayoutCore {
     this.setupAiBridge();
     this.setupSnapSettingsController();
     this.installToolEditorFocusSystem();
+    this.setupSceneRecovery();
   }
 
   /**
@@ -1496,6 +1497,12 @@ export abstract class ViewportLayoutCore {
 
   /** Builds and mounts the docked inspector and info panel contents. */
   protected abstract setupShellPanels(): void;
+
+  /**
+   * Starts protecting unsaved work and offers work kept from an earlier
+   * session.
+   */
+  protected abstract setupSceneRecovery(): void;
 
   /**
    * Builds the main window selection, view, play, tool and grid commands.

@@ -27,6 +27,7 @@ import type { FaceSelection } from '@/selection/face/manager_face_selection.js';
 import { SelectionMode } from '@/types/selection_mode.js';
 import { HandlerSelectionVisibility } from '@/selection/visibility/handler_selection_visibility.js';
 import { LayoutClipboardSystem } from '@/layout/setup/layout_clipboard_setup.js';
+import { SystemSceneRecovery } from '@/scene_recovery/system_scene_recovery.js';
 
 /**
  * Viewport layout level that wires the main window shell: File menu actions,
@@ -36,6 +37,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
   protected readonly fileActions = new LayoutViewportFileActions(() => this.fileActionsContextRead());
   private solidBrushTools: HandlerSolidBrushTools | null = null;
   private selectionVisibility: HandlerSelectionVisibility | null = null;
+  protected sceneRecovery: SystemSceneRecovery | null = null;
 
   /**
    * Returns the current editor parts the File menu actions use.
@@ -54,7 +56,31 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
       ensureSettingsSystem: () => this.ensureSettingsSystem(),
       onSceneLoaded: () => this.onSceneLoaded(),
       refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
+      sceneRecoveryRead: () => this.sceneRecovery,
     };
+  }
+
+  /**
+   * Starts protecting unsaved work and offers work kept from an earlier
+   * session.
+   */
+  protected setupSceneRecovery(): void {
+    this.sceneRecovery = new SystemSceneRecovery({
+      host: this.toolbarContainer,
+      commandStack: this.commandStack,
+      worldObject: this.worldObject,
+      sceneIOHandler: this.sceneIOHandler,
+      statusBar: this.statusBar,
+      onSceneLoaded: () => this.onSceneLoaded(),
+    });
+    const sceneRecovery = this.sceneRecovery;
+    queueMicrotask(() => void sceneRecovery.restoreOffer());
+  }
+
+  /** Stops protecting unsaved work. */
+  protected sceneRecoveryDispose(): void {
+    this.sceneRecovery?.dispose();
+    this.sceneRecovery = null;
   }
 
   /**

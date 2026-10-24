@@ -133,8 +133,9 @@ export class ManagerFileDialog {
     }
     try {
       const [handle] = await (window as any).showOpenFilePicker({ types: [SCENE_JSON_PICKER_TYPE] });
-      const text = await readFileAsText(await handle.getFile());
-      this.sceneDocumentTargetAdopt(handle);
+      const file = await handle.getFile();
+      const text = await readFileAsText(file);
+      this.sceneDocumentTargetAdopt(handle, file.lastModified);
       return text;
     } catch {
       return null;
@@ -144,6 +145,16 @@ export class ManagerFileDialog {
   /** Forgets the remembered scene document file so the next save asks for one. */
   sceneDocumentTargetForget(): void {
     this.sceneDocumentTarget.forget();
+  }
+
+  /**
+   * Returns whether another program changed the remembered scene document file
+   * since the editor last read or wrote it.
+   *
+   * @returns True when Save would overwrite a newer file.
+   */
+  sceneDocumentChangedOnDiskIs(): Promise<boolean> {
+    return this.sceneDocumentTarget.isChangedOnDisk();
   }
 
   /**
@@ -160,10 +171,11 @@ export class ManagerFileDialog {
    * target.
    *
    * @param handle Handle returned by the open picker.
+   * @param lastModified Modification time of the file as it was read.
    */
-  private sceneDocumentTargetAdopt(handle: unknown): void {
+  private sceneDocumentTargetAdopt(handle: unknown, lastModified: number): void {
     if (isFileTargetHandle(handle)) {
-      this.sceneDocumentTarget.remember(handle);
+      this.sceneDocumentTarget.remember(handle, lastModified);
       return;
     }
     this.sceneDocumentTarget.forget();
