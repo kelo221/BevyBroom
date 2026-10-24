@@ -4,8 +4,8 @@ import { emptySchema, tool, type McpToolDefinition } from './registry_mcp_tool_h
 const LAYER_ID_SCHEMA = { type: 'string', description: 'Layer id from list_layers.' };
 
 /**
- * Tools that list and edit level editor layers: named sets of top-level
- * objects that can be hidden, locked or left out of exports.
+ * Tools that list and edit level editor layers: named sets of top-level objects
+ * that can be hidden, locked or left out of exports.
  */
 export const MCP_LAYER_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(

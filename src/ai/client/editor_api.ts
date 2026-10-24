@@ -21,12 +21,8 @@ import {
 import { EditorApiPreview, type PreviewConnectArgs } from './editor_api_preview.js';
 import { EditorApiSceneDocument, type SceneDocumentLoadArgs } from './editor_api_scene_document.js';
 import { EditorApiInfoPanel, type ConsoleReadArgs } from './editor_api_info_panel.js';
-import { EditorApiMainWindow } from './editor_api_main_window.js';
-import { EditorApiLayers } from './editor_api_layers.js';
-import { EditorApiClipboard } from './editor_api_clipboard.js';
-import { EditorApiBrushTools } from './editor_api_brush_tools.js';
-import { EditorApiViewportInput } from './editor_api_viewport_input.js';
 import { EditorApiProject } from './editor_api_project.js';
+import { EditorApiToolGroups } from './editor_api_tool_groups.js';
 import type {
   AddBoxBrushArgs,
   AddBoxBrushesArgs,
@@ -86,12 +82,8 @@ export class EditorApi {
   private readonly gameEntities: EditorApiGameEntities;
   private readonly sceneDocument: EditorApiSceneDocument;
   private readonly infoPanel: EditorApiInfoPanel;
-  private readonly layers: EditorApiLayers;
-  private readonly mainWindow: EditorApiMainWindow;
-  private readonly clipboard: EditorApiClipboard;
-  private readonly brushTools: EditorApiBrushTools;
-  private readonly viewportInput: EditorApiViewportInput;
   private readonly project: EditorApiProject;
+  private readonly toolGroups: EditorApiToolGroups;
 
   /**
    * Creates an editor API bound to live editor systems.
@@ -115,11 +107,7 @@ export class EditorApi {
     this.gameEntities = new EditorApiGameEntities(host);
     this.sceneDocument = new EditorApiSceneDocument(host);
     this.infoPanel = new EditorApiInfoPanel(host);
-    this.layers = new EditorApiLayers(host);
-    this.mainWindow = new EditorApiMainWindow(host);
-    this.clipboard = new EditorApiClipboard(host);
-    this.brushTools = new EditorApiBrushTools(host);
-    this.viewportInput = new EditorApiViewportInput(host, () => this.reads.getSelection());
+    this.toolGroups = new EditorApiToolGroups(host, () => this.reads.getSelection());
     this.project = new EditorApiProject(host);
   }
 
@@ -359,8 +347,8 @@ export class EditorApi {
   }
 
   /**
-   * Routes the layer, main window, clipboard, brush editing, viewport input and
-   * project tools.
+   * Routes the layer, main window, clipboard, brush editing, face UV, viewport
+   * input and project tools.
    *
    * @param name Tool name.
    * @param args Argument object.
@@ -368,11 +356,7 @@ export class EditorApi {
    */
   private dispatchToolGroups(name: string, args: Record<string, unknown>): McpToolResult {
     return (
-      this.layers.layerToolDispatch(name, args) ??
-      this.mainWindow.mainWindowToolDispatch(name, args) ??
-      this.clipboard.clipboardToolDispatch(name, args) ??
-      this.brushTools.brushToolDispatch(name, args) ??
-      this.viewportInput.viewportInputToolDispatch(name, args) ??
+      this.toolGroups.toolGroupDispatch(name, args) ??
       this.project.projectToolDispatchSync(name) ?? { ok: false, message: `Unknown tool: ${name}` }
     );
   }
