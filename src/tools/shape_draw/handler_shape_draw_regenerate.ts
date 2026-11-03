@@ -7,6 +7,8 @@ import { solidGroupShapeRecipeRead, type SolidGroupShapeRecipe } from '@/solid/m
 import { shapeDrawPiecesFromPointsCreate } from './shape_draw_piece_build.js';
 import { getShapeDrawSettings, type ShapeDrawSettings } from './shapes/shape_draw_settings.js';
 import { shapeDrawShapeFind } from './shapes/shape_draw_shape_registry.js';
+import type { ShapeDrawShapeParameterValues } from './shapes/shape_draw_shape_parameter.js';
+import { ShapeDrawSurfaceCarry } from './surface/shape_draw_surface_carry.js';
 
 /** Services the shape group regeneration needs. */
 export interface HandlerShapeDrawRegenerateDeps {
@@ -44,9 +46,38 @@ export class HandlerShapeDrawRegenerate {
     const matching = groups.filter(
       (group) => solidGroupShapeRecipeRead(group)?.shapeId === this.settings.getSelectedShapeId(),
     );
-    matching.forEach((group) => this.groupRebuild(group));
+    const parameters = this.settings.parameterValuesRead(this.settings.getSelectedShapeId());
+    matching.forEach((group) => this.groupRebuild(group, parameters));
     this.statusReport(matching.length);
     return matching.length;
+  }
+
+  /**
+   * Rebuilds one shape group with explicit parameter values as one undo step,
+   * carrying the face surfaces of its current brushes onto the new ones.
+   *
+   * @param group Shape draw group.
+   * @param parameters Parameter values replacing the stored recipe values.
+   * @returns True when the group was rebuilt.
+   */
+  groupRebuild(group: THREE.Group, parameters: ShapeDrawShapeParameterValues): boolean {
+    const metadata = solidGroupShapeRecipeRead(group);
+    const model = SolidModel.fromObject(group);
+    if (!metadata || !model) {
+      return false;
+    }
+    const nextMetadata = { ...metadata, parameters: { ...parameters } };
+    const pieces = this.groupPiecesCreate(group, nextMetadata);
+    if (pieces.length === 0) {
+      return false;
+    }
+    const brushes = this.groupBrushesCollect(group);
+    const pieceMapping = shapeDrawShapeFind(metadata.shapeId).surfacePieceMappingCreate();
+    const surfaceCarry = ShapeDrawSurfaceCarry.fromBrushes(brushes, pieceMapping);
+    this.deps.commandStack.push(
+      new CommandShapeDrawGroupRebuild(model, group, brushes, pieces, surfaceCarry, nextMetadata),
+    );
+    return true;
   }
 
   /**
@@ -57,7 +88,7 @@ export class HandlerShapeDrawRegenerate {
   private selectedShapeGroupsCollect(): THREE.Group[] {
     const groups: THREE.Group[] = [];
     for (const object of this.deps.getSelectedObjects()) {
-      const group = shapeGroupAncestorFind(object);
+      const group = shapeDrawGroupAncestorFind(object);
       if (group && !groups.includes(group)) {
         groups.push(group);
       }
@@ -66,44 +97,18 @@ export class HandlerShapeDrawRegenerate {
   }
 
   /**
-   * Rebuilds one shape group from its stored recipe and the settings.
+   * Builds the replacement pieces of a group from a recipe, mapped through the
+   * group's current transform so a moved group keeps its pieces.
    *
    * @param group Shape draw group.
-   */
-  private groupRebuild(group: THREE.Group): void {
-    const metadata = solidGroupShapeRecipeRead(group);
-    const model = SolidModel.fromObject(group);
-    if (!metadata || !model) {
-      return;
-    }
-    const pieces = this.groupPiecesCreate(group, metadata);
-    if (pieces.length === 0) {
-      return;
-    }
-    const command = new CommandShapeDrawGroupRebuild(
-      model,
-      group,
-      this.groupBrushesCollect(group),
-      pieces,
-      this.groupTextureIdResolve(group),
-      { ...metadata, parameters: this.settings.parameterValuesRead(metadata.shapeId) },
-    );
-    this.deps.commandStack.push(command);
-  }
-
-  /**
-   * Builds the replacement pieces of a group from its recipe, mapped through
-   * the group's current transform so a moved group keeps its pieces.
-   *
-   * @param group Shape draw group.
-   * @param metadata Stored recipe.
+   * @param metadata Recipe holding the parameter values to build with.
    * @returns Model-local brush pieces.
    */
   private groupPiecesCreate(group: THREE.Group, metadata: SolidGroupShapeRecipe) {
     const shape = shapeDrawShapeFind(metadata.shapeId);
     const groupLocalPieces = shape.piecesCreate({
       bounds: new THREE.Box3(new THREE.Vector3(...metadata.boundsMin), new THREE.Vector3(...metadata.boundsMax)),
-      parameters: this.settings.parameterValuesRead(metadata.shapeId),
+      parameters: metadata.parameters,
       upAxis: metadata.upAxis,
     });
     const mapping = this.groupMappingCreate(group);
@@ -134,7 +139,7 @@ export class HandlerShapeDrawRegenerate {
    * @param group Shape draw group.
    * @returns Brush instances in sibling order.
    */
-  private groupBrushesCollect(group: THREE.Group): SolidBrushInstance[] {
+  groupBrushesCollect(group: THREE.Group): SolidBrushInstance[] {
     const model = SolidModel.fromObject(group);
     const brushes: SolidBrushInstance[] = [];
     for (const child of group.children) {
@@ -144,17 +149,6 @@ export class HandlerShapeDrawRegenerate {
       }
     }
     return brushes;
-  }
-
-  /**
-   * Returns the texture the group's first brush carries.
-   *
-   * @param group Shape draw group.
-   * @returns Texture id, or null for the default surface.
-   */
-  private groupTextureIdResolve(group: THREE.Group): string | null {
-    const first = this.groupBrushesCollect(group)[0];
-    return first ? first.getSurfaceTextureId(0) : null;
   }
 
   /**
@@ -175,7 +169,7 @@ export class HandlerShapeDrawRegenerate {
  * @param object Selected object.
  * @returns Owning shape draw group, or null.
  */
-function shapeGroupAncestorFind(object: THREE.Object3D): THREE.Group | null {
+export function shapeDrawGroupAncestorFind(object: THREE.Object3D): THREE.Group | null {
   let current: THREE.Object3D | null = object;
   while (current) {
     if (current instanceof THREE.Group && solidGroupShapeRecipeRead(current)) {

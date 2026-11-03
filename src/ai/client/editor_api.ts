@@ -7,7 +7,11 @@ import { EditorApiFind } from './editor_api_find.js';
 import { EditorApiHierarchy } from './editor_api_hierarchy.js';
 import { EditorApiSolidReads } from './editor_api_solid_reads.js';
 import { EditorApiSolidWrites } from './editor_api_solid_writes.js';
-import { EditorApiShapeWrites, type CreateShapeBrushArgs } from './editor_api_shape_writes.js';
+import {
+  EditorApiShapeWrites,
+  type CreateShapeBrushArgs,
+  type RegenerateShapeBrushArgs,
+} from './editor_api_shape_writes.js';
 import { EditorApiSpatial } from './editor_api_spatial.js';
 import { EditorApiValidation } from './editor_api_validation.js';
 import { EditorApiEntities, type EntityAddArgs, type EntitySettingsSetArgs } from './editor_api_entities.js';
@@ -233,6 +237,8 @@ export class EditorApi {
         return this.writes.addBoxBrushes(args as unknown as AddBoxBrushesArgs);
       case 'create_shape_brush':
         return this.shapeWrites.createShapeBrush(args as unknown as CreateShapeBrushArgs);
+      case 'regenerate_shape_brush':
+        return this.shapeWrites.regenerateShapeBrush(args as unknown as RegenerateShapeBrushArgs);
       case 'place_wall':
         return this.builders.placeWall(args as unknown as PlaceWallArgs);
       case 'add_room_shell':

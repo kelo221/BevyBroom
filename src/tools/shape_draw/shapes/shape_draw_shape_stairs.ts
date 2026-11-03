@@ -11,6 +11,8 @@ import {
   type ShapeDrawShapeParameterValue,
 } from './shape_draw_shape_parameter.js';
 import { shapeDrawShapeBoxPieceCreate } from './shape_draw_shape_box.js';
+import type { ShapeDrawSurfacePieceMapping } from '@/tools/shape_draw/surface/piece_mapping/shape_draw_surface_piece_mapping.js';
+import { ShapeDrawSurfacePieceMappingIndex } from '@/tools/shape_draw/surface/piece_mapping/shape_draw_surface_piece_mapping_index.js';
 
 /** Default step height in world units (two default grid steps). */
 export const SHAPE_DRAW_STAIRS_DEFAULT_STEP_HEIGHT = 0.5;
@@ -61,6 +63,16 @@ export class ShapeDrawShapeStairs extends ShapeDrawShape {
    */
   parameterDescriptors(): ShapeDrawShapeParameter[] {
     return [SHAPE_DRAW_STAIRS_STEP_HEIGHT_PARAMETER, SHAPE_DRAW_STAIRS_DIRECTION_PARAMETER];
+  }
+
+  /**
+   * Maps regenerated steps by step order so the first and top steps keep their
+   * surfaces and added steps look like the top step.
+   *
+   * @returns Index piece mapping.
+   */
+  override surfacePieceMappingCreate(): ShapeDrawSurfacePieceMapping {
+    return new ShapeDrawSurfacePieceMappingIndex();
   }
 
   /**

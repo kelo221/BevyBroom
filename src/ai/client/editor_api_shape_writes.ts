@@ -2,7 +2,12 @@ import * as THREE from 'three';
 import type { EditorApiHost } from './editor_api_host.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
-import { findSolidModel } from './editor_api_lookup.js';
+import { findSolidModel, resolveSolidHierarchyNode } from './editor_api_lookup.js';
+import { solidGroupShapeRecipeRead } from '@/solid/model/solid_group_shape_recipe.js';
+import {
+  HandlerShapeDrawRegenerate,
+  shapeDrawGroupAncestorFind,
+} from '@/tools/shape_draw/handler_shape_draw_regenerate.js';
 import type { ShapeDrawShapeParameterValues } from '@/tools/shape_draw/shapes/shape_draw_shape_parameter.js';
 import { shapeDrawShapesList } from '@/tools/shape_draw/shapes/shape_draw_shape_registry.js';
 import {
@@ -23,6 +28,14 @@ export interface CreateShapeBrushArgs {
   params?: Record<string, number | string>;
   /** Solid model uuid; defaults to the active model. */
   modelId?: string;
+}
+
+/** Arguments of the regenerate_shape_brush tool. */
+export interface RegenerateShapeBrushArgs {
+  /** Brush id of one piece, or the uuid of the shape group. */
+  nodeId: string;
+  /** Parameter values replacing the stored ones; omitted ids keep their value. */
+  params?: Record<string, number | string>;
 }
 
 /** Frame view that treats world coordinates as the shape frame. */
@@ -64,12 +77,49 @@ export class EditorApiShapeWrites {
     const commit = new ShapeDrawBrushCommit(this.commitDepsCreate(model));
     const mesh = commit.shapeCommit({
       shape,
-      parameters: this.parametersResolve(args),
+      parameters: this.parametersRead(args.params),
       boundsLocal: bounds,
       gridFrame: EDITOR_API_SHAPE_WORLD_FRAME,
       upAxis: 'y',
     });
     return this.resultBuild(mesh, shape.id, bounds);
+  }
+
+  /**
+   * Rebuilds a shape group with new parameter values as one undo step, carrying
+   * its face surfaces onto the new brushes.
+   *
+   * @param args Brush id or group uuid of the shape and parameter overrides.
+   * @returns Tool result with the group id and the new brush ids.
+   */
+  regenerateShapeBrush(args: RegenerateShapeBrushArgs): McpToolResult {
+    const lookup = resolveSolidHierarchyNode(this.host.worldObject, args.nodeId ?? '');
+    const group = lookup ? shapeDrawGroupAncestorFind(lookup.node) : null;
+    const recipe = group ? solidGroupShapeRecipeRead(group) : null;
+    if (!group || !recipe) {
+      return { ok: false, message: `No shape group found for: ${args.nodeId}` };
+    }
+    const handler = this.regenerateHandlerCreate();
+    if (!handler.groupRebuild(group, { ...recipe.parameters, ...this.parametersRead(args.params) })) {
+      return { ok: false, message: 'Shape produced no brushes with these parameters' };
+    }
+    this.host.refreshAfterWorldMutation();
+    this.host.refreshOutliner();
+    const brushIds = handler.groupBrushesCollect(group).map((brush) => brush.id);
+    return { ok: true, message: `Regenerated ${recipe.shapeId} shape`, data: { groupId: group.uuid, brushIds } };
+  }
+
+  /**
+   * Builds a regeneration handler over the editor host.
+   *
+   * @returns Handler pushing onto the editor undo stack.
+   */
+  private regenerateHandlerCreate(): HandlerShapeDrawRegenerate {
+    return new HandlerShapeDrawRegenerate({
+      commandStack: this.host.commandStack,
+      getSelectedObjects: () => [],
+      showStatusMessage: () => undefined,
+    });
   }
 
   /**
@@ -85,13 +135,13 @@ export class EditorApiShapeWrites {
   }
 
   /**
-   * Reads the parameter values of the tool call.
+   * Reads parameter values passed to a tool call.
    *
-   * @param args Tool arguments.
+   * @param params Raw params argument.
    * @returns Values keyed by parameter id.
    */
-  private parametersResolve(args: CreateShapeBrushArgs): ShapeDrawShapeParameterValues {
-    return args.params && typeof args.params === 'object' ? { ...args.params } : {};
+  private parametersRead(params: Record<string, number | string> | undefined): ShapeDrawShapeParameterValues {
+    return params && typeof params === 'object' ? { ...params } : {};
   }
 
   /**

@@ -1,5 +1,4 @@
 import { SolidBrush } from './solid_brush.js';
-import { SolidPlane } from './solid_plane.js';
 import { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import {
   FaceSurfaceDescription,
@@ -7,12 +6,23 @@ import {
   createDefaultFaceSurface,
   orientDefaultFaceSurface,
 } from '@/texture/uv_matrix/face_surface_description.js';
+import type { SolidBrushSurfaceMatcher } from './surface_matcher/solid_brush_surface_matcher.js';
+import { SolidBrushSurfaceMatcherPlane } from './surface_matcher/solid_brush_surface_matcher_plane.js';
+
+const surfaceMatcherPlane = new SolidBrushSurfaceMatcherPlane();
+
+/** Default surface plus sparse per-face surfaces of a brush. */
+export interface SolidBrushTransferredSurfaces {
+  /** Surface used by faces without an override. */
+  defaultSurface: FaceSurfaceDescription;
+  /** Sparse per-face overrides indexed like the brush faces. */
+  faceSurfaces: (FaceSurfaceDescription | undefined)[];
+}
 
 /**
  * Transfers per-face UV surfaces from a source brush onto a destination brush
- * by matching plane equations (normal + offset). Clip/split recreate topology
- * so face indices change; coplanar survivors keep their UV matrices. Unmatched
- * faces (clip caps) receive a default face-oriented UV matrix.
+ * by matching plane equations (normal + offset). Coplanar survivors keep their
+ * UV matrices; unmatched faces receive a default face-oriented UV matrix.
  *
  * @param sourceBrush Geometry that owned the source surfaces.
  * @param sourceDefault Default surface on the source instance.
@@ -25,33 +35,80 @@ export function transferSurfacesByPlaneMatch(
   sourceDefault: FaceSurfaceDescription,
   sourceFaceSurfaces: (FaceSurfaceDescription | undefined)[],
   destinationBrush: SolidBrush,
-): {
-  defaultSurface: FaceSurfaceDescription;
-  faceSurfaces: (FaceSurfaceDescription | undefined)[];
-} {
+): SolidBrushTransferredSurfaces {
+  return transferSurfacesByMatcher(
+    surfaceMatcherPlane,
+    sourceBrush,
+    sourceDefault,
+    sourceFaceSurfaces,
+    destinationBrush,
+  );
+}
+
+/**
+ * Transfers per-face UV surfaces from a source brush onto a destination brush,
+ * letting the matcher decide which source face each destination face inherits.
+ * Matched faces without a source override stay on the default surface;
+ * unmatched faces receive the default surface oriented to their normal.
+ *
+ * @param matcher Face matcher comparing brush-local planes.
+ * @param sourceBrush Geometry that owned the source surfaces.
+ * @param sourceDefault Default surface on the source instance.
+ * @param sourceFaceSurfaces Sparse per-face surfaces from the source instance.
+ * @param destinationBrush New geometry receiving the surfaces.
+ * @returns Default surface and sparse face surfaces for the destination.
+ */
+export function transferSurfacesByMatcher(
+  matcher: SolidBrushSurfaceMatcher,
+  sourceBrush: SolidBrush,
+  sourceDefault: FaceSurfaceDescription,
+  sourceFaceSurfaces: (FaceSurfaceDescription | undefined)[],
+  destinationBrush: SolidBrush,
+): SolidBrushTransferredSurfaces {
   const defaultSurface = cloneFaceSurface(sourceDefault);
   const faceSurfaces: (FaceSurfaceDescription | undefined)[] = [];
-  const destinationFaceCount = destinationBrush.faces.length;
-  for (let destIndex = 0; destIndex < destinationFaceCount; destIndex++) {
-    const destPlane = destinationBrush.planes[destIndex];
-    if (!destPlane) {
-      faceSurfaces[destIndex] = createDefaultFaceSurface(defaultSurface.textureId);
-      continue;
-    }
-    const sourceIndex = findMatchingSourceFaceIndex(sourceBrush, destPlane);
-    if (sourceIndex < 0) {
-      faceSurfaces[destIndex] = orientDefaultFaceSurface(defaultSurface, destPlane.normal);
-      continue;
-    }
-    const override = sourceFaceSurfaces[sourceIndex];
-    if (override) {
-      faceSurfaces[destIndex] = cloneFaceSurface(override);
-    } else {
-      // Leave hole so destination uses default (re-oriented per face on read).
-      faceSurfaces[destIndex] = undefined;
-    }
+  for (let destinationIndex = 0; destinationIndex < destinationBrush.faces.length; destinationIndex++) {
+    faceSurfaces[destinationIndex] = transferredFaceSurfaceResolve(
+      matcher,
+      sourceBrush,
+      defaultSurface,
+      sourceFaceSurfaces,
+      destinationBrush,
+      destinationIndex,
+    );
   }
   return { defaultSurface, faceSurfaces };
+}
+
+/**
+ * Resolves the surface one destination face inherits.
+ *
+ * @param matcher Face matcher comparing brush-local planes.
+ * @param sourceBrush Geometry that owned the source surfaces.
+ * @param defaultSurface Destination default surface.
+ * @param sourceFaceSurfaces Sparse per-face surfaces from the source instance.
+ * @param destinationBrush New geometry receiving the surfaces.
+ * @param destinationIndex Destination face index.
+ * @returns Face override, or undefined to use the default surface.
+ */
+function transferredFaceSurfaceResolve(
+  matcher: SolidBrushSurfaceMatcher,
+  sourceBrush: SolidBrush,
+  defaultSurface: FaceSurfaceDescription,
+  sourceFaceSurfaces: (FaceSurfaceDescription | undefined)[],
+  destinationBrush: SolidBrush,
+  destinationIndex: number,
+): FaceSurfaceDescription | undefined {
+  const destinationPlane = destinationBrush.planes[destinationIndex];
+  if (!destinationPlane) {
+    return createDefaultFaceSurface(defaultSurface.textureId);
+  }
+  const sourceIndex = matcher.faceMatchFind(sourceBrush.planes, destinationPlane);
+  if (sourceIndex < 0) {
+    return orientDefaultFaceSurface(defaultSurface, destinationPlane.normal);
+  }
+  const override = sourceFaceSurfaces[sourceIndex];
+  return override ? cloneFaceSurface(override) : undefined;
 }
 
 /**
@@ -87,21 +144,4 @@ export function captureInstanceFaceSurfaces(instance: SolidBrushInstance): {
     defaultSurface: instance.serializeDefaultSurface(),
     faceSurfaces: instance.serializeFaceSurfaces(),
   };
-}
-
-/**
- * Finds a source face whose plane matches the destination plane.
- *
- * @param sourceBrush Source geometry.
- * @param destinationPlane Destination face plane.
- * @returns Source face index, or -1 when none match.
- */
-function findMatchingSourceFaceIndex(sourceBrush: SolidBrush, destinationPlane: SolidPlane): number {
-  for (let sourceIndex = 0; sourceIndex < sourceBrush.planes.length; sourceIndex++) {
-    const sourcePlane = sourceBrush.planes[sourceIndex];
-    if (sourcePlane && sourcePlane.isAlignedWith(destinationPlane)) {
-      return sourceIndex;
-    }
-  }
-  return -1;
 }

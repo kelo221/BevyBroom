@@ -18,9 +18,26 @@ jobs:
   quality:
     name: Quality checks
     runs-on: ubuntu-latest
+    outputs:
+      pages_deploy: ${{ steps.pages.outputs.deploy }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      # Pages publishes from master pushes and from pull requests opened inside
+      # this repository; fork pull requests cannot get a Pages token.
+      - name: Decide GitHub Pages deployment
+        id: pages
+        shell: bash
+        env:
+          IS_MASTER_PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+          IS_SAME_REPOSITORY_PULL_REQUEST: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          if [ "$IS_MASTER_PUSH" = "true" ] || [ "$IS_SAME_REPOSITORY_PULL_REQUEST" = "true" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -52,7 +69,7 @@ jobs:
       # build (relative links in index.html / site.webmanifest). No restore step.
 
       - name: Upload GitHub Pages artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: steps.pages.outputs.deploy == 'true'
         uses: actions/upload-pages-artifact@v4
         with:
           path: docs/
@@ -60,8 +77,45 @@ jobs:
       - name: Run strict TypeScript check
         run: bun run typecheck:strict
 
+  # Decides whether the Bevy workspace job is needed: it runs when the Rust
+  # workspace, the pinned renderer commit or this workflow changed, and on
+  # manual runs or pushes whose previous commit is unknown.
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      bevy: ${{ steps.bevy.outputs.changed }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect Bevy workspace changes
+        id: bevy
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PULL_REQUEST_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT_NAME" in
+            pull_request) base="$PULL_REQUEST_BASE"; range="$PULL_REQUEST_BASE...HEAD" ;;
+            push) base="$PUSH_BEFORE"; range="$PUSH_BEFORE..HEAD" ;;
+            *) base=""; range="" ;;
+          esac
+          if [ -z "$base" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$range" -- bevy compatibility.json .github/workflows/ci.yml; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
   bevy-workspace:
     name: Bevy workspace (fmt, clippy, tests)
+    needs: changes
+    if: needs.changes.outputs.bevy == 'true'
     runs-on: windows-latest
     steps:
       - name: Check out repository
@@ -212,11 +266,15 @@ jobs:
           files: release_assets/**/*
           generate_release_notes: false
 
+  # Pull request builds replace the live site until the next master deploy.
   deploy-pages:
     name: Deploy to GitHub Pages
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: needs.quality.outputs.pages_deploy == 'true'
     needs: quality
     runs-on: ubuntu-latest
+    concurrency:
+      group: bevybroom-github-pages
+      cancel-in-progress: false
     permissions:
       contents: read
       pages: write

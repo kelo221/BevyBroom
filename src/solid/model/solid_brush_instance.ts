@@ -498,7 +498,7 @@ export class SolidBrushInstance {
    * @returns Unit normal.
    */
   faceNormalLocal(surfaceIndex: number): THREE.Vector3 {
-    return this.brush.planes[surfaceIndex]?.normal.clone().normalize() ?? new THREE.Vector3(0, 1, 0);
+    return this.brush.faceNormalLocal(surfaceIndex);
   }
 
   /**

@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import type { IconName } from '@/ui/icons/icon_name.js';
 import type { ShapeDrawAxis } from '@/tools/shape_draw/shape_draw_bounds_math.js';
 import type { ShapeDrawShapeParameter, ShapeDrawShapeParameterValues } from './shape_draw_shape_parameter.js';
+import type { ShapeDrawSurfacePieceMapping } from '@/tools/shape_draw/surface/piece_mapping/shape_draw_surface_piece_mapping.js';
+import { ShapeDrawSurfacePieceMappingProportional } from '@/tools/shape_draw/surface/piece_mapping/shape_draw_surface_piece_mapping_proportional.js';
 
 /** Everything one shape needs to build its pieces. */
 export interface ShapeDrawShapeRequest {
@@ -40,4 +42,14 @@ export abstract class ShapeDrawShape {
    * @returns One point set per convex piece; empty when the bounds are flat.
    */
   abstract piecesCreate(request: ShapeDrawShapeRequest): THREE.Vector3[][];
+
+  /**
+   * Creates the mapping that picks which old piece a regenerated piece takes
+   * its face surfaces from. Maps by share of the piece order.
+   *
+   * @returns Piece mapping.
+   */
+  surfacePieceMappingCreate(): ShapeDrawSurfacePieceMapping {
+    return new ShapeDrawSurfacePieceMappingProportional();
+  }
 }

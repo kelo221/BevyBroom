@@ -7,7 +7,7 @@
   "scripts": {
     "test": "vitest",
     "testrun": "vitest run",
-    "e2e": "vitest run tests/e2e",
+    "e2e": "vitest run tests/e2e --hookTimeout 60000 --no-file-parallelism",
     "dev": "vite --host",
     "build": "prettier --write --log-level silent . && vite build",
     "preview": "vite preview",
