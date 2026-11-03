@@ -22,7 +22,8 @@ const UP = new THREE.Vector3(0, 1, 0);
 const LATERAL = new THREE.Vector3(0, 0, 1);
 
 /**
- * Writes a recognisable surface with an offset, rotation and uneven scale on a face.
+ * Writes a recognisable surface with an offset, rotation and uneven scale on a
+ * face.
  *
  * @param face Face receiving the surface.
  * @param textureId Texture of the surface.
@@ -31,13 +32,7 @@ const LATERAL = new THREE.Vector3(0, 0, 1);
 function faceSurfaceAuthor(face: ShapeDrawSurfaceTestFace, textureId: string): FaceSurfaceDescription {
   const surface: FaceSurfaceDescription = {
     textureId,
-    uv: SurfaceUvMatrix.fromTrs(
-      new THREE.Vector2(0.3, 0.1),
-      face.brush.faceNormalLocal(face.faceIndex),
-      15,
-      0.5,
-      2,
-    ),
+    uv: SurfaceUvMatrix.fromTrs(new THREE.Vector2(0.3, 0.1), face.brush.faceNormalLocal(face.faceIndex), 15, 0.5, 2),
   };
   face.brush.setFaceSurface(face.faceIndex, surface);
   return surface;
@@ -65,16 +60,37 @@ function firstPieceLateralTexture(scene: ShapeDrawSurfaceTestScene): string {
 }
 
 /**
- * Returns the outward wall face of a cylinder piece around a vertical axis.
+ * Scores how directly a face points away from a vertical axis through the
+ * origin, measured at the face centroid.
+ *
+ * @param face Located face.
+ * @returns Dot product of the face normal with the radial direction at its
+ *   centroid.
+ */
+function cylinderFaceOutwardScore(face: ShapeDrawSurfaceTestFace): number {
+  const radial = shapeDrawSurfaceTestFaceCentroid(face).setY(0).normalize();
+  return face.modelPlane.normal.dot(radial);
+}
+
+/**
+ * Returns the outer or inner wall face of a cylinder piece around a vertical
+ * axis.
  *
  * @param scene Cylinder scene.
  * @param pieceIndex Piece index.
- * @returns Face pointing away from the cylinder axis.
+ * @param outwardSign One for the outer wall, minus one for the inner wall.
+ * @returns Face pointing most directly away from (or toward) the cylinder axis
+ *   at its centroid.
  */
-function cylinderWallFace(scene: ShapeDrawSurfaceTestScene, pieceIndex: number): ShapeDrawSurfaceTestFace {
+function cylinderWallFace(
+  scene: ShapeDrawSurfaceTestScene,
+  pieceIndex: number,
+  outwardSign: 1 | -1 = 1,
+): ShapeDrawSurfaceTestFace {
   const brush = shapeDrawSurfaceTestBrushAt(scene, pieceIndex);
-  const outward = brush.getModelSpaceBounds().getCenter(new THREE.Vector3()).setY(0).normalize();
-  return shapeDrawSurfaceTestFaceAlong(brush, outward);
+  const faces = brush.getModelSpacePlanes().map((modelPlane, faceIndex) => ({ brush, faceIndex, modelPlane }));
+  const score = (face: ShapeDrawSurfaceTestFace) => outwardSign * cylinderFaceOutwardScore(face);
+  return faces.reduce((best, face) => (score(face) > score(best) ? face : best));
 }
 
 /** Proves shape regeneration carries per-face surfaces onto the new pieces. */
@@ -139,6 +155,8 @@ describe('ShapeDrawSurfaceCarry', () => {
     for (let pieceIndex = 0; pieceIndex < newCount; pieceIndex++) {
       const wall = cylinderWallFace(scene, pieceIndex);
       expect(wall.brush.getSurfaceTextureId(wall.faceIndex)).toBe(WALL_TEXTURE_ID);
+      const innerWall = cylinderWallFace(scene, pieceIndex, -1);
+      expect(innerWall.brush.getSurfaceTextureId(innerWall.faceIndex)).not.toBe(WALL_TEXTURE_ID);
     }
   });
 });

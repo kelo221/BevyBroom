@@ -22,7 +22,7 @@ describe('mcp_tool_registry', () => {
     expect(findMcpTool('add_box_brushes')).toBeDefined();
     expect(findMcpTool('create_shape_brush')).toBeDefined();
     expect(findMcpTool('create_shape_brush')?.description.toLowerCase()).toContain('undo');
-    expect(findMcpTool('regenerate_shape_brush')?.inputSchema.required).toContain('nodeId');
+    expect(findMcpTool('regenerate_shape_brush')?.inputSchema['required']).toContain('nodeId');
     expect(findMcpTool('batch_set_brush_transform')).toBeDefined();
     expect(findMcpTool('rename_brush')).toBeDefined();
     expect(findMcpTool('mirror_brushes')).toBeDefined();

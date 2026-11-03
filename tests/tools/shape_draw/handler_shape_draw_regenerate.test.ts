@@ -135,7 +135,10 @@ describe('HandlerShapeDrawRegenerate', () => {
     const scene = regenerateSceneCreate(0.5);
     const group = scene.selection.getAllSelectedObjectsAsArray()[0]?.parent;
     const model = group ? SolidModel.fromObject(group) : null;
-    const pieceBrush = (pieceIndex: number) => model?.findBrushByMesh(group?.children.at(pieceIndex) ?? group);
+    const pieceBrush = (pieceIndex: number) => {
+      const pieceMesh = group?.children.at(pieceIndex);
+      return pieceMesh ? model?.findBrushByMesh(pieceMesh) : undefined;
+    };
     pieceBrush(0)?.setAllFacesTextureId('regen_first.png');
     pieceBrush(-1)?.setAllFacesTextureId('regen_last.png');
     scene.settings.parameterSet('stairs', 'stepHeight', 1);

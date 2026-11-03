@@ -7,9 +7,11 @@ import { DesktopE2eMcpClient } from './desktop_e2e_mcp_client.js';
 import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
 
 /**
- * End-to-end acceptance of the shape draw MCP tool in the built desktop app:
+ * End-to-end acceptance of the shape draw MCP tools in the built desktop app:
  * stairs and a hollow cylinder are created, validated and undone as one step
- * each. Skipped unless BROOM_E2E_DESKTOP_EXE names the app launcher.
+ * each, and a painted stairs face keeps its texture and world-space UVs when
+ * the group is regenerated. Skipped unless BROOM_E2E_DESKTOP_EXE names the app
+ * launcher.
  */
 const desktopExecutable = process.env['BROOM_E2E_DESKTOP_EXE'] ? resolve(process.env['BROOM_E2E_DESKTOP_EXE']) : '';
 e2eRequiredConfigurationAssert(desktopExecutable !== '', ['BROOM_E2E_DESKTOP_EXE']);
@@ -17,11 +19,38 @@ const mcpBasePort = Number(process.env['BROOM_E2E_MCP_PORT'] ?? '18885');
 const LAUNCH_TIMEOUT_MILLISECONDS = 90000;
 const STEP_TIMEOUT_MILLISECONDS = 60000;
 
+/** Plain vector of a tool reply. */
+interface ShapeE2eVector {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** Bounds of a tool reply. */
+interface ShapeE2eBounds {
+  min: ShapeE2eVector;
+  max: ShapeE2eVector;
+}
+
 /** Brush rows of a get_solid_model reply. */
 interface ShapeE2eBrushRow {
   brushId: string;
   parentGroupId: string | null;
+  localBounds: ShapeE2eBounds | null;
+  worldBounds: ShapeE2eBounds | null;
 }
+
+/** One face row of a get_face_uv reply. */
+interface ShapeE2eFaceRow {
+  faceIndex: number;
+  textureId: string;
+  normal: [number, number, number];
+  u: number[];
+  v: number[];
+}
+
+/** Texture painted on a stairs face before the regenerate. */
+const SHAPE_E2E_CARRY_TEXTURE_ID = 'e2e-shape-carry';
 
 /** Data of a get_solid_model reply. */
 interface ShapeE2eSolidModel {
@@ -41,6 +70,76 @@ interface ShapeE2eEditorContext {
  */
 function toolDataRead<Data>(result: McpToolResult): Data {
   return result.data as Data;
+}
+
+/**
+ * Picks the face pointing most along +Z, the lateral side of stairs running
+ * along X.
+ *
+ * @param faces Face rows of one brush.
+ * @returns Lateral face row.
+ */
+function faceRowLateralPick(faces: readonly ShapeE2eFaceRow[]): ShapeE2eFaceRow {
+  const lateral = faces.reduce<ShapeE2eFaceRow | null>(
+    (best, face) => (best === null || face.normal[2] > best.normal[2] ? face : best),
+    null,
+  );
+  if (!lateral) {
+    throw new Error('brush has no faces');
+  }
+  return lateral;
+}
+
+/**
+ * Reads the brush-local to world translation of an unrotated, unscaled brush.
+ *
+ * @param brush Brush row with local and world bounds.
+ * @returns World translation of the brush origin.
+ */
+function brushTranslationRead(brush: ShapeE2eBrushRow): ShapeE2eVector {
+  if (!brush.localBounds || !brush.worldBounds) {
+    throw new Error(`brush ${brush.brushId} has no bounds`);
+  }
+  const { localBounds, worldBounds } = brush;
+  return {
+    x: worldBounds.min.x - localBounds.min.x,
+    y: worldBounds.min.y - localBounds.min.y,
+    z: worldBounds.min.z - localBounds.min.z,
+  };
+}
+
+/**
+ * Returns the world point at the middle of a brush's +Z side.
+ *
+ * @param brush Brush row with world bounds.
+ * @returns World sample point.
+ */
+function lateralSamplePointCreate(brush: ShapeE2eBrushRow): ShapeE2eVector {
+  if (!brush.worldBounds) {
+    throw new Error(`brush ${brush.brushId} has no world bounds`);
+  }
+  const { min, max } = brush.worldBounds;
+  return { x: (min.x + max.x) / 2, y: (min.y + max.y) / 2, z: max.z };
+}
+
+/**
+ * Projects a world point through a face's brush-local UV rows.
+ *
+ * @param face Face row with u and v rows.
+ * @param brush Brush row the face belongs to.
+ * @param worldPoint World point on the face.
+ * @returns UV pair at that point.
+ */
+function faceUvAtWorldPoint(
+  face: ShapeE2eFaceRow,
+  brush: ShapeE2eBrushRow,
+  worldPoint: ShapeE2eVector,
+): { u: number; v: number } {
+  const translation = brushTranslationRead(brush);
+  const local = [worldPoint.x - translation.x, worldPoint.y - translation.y, worldPoint.z - translation.z];
+  const rowApply = (row: readonly number[]) =>
+    local.reduce((sum, component, axis) => sum + component * (row[axis] ?? 0), row[3] ?? 0);
+  return { u: rowApply(face.u), v: rowApply(face.v) };
 }
 
 describe.skipIf(desktopExecutable === '')('desktop app shape draw end to end', () => {
@@ -155,6 +254,67 @@ describe.skipIf(desktopExecutable === '')('desktop app shape draw end to end', (
     expect(await modelBrushesRead(modelId)).toHaveLength(before.length);
   }
 
+  /**
+   * Reads every face row of a brush.
+   *
+   * @param brushId Brush id.
+   * @returns Face rows.
+   */
+  async function faceRowsRead(brushId: string): Promise<ShapeE2eFaceRow[]> {
+    const result = await client.toolCallExpectOk('get_face_uv', { brushId });
+    return toolDataRead<{ faces: ShapeE2eFaceRow[] }>(result).faces;
+  }
+
+  /**
+   * Paints the lateral face of a brush with the carry texture and a rotated,
+   * offset UV mapping.
+   *
+   * @param brushId Brush id.
+   * @returns Face row after the edit.
+   */
+  async function lateralFacePaint(brushId: string): Promise<ShapeE2eFaceRow> {
+    const faceIndices = [faceRowLateralPick(await faceRowsRead(brushId)).faceIndex];
+    await client.toolCallExpectOk('set_face_material', { brushId, faceIndices, textureId: SHAPE_E2E_CARRY_TEXTURE_ID });
+    await client.toolCallExpectOk('transform_face_uv', { brushId, faceIndices, operation: 'rotate', degrees: 30 });
+    return faceRowLateralPick(await faceRowsRead(brushId));
+  }
+
+  /**
+   * Finds one brush row of a model by id.
+   *
+   * @param modelId Solid model uuid.
+   * @param brushId Brush id.
+   * @returns Brush row.
+   */
+  async function modelBrushRead(modelId: string, brushId: string): Promise<ShapeE2eBrushRow> {
+    const brush = (await modelBrushesRead(modelId)).find((row) => row.brushId === brushId);
+    if (!brush) {
+      throw new Error(`brush ${brushId} missing from model ${modelId}`);
+    }
+    return brush;
+  }
+
+  /**
+   * Waits until the first piece of a regenerated group shows the carry texture
+   * on its lateral face.
+   *
+   * @param brushIds Brush ids returned by regenerate_shape_brush.
+   * @returns First piece id and its lateral face row.
+   */
+  function regeneratedLateralFaceWait(
+    brushIds: readonly string[],
+  ): Promise<{ brushId: string; face: ShapeE2eFaceRow }> {
+    return desktopE2eWaitUntil(
+      'the regenerated first step to carry the lateral texture',
+      async () => {
+        const brushId = brushIds[0];
+        const face = brushId ? faceRowLateralPick(await faceRowsRead(brushId)) : null;
+        return brushId && face?.textureId === SHAPE_E2E_CARRY_TEXTURE_ID ? { brushId, face } : null;
+      },
+      STEP_TIMEOUT_MILLISECONDS,
+    );
+  }
+
   beforeAll(async () => {
     await appLaunch();
   }, LAUNCH_TIMEOUT_MILLISECONDS * 2);
@@ -176,6 +336,43 @@ describe.skipIf(desktopExecutable === '')('desktop app shape draw end to end', (
         { x: 1, y: 2, z: 1 },
         6,
       );
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'keeps a painted stairs face texture and its world-space UVs through regenerate_shape_brush and undo',
+    async () => {
+      const modelId = await modelCreate('ShapeCarryE2e');
+      const oldPieces = await shapeDraw(
+        modelId,
+        'stairs',
+        { stepHeight: 0.5 },
+        { x: 0, y: 0, z: 0 },
+        { x: 4, y: 2, z: 1 },
+      );
+      const oldFirst = oldPieces[0];
+      expect(oldFirst).toBeDefined();
+      if (!oldFirst) return;
+      const oldFace = await lateralFacePaint(oldFirst.brushId);
+      const modelBrushCountBefore = (await modelBrushesRead(modelId)).length;
+      const regenerated = await client.toolCallExpectOk('regenerate_shape_brush', {
+        nodeId: oldFirst.brushId,
+        params: { stepHeight: 0.25 },
+      });
+      const brushIds = toolDataRead<{ brushIds: string[] }>(regenerated).brushIds;
+      expect(brushIds.length).toBeGreaterThan(oldPieces.length);
+      expect(brushIds).not.toContain(oldFirst.brushId);
+      const carried = await regeneratedLateralFaceWait(brushIds);
+      const newFirst = await modelBrushRead(modelId, carried.brushId);
+      const samplePoint = lateralSamplePointCreate(newFirst);
+      const oldUv = faceUvAtWorldPoint(oldFace, oldFirst, samplePoint);
+      const newUv = faceUvAtWorldPoint(carried.face, newFirst, samplePoint);
+      expect(newUv.u).toBeCloseTo(oldUv.u, 4);
+      expect(newUv.v).toBeCloseTo(oldUv.v, 4);
+      await client.toolCallExpectOk('undo');
+      expect(await modelBrushesRead(modelId)).toHaveLength(modelBrushCountBefore);
+      expect(faceRowLateralPick(await faceRowsRead(oldFirst.brushId)).textureId).toBe(SHAPE_E2E_CARRY_TEXTURE_ID);
     },
     STEP_TIMEOUT_MILLISECONDS,
   );

@@ -10,6 +10,7 @@ import {
   type SurfaceUvLockFlags,
 } from '@/texture/uv_matrix/surface_uv_matrix_transform.js';
 import { ShapeDrawSurfaceSource } from './shape_draw_surface_source.js';
+import type { ShapeDrawSurfacePieceMapping } from './piece_mapping/shape_draw_surface_piece_mapping.js';
 
 /** Lock flags that keep carried UVs fixed in model space. */
 const SHAPE_DRAW_SURFACE_CARRY_UV_LOCKS: SurfaceUvLockFlags = { positionLock: false, stretchLock: false };
@@ -30,6 +31,7 @@ export class ShapeDrawSurfaceCarry {
   private readonly sources: readonly ShapeDrawSurfaceSource[];
   private readonly groupModelPlanes: SolidPlane[] = [];
   private readonly groupFaces: ShapeDrawSurfaceCarryMatch[] = [];
+  private readonly pieceMapping: ShapeDrawSurfacePieceMapping;
   private readonly matcherNormal = new SolidBrushSurfaceMatcherNormal();
   private readonly matcherFacing = new SolidBrushSurfaceMatcherFacing();
 
@@ -37,9 +39,12 @@ export class ShapeDrawSurfaceCarry {
    * Creates a carry over frozen piece sources.
    *
    * @param sources Old pieces in piece order.
+   * @param pieceMapping Mapping choosing the old piece each new piece inherits
+   *   from.
    */
-  constructor(sources: readonly ShapeDrawSurfaceSource[]) {
+  constructor(sources: readonly ShapeDrawSurfaceSource[], pieceMapping: ShapeDrawSurfacePieceMapping) {
     this.sources = sources;
+    this.pieceMapping = pieceMapping;
     sources.forEach((source) => this.groupFacesAppend(source));
   }
 
@@ -47,10 +52,16 @@ export class ShapeDrawSurfaceCarry {
    * Snapshots the brushes of a shape group before they are replaced.
    *
    * @param brushes Old pieces in piece order, still placed in their model.
+   * @param pieceMapping Mapping choosing the old piece each new piece inherits
+   *   from.
    * @returns Carry over those pieces.
    */
-  static fromBrushes(brushes: readonly SolidBrushInstance[]): ShapeDrawSurfaceCarry {
-    return new ShapeDrawSurfaceCarry(brushes.map((brush) => ShapeDrawSurfaceSource.fromBrushInstance(brush)));
+  static fromBrushes(
+    brushes: readonly SolidBrushInstance[],
+    pieceMapping: ShapeDrawSurfacePieceMapping,
+  ): ShapeDrawSurfaceCarry {
+    const sources = brushes.map((brush) => ShapeDrawSurfaceSource.fromBrushInstance(brush));
+    return new ShapeDrawSurfaceCarry(sources, pieceMapping);
   }
 
   /**
@@ -59,10 +70,16 @@ export class ShapeDrawSurfaceCarry {
    *
    * @param instance New piece brush.
    * @param pieceIndex Index of the piece in the new piece order.
+   * @param pieceCount Number of pieces in the new piece order.
    * @param pieceModelMatrix Brush-local to model-space matrix of the new piece.
    */
-  surfacesApply(instance: SolidBrushInstance, pieceIndex: number, pieceModelMatrix: THREE.Matrix4): void {
-    const source = this.pieceSourceResolve(pieceIndex);
+  surfacesApply(
+    instance: SolidBrushInstance,
+    pieceIndex: number,
+    pieceCount: number,
+    pieceModelMatrix: THREE.Matrix4,
+  ): void {
+    const source = this.pieceSourceResolve(pieceIndex, pieceCount);
     if (!source) {
       return;
     }
@@ -85,14 +102,16 @@ export class ShapeDrawSurfaceCarry {
   }
 
   /**
-   * Returns the old piece a new piece inherits from: the same index, else the
-   * last old piece.
+   * Returns the old piece a new piece inherits from, as chosen by the piece
+   * mapping.
    *
    * @param pieceIndex New piece index.
+   * @param pieceCount Number of new pieces.
    * @returns Old piece, or null when there are none.
    */
-  private pieceSourceResolve(pieceIndex: number): ShapeDrawSurfaceSource | null {
-    return this.sources[pieceIndex] ?? this.sources[this.sources.length - 1] ?? null;
+  private pieceSourceResolve(pieceIndex: number, pieceCount: number): ShapeDrawSurfaceSource | null {
+    const sourceIndex = this.pieceMapping.sourceIndexResolve(pieceIndex, pieceCount, this.sources.length);
+    return this.sources[sourceIndex] ?? null;
   }
 
   /**

@@ -33,7 +33,8 @@ export class CommandShapeDrawGroupRebuild implements UndoCommand {
    * @param group Shape draw group whose brushes are replaced.
    * @param previousBrushes Brushes currently under the group.
    * @param nextPieces Replacement pieces posed in model space.
-   * @param surfaceCarry Face surfaces of the previous brushes, captured before the rebuild.
+   * @param surfaceCarry Face surfaces of the previous brushes, captured before
+   *   the rebuild.
    * @param nextMetadata Updated recipe stored on the group.
    */
   constructor(
@@ -119,7 +120,7 @@ export class CommandShapeDrawGroupRebuild implements UndoCommand {
   private nextBrushCreate(piece: SolidShapeBrushPiece, pieceIndex: number): SolidBrushInstance {
     const instance = this.model.prepareTopologyBrush(piece.topology, SolidOperation.Additive, piece.position);
     solidBrushModelPoseApply(this.model, this.group, instance, piece.position, piece.rotation);
-    this.surfaceCarry.surfacesApply(instance, pieceIndex, pieceModelMatrixCreate(piece));
+    this.surfaceCarry.surfacesApply(instance, pieceIndex, this.nextPieces.length, pieceModelMatrixCreate(piece));
     return instance;
   }
 

@@ -125,7 +125,8 @@ export function shapeDrawSurfaceTestBrushAt(scene: ShapeDrawSurfaceTestScene, pi
 }
 
 /**
- * Finds the face of a brush whose model-space normal points most along a direction.
+ * Finds the face of a brush whose model-space normal points most along a
+ * direction.
  *
  * @param brush Brush to search.
  * @param direction Model-space direction.
@@ -165,7 +166,8 @@ export function shapeDrawSurfaceTestFaceCentroid(face: ShapeDrawSurfaceTestFace)
  * Projects a model-space point through a face surface authored on a brush pose.
  *
  * @param surface Face surface with a brush-local UV matrix.
- * @param brushModelMatrix Brush-local to model-space matrix the surface belongs to.
+ * @param brushModelMatrix Brush-local to model-space matrix the surface belongs
+ *   to.
  * @param modelPoint Model-space point.
  * @returns UV pair at that point.
  */

@@ -72,8 +72,11 @@ export class HandlerShapeDrawRegenerate {
       return false;
     }
     const brushes = this.groupBrushesCollect(group);
-    const surfaceCarry = ShapeDrawSurfaceCarry.fromBrushes(brushes);
-    this.deps.commandStack.push(new CommandShapeDrawGroupRebuild(model, group, brushes, pieces, surfaceCarry, nextMetadata));
+    const pieceMapping = shapeDrawShapeFind(metadata.shapeId).surfacePieceMappingCreate();
+    const surfaceCarry = ShapeDrawSurfaceCarry.fromBrushes(brushes, pieceMapping);
+    this.deps.commandStack.push(
+      new CommandShapeDrawGroupRebuild(model, group, brushes, pieces, surfaceCarry, nextMetadata),
+    );
     return true;
   }
 
@@ -94,8 +97,8 @@ export class HandlerShapeDrawRegenerate {
   }
 
   /**
-   * Builds the replacement pieces of a group from a recipe, mapped through
-   * the group's current transform so a moved group keeps its pieces.
+   * Builds the replacement pieces of a group from a recipe, mapped through the
+   * group's current transform so a moved group keeps its pieces.
    *
    * @param group Shape draw group.
    * @param metadata Recipe holding the parameter values to build with.

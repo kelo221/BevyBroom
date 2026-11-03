@@ -86,8 +86,8 @@ export class EditorApiShapeWrites {
   }
 
   /**
-   * Rebuilds a shape group with new parameter values as one undo step,
-   * carrying its face surfaces onto the new brushes.
+   * Rebuilds a shape group with new parameter values as one undo step, carrying
+   * its face surfaces onto the new brushes.
    *
    * @param args Brush id or group uuid of the shape and parameter overrides.
    * @returns Tool result with the group id and the new brush ids.
