@@ -2,7 +2,10 @@ import * as THREE from 'three';
 import { UndoCommand } from '@/commands/command_undo.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import type { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
-import type { SolidShapeBrushPiece } from '@/solid/commands/brushes/command_solid_shape_brushes_add.js';
+import {
+  solidShapeBrushPieceModelMatrixCreate,
+  type SolidShapeBrushPiece,
+} from '@/solid/commands/brushes/command_solid_shape_brushes_add.js';
 import { solidBrushModelPoseApply } from '@/solid/model/solid_brush_model_pose.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import type { SolidGroupShapeRecipe } from '@/solid/model/solid_group_shape_recipe.js';
@@ -120,7 +123,8 @@ export class CommandShapeDrawGroupRebuild implements UndoCommand {
   private nextBrushCreate(piece: SolidShapeBrushPiece, pieceIndex: number): SolidBrushInstance {
     const instance = this.model.prepareTopologyBrush(piece.topology, SolidOperation.Additive, piece.position);
     solidBrushModelPoseApply(this.model, this.group, instance, piece.position, piece.rotation);
-    this.surfaceCarry.surfacesApply(instance, pieceIndex, this.nextPieces.length, pieceModelMatrixCreate(piece));
+    const pieceModelMatrix = solidShapeBrushPieceModelMatrixCreate(piece);
+    this.surfaceCarry.surfacesApply(instance, pieceIndex, this.nextPieces.length, pieceModelMatrix);
     return instance;
   }
 
@@ -164,15 +168,4 @@ export class CommandShapeDrawGroupRebuild implements UndoCommand {
     this.model.markDirty();
     this.model.rebuild(true);
   }
-}
-
-/**
- * Builds the brush-local to model-space matrix of a replacement piece.
- *
- * @param piece Replacement piece in model space.
- * @returns New matrix with unit scale.
- */
-function pieceModelMatrixCreate(piece: SolidShapeBrushPiece): THREE.Matrix4 {
-  const rotation = new THREE.Quaternion().setFromEuler(piece.rotation);
-  return new THREE.Matrix4().compose(piece.position, rotation, new THREE.Vector3(1, 1, 1));
 }

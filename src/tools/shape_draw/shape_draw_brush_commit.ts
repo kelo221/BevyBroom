@@ -12,6 +12,7 @@ import type { ShapeDrawShape } from './shapes/shape_draw_shape.js';
 import type { ShapeDrawShapeParameterValues } from './shapes/shape_draw_shape_parameter.js';
 import { shapeDrawPiecesBuildCreate } from './shape_draw_piece_build.js';
 import { solidGroupShapeRecipeWrite } from '@/solid/model/solid_group_shape_recipe.js';
+import { ShapeDrawSurfaceAnchor } from './surface/shape_draw_surface_anchor.js';
 
 /** Name of the solid model created when a drawn brush has no model to join. */
 export const SHAPE_DRAW_NEW_MODEL_NAME = 'World';
@@ -149,7 +150,9 @@ export class ShapeDrawBrushCommit {
   }
 
   /**
-   * Pushes the add-brushes command and lists the created meshes.
+   * Pushes the add-brushes command and lists the created meshes. Pieces of a
+   * multi-piece shape get default surfaces anchored to the model origin so
+   * their textures line up across seams.
    *
    * @param model Solid model receiving the brushes.
    * @param pieces Model-local brush pieces.
@@ -161,6 +164,7 @@ export class ShapeDrawBrushCommit {
       pieces,
       this.deps.brushInsertParentResolve(model),
       this.deps.textureIdResolve(),
+      pieces.length > 1 ? ShapeDrawSurfaceAnchor.surfacesAnchor : null,
     );
     this.deps.commandStack.push(command);
     return this.createdMeshesCollect(command);

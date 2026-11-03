@@ -123,6 +123,22 @@ function lateralSamplePointCreate(brush: ShapeE2eBrushRow): ShapeE2eVector {
 }
 
 /**
+ * Returns a world point on the seam two neighbouring stair steps share on their
+ * +Z side.
+ *
+ * @param left Step nearer the stairs start.
+ * @param right Next step.
+ * @returns World point on both lateral faces.
+ */
+function lateralSeamPointCreate(left: ShapeE2eBrushRow, right: ShapeE2eBrushRow): ShapeE2eVector {
+  if (!left.worldBounds || !right.worldBounds) {
+    throw new Error('step rows have no world bounds');
+  }
+  const sharedTop = Math.min(left.worldBounds.max.y, right.worldBounds.max.y);
+  return { x: left.worldBounds.max.x, y: (left.worldBounds.min.y + sharedTop) / 2, z: left.worldBounds.max.z };
+}
+
+/**
  * Projects a world point through a face's brush-local UV rows.
  *
  * @param face Face row with u and v rows.
@@ -315,6 +331,28 @@ describe.skipIf(desktopExecutable === '')('desktop app shape draw end to end', (
     );
   }
 
+  /**
+   * Asserts neighbouring stair steps show the same texture coordinates where
+   * their lateral faces meet.
+   *
+   * @param steps Step brush rows in step order.
+   */
+  async function lateralSeamsContinuityExpect(steps: readonly ShapeE2eBrushRow[]): Promise<void> {
+    expect(steps.length).toBeGreaterThan(1);
+    for (let order = 0; order + 1 < steps.length; order++) {
+      const left = steps[order];
+      const right = steps[order + 1];
+      if (!left || !right) {
+        throw new Error('missing step row');
+      }
+      const seamPoint = lateralSeamPointCreate(left, right);
+      const leftUv = faceUvAtWorldPoint(faceRowLateralPick(await faceRowsRead(left.brushId)), left, seamPoint);
+      const rightUv = faceUvAtWorldPoint(faceRowLateralPick(await faceRowsRead(right.brushId)), right, seamPoint);
+      expect(rightUv.u).toBeCloseTo(leftUv.u, 4);
+      expect(rightUv.v).toBeCloseTo(leftUv.v, 4);
+    }
+  }
+
   beforeAll(async () => {
     await appLaunch();
   }, LAUNCH_TIMEOUT_MILLISECONDS * 2);
@@ -373,6 +411,30 @@ describe.skipIf(desktopExecutable === '')('desktop app shape draw end to end', (
       await client.toolCallExpectOk('undo');
       expect(await modelBrushesRead(modelId)).toHaveLength(modelBrushCountBefore);
       expect(faceRowLateralPick(await faceRowsRead(oldFirst.brushId)).textureId).toBe(SHAPE_E2E_CARRY_TEXTURE_ID);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'lines up the default stairs texture across every step seam after drawing and after regenerating',
+    async () => {
+      const modelId = await modelCreate('ShapeSeamE2e');
+      const drawn = await shapeDraw(
+        modelId,
+        'stairs',
+        { stepHeight: 0.25 },
+        { x: 0, y: 0, z: 0 },
+        { x: 4, y: 2, z: 1 },
+      );
+      await lateralSeamsContinuityExpect(drawn);
+      const firstBrushId = drawn[0]?.brushId ?? '';
+      const regenerated = await client.toolCallExpectOk('regenerate_shape_brush', {
+        nodeId: firstBrushId,
+        params: { stepHeight: 0.5 },
+      });
+      const brushIds = toolDataRead<{ brushIds: string[] }>(regenerated).brushIds;
+      const regeneratedRows = await Promise.all(brushIds.map((brushId) => modelBrushRead(modelId, brushId)));
+      await lateralSeamsContinuityExpect(regeneratedRows);
     },
     STEP_TIMEOUT_MILLISECONDS,
   );

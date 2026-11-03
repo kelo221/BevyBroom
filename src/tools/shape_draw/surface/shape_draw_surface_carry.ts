@@ -5,15 +5,10 @@ import type { SolidBrushSurfaceMatcher } from '@/solid/brush/surface_matcher/sol
 import { SolidBrushSurfaceMatcherNormal } from '@/solid/brush/surface_matcher/solid_brush_surface_matcher_normal.js';
 import { SolidBrushSurfaceMatcherFacing } from '@/solid/brush/surface_matcher/solid_brush_surface_matcher_facing.js';
 import { reorientFaceSurface, type FaceSurfaceDescription } from '@/texture/uv_matrix/face_surface_description.js';
-import {
-  transformBrushLocalUvForPoseChange,
-  type SurfaceUvLockFlags,
-} from '@/texture/uv_matrix/surface_uv_matrix_transform.js';
+import { transformBrushLocalUvForPoseChange } from '@/texture/uv_matrix/surface_uv_matrix_transform.js';
 import { ShapeDrawSurfaceSource } from './shape_draw_surface_source.js';
 import type { ShapeDrawSurfacePieceMapping } from './piece_mapping/shape_draw_surface_piece_mapping.js';
-
-/** Lock flags that keep carried UVs fixed in model space. */
-const SHAPE_DRAW_SURFACE_CARRY_UV_LOCKS: SurfaceUvLockFlags = { positionLock: false, stretchLock: false };
+import { SHAPE_DRAW_SURFACE_MODEL_FIXED_UV_LOCKS, ShapeDrawSurfaceAnchor } from './shape_draw_surface_anchor.js';
 
 /** One source face a new face inherits from. */
 interface ShapeDrawSurfaceCarryMatch {
@@ -65,8 +60,9 @@ export class ShapeDrawSurfaceCarry {
   }
 
   /**
-   * Writes carried surfaces onto one new piece. Leaves the piece untouched when
-   * there are no old pieces.
+   * Writes carried surfaces onto one new piece. Faces without a carried
+   * override get the default surface anchored to the model origin; with no old
+   * pieces, every face gets the piece's own default anchored that way.
    *
    * @param instance New piece brush.
    * @param pieceIndex Index of the piece in the new piece order.
@@ -81,10 +77,13 @@ export class ShapeDrawSurfaceCarry {
   ): void {
     const source = this.pieceSourceResolve(pieceIndex, pieceCount);
     if (!source) {
+      ShapeDrawSurfaceAnchor.surfacesAnchor(instance, pieceModelMatrix);
       return;
     }
-    const faceSurfaces = instance.brush.planes.map((plane, faceIndex) =>
-      this.faceSurfaceCarry(instance, faceIndex, plane.applyMatrix4(pieceModelMatrix), source, pieceModelMatrix),
+    const faceSurfaces = instance.brush.planes.map(
+      (plane, faceIndex) =>
+        this.faceSurfaceCarry(instance, faceIndex, plane.applyMatrix4(pieceModelMatrix), source, pieceModelMatrix) ??
+        ShapeDrawSurfaceAnchor.faceDefaultAnchor(instance, faceIndex, source.defaultSurface, pieceModelMatrix),
     );
     instance.restoreFaceSurfaces(source.defaultSurface, faceSurfaces);
   }
@@ -185,7 +184,7 @@ export class ShapeDrawSurfaceCarry {
       instance.facePlaneOffsetLocal(faceIndex),
       match.source.modelMatrix,
       pieceModelMatrix,
-      SHAPE_DRAW_SURFACE_CARRY_UV_LOCKS,
+      SHAPE_DRAW_SURFACE_MODEL_FIXED_UV_LOCKS,
     );
     return override;
   }

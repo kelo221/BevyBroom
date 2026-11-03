@@ -17,6 +17,25 @@ export interface SolidShapeBrushPiece {
 }
 
 /**
+ * Prepares one posed piece brush before it joins the model.
+ *
+ * @param instance Posed piece brush, not yet registered on the model.
+ * @param pieceModelMatrix Brush-local to model-space matrix of the piece.
+ */
+export type SolidShapeBrushPiecePrepare = (instance: SolidBrushInstance, pieceModelMatrix: THREE.Matrix4) => void;
+
+/**
+ * Builds the brush-local to model-space matrix of a piece.
+ *
+ * @param piece Piece with a model-local pose.
+ * @returns New matrix with unit scale.
+ */
+export function solidShapeBrushPieceModelMatrixCreate(piece: SolidShapeBrushPiece): THREE.Matrix4 {
+  const rotation = new THREE.Quaternion().setFromEuler(piece.rotation);
+  return new THREE.Matrix4().compose(piece.position, rotation, new THREE.Vector3(1, 1, 1));
+}
+
+/**
  * Undoable command that adds several posed convex brushes to a solid model in
  * one history entry.
  */
@@ -25,6 +44,7 @@ export class CommandSolidShapeBrushesAdd implements UndoCommand {
   private readonly pieces: SolidShapeBrushPiece[];
   private readonly textureId: string | null;
   private readonly hierarchyParent: THREE.Object3D;
+  private readonly piecePrepare: SolidShapeBrushPiecePrepare | null;
   private readonly created: SolidBrushInstance[] = [];
   private readonly listIndexes: number[] = [];
   private executed = false;
@@ -37,17 +57,21 @@ export class CommandSolidShapeBrushesAdd implements UndoCommand {
    * @param hierarchyParent Solid root or CSG group to append under.
    * @param textureId Texture applied to every face, or null to keep the default
    *   surface.
+   * @param piecePrepare Optional step run on every posed piece before it joins
+   *   the model; null leaves pieces as created.
    */
   constructor(
     model: SolidModel,
     pieces: SolidShapeBrushPiece[],
     hierarchyParent: THREE.Object3D,
     textureId: string | null,
+    piecePrepare: SolidShapeBrushPiecePrepare | null = null,
   ) {
     this.model = model;
     this.pieces = pieces;
     this.hierarchyParent = model.resolveBrushInsertParent(hierarchyParent);
     this.textureId = textureId;
+    this.piecePrepare = piecePrepare;
   }
 
   /**
@@ -109,6 +133,7 @@ export class CommandSolidShapeBrushesAdd implements UndoCommand {
       this.textureId ?? undefined,
     );
     solidBrushModelPoseApply(this.model, this.hierarchyParent, instance, piece.position, piece.rotation);
+    this.piecePrepare?.(instance, solidShapeBrushPieceModelMatrixCreate(piece));
     return instance;
   }
 
