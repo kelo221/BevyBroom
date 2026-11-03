@@ -131,6 +131,19 @@ describe('HandlerShapeDrawRegenerate', () => {
     expect(solidGroupShapeRecipeRead(group as THREE.Group)?.parameters['stepHeight']).toBe(0.25);
   });
 
+  it('keeps different textures on different pieces instead of one texture for all faces', () => {
+    const scene = regenerateSceneCreate(0.5);
+    const group = scene.selection.getAllSelectedObjectsAsArray()[0]?.parent;
+    const model = group ? SolidModel.fromObject(group) : null;
+    const pieceBrush = (pieceIndex: number) => model?.findBrushByMesh(group?.children.at(pieceIndex) ?? group);
+    pieceBrush(0)?.setAllFacesTextureId('regen_first.png');
+    pieceBrush(-1)?.setAllFacesTextureId('regen_last.png');
+    scene.settings.parameterSet('stairs', 'stepHeight', 1);
+    regenerateRun(scene);
+    expect(pieceBrush(0)?.surfaceTextureId).toBe('regen_first.png');
+    expect(pieceBrush(-1)?.surfaceTextureId).toBe('regen_last.png');
+  });
+
   it('does nothing when the selected group belongs to another shape', () => {
     const scene = regenerateSceneCreate(0.5);
     scene.settings.shapeSelect('cylinder');

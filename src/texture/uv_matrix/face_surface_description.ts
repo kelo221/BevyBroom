@@ -46,11 +46,27 @@ export function orientDefaultFaceSurface(
   template: FaceSurfaceDescription,
   faceNormal: THREE.Vector3,
 ): FaceSurfaceDescription {
-  const upright = new THREE.Vector3(0, 1, 0);
-  const trs = template.uv.decompose(upright);
+  return reorientFaceSurface(template, new THREE.Vector3(0, 1, 0), faceNormal);
+}
+
+/**
+ * Moves a surface's UV translation, rotation, and scale from the face normal it
+ * was authored on onto another face normal.
+ *
+ * @param surface Surface whose texture and UV trs are copied.
+ * @param sourceFaceNormal Unit normal the surface UV matrix was built for.
+ * @param destinationFaceNormal Unit normal of the face receiving the surface.
+ * @returns Surface aimed at the destination face.
+ */
+export function reorientFaceSurface(
+  surface: FaceSurfaceDescription,
+  sourceFaceNormal: THREE.Vector3,
+  destinationFaceNormal: THREE.Vector3,
+): FaceSurfaceDescription {
+  const trs = surface.uv.decompose(sourceFaceNormal);
   return {
-    textureId: template.textureId || DEFAULT_CHECKER_TEXTURE_ID,
-    uv: SurfaceUvMatrix.fromTrs(trs.translation, faceNormal, trs.rotationDeg, trs.scaleU, trs.scaleV),
+    textureId: surface.textureId || DEFAULT_CHECKER_TEXTURE_ID,
+    uv: SurfaceUvMatrix.fromTrs(trs.translation, destinationFaceNormal, trs.rotationDeg, trs.scaleU, trs.scaleV),
   };
 }
 

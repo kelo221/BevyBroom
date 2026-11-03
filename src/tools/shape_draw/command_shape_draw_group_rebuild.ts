@@ -7,6 +7,7 @@ import { solidBrushModelPoseApply } from '@/solid/model/solid_brush_model_pose.j
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import type { SolidGroupShapeRecipe } from '@/solid/model/solid_group_shape_recipe.js';
 import { solidGroupShapeRecipeRead, solidGroupShapeRecipeWrite } from '@/solid/model/solid_group_shape_recipe.js';
+import type { ShapeDrawSurfaceCarry } from './surface/shape_draw_surface_carry.js';
 
 /**
  * Undoable command that swaps the brushes of a shape draw group for freshly
@@ -17,7 +18,7 @@ export class CommandShapeDrawGroupRebuild implements UndoCommand {
   private readonly group: THREE.Group;
   private readonly previousBrushes: SolidBrushInstance[];
   private readonly nextPieces: SolidShapeBrushPiece[];
-  private readonly textureId: string | null;
+  private readonly surfaceCarry: ShapeDrawSurfaceCarry;
   private readonly nextMetadata: SolidGroupShapeRecipe;
   private readonly previousMetadata: SolidGroupShapeRecipe | null;
   private readonly previousListIndexes: number[] = [];
@@ -32,7 +33,7 @@ export class CommandShapeDrawGroupRebuild implements UndoCommand {
    * @param group Shape draw group whose brushes are replaced.
    * @param previousBrushes Brushes currently under the group.
    * @param nextPieces Replacement pieces posed in model space.
-   * @param textureId Texture carried over to every new brush face.
+   * @param surfaceCarry Face surfaces of the previous brushes, captured before the rebuild.
    * @param nextMetadata Updated recipe stored on the group.
    */
   constructor(
@@ -40,14 +41,14 @@ export class CommandShapeDrawGroupRebuild implements UndoCommand {
     group: THREE.Group,
     previousBrushes: SolidBrushInstance[],
     nextPieces: SolidShapeBrushPiece[],
-    textureId: string | null,
+    surfaceCarry: ShapeDrawSurfaceCarry,
     nextMetadata: SolidGroupShapeRecipe,
   ) {
     this.model = model;
     this.group = group;
     this.previousBrushes = previousBrushes.slice();
     this.nextPieces = nextPieces;
-    this.textureId = textureId;
+    this.surfaceCarry = surfaceCarry;
     this.nextMetadata = nextMetadata;
     this.previousMetadata = solidGroupShapeRecipeRead(group);
     this.previousBrushes.forEach((brush) => {
@@ -103,28 +104,22 @@ export class CommandShapeDrawGroupRebuild implements UndoCommand {
 
   /** Creates, poses and registers the replacement brushes under the group. */
   private nextBrushesInsert(): void {
-    const instances: SolidBrushInstance[] = [];
-    for (const piece of this.nextPieces) {
-      instances.push(this.nextBrushCreate(piece));
-    }
+    const instances = this.nextPieces.map((piece, pieceIndex) => this.nextBrushCreate(piece, pieceIndex));
     this.instancesRegister(instances);
     this.createdBrushes = instances;
   }
 
   /**
-   * Creates one posed replacement brush.
+   * Creates one posed replacement brush carrying the previous face surfaces.
    *
    * @param piece Replacement piece in model space.
+   * @param pieceIndex Index of the piece in the replacement order.
    * @returns Instance not yet registered on the model.
    */
-  private nextBrushCreate(piece: SolidShapeBrushPiece): SolidBrushInstance {
-    const instance = this.model.prepareTopologyBrush(
-      piece.topology,
-      SolidOperation.Additive,
-      piece.position,
-      this.textureId ?? undefined,
-    );
+  private nextBrushCreate(piece: SolidShapeBrushPiece, pieceIndex: number): SolidBrushInstance {
+    const instance = this.model.prepareTopologyBrush(piece.topology, SolidOperation.Additive, piece.position);
     solidBrushModelPoseApply(this.model, this.group, instance, piece.position, piece.rotation);
+    this.surfaceCarry.surfacesApply(instance, pieceIndex, pieceModelMatrixCreate(piece));
     return instance;
   }
 
@@ -168,4 +163,15 @@ export class CommandShapeDrawGroupRebuild implements UndoCommand {
     this.model.markDirty();
     this.model.rebuild(true);
   }
+}
+
+/**
+ * Builds the brush-local to model-space matrix of a replacement piece.
+ *
+ * @param piece Replacement piece in model space.
+ * @returns New matrix with unit scale.
+ */
+function pieceModelMatrixCreate(piece: SolidShapeBrushPiece): THREE.Matrix4 {
+  const rotation = new THREE.Quaternion().setFromEuler(piece.rotation);
+  return new THREE.Matrix4().compose(piece.position, rotation, new THREE.Vector3(1, 1, 1));
 }

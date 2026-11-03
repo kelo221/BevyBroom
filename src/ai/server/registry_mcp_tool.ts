@@ -329,6 +329,21 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   ),
   tool(
+    'regenerate_shape_brush',
+    'Rebuild a multi-piece shape group (from create_shape_brush or the draw tool) with new params as one undo step. nodeId is the brush id of any piece or the group uuid. Omitted params keep their stored values. Per-face textures and UVs carry over to the matching new faces, fixed in world space; added pieces inherit the last old piece. Returns groupId and the new brushIds in piece order.',
+    {
+      type: 'object',
+      properties: {
+        nodeId: { type: 'string', description: 'Brush id of one piece, or the shape group uuid.' },
+        params: {
+          type: 'object',
+          description: 'Parameter values keyed by parameter id (numbers or strings).',
+        },
+      },
+      required: ['nodeId'],
+    },
+  ),
+  tool(
     'create_csg_group',
     'Group solid brushes and/or nested CSG groups into a new solid CSG compound (same as outliner Group). Members stay under the solid model. operation is the branch op when the group combines into its parent (default additive). Optional parentGroupId nests the new group under another group (must not be a member or under a member).',
     {

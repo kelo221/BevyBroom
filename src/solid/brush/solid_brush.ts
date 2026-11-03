@@ -111,4 +111,14 @@ export class SolidBrush {
     }
     this.recalculatePlanes();
   }
+
+  /**
+   * Returns the unit normal of one face plane.
+   *
+   * @param faceIndex Face index.
+   * @returns New unit normal, or +Y when the face has no plane.
+   */
+  faceNormalLocal(faceIndex: number): THREE.Vector3 {
+    return this.planes[faceIndex]?.normal.clone().normalize() ?? new THREE.Vector3(0, 1, 0);
+  }
 }

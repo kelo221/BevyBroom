@@ -48,6 +48,37 @@ describe('EditorApi create_shape_brush', () => {
     expect(data.modelId).toBe(model.root.uuid);
   });
 
+  it('regenerates a shape group by brush id, keeping omitted params and face textures', () => {
+    const parts = editorApiTestHostCreate();
+    const api = new EditorApi(parts.host);
+    api.invokeTool('create_shape_brush', {
+      shapeId: 'stairs',
+      min: { x: 0, y: 0, z: 0 },
+      max: { x: 4, y: 2, z: 1 },
+      params: { stepHeight: 0.5, direction: '-x' },
+    });
+    const model = SolidModel.fromObject(parts.world.children[0] ?? new THREE.Object3D());
+    const firstBrush = model?.getBrushes()[0];
+    firstBrush?.setFaceTextureId(0, 'regen_face.png');
+    const undoCountBefore = parts.commandStack.getUndoCount();
+    const result = api.invokeTool('regenerate_shape_brush', { nodeId: firstBrush?.id, params: { stepHeight: 1 } });
+    expect(result.ok).toBe(true);
+    const data = result.data as { groupId: string; brushIds: string[] };
+    expect(data.brushIds).toHaveLength(2);
+    const group = model?.root.children.find((child) => child.uuid === data.groupId) ?? new THREE.Object3D();
+    expect(solidGroupShapeRecipeRead(group)?.parameters).toEqual({ stepHeight: 1, direction: '-x' });
+    const texturedFaces = model?.findBrush(data.brushIds[0] ?? '')?.serializeFaceTextureIds() ?? [];
+    expect(texturedFaces).toContain('regen_face.png');
+    expect(parts.commandStack.getUndoCount()).toBe(undoCountBefore + 1);
+  });
+
+  it('rejects regenerating something that is not a shape group', () => {
+    const parts = editorApiTestHostCreate();
+    const api = new EditorApi(parts.host);
+    expect(api.invokeTool('regenerate_shape_brush', { nodeId: 'missing' }).ok).toBe(false);
+    expect(parts.commandStack.canUndo()).toBe(false);
+  });
+
   it('rejects unknown shape ids and flat bounds', () => {
     const parts = editorApiTestHostCreate();
     const api = new EditorApi(parts.host);
