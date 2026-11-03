@@ -18,9 +18,26 @@ jobs:
   quality:
     name: Quality checks
     runs-on: ubuntu-latest
+    outputs:
+      pages_deploy: ${{ steps.pages.outputs.deploy }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      # Pages publishes from master pushes and from pull requests opened inside
+      # this repository; fork pull requests cannot get a Pages token.
+      - name: Decide GitHub Pages deployment
+        id: pages
+        shell: bash
+        env:
+          IS_MASTER_PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+          IS_SAME_REPOSITORY_PULL_REQUEST: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          if [ "$IS_MASTER_PUSH" = "true" ] || [ "$IS_SAME_REPOSITORY_PULL_REQUEST" = "true" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -52,7 +69,7 @@ jobs:
       # build (relative links in index.html / site.webmanifest). No restore step.
 
       - name: Upload GitHub Pages artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: steps.pages.outputs.deploy == 'true'
         uses: actions/upload-pages-artifact@v4
         with:
           path: docs/
@@ -212,11 +229,15 @@ jobs:
           files: release_assets/**/*
           generate_release_notes: false
 
+  # Pull request builds replace the live site until the next master deploy.
   deploy-pages:
     name: Deploy to GitHub Pages
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: needs.quality.outputs.pages_deploy == 'true'
     needs: quality
     runs-on: ubuntu-latest
+    concurrency:
+      group: bevybroom-github-pages
+      cancel-in-progress: false
     permissions:
       contents: read
       pages: write
