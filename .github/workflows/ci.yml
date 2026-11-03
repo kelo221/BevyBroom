@@ -77,8 +77,45 @@ jobs:
       - name: Run strict TypeScript check
         run: bun run typecheck:strict
 
+  # Decides whether the Bevy workspace job is needed: it runs when the Rust
+  # workspace, the pinned renderer commit or this workflow changed, and on
+  # manual runs or pushes whose previous commit is unknown.
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      bevy: ${{ steps.bevy.outputs.changed }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect Bevy workspace changes
+        id: bevy
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PULL_REQUEST_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT_NAME" in
+            pull_request) base="$PULL_REQUEST_BASE"; range="$PULL_REQUEST_BASE...HEAD" ;;
+            push) base="$PUSH_BEFORE"; range="$PUSH_BEFORE..HEAD" ;;
+            *) base=""; range="" ;;
+          esac
+          if [ -z "$base" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$range" -- bevy compatibility.json .github/workflows/ci.yml; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
   bevy-workspace:
     name: Bevy workspace (fmt, clippy, tests)
+    needs: changes
+    if: needs.changes.outputs.bevy == 'true'
     runs-on: windows-latest
     steps:
       - name: Check out repository
