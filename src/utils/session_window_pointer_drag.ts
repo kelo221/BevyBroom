@@ -30,7 +30,9 @@ export class WindowPointerDragSession {
    *
    * @param onMove Called for each window pointermove during the drag.
    * @param onUp Called once for pointerup, pointercancel, blur, or document
-   *   hide; listeners are removed before this callback runs.
+   *   hide; listeners are removed before this callback runs. Receives the
+   *   pointerup or pointercancel event, or null when blur or document hide
+   *   ended the drag.
    * @param targetWindow Window that owns the drag (defaults to the main
    *   window).
    * @param pointerCapture Optional element + pointer id for setPointerCapture
@@ -38,20 +40,20 @@ export class WindowPointerDragSession {
    */
   begin(
     onMove: (event: PointerEvent) => void,
-    onUp: () => void,
+    onUp: (releaseEvent: PointerEvent | null) => void,
     targetWindow: Window = window,
     pointerCapture: { element: HTMLElement; pointerId: number } | null = null,
   ): void {
     this.end();
     this.targetWindow = targetWindow;
     this.boundMove = (event) => onMove(event);
-    this.boundUp = () => this.finishWithCallback(onUp);
-    this.boundBlur = () => this.finishWithCallback(onUp);
+    this.boundUp = (event) => this.finishWithCallback(() => onUp(event as PointerEvent));
+    this.boundBlur = () => this.finishWithCallback(() => onUp(null));
     this.boundVisibility = () => {
       if (!this.documentIsHidden(targetWindow)) {
         return;
       }
-      this.finishWithCallback(onUp);
+      this.finishWithCallback(() => onUp(null));
     };
     this.attachCaptureListeners(targetWindow);
     this.applyPointerCapture(pointerCapture);

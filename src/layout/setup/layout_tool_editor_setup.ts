@@ -8,6 +8,7 @@ import {
   restoreGridSnapUserPreference,
 } from '@/transform/snap/grid_snap_shift_precision.js';
 import { ManagerInput } from '@/input/manager_input.js';
+import { layoutToolEditorFaceServicesCreate } from './layout_tool_editor_face_services.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { filterUnlockedObjects } from '@/utils/object_lock.js';
 import { resolveTransformTargets } from '@/selection/object/resolve_transform_targets.js';
@@ -594,51 +595,7 @@ function createEditorServices(
       }
       bridge.clearBoundsHover();
     },
-    enterFaceSelectionMode: () => {
-      deps.getFaceModeCoordinator?.()?.enterFaceSelectionModeFromTool();
-    },
-    leaveFaceSelectionMode: () => {
-      deps.getFaceModeCoordinator?.()?.leaveFaceSelectionModeFromTool();
-    },
-    beginFaceSelectPointerDown: (clientX, clientY, isShiftPressed, isCtrlPressed) => {
-      return (
-        deps
-          .getFaceModeCoordinator?.()
-          ?.beginFaceSelectPointerDown(clientX, clientY, isShiftPressed, isCtrlPressed, getPointerOwnerDocument()) ===
-        true
-      );
-    },
-    continueFaceSelectPointerMove: (clientX, clientY, buttons) => {
-      deps.getFaceModeCoordinator?.()?.continueFaceSelectPointerMove(clientX, clientY, buttons);
-    },
-    endFaceSelectPointerUp: () => {
-      deps.getFaceModeCoordinator?.()?.endFaceSelectPointerUp();
-    },
-    isFaceSelectStrokeActive: () => {
-      return deps.getFaceModeCoordinator?.()?.isFaceSelectStrokeActive() === true;
-    },
-    hasFaceSelection: () => {
-      return (deps.getFaceModeCoordinator?.()?.getFaceExtrusionController().getSelectedFaceCount() ?? 0) > 0;
-    },
-    beginFaceUvTransform: (mode, clientX, clientY, camera, pickElement) => {
-      return (
-        deps.getFaceModeCoordinator?.()?.beginSingleUseUvTransform(mode, clientX, clientY, camera, pickElement) === true
-      );
-    },
-    updateFaceUvTransform: (clientX, clientY, camera, pickElement, isShiftPressed) => {
-      deps
-        .getFaceModeCoordinator?.()
-        ?.updateSingleUseUvTransform(clientX, clientY, camera, pickElement, isShiftPressed);
-    },
-    endFaceUvTransform: () => {
-      return deps.getFaceModeCoordinator?.()?.endSingleUseUvTransform() === true;
-    },
-    cancelFaceUvTransform: () => {
-      deps.getFaceModeCoordinator?.()?.cancelUvTransformIfActive();
-    },
-    isFaceUvTransformActive: () => {
-      return deps.getFaceModeCoordinator?.()?.isUvTransformActive() === true;
-    },
+    ...layoutToolEditorFaceServicesCreate(() => deps.getFaceModeCoordinator?.() ?? null, getPointerOwnerDocument),
     isGridAlignPickArmed: () => {
       return deps.getGridOrientationHandler?.()?.isAlignPickArmed() === true;
     },

@@ -1,8 +1,19 @@
-/** Hammer++ Face Edit Sheet click mode options. */
-export type FaceEditPickMode = 'lift_select' | 'lift' | 'select' | 'apply';
+/**
+ * Hammer++ Face Edit Sheet click mode options: lift and select, lift only,
+ * select only, apply the texture only, apply the texture with the lifted
+ * values, or project the texture from the view.
+ */
+export type FaceEditPickMode = 'lift_select' | 'lift' | 'select' | 'apply' | 'apply_values' | 'align_view';
 
 /** Ordered list of Face Edit Sheet click modes for cycling or dropdowns. */
-export const FACE_EDIT_PICK_MODES: readonly FaceEditPickMode[] = ['lift_select', 'lift', 'select', 'apply'];
+export const FACE_EDIT_PICK_MODES: readonly FaceEditPickMode[] = [
+  'lift_select',
+  'lift',
+  'select',
+  'apply',
+  'apply_values',
+  'align_view',
+];
 
 /** Seed the Displacement tab's Apply Noise starts with. */
 export const DISPLACEMENT_NOISE_SEED_DEFAULT = 1;
@@ -37,7 +48,7 @@ export class StateFaceEditSession {
   }
 
   /**
-   * Returns the active click mode (Lift+Select, Lift, Select, Apply).
+   * Returns the active click mode.
    *
    * @returns Active FaceEditPickMode.
    */

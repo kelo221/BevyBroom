@@ -28,7 +28,6 @@ export interface FaceAttributesEditorHandlers {
   onAlignEdge: (mode: FaceUvAlignEdgeMode) => void;
   onFlip: (axis: FaceUvFlipAxis) => void;
   onRotate: (degrees: number) => void;
-  onResetFace: () => void;
   onResetWorld: () => void;
   onShearCommit: (mode: FaceUvShearMode, factor: number | null) => void;
 }
@@ -94,7 +93,8 @@ export class FaceAttributesEditor implements FaceAttributesView {
       onAlignEdge: (mode) => this.handlers.onAlignEdge(mode),
       onFlip: (axis) => this.handlers.onFlip(axis),
       onRotate: (degrees) => this.handlers.onRotate(degrees),
-      onResetFace: () => this.handlers.onResetFace(),
+      onAlign: (align) => this.handlers.onAlign(align),
+      onReset: () => this.handlers.onReset(),
       onResetWorld: () => this.handlers.onResetWorld(),
       onShearCommit: (mode, factor) => this.handlers.onShearCommit(mode, factor),
     };

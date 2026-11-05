@@ -18,7 +18,7 @@ import type { FacePickResult } from '@/selection/face/raycaster_face_selection.j
 import { computeRegionWorldNormal } from '@/texture/uv/planar_uv_projector.js';
 import { resolveUvTransformPlaneNormal } from '@/texture/interactive/uv_transform_solid_face_plane.js';
 import { expandFaceSelectionIndices } from '@/selection/face/solid_result_face_indices.js';
-import { FaceAttributeTransferHandler } from './face_attribute_transfer_handler.js';
+import { FaceTextureApplyCoordinator } from './texture_apply/face_texture_apply_coordinator.js';
 import { FaceRegionWorldGeometry } from '@/selection/face/face_region_world_geometry.js';
 import {
   faceModeStatusLabelExtrude,
@@ -78,7 +78,7 @@ export class CoordinatorFaceMode {
   private pendingDragEvent: PointerEvent | null = null;
   private userSnapEnabledAtSessionStart: boolean = false;
   private uvTransformOwnedByDrag: boolean = false;
-  private attributeTransferHandler: FaceAttributeTransferHandler;
+  private textureApplyCoordinator: FaceTextureApplyCoordinator;
   private displacementTools: DisplacementFaceTools;
 
   /**
@@ -94,7 +94,7 @@ export class CoordinatorFaceMode {
     this.uvSmearController = new ControllerUvSmear(deps.commandStack);
     this.uvTransformController = new ControllerUvTransform(deps.commandStack, deps.gridSnap);
     this.dragStateInitialize();
-    this.attributeTransferHandler = this.attributeTransferHandlerCreate();
+    this.textureApplyCoordinator = this.textureApplyCoordinatorCreate();
     this.displacementTools = this.displacementToolsCreate();
     this.bindFaceSelectionCallbacks();
     this.updateSelectionModeStatus();
@@ -109,17 +109,19 @@ export class CoordinatorFaceMode {
   }
 
   /**
-   * Creates the Alt+click attribute transfer handler bound to this
-   * coordinator's services.
+   * Creates the texture application (Alt+click transfer, click modes,
+   * right-click apply, stamp tool) bound to this coordinator's services.
    *
-   * @returns Wired transfer handler.
+   * @returns Wired texture application.
    */
-  private attributeTransferHandlerCreate(): FaceAttributeTransferHandler {
-    return new FaceAttributeTransferHandler({
+  private textureApplyCoordinatorCreate(): FaceTextureApplyCoordinator {
+    return new FaceTextureApplyCoordinator({
       commandStack: this.deps.commandStack,
+      selectionManager: this.deps.selectionManager,
       faceExtrusionController: this.faceExtrusionController,
       isAltDown: () => this.deps.keyboardShortcutHandler.isAltDown(),
       updateShadingMeshes: () => this.deps.updateShadingMeshes(),
+      syncPrimitivesToViewports: () => this.deps.syncPrimitivesToViewports(),
       showStatusMessage: (message) => this.deps.showStatusMessage(message),
     });
   }
@@ -154,6 +156,7 @@ export class CoordinatorFaceMode {
    */
   dispose(): void {
     this.onWindowPointerUp();
+    this.textureApplyCoordinator.dispose();
     this.displacementTools.dispose();
     this.faceExtrusionController.dispose();
   }
@@ -195,6 +198,29 @@ export class CoordinatorFaceMode {
     }
     const event = this.createSyntheticMouseEvent(clientX, clientY);
     return this.onViewportFacePointerDown(event, viewport, isShiftPressed, isCtrlPressed);
+  }
+
+  /**
+   * Arms the right-button texture apply click at a client point in face mode.
+   *
+   * @param clientX Pointer client X.
+   * @param clientY Pointer client Y.
+   * @param ownerDocument Document that owns the client coordinates, or null.
+   */
+  beginFaceSelectSecondaryPress(clientX: number, clientY: number, ownerDocument: Document | null = null): void {
+    if (this.faceExtrusionController.getSelectionMode() !== SelectionMode.FACE) {
+      return;
+    }
+    const viewport = this.findViewportAtClientPoint(clientX, clientY, ownerDocument);
+    if (viewport) {
+      const pressedViewport = { camera: viewport.getCamera(), pickElement: viewport.getContentElement() };
+      this.textureApplyCoordinator.secondaryPressBegin(pressedViewport, clientX, clientY);
+    }
+  }
+
+  /** Paints the current texture onto the selected faces or objects. */
+  textureStampApplyToSelection(): void {
+    this.textureApplyCoordinator.stampApplyToSelection();
   }
 
   /**
@@ -486,7 +512,7 @@ export class CoordinatorFaceMode {
     }
     const camera = viewport.getCamera();
     const pickElement = viewport.getContentElement();
-    if (this.attributeTransferHandler.tryBegin(event, camera, pickElement)) {
+    if (this.textureApplyCoordinator.primaryPressTryHandle(event, { camera, pickElement }, isCtrlPressed)) {
       return true;
     }
     if (this.displacementTools.sculptRouter.strokeTryBegin(event, camera, pickElement)) {

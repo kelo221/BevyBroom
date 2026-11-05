@@ -1,6 +1,9 @@
 import type { Vector2 } from 'three';
 import { Tool } from '../tool.js';
 
+/** Mouse button index of the right button. */
+const FACE_SELECT_TOOL_SECONDARY_BUTTON = 2;
+
 /**
  * Permanent face selection tool. Owns face pick/paint/UV smear mouse input so
  * tools that do not inherit BoxSelectTool never object-select by accident.
@@ -69,11 +72,16 @@ export class FaceSelectTool extends Tool {
   }
 
   /**
-   * Called when the tool receives a mouse down event.
+   * Called when the tool receives a mouse down event: the left button picks or
+   * paints faces, the right button arms the texture apply click.
    *
    * @param button Mouse button index.
    */
   override onMouseDown(button: number): void {
+    if (button === FACE_SELECT_TOOL_SECONDARY_BUTTON) {
+      this.secondaryPressForward();
+      return;
+    }
     if (button !== 0 || !this.editor) {
       return;
     }
@@ -88,6 +96,16 @@ export class FaceSelectTool extends Tool {
       this.editor.isCtrlPressed,
     );
     this.strokeActive = started;
+  }
+
+  /** Forwards a right-button press to the texture apply click. */
+  private secondaryPressForward(): void {
+    if (!this.editor) {
+      return;
+    }
+    this.editor
+      .getServices()
+      ?.beginFaceSelectSecondaryPress?.(this.editor.lastPointerClientX, this.editor.lastPointerClientY);
   }
 
   /**

@@ -51,7 +51,18 @@ describe('FaceEditSheetSectionSessionOptions', () => {
 
   it('shows a mode written elsewhere', () => {
     getStateFaceEditSession().pickModeWrite('apply');
-    expect(faceEditSheetTestButtonRead(section.elementRead(), 'Cycle click mode').textContent).toBe('Mode: Apply');
+    expect(faceEditSheetTestButtonRead(section.elementRead(), 'Cycle click mode').textContent).toBe(
+      'Mode: Apply (texture only)',
+    );
+  });
+
+  it('names the texture + values and Align to View modes like Hammer++', () => {
+    expect(FACE_EDIT_SHEET_PICK_MODE_LABELS.apply_values).toBe('Apply (texture + values)');
+    expect(FACE_EDIT_SHEET_PICK_MODE_LABELS.align_view).toBe('Align to View');
+    getStateFaceEditSession().pickModeWrite('align_view');
+    expect(faceEditSheetTestButtonRead(section.elementRead(), 'Cycle click mode').textContent).toBe(
+      'Mode: Align to View',
+    );
   });
 
   it('toggles Hide mask and reports it as pressed', () => {

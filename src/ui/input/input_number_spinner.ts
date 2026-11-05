@@ -1,5 +1,6 @@
 import { buttonCompactCreate } from '@/ui/button/button_compact.js';
 import { InputNumeric, type InputNumericOptions } from './input_numeric.js';
+import { inputNumberSpinnerWheelStepResolve } from './input_number_spinner_wheel_step.js';
 
 /** Width of the up / down stepper column in pixels. */
 const INPUT_NUMBER_SPINNER_STEPPER_WIDTH_PX = 14;
@@ -24,15 +25,17 @@ export interface InputNumberSpinnerOptions extends Omit<InputNumericOptions, 'he
 export type InputNumberSpinnerDirection = 1 | -1;
 
 /**
- * Numeric field with up / down stepper buttons on its right. A step (button, or
- * the Arrow Up / Arrow Down keys in the field) adds or removes the step size
- * and commits like a typed value. Mixed (dash) values do not step.
+ * Numeric field with up / down stepper buttons on its right. A step (button,
+ * the Arrow Up / Arrow Down keys in the field, or the mouse wheel over the
+ * spinner with Shift for ten steps and Ctrl for a tenth) adds or removes the
+ * step size and commits like a typed value. Mixed (dash) values do not step.
  */
 export class InputNumberSpinner extends InputNumeric {
   private readonly spinnerRoot: HTMLElement;
   private readonly spinnerStep: number;
   private readonly spinnerDecimals: number;
   private readonly arrowKeyHandler: (event: KeyboardEvent) => void;
+  private readonly wheelHandler: (event: WheelEvent) => void;
 
   /**
    * Creates the spinner: the numeric field and its stepper column.
@@ -45,8 +48,10 @@ export class InputNumberSpinner extends InputNumeric {
     this.spinnerStep = options.step;
     this.spinnerDecimals = options.decimals;
     this.arrowKeyHandler = (event) => this.arrowKeyStep(event);
+    this.wheelHandler = (event) => this.wheelStep(event);
     this.spinnerRoot = this.spinnerRootCreate(options, heightPx);
     this.getElement().addEventListener('keydown', this.arrowKeyHandler);
+    this.spinnerRoot.addEventListener('wheel', this.wheelHandler, { passive: false });
   }
 
   /**
@@ -59,26 +64,47 @@ export class InputNumberSpinner extends InputNumeric {
   }
 
   /**
-   * Adds or removes one step and commits the new value.
+   * Adds or removes one step, scaled by a multiplier, and commits the new
+   * value.
    *
    * @param direction 1 to step up, -1 to step down.
+   * @param multiplier Factor applied to the step size.
    * @returns True when the field held a number and stepped.
    */
-  stepBy(direction: InputNumberSpinnerDirection): boolean {
+  stepBy(direction: InputNumberSpinnerDirection, multiplier: number = 1): boolean {
     const current = this.parseNumberOrNull();
     if (current === null) {
       return false;
     }
-    const next = Math.round((current + direction * this.spinnerStep) * INPUT_NUMBER_SPINNER_STEP_ROUNDING);
+    const delta = direction * this.spinnerStep * multiplier;
+    const next = Math.round((current + delta) * INPUT_NUMBER_SPINNER_STEP_ROUNDING);
     this.setNumber(next / INPUT_NUMBER_SPINNER_STEP_ROUNDING, this.spinnerDecimals);
     this.getElement().dispatchEvent(new Event('change'));
     return true;
   }
 
-  /** Removes the arrow key, focus and commit listeners. */
+  /** Removes the arrow key, wheel, focus and commit listeners. */
   override dispose(): void {
     this.getElement().removeEventListener('keydown', this.arrowKeyHandler);
+    this.spinnerRoot.removeEventListener('wheel', this.wheelHandler);
     super.dispose();
+  }
+
+  /**
+   * Steps on a mouse wheel notch over the spinner and keeps the page from
+   * scrolling while the pointer is over it. Mixed values neither step nor block
+   * the scroll.
+   *
+   * @param event Wheel event over the spinner.
+   */
+  private wheelStep(event: WheelEvent): void {
+    const step = inputNumberSpinnerWheelStepResolve(event);
+    if (!step || this.getElement().disabled) {
+      return;
+    }
+    if (this.stepBy(step.direction, step.multiplier)) {
+      event.preventDefault();
+    }
   }
 
   /**

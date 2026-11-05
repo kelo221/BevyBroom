@@ -17,14 +17,11 @@ import { FaceEditSheetSection, type FaceEditSheetSelectionState } from './face_e
 /** Axis caption of the X then Y field of a row. */
 const FACE_EDIT_SHEET_TRANSFORM_AXIS_CAPTIONS: readonly string[] = ['X', 'Y'];
 
-/** Whole-tile shift (tiles U, tiles V) of the X then Y shift button. */
-const FACE_EDIT_SHEET_TRANSFORM_FULL_TILE_SHIFTS: ReadonlyArray<readonly [number, number]> = [
-  [1, 0],
-  [0, 1],
-];
+/** Texture axis the X then Y random shift button shifts. */
+const FACE_EDIT_SHEET_TRANSFORM_RANDOM_SHIFT_AXES: ReadonlyArray<'u' | 'v'> = ['u', 'v'];
 
 /**
- * Width of the X / Y full-tile shift buttons in pixels; square with the spinner
+ * Width of the X / Y random shift buttons in pixels; square with the spinner
  * height.
  */
 const FACE_EDIT_SHEET_TRANSFORM_SHIFT_BUTTON_WIDTH_PX = FACE_INSPECTOR_METRICS.controlHeight;
@@ -43,8 +40,8 @@ interface FaceEditSheetTransformFieldEntry {
 
 /**
  * Hammer-style first row of the Material tab: Texture scale X/Y, Texture shift
- * X/Y with a whole-tile X / Y button beside each, and Rotation, all as spinners
- * that commit only the edited value.
+ * X/Y with a random shift X / Y button beside each, and Rotation, all as
+ * spinners that commit only the edited value.
  */
 export class FaceEditSheetSectionTransform extends FaceEditSheetSection {
   private readonly fieldEntries: FaceEditSheetTransformFieldEntry[];
@@ -94,7 +91,7 @@ export class FaceEditSheetSectionTransform extends FaceEditSheetSection {
    *
    * @param caption Column caption.
    * @param row Field specs of the column.
-   * @param withShiftButtons True to add a whole-tile shift button per field.
+   * @param withShiftButtons True to add a random shift button per field.
    * @returns Column element.
    */
   private columnCreate(caption: string, row: FaceAttributesRowSpec, withShiftButtons: boolean): HTMLElement {
@@ -112,12 +109,12 @@ export class FaceEditSheetSectionTransform extends FaceEditSheetSection {
   }
 
   /**
-   * Creates one row: optional axis caption, the spinner and an optional
-   * whole-tile shift button.
+   * Creates one row: optional axis caption, the spinner and an optional random
+   * shift button.
    *
    * @param spec Field spec of the spinner.
    * @param axisIndex 0 for X, 1 for Y, or null without an axis caption.
-   * @param withShiftButton True to add the whole-tile shift button.
+   * @param withShiftButton True to add the random shift button.
    * @returns Row element.
    */
   private axisRowCreate(
@@ -190,22 +187,22 @@ export class FaceEditSheetSectionTransform extends FaceEditSheetSection {
   }
 
   /**
-   * Creates the X or Y button that shifts by one whole tile on that axis.
+   * Creates the X or Y button that shifts that axis by a random amount.
    *
    * @param axisIndex 0 for X, 1 for Y.
    * @returns Button element.
    */
   private shiftButtonCreate(axisIndex: number): HTMLButtonElement {
     const axisCaption = FACE_EDIT_SHEET_TRANSFORM_AXIS_CAPTIONS[axisIndex] ?? '';
-    const [tilesU, tilesV] = FACE_EDIT_SHEET_TRANSFORM_FULL_TILE_SHIFTS[axisIndex] ?? [0, 0];
+    const axis = FACE_EDIT_SHEET_TRANSFORM_RANDOM_SHIFT_AXES[axisIndex] ?? 'u';
     const button = buttonCompactCreate({
-      title: `Shift ${axisCaption} by one whole tile`,
+      title: `Shift ${axisCaption} randomly`,
       text: axisCaption,
       widthPx: FACE_EDIT_SHEET_TRANSFORM_SHIFT_BUTTON_WIDTH_PX,
       heightPx: FACE_INSPECTOR_METRICS.controlHeight,
-      onClick: () => this.handlers.onShiftFullTile?.(tilesU, tilesV),
+      onClick: () => this.handlers.onShiftRandom?.(axis),
     });
-    button.classList.add('face-edit-sheet-shift-full-tile');
+    button.classList.add('face-edit-sheet-shift-random');
     return button;
   }
 }

@@ -12,7 +12,9 @@ export const FACE_EDIT_SHEET_PICK_MODE_LABELS: Readonly<Record<FaceEditPickMode,
   lift_select: 'Lift+Select',
   lift: 'Lift',
   select: 'Select',
-  apply: 'Apply',
+  apply: 'Apply (texture only)',
+  apply_values: 'Apply (texture + values)',
+  align_view: 'Align to View',
 };
 
 /**
@@ -27,7 +29,7 @@ export function faceEditSheetPickModeButtonText(mode: FaceEditPickMode): string 
 
 /**
  * Right column of the Material tab: the Treat as one box, the Mode button that
- * cycles Lift+Select / Lift / Select / Apply, and the Hide mask toggle.
+ * cycles through every face click mode, and the Hide mask toggle.
  */
 export class FaceEditSheetSectionSessionOptions extends FaceEditSheetSection {
   private readonly treatAsOneCheckbox: InputCheckbox;

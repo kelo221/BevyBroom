@@ -141,6 +141,25 @@ describe('FaceSelectTool editor integration', () => {
     expect(beginFace).toHaveBeenCalledWith(3, 4, false, true);
   });
 
+  it('forwards a right-button press to the texture apply click without starting a face stroke', () => {
+    const beginFace = vi.fn(() => true);
+    const beginSecondary = vi.fn();
+    const editor = new EditorWindow();
+    editor.setServices(
+      createStubServices({
+        beginFaceSelectPointerDown: beginFace,
+        beginFaceSelectSecondaryPress: beginSecondary,
+      }),
+    );
+    editor.validateTools();
+    editor.userSwitchToFaceSelectTool();
+    editor.lastPointerClientX = 31;
+    editor.lastPointerClientY = 47;
+    editor.activeTool?.onMouseDown(2);
+    expect(beginSecondary).toHaveBeenCalledWith(31, 47);
+    expect(beginFace).not.toHaveBeenCalled();
+  });
+
   it('leaving face tool restores object mode services', () => {
     const leaveFace = vi.fn();
     const editor = new EditorWindow();

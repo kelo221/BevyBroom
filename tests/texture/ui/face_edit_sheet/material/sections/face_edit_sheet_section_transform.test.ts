@@ -80,12 +80,22 @@ describe('FaceEditSheetSectionTransform', () => {
     expect(handlers.onApplyPartialTrs).not.toHaveBeenCalled();
   });
 
-  it('shifts by one whole tile from the X and Y buttons beside the shift fields', () => {
-    faceEditSheetTestButtonRead(section.elementRead(), 'Shift X by one whole tile').click();
-    faceEditSheetTestButtonRead(section.elementRead(), 'Shift Y by one whole tile').click();
-    expect(handlers.onShiftFullTile.mock.calls).toEqual([
-      [1, 0],
-      [0, 1],
-    ]);
+  it('shifts that axis randomly from the X and Y buttons beside the shift fields', () => {
+    faceEditSheetTestButtonRead(section.elementRead(), 'Shift X randomly').click();
+    faceEditSheetTestButtonRead(section.elementRead(), 'Shift Y randomly').click();
+    expect(handlers.onShiftRandom.mock.calls).toEqual([['u'], ['v']]);
+    expect(handlers.onShiftFullTile).not.toHaveBeenCalled();
+  });
+
+  it('steps a hovered field with the mouse wheel and commits it', () => {
+    const scaleXSpec = FACE_ATTRIBUTES_ROW_SCALE.fields[0];
+    if (!scaleXSpec) throw new Error('missing scale X spec');
+    const shownScale = 1.5;
+    section.selectionWrite(faceEditSheetTestSelectionCreate({ [scaleXSpec.key]: shownScale }));
+    const input = spinnerInputRead(section.elementRead(), scaleXSpec.ariaLabel);
+    input.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true }));
+    const committed = handlers.onApplyPartialTrs.mock.calls[0]?.[0] as Record<string, number> | undefined;
+    expect(Object.keys(committed ?? {})).toEqual([scaleXSpec.key]);
+    expect(committed?.[scaleXSpec.key]).toBeCloseTo(shownScale - scaleXSpec.step, 6);
   });
 });

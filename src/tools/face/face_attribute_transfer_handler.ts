@@ -17,9 +17,18 @@ export interface FaceAttributeTransferHandlerDeps {
   showStatusMessage: (message: string) => void;
 }
 
+/** Material and status text of one transfer onto a clicked face. */
+export interface FaceAttributeTransferRequest {
+  /** Material written instead of the source material, or null to copy it. */
+  readonly textureIdOverride: string | null;
+  /** Status bar text shown after the transfer ran. */
+  readonly statusMessage: string;
+}
+
 /**
- * Runs the Alt+click face attribute transfer: copies the primary selected
- * face's material and alignment onto the clicked face as one undo step.
+ * Runs face attribute transfers onto a clicked face as one undo step: the
+ * Alt+click transfer from the primary selected face, and transfers from any
+ * other source region with an optional replacement material.
  */
 export class FaceAttributeTransferHandler {
   private deps: FaceAttributeTransferHandlerDeps;
@@ -45,7 +54,7 @@ export class FaceAttributeTransferHandler {
     if (!this.deps.isAltDown()) {
       return false;
     }
-    const primary = this.deps.faceExtrusionController.getSelectedFaces()[0];
+    const primary = this.primaryTargetRead();
     if (!primary) {
       return false;
     }
@@ -53,28 +62,47 @@ export class FaceAttributeTransferHandler {
     if (!pick) {
       return false;
     }
-    return this.run(primary, pick);
+    return this.transferToPick(primary, pick, {
+      textureIdOverride: null,
+      statusMessage: 'Copied material and alignment to the clicked face',
+    });
   }
 
   /**
-   * Runs the transfer from the primary selected face onto a picked face.
+   * Returns the region of the primary selected face.
    *
-   * @param primary Primary selected face.
+   * @returns Primary region, or null without a face selection.
+   */
+  primaryTargetRead(): TextureApplyTarget | null {
+    const primary = this.deps.faceExtrusionController.getSelectedFaces()[0];
+    if (!primary) {
+      return null;
+    }
+    return buildTargetsFromFaceSelection([primary])[0] ?? null;
+  }
+
+  /**
+   * Transfers a source region's alignment, and its material or a replacement,
+   * onto a picked face as one undo step.
+   *
+   * @param source Region whose alignment is copied.
    * @param pick Picked destination face.
+   * @param request Replacement material and status text.
    * @returns True when the transfer ran or the click was consumed.
    */
-  private run(primary: FaceSelection, pick: FacePickResult): boolean {
-    const sourceTarget = buildTargetsFromFaceSelection([primary])[0];
+  transferToPick(source: TextureApplyTarget, pick: FacePickResult, request: FaceAttributeTransferRequest): boolean {
     const destination = buildTargetsFromFaceSelection([pickToSelection(pick)])[0];
-    if (!sourceTarget || !destination) {
+    if (!destination) {
       return false;
     }
-    if (regionsEqual(sourceTarget, destination)) {
+    if (regionsEqual(source, destination) && request.textureIdOverride === null) {
       return true;
     }
-    this.deps.commandStack.push(new CommandTextureFaceAttributeTransfer(sourceTarget, [destination]));
+    this.deps.commandStack.push(
+      new CommandTextureFaceAttributeTransfer(source, [destination], request.textureIdOverride),
+    );
     this.deps.updateShadingMeshes();
-    this.deps.showStatusMessage('Copied material and alignment to the clicked face');
+    this.deps.showStatusMessage(request.statusMessage);
     return true;
   }
 }
@@ -85,7 +113,7 @@ export class FaceAttributeTransferHandler {
  * @param pick Picked face.
  * @returns Selection entry for target building.
  */
-function pickToSelection(pick: FacePickResult): FaceSelection {
+export function pickToSelection(pick: FacePickResult): FaceSelection {
   return { mesh: pick.mesh, faceIndex: pick.faceIndex };
 }
 

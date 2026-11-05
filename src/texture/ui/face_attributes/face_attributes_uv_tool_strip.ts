@@ -4,6 +4,7 @@ import type { FaceUvJustifySide } from '@/texture/uv/operations/face_uv_operatio
 import type { FaceUvAlignEdgeMode } from '@/texture/uv/operations/face_uv_operation_align_edge.js';
 import type { FaceUvFlipAxis } from '@/texture/uv/operations/face_uv_operation_flip.js';
 import type { FaceUvShearMode } from '@/texture/uv/operations/face_uv_operation_shear.js';
+import type { FaceTextureAlign } from '@/texture/uv/face_texture_mapping.js';
 import type { FaceUvToolSelectionStatus } from '@/texture/controller/controller_face_uv_tools.js';
 import {
   FACE_INSPECTOR_METRICS,
@@ -23,7 +24,8 @@ export interface FaceAttributesUvToolStripHandlers {
   onAlignEdge: (mode: FaceUvAlignEdgeMode) => void;
   onFlip: (axis: FaceUvFlipAxis) => void;
   onRotate: (degrees: number) => void;
-  onResetFace: () => void;
+  onAlign: (align: FaceTextureAlign) => void;
+  onReset: () => void;
   onResetWorld: () => void;
   onShearCommit: (mode: FaceUvShearMode, factor: number | null) => void;
 }

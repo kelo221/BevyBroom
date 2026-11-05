@@ -90,8 +90,8 @@ From top to bottom:
   Cuboid, Cylinder, Wedge, Stairs, Arch, or Spheroid.
 - **Face Select** (`Shift+Tab`) selects faces for texturing and opens the Face
   Edit Sheet from the view bar.
-- **Apply Current Texture** (`Shift+T`) stamps the current texture onto the
-  faces you click.
+- **Apply Current Texture** (`Shift+T`) paints the current texture onto the
+  selection, then stamps it onto the faces you click.
 - **Clip Plane** (`Shift+X`) cuts brushes along a plane you place.
 - **Vertex Tool** (`Shift+V`) edits the vertices of the selection.
 - **Polygon Tool** draws a 2D outline and extrudes it into convex solids.
@@ -267,24 +267,47 @@ reopens it after you close it. It edits the selected faces and has two tabs:
 
 - **Material** follows the Hammer layout. The top row has **Texture scale** X
   and Y, **Texture shift** X and Y (the **X** and **Y** buttons beside them
-  shift by one whole tile), and **Rotation**. The spinner arrows, or Arrow Up
-  and Arrow Down in a field, step the value. Below them are the **UV vectors
-  (X Y Z)**. The **Justify** box fits (**Fit**) or justifies (**T**, **L**,
-  **C**, **R**, **B**) the texture. The **Align** box projects it from the
-  **World** axes or the **Face**. Beside them are **Treat as one**, the
-  **Mode** button that cycles the face tool's click mode (**Lift+Select**,
-  **Lift**, **Select**, **Apply**), and **Hide mask**. The texture block shows
-  the current texture with **Mark…**, **Browse…**, and **Replace…**, and
-  **Apply** paints it onto the selection. The **Current texture** list picks
-  the current texture. The collapsed **More tools** section holds the extra
-  tools: Tile ±U/±V, Fit H/V, Align ◀/▶, Flip, Rot ±90, Reset Face/World,
-  shear, and the offset and scale nudges.
+  shift that axis by a random whole number of texels, which breaks up repeated
+  faces such as stair steps), and **Rotation**. The spinner arrows, Arrow Up
+  and Arrow Down in a field, or the mouse wheel over a field step the value;
+  hold `Shift` for ten steps or `Ctrl` for a tenth of a step. Below them are
+  the **UV vectors (X Y Z)**. The **Justify** box fits (**Fit**) or justifies
+  (**T**, **L**, **C**, **R**, **B**) the texture. The **Align** box projects
+  it from the **World** axes or the **Face**. Beside them are **Treat as one**,
+  the **Mode** button, and **Hide mask**. The texture block shows the current
+  texture with **Mark…**, **Browse…**, and **Replace…**, and **Apply** paints
+  it onto the selection. The **Current texture** list picks the current
+  texture. The collapsed **More tools** section holds the extra tools: Tile
+  ±U/±V (whole-tile shifts), Fit H/V, Align ◀/▶, Flip, Rot ±90, Align Floor /
+  Wall / Ceiling, Reset UVs / World, shear, and the offset and scale nudges.
 - **Displacement** turns the selected faces into sculptable displacements:
   choose a **Power** and **Create** (or **Destroy**), then **Subdivide**,
   **Invert Alpha**, **Sew** neighboring edges together, **Smooth**, and add
   **Noise** between **Min** and **Max** with a **Seed**. **Elevation** and
   **Scale** adjust the whole surface, and the paint settings sculpt it with the
   pointer.
+
+The **Mode** button cycles what a left click on a face does in Face Select:
+
+- **Lift+Select** lifts the face (its texture becomes the current texture and
+  its alignment is remembered) and selects it.
+- **Lift** only lifts the face.
+- **Select** only selects the face.
+- **Apply (texture only)** paints the current texture on the face and keeps
+  the face's alignment.
+- **Apply (texture + values)** paints the current texture with the lifted
+  alignment, continued across the shared edge so the texture flows on.
+- **Align to View** projects the current texture onto the face from the
+  camera like a slide projector, at the face's current texture scale.
+
+In every mode, **right-click** a face to apply the current texture to it
+(texture only), and **Alt+right-click** to apply the texture with the lifted
+alignment. Align one face, lift it, then Alt+right-click the neighboring faces
+one by one so the texture continues across them. Dragging with the right
+button still moves the camera. `Alt+click` copies the material and alignment of
+the primary selected face onto the clicked face. The **Apply Current Texture**
+tool paints the current texture on the selection when you choose it, then
+stamps it on every face you click.
 
 See [Textures and UV mapping](textures_and_uvs.md).
 

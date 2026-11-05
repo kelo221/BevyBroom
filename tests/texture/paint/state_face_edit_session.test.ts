@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { DISPLACEMENT_NOISE_SEED_DEFAULT, StateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
+import {
+  DISPLACEMENT_NOISE_SEED_DEFAULT,
+  FACE_EDIT_PICK_MODES,
+  StateFaceEditSession,
+} from '@/texture/paint/state_face_edit_session.js';
 import { StateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 
 describe('StateFaceEditSession and StateTexturePaint', () => {
@@ -8,16 +12,15 @@ describe('StateFaceEditSession and StateTexturePaint', () => {
     const listener = vi.fn();
     session.changeListenerAdd(listener);
 
+    expect(FACE_EDIT_PICK_MODES).toEqual(['lift_select', 'lift', 'select', 'apply', 'apply_values', 'align_view']);
+    expect(session.pickModeRead()).toBe(FACE_EDIT_PICK_MODES[0]);
+    FACE_EDIT_PICK_MODES.slice(1).forEach((expectedMode) => {
+      session.pickModeCycle();
+      expect(session.pickModeRead()).toBe(expectedMode);
+    });
+    session.pickModeCycle();
     expect(session.pickModeRead()).toBe('lift_select');
-    session.pickModeCycle();
-    expect(session.pickModeRead()).toBe('lift');
-    session.pickModeCycle();
-    expect(session.pickModeRead()).toBe('select');
-    session.pickModeCycle();
-    expect(session.pickModeRead()).toBe('apply');
-    session.pickModeCycle();
-    expect(session.pickModeRead()).toBe('lift_select');
-    expect(listener).toHaveBeenCalledTimes(4);
+    expect(listener).toHaveBeenCalledTimes(FACE_EDIT_PICK_MODES.length);
   });
 
   it('tracks treatAsOne, hideMask, sheetOpen, and activeTabId', () => {

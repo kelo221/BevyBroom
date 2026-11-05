@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { getStateTextureStampTool } from '@/tools/texture_stamp/state_texture_stamp_tool.js';
 import * as THREE from 'three';
 import { ControllerViewportToolChrome } from '@/tools/chrome/controller/controller_viewport_tool_chrome.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
@@ -25,8 +26,10 @@ describe('ControllerViewportToolChrome', () => {
   let showStatus: ReturnType<typeof vi.fn<(message: string) => void>>;
   let overlayPolicy: PolicyEditorOverlay;
   let modalRegistry: RegistryModalToolSession;
+  let stampCurrentTexture: ReturnType<typeof vi.fn<() => void>>;
 
   beforeEach(() => {
+    stampCurrentTexture = vi.fn<() => void>();
     pane = document.createElement('div');
     document.body.appendChild(pane);
     const scene = new THREE.Scene();
@@ -56,8 +59,33 @@ describe('ControllerViewportToolChrome', () => {
       onTransformMode: () => undefined,
       faceInspectorReveal: () => undefined,
       onExtrudeFaces: () => undefined,
+      onStampCurrentTexture: stampCurrentTexture,
     });
     controller.attachPane(pane);
+  });
+
+  afterEach(() => {
+    getStateTextureStampTool().toolActiveWrite(false);
+  });
+
+  it('stamps the selection when Apply Current Texture is chosen and stays active in face mode', () => {
+    controller.selectTool(EditorToolId.STAMP);
+    expect(stampCurrentTexture).toHaveBeenCalledTimes(1);
+    expect(controller.getActiveTool()).toBe(EditorToolId.STAMP);
+    expect(getStateTextureStampTool().toolActiveRead()).toBe(true);
+    expect(faceController.getSelectionMode()).toBe(SelectionMode.FACE);
+    controller.onExternalSelectionModeChanged(SelectionMode.FACE);
+    expect(controller.getActiveTool()).toBe(EditorToolId.STAMP);
+  });
+
+  it('stops stamping when another tool or object mode takes over', () => {
+    controller.selectTool(EditorToolId.STAMP);
+    controller.selectTool(EditorToolId.FACE);
+    expect(getStateTextureStampTool().toolActiveRead()).toBe(false);
+    controller.selectTool(EditorToolId.STAMP);
+    controller.onExternalSelectionModeChanged(SelectionMode.OBJECT);
+    expect(getStateTextureStampTool().toolActiveRead()).toBe(false);
+    expect(controller.getActiveTool()).toBe(EditorToolId.OBJECT);
   });
 
   it('should start on object tool', () => {
@@ -85,6 +113,7 @@ describe('ControllerViewportToolChrome', () => {
       onTransformMode: () => undefined,
       faceInspectorReveal: () => undefined,
       onExtrudeFaces: () => undefined,
+      onStampCurrentTexture: () => undefined,
       switchToGridTool: switchToGrid,
       onGridReset: () => undefined,
       onGridAlignToFace: () => undefined,
@@ -122,6 +151,7 @@ describe('ControllerViewportToolChrome', () => {
       onTransformMode: () => undefined,
       faceInspectorReveal: () => undefined,
       onExtrudeFaces: () => undefined,
+      onStampCurrentTexture: () => undefined,
       isEditorToolBusy: () => true,
     });
     busy.attachPane(document.createElement('div'));
@@ -155,6 +185,7 @@ describe('ControllerViewportToolChrome', () => {
       onTransformMode: () => undefined,
       faceInspectorReveal: () => undefined,
       onExtrudeFaces: () => undefined,
+      onStampCurrentTexture: () => undefined,
       switchToFaceSelect,
     });
     wired.attachPane(document.createElement('div'));
@@ -259,6 +290,7 @@ describe('ControllerViewportToolChrome', () => {
       onTransformMode: () => undefined,
       faceInspectorReveal: () => undefined,
       onExtrudeFaces: () => undefined,
+      onStampCurrentTexture: () => undefined,
       onEnterEditMode: () => false,
     });
     blocked.attachPane(document.createElement('div'));

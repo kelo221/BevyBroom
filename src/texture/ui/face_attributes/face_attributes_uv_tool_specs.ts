@@ -29,7 +29,10 @@ export const FACE_ATTRIBUTES_UV_TOOL_SPECS = Object.freeze({
   flipVertical: { title: 'Flip V', run: (h) => h.onFlip('vertical') },
   rotateCounterClockwise: { title: 'Rot −90', run: (h) => h.onRotate(-90) },
   rotateClockwise: { title: 'Rot 90', run: (h) => h.onRotate(90) },
-  resetFace: { title: 'Reset Face', run: (h) => h.onResetFace() },
+  alignFloor: { title: 'Align Floor', run: (h) => h.onAlign('floor') },
+  alignWall: { title: 'Align Wall', run: (h) => h.onAlign('wall') },
+  alignCeiling: { title: 'Align Ceiling', run: (h) => h.onAlign('ceiling') },
+  resetUvs: { title: 'Reset UVs', run: (h) => h.onReset() },
   resetWorld: { title: 'Reset World', run: (h) => h.onResetWorld() },
 } as const satisfies Record<string, FaceAttributesUvToolButtonSpec>);
 
@@ -56,7 +59,6 @@ export const FACE_ATTRIBUTES_UV_TOOL_ROWS_DEFAULT: ReadonlyArray<readonly FaceAt
     FACE_ATTRIBUTES_UV_TOOL_SPECS.flipVertical,
     FACE_ATTRIBUTES_UV_TOOL_SPECS.rotateCounterClockwise,
     FACE_ATTRIBUTES_UV_TOOL_SPECS.rotateClockwise,
-    FACE_ATTRIBUTES_UV_TOOL_SPECS.resetFace,
     FACE_ATTRIBUTES_UV_TOOL_SPECS.resetWorld,
   ],
 ];

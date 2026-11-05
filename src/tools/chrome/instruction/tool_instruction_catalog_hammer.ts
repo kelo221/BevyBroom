@@ -25,13 +25,13 @@ const TOOL_INSTRUCTIONS_BY_ID: Readonly<Record<EditorToolId, ToolInstruction>> =
     title: 'Face Select',
     shortcut: 'Shift+Tab',
     description:
-      'Select individual faces on content meshes and solid results. Use Shift or Ctrl to extend the selection. Open the Face Edit Sheet or Extrude from the tool options bar.',
+      'Select individual faces on content meshes and solid results. Use Shift or Ctrl to extend the selection. Right-click a face to apply the current texture, Alt+right-click to apply it with the lifted alignment. Open the Face Edit Sheet or Extrude from the tool options bar.',
   },
   [EditorToolId.STAMP]: {
     title: 'Apply Current Texture',
     shortcut: 'Shift+T',
     description:
-      'Applies the current texture from the texture bar to the selected objects or faces, or click a face in the viewport to stamp the current material.',
+      'Applies the current texture from the texture bar to the selected objects or faces, then stays active: click or right-click a face in the viewport to stamp the current texture on it, Alt+right-click to stamp it with the lifted alignment.',
   },
   [EditorToolId.CLIP_PLANE]: {
     title: 'Clip Plane',

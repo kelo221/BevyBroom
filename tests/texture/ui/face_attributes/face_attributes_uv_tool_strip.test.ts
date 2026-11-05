@@ -20,7 +20,8 @@ describe('FaceAttributesUvToolStrip', () => {
       onAlignEdge: vi.fn(),
       onFlip: vi.fn(),
       onRotate: vi.fn(),
-      onResetFace: vi.fn(),
+      onAlign: vi.fn(),
+      onReset: vi.fn(),
       onResetWorld: vi.fn(),
       onShearCommit: vi.fn(),
     };
@@ -56,8 +57,6 @@ describe('FaceAttributesUvToolStrip', () => {
     expect(handlers.onRotate).toHaveBeenCalledWith(-90);
     clickButton('Rot 90');
     expect(handlers.onRotate).toHaveBeenCalledWith(90);
-    clickButton('Reset Face');
-    expect(handlers.onResetFace).toHaveBeenCalled();
     clickButton('Reset World');
     expect(handlers.onResetWorld).toHaveBeenCalled();
   });

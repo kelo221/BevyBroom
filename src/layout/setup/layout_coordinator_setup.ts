@@ -181,6 +181,7 @@ export function setupToolsPaletteAndClipWiring(parts: {
     onTransformMode: parts.onTransformMode,
     faceInspectorReveal: parts.faceInspectorReveal,
     onExtrudeFaces: () => parts.faceModeCoordinator.onExtrudeFaces(),
+    onStampCurrentTexture: () => parts.faceModeCoordinator.textureStampApplyToSelection(),
     ...(parts.isEditorToolBusy !== undefined ? { isEditorToolBusy: parts.isEditorToolBusy } : {}),
     ...(parts.switchToClipTool !== undefined ? { switchToClipTool: parts.switchToClipTool } : {}),
     ...(parts.switchToObjectSelect !== undefined ? { switchToObjectSelect: parts.switchToObjectSelect } : {}),

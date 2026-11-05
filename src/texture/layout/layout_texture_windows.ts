@@ -168,6 +168,7 @@ export class LayoutTextureWindows {
     return {
       ...parts.faceAttributesHandlers,
       onShiftFullTile: (tilesU, tilesV) => uvTools?.shiftFullTile(tilesU, tilesV),
+      onShiftRandom: (axis) => uvTools?.shiftRandom(axis),
       onSetVectors2x3: (vectors) => uvTools?.setVectors2x3(vectors),
       onMarkFacesWithTexture: (textureId) => parts.materialUsageController?.selectFacesUsingTexture(textureId),
       onBrowseMaterial: () => this.textureBrowserShow(),

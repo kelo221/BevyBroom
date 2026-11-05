@@ -23,7 +23,8 @@ import type {
 import { MaterialBrowser } from '@/texture/ui/material_browser/material_browser.js';
 import { FaceInspector } from '@/texture/ui/face_inspector/face_inspector.js';
 import type { TextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
-import { getTextureMapCache } from '@/texture/library/texture_map_cache.js';
+import { textureSizePixelsRead } from '@/texture/library/texture_size_pixels.js';
+import { faceUvCameraDirectionsFromCamera } from '@/texture/uv/operations/face_uv_operation_context_factory.js';
 import { StatusBar } from '@/ui/status/status_bar.js';
 
 /** Services the face inspector and its controllers are built from. */
@@ -216,7 +217,7 @@ function faceUvToolsControllerBuild(
     deps.faceController,
     deps.commandStack,
     services.gridSnap as GridSnap,
-    () => faceInspectorCameraDirectionsRead(cameraRead()),
+    () => faceUvCameraDirectionsFromCamera(cameraRead()),
     () => keyboardHandler?.modifiersStateRead() ?? { shift: false, ctrl: false },
   );
 }
@@ -282,7 +283,6 @@ function faceAttributesHandlersBuild(
     onAlignEdge: (mode) => afterEdit(() => uvToolsController?.alignEdge(mode)),
     onFlip: (axis) => afterEdit(() => uvToolsController?.flip(axis)),
     onRotate: (degrees) => afterEdit(() => uvToolsController?.rotate(degrees)),
-    onResetFace: () => afterEdit(() => uvToolsController?.resetToFace()),
     onResetWorld: () => afterEdit(() => uvToolsController?.resetToWorld()),
     onShearCommit: (mode, factor) => afterEdit(() => uvToolsController?.shearFromField(mode, factor)),
   };
@@ -304,26 +304,12 @@ function faceInspectorMaterialDescribe(
   if (entry === null) {
     return null;
   }
-  const sizePixels = faceInspectorTextureSizeRead(textureId);
+  const sizePixels = textureSizePixelsRead(textureId);
   return {
     displayName: entry.displayName,
     previewObjectUrl: entry.previewObjectUrl,
     ...(sizePixels ? { sizePixels } : {}),
   };
-}
-
-/**
- * Reads the decoded pixel size of a cached texture.
- *
- * @param textureId Texture identity.
- * @returns Image size, or null while unknown.
- */
-function faceInspectorTextureSizeRead(textureId: string): { width: number; height: number } | null {
-  const image = getTextureMapCache().resolve(textureId).image as { width?: number; height?: number } | null;
-  if (!image || !image.width || !image.height) {
-    return null;
-  }
-  return { width: image.width, height: image.height };
 }
 
 /**
@@ -537,27 +523,4 @@ function faceInspectorAutoRevealRun(deps: FaceInspectorSetupDeps, selectedFaceCo
     return;
   }
   deps.revealFaceInspector?.();
-}
-
-/**
- * Reads world-space camera right and up directions from a camera basis.
- *
- * @param camera Active camera, or null.
- * @returns Unit camera directions, or null without a camera.
- */
-function faceInspectorCameraDirectionsRead(camera: THREE.Camera | null): {
-  right: THREE.Vector3;
-  up: THREE.Vector3;
-} | null {
-  if (!camera) {
-    return null;
-  }
-  camera.updateMatrixWorld();
-  const basis = camera.matrixWorld.elements;
-  const right = new THREE.Vector3(basis[0], basis[1], basis[2]).normalize();
-  const up = new THREE.Vector3(basis[4], basis[5], basis[6]).normalize();
-  if (right.lengthSq() < 1e-12 || up.lengthSq() < 1e-12) {
-    return null;
-  }
-  return { right, up };
 }

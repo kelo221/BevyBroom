@@ -7,6 +7,8 @@ import type { SurfaceUvVectors2x3 } from '@/texture/uv_matrix/surface_uv_matrix_
 export interface DialogFaceEditSheetHandlers extends FaceAttributesEditorHandlers {
   /** Shifts UVs by whole-tile increments. */
   onShiftFullTile?: (tilesU: number, tilesV: number) => void;
+  /** Shifts one texture axis by a random whole-texel amount. */
+  onShiftRandom?: (axis: 'u' | 'v') => void;
   /** Sets the 2×3 U and V projection axis direction vectors. */
   onSetVectors2x3?: (vectors: SurfaceUvVectors2x3) => void;
   /** Selects all faces in the map using the current texture. */

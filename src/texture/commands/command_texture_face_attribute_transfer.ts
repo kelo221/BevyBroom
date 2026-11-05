@@ -11,25 +11,31 @@ import { CommandTextureUvStrokeSmear, SmearMeshSnapshot } from '@/texture/comman
 import { restoreUvTransformSnapshot } from '@/texture/interactive/commands/command_texture_uv_transform.js';
 
 /**
- * Undoable command that copies one face region's material and alignment onto
- * other face regions. The UV matrix is transferred across faces so textures
- * continue across shared edges where possible. One command is one undo step.
+ * Undoable command that copies one face region's alignment, and its material or
+ * a given replacement material, onto other face regions. The UV matrix is
+ * transferred across faces so textures continue across shared edges where
+ * possible. One command is one undo step.
  */
 export class CommandTextureFaceAttributeTransfer implements UndoCommand {
   private readonly source: TextureApplyTarget;
   private readonly targets: TextureApplyTarget[];
+  private readonly textureIdOverride: string | null;
   private beforeSnapshots: SmearMeshSnapshot[];
   private executed: boolean;
 
   /**
    * Creates an attribute transfer command.
    *
-   * @param source Face region whose material and alignment are copied.
+   * @param source Face region whose alignment, and material unless replaced,
+   *   are copied.
    * @param targets Face regions receiving the material and alignment.
+   * @param textureIdOverride Material written instead of the source material,
+   *   or null to copy the source material.
    */
-  constructor(source: TextureApplyTarget, targets: TextureApplyTarget[]) {
+  constructor(source: TextureApplyTarget, targets: TextureApplyTarget[], textureIdOverride: string | null = null) {
     this.source = source;
     this.targets = targets;
+    this.textureIdOverride = textureIdOverride;
     this.beforeSnapshots = [];
     this.executed = false;
   }
@@ -85,7 +91,7 @@ export class CommandTextureFaceAttributeTransfer implements UndoCommand {
       target.mesh,
       target.triangleIndices,
     );
-    transferred.textureId = sourceMapping.textureId;
+    transferred.textureId = this.textureIdOverride ?? sourceMapping.textureId;
     upsertFaceTextureMap(target.mesh, target.triangleIndices, transferred);
     bakeFaceUVs(target.mesh, target.triangleIndices, transferred);
     rebuildSurfaceMaterials(target.mesh, undefined, undefined, {

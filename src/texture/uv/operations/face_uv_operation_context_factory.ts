@@ -20,6 +20,26 @@ export type FaceUvTargetContextFactory = (target: TextureApplyTarget) => FaceUvO
 const VERTEX_WELD_DISTANCE = 1e-4;
 
 /**
+ * Reads world-space camera right and up directions from a camera basis.
+ *
+ * @param camera Camera, or null.
+ * @returns Unit camera directions, or null without a usable camera.
+ */
+export function faceUvCameraDirectionsFromCamera(camera: THREE.Camera | null): FaceUvCameraDirections | null {
+  if (!camera) {
+    return null;
+  }
+  camera.updateMatrixWorld();
+  const basis = camera.matrixWorld.elements;
+  const right = new THREE.Vector3(basis[0], basis[1], basis[2]);
+  const up = new THREE.Vector3(basis[4], basis[5], basis[6]);
+  if (right.lengthSq() < 1e-12 || up.lengthSq() < 1e-12) {
+    return null;
+  }
+  return { right: right.normalize(), up: up.normalize() };
+}
+
+/**
  * Creates the default target context factory: builds each region's convex world
  * polygon, its normal, and optional camera directions.
  *

@@ -40,7 +40,6 @@ describe('FaceAttributesEditor', () => {
       onAlignEdge: vi.fn<FaceAttributesEditorHandlers['onAlignEdge']>(),
       onFlip: vi.fn<FaceAttributesEditorHandlers['onFlip']>(),
       onRotate: vi.fn<FaceAttributesEditorHandlers['onRotate']>(),
-      onResetFace: vi.fn<FaceAttributesEditorHandlers['onResetFace']>(),
       onResetWorld: vi.fn<FaceAttributesEditorHandlers['onResetWorld']>(),
       onShearCommit: vi.fn<FaceAttributesEditorHandlers['onShearCommit']>(),
     };

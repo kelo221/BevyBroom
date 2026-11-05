@@ -34,6 +34,16 @@ function stepperButtonRead(spinner: InputNumberSpinner, direction: 'up' | 'down'
   return button;
 }
 
+/**
+ * Builds a bubbling, cancelable wheel event.
+ *
+ * @param init Wheel deltas and modifier keys.
+ * @returns Wheel event.
+ */
+function wheelEventCreate(init: WheelEventInit): WheelEvent {
+  return new WheelEvent('wheel', { bubbles: true, cancelable: true, ...init });
+}
+
 afterEach(() => {
   spinnerTestInstances.splice(0).forEach((spinner) => spinner.dispose());
   document.body.replaceChildren();
@@ -90,6 +100,48 @@ describe('InputNumberSpinner', () => {
     expect(spinner.stepBy(1)).toBe(false);
     stepperButtonRead(spinner, 'up').click();
     expect(spinner.parseNumberOrNull()).toBeNull();
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it('steps with the mouse wheel over the spinner, commits and blocks the page scroll', () => {
+    const step = 0.5;
+    const start = 4;
+    const { spinner, onCommit } = spinnerTestCreate(step);
+    spinner.setNumber(start, 2);
+    const scrollUp = wheelEventCreate({ deltaY: -120 });
+    spinner.getElement().dispatchEvent(scrollUp);
+    expect(spinner.parseNumberOrNull()).toBeCloseTo(start + step, 6);
+    expect(scrollUp.defaultPrevented).toBe(true);
+    stepperButtonRead(spinner, 'down').dispatchEvent(wheelEventCreate({ deltaY: 120 }));
+    expect(spinner.parseNumberOrNull()).toBeCloseTo(start, 6);
+    expect(onCommit).toHaveBeenCalledTimes(2);
+  });
+
+  it('steps ten times with Shift and a tenth with Ctrl on the wheel', () => {
+    const step = 1;
+    const start = 20;
+    const { spinner } = spinnerTestCreate(step);
+    spinner.setNumber(start, 2);
+    spinner.getElement().dispatchEvent(wheelEventCreate({ deltaY: -100, shiftKey: true }));
+    expect(spinner.parseNumberOrNull()).toBeCloseTo(start + 10 * step, 6);
+    spinner.getElement().dispatchEvent(wheelEventCreate({ deltaX: 100, shiftKey: true }));
+    expect(spinner.parseNumberOrNull()).toBeCloseTo(start, 6);
+    spinner.getElement().dispatchEvent(wheelEventCreate({ deltaY: -100, ctrlKey: true }));
+    expect(spinner.parseNumberOrNull()).toBeCloseTo(start + 0.1 * step, 6);
+  });
+
+  it('lets the page scroll over a mixed value or after dispose', () => {
+    const { spinner, onCommit } = spinnerTestCreate(1);
+    spinner.setNumber(null, 2);
+    const overMixed = wheelEventCreate({ deltaY: -100 });
+    spinner.getElement().dispatchEvent(overMixed);
+    expect(overMixed.defaultPrevented).toBe(false);
+    spinner.setNumber(3, 0);
+    spinner.dispose();
+    const afterDispose = wheelEventCreate({ deltaY: -100 });
+    spinner.getElement().dispatchEvent(afterDispose);
+    expect(afterDispose.defaultPrevented).toBe(false);
+    expect(spinner.parseNumberOrNull()).toBe(3);
     expect(onCommit).not.toHaveBeenCalled();
   });
 

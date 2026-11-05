@@ -421,6 +421,15 @@ export interface EditorServices {
   ): boolean;
 
   /**
+   * Arms the right-button texture apply click at a client point while the face
+   * tool is active. Optional so hosts without texture application can omit it.
+   *
+   * @param clientX Pointer client X.
+   * @param clientY Pointer client Y.
+   */
+  beginFaceSelectSecondaryPress?: (clientX: number, clientY: number) => void;
+
+  /**
    * Continues face paint or UV smear while the button is held.
    *
    * @param clientX Pointer client X.

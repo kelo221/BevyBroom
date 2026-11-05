@@ -77,8 +77,22 @@ describe('FaceEditSheetSectionMoreTools', () => {
     expect(handlers.onAlignEdge.mock.calls).toEqual([['previous'], ['best'], ['next']]);
     expect(handlers.onFlip.mock.calls).toEqual([['horizontal'], ['vertical']]);
     expect(handlers.onRotate.mock.calls).toEqual([[-90], [90]]);
-    expect(handlers.onResetFace).toHaveBeenCalledTimes(1);
+    expect(handlers.onAlign.mock.calls).toEqual([['floor'], ['wall'], ['ceiling']]);
+    expect(handlers.onReset).toHaveBeenCalledTimes(1);
     expect(handlers.onResetWorld).toHaveBeenCalledTimes(1);
+  });
+
+  it('restores Reset UVs and Align Floor / Wall / Ceiling in the sheet', () => {
+    const created = moreToolsTestCreate(handlers);
+    built.push(created);
+    const root = created.section.elementRead();
+    faceEditSheetTestButtonRead(root, 'Reset UVs').click();
+    faceEditSheetTestButtonRead(root, 'Align Floor').click();
+    faceEditSheetTestButtonRead(root, 'Align Wall').click();
+    faceEditSheetTestButtonRead(root, 'Align Ceiling').click();
+    expect(handlers.onReset).toHaveBeenCalledTimes(1);
+    expect(handlers.onAlign.mock.calls).toEqual([['floor'], ['wall'], ['ceiling']]);
+    expect(root.querySelector('button[aria-label="Reset Face"]')).toBeNull();
   });
 
   it('offers whole-tile shifts and the offset and scale nudges', () => {

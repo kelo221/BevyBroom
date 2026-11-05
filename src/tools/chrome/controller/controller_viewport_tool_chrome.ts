@@ -29,6 +29,7 @@ import { getStatePolygonTool } from '@/tools/polygon/state_polygon_tool.js';
 import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
 import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
+import { getStateTextureStampTool } from '@/tools/texture_stamp/state_texture_stamp_tool.js';
 
 /** Dependencies for coordinating per-pane tool chrome with editor modes. */
 export interface ControllerViewportToolChromeDependencies {
@@ -93,8 +94,8 @@ export interface ControllerViewportToolChromeDependencies {
    * (e.g. hide bounds widgets while Grid is active).
    */
   onPrimaryToolChanged?: () => void;
-  /** Stamps the current texture onto the active selection. */
-  onStampCurrentTexture?: () => void;
+  /** Stamps the current texture onto the selected faces or objects. */
+  onStampCurrentTexture: () => void;
   /** Switches the editor tool stack to the Polygon brush tool. */
   switchToPolygonTool?: () => void;
   /** Switches the editor tool stack to the Sprinkle scatter tool. */
@@ -321,10 +322,6 @@ export class ControllerViewportToolChrome {
       this.selectToolInEditMode(toolId);
       return;
     }
-    if (toolId === EditorToolId.STAMP) {
-      this.activateStampTool();
-      return;
-    }
     if (toolId === EditorToolId.VERTEX) {
       this.activateVertexTool();
       return;
@@ -361,6 +358,8 @@ export class ControllerViewportToolChrome {
     getStateEntityPlace().toolActiveWrite(toolId === EditorToolId.ENTITY);
     getStatePolygonTool().toolActiveWrite(toolId === EditorToolId.POLYGON);
     getStateSprinkleTool().toolActiveWrite(toolId === EditorToolId.SPRINKLE);
+    getStateTextureStampTool().toolActiveWrite(toolId === EditorToolId.STAMP);
+    if (toolId === EditorToolId.STAMP) return this.activateStampTool();
     if (toolId === EditorToolId.OBJECT) return this.activateObjectTool();
     if (toolId === EditorToolId.BLOCK) return this.activateBlockTool();
     if (toolId === EditorToolId.ENTITY) return this.activateEntityTool();
@@ -390,10 +389,13 @@ export class ControllerViewportToolChrome {
     this.syncExternalObjectSelectionMode();
   }
 
-  /** Syncs rail state when Face selection mode is entered externally. */
+  /**
+   * Syncs rail state when Face selection mode is entered externally; the Apply
+   * Current Texture tool stays active since it works in face mode.
+   */
   private syncExternalFaceSelectionMode(): void {
     this.clearObjectToolOverlays();
-    if (this.activeTool !== EditorToolId.FACE) {
+    if (this.activeTool !== EditorToolId.FACE && this.activeTool !== EditorToolId.STAMP) {
       this.activeTool = EditorToolId.FACE;
       this.deps.switchToFaceSelect?.();
     }
@@ -404,6 +406,7 @@ export class ControllerViewportToolChrome {
 
   /** Syncs rail state when Object selection mode is entered externally. */
   private syncExternalObjectSelectionMode(): void {
+    getStateTextureStampTool().toolActiveWrite(false);
     if (this.activeTool !== EditorToolId.OBJECT) {
       this.activeTool = EditorToolId.OBJECT;
       this.deps.switchToObjectSelect?.();
@@ -471,6 +474,7 @@ export class ControllerViewportToolChrome {
 
   /** Keeps Edit Select active while Edit Mode is open. */
   private activateEditSelectTool(): void {
+    getStateTextureStampTool().toolActiveWrite(false);
     this.endClipSessionIfActive();
     this.clearObjectToolOverlays();
     this.activeTool = EditorToolId.OBJECT;
@@ -489,14 +493,19 @@ export class ControllerViewportToolChrome {
     this.activeTool = EditorToolId.FACE;
     getStateFaceEditSession().sheetOpenWrite(true);
     this.broadcastActiveTool();
-    if (this.deps.switchToFaceSelect) {
-      this.deps.switchToFaceSelect();
-    } else {
-      this.deps.faceExtrusionController.setSelectionMode(SelectionMode.FACE);
-    }
+    this.faceSelectToolSwitch();
     this.refreshChromeContext();
     this.notifyPrimaryToolChanged();
     this.deps.showStatusMessage('Face select');
+  }
+
+  /** Switches the editor to the face select tool, or face mode without one. */
+  private faceSelectToolSwitch(): void {
+    if (this.deps.switchToFaceSelect) {
+      this.deps.switchToFaceSelect();
+      return;
+    }
+    this.deps.faceExtrusionController.setSelectionMode(SelectionMode.FACE);
   }
 
   /** Activates the dedicated Block brush creation tool. */
@@ -527,11 +536,22 @@ export class ControllerViewportToolChrome {
     this.deps.showStatusMessage('Entity tool · click in a viewport to place entity');
   }
 
-  /** Applies the current paint texture to the selection. */
+  /**
+   * Applies the current paint texture to the selection, then stays active in
+   * face mode so clicking faces stamps the current texture on them.
+   */
   private activateStampTool(): void {
-    this.deps.onStampCurrentTexture?.();
+    this.deps.onStampCurrentTexture();
+    this.endClipSessionIfActive();
+    this.clearObjectToolOverlays();
+    this.clearEditModeToolOverlays();
+    this.activeTool = EditorToolId.STAMP;
+    this.broadcastActiveTool();
+    this.faceSelectToolSwitch();
+    this.refreshChromeContext();
+    this.notifyPrimaryToolChanged();
     const textureId = getStateTexturePaint().getLastTextureId();
-    this.deps.showStatusMessage(`Applied current texture: ${textureId}`);
+    this.deps.showStatusMessage(`Apply Current Texture: ${textureId} · click a face to stamp it`);
   }
 
   /** Enters Edit Mode in Vertex selection mode on the selected object. */

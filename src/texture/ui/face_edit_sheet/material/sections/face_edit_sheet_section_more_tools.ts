@@ -33,7 +33,12 @@ export const FACE_EDIT_SHEET_MORE_TOOLS_UV_ROWS: ReadonlyArray<readonly FaceAttr
     FACE_ATTRIBUTES_UV_TOOL_SPECS.rotateCounterClockwise,
     FACE_ATTRIBUTES_UV_TOOL_SPECS.rotateClockwise,
   ],
-  [FACE_ATTRIBUTES_UV_TOOL_SPECS.resetFace, FACE_ATTRIBUTES_UV_TOOL_SPECS.resetWorld],
+  [
+    FACE_ATTRIBUTES_UV_TOOL_SPECS.alignFloor,
+    FACE_ATTRIBUTES_UV_TOOL_SPECS.alignWall,
+    FACE_ATTRIBUTES_UV_TOOL_SPECS.alignCeiling,
+  ],
+  [FACE_ATTRIBUTES_UV_TOOL_SPECS.resetUvs, FACE_ATTRIBUTES_UV_TOOL_SPECS.resetWorld],
 ];
 
 /** Field rows whose nudge buttons the More tools section offers. */
@@ -48,8 +53,9 @@ const FACE_EDIT_SHEET_MORE_TOOLS_AXIS_CAPTIONS: readonly string[] = ['X', 'Y'];
 /**
  * Collapsible More tools section of the Material tab holding the BevyBroom UV
  * tools the Hammer layout lacks: whole-tile shifts, Fit H/V, Align, Flip,
- * Rotate, resets, shear and the offset / scale nudges. Collapsed by default;
- * the expanded state lives in the Face Edit Sheet session.
+ * Rotate, Align Floor / Wall / Ceiling, Reset UVs / World, shear and the offset
+ * / scale nudges. Collapsed by default; the expanded state lives in the Face
+ * Edit Sheet session.
  */
 export class FaceEditSheetSectionMoreTools extends FaceEditSheetSection {
   private readonly toggleButton: HTMLButtonElement;
