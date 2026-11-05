@@ -102,7 +102,7 @@ export class SettingsViewTab {
     checkbox.checked = enabled;
     checkbox.dataset['settingsField'] = 'face-inspector-auto-reveal';
     checkbox.addEventListener('change', () => this.store.setFaceInspectorAutoReveal(checkbox.checked));
-    return createSettingsControlRow('Reveal Face inspector when faces are selected', checkbox);
+    return createSettingsControlRow('Open Face Edit Sheet when faces are selected', checkbox);
   }
 
   /**

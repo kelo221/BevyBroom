@@ -1,6 +1,5 @@
 import { TabBook } from '@/ui/tabs/tab_book.js';
-import { Theme } from '@/theme.js';
-import { hexToRgb } from '@/utils/utils_color.js';
+import { ShellDock } from './shell_dock.js';
 
 /** One tab of a tabbed dock: its id, its label and its keyboard tooltip. */
 export interface ShellDockTabDefinition {
@@ -13,7 +12,7 @@ export interface ShellDockTabDefinition {
  * A docked panel made of named tabs, each with its own page element. Pages stay
  * mounted while hidden so their contents keep scroll position and state.
  */
-export class ShellDockTabbed {
+export class ShellDockTabbed extends ShellDock {
   private readonly tabBook: TabBook;
   private readonly pages: Map<string, HTMLElement>;
 
@@ -26,21 +25,13 @@ export class ShellDockTabbed {
    * @param initialTabId Tab shown first.
    */
   constructor(ariaLabel: string, tabs: readonly ShellDockTabDefinition[], initialTabId: string) {
-    this.tabBook = new TabBook({ ariaLabel, variant: 'underline', pageRetention: 'mounted' });
+    const tabBook = new TabBook({ ariaLabel, variant: 'underline', pageRetention: 'mounted' });
+    super(tabBook.getElement());
+    this.tabBook = tabBook;
     this.pages = new Map();
     tabs.forEach((tab) => this.tabRegister(tab));
     this.tabShow(initialTabId);
     this.tabBook.pagesMountAll();
-    this.rootStyle();
-  }
-
-  /**
-   * Returns the dock root element.
-   *
-   * @returns Root element holding the tab strip and pages.
-   */
-  getElement(): HTMLElement {
-    return this.tabBook.getElement();
   }
 
   /**
@@ -87,7 +78,7 @@ export class ShellDockTabbed {
   }
 
   /** Removes the dock and its pages from the document. */
-  dispose(): void {
+  override dispose(): void {
     this.tabBook.dispose();
     this.pages.clear();
   }
@@ -117,14 +108,5 @@ export class ShellDockTabbed {
    */
   private tooltipPart(tab: ShellDockTabDefinition): { tooltip?: string } {
     return tab.tooltip === undefined ? {} : { tooltip: tab.tooltip };
-  }
-
-  /** Fills the parent pane with the dock and paints the panel background. */
-  private rootStyle(): void {
-    const root = this.tabBook.getElement();
-    root.style.flex = '1 1 auto';
-    root.style.minHeight = '0';
-    root.style.minWidth = '0';
-    root.style.background = hexToRgb(Theme.propertiesPanelBackground);
   }
 }

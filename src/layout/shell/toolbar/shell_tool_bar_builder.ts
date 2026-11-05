@@ -1,10 +1,12 @@
 import type { Toolbar } from '@/ui/toolbar/toolbar.js';
 import { ToolbarIcons } from '@/ui/toolbar/toolbar_icons.js';
+import { ToolbarIconsHammer } from '@/ui/toolbar/toolbar_icons_hammer.js';
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import { SNAP_PRESETS } from '@/types/snap_presets.js';
 import type { EditorToolbarActions } from '@/layout/shell/builder_editor_shell.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
 import { formatGridIntervalLabel } from '@/layout/shell/toolbar/shell_grid_interval_label.js';
+import { getStateSelectionFilter } from '@/selection/filter/state_selection_filter.js';
 
 /** CSS class of the toolbar slot that receives the docked tool buttons. */
 export const SHELL_TOOL_BAR_TOOL_SLOT_CLASS = 'shell-toolbar-tool-slot';
@@ -52,7 +54,8 @@ export class ShellToolBarBuilder {
   }
 
   /**
-   * Adds the Duplicate, Flip Horizontally and Flip Vertically buttons.
+   * Adds the Duplicate, Flip Horizontally, Flip Vertically, Group, Ungroup and
+   * Ignore Groups buttons.
    *
    * @param toolbar Main toolbar.
    * @param actions Scene toolbar actions.
@@ -66,6 +69,26 @@ export class ShellToolBarBuilder {
     toolbar.addIconButton('Flip Vertically', ToolbarIcons.flipVertical(), () =>
       windowActions.solidBrushToolsRead()?.flip('vertical'),
     );
+    this.hammerGroupButtonsAdd(toolbar, actions);
+  }
+
+  /**
+   * Adds the Hammer++ Group, Ungroup, and Ignore Groups (ig) buttons.
+   *
+   * @param toolbar Main toolbar.
+   * @param actions Scene toolbar actions.
+   */
+  private hammerGroupButtonsAdd(toolbar: Toolbar, actions: EditorToolbarActions): void {
+    toolbar.addIconButton('Group', ToolbarIconsHammer.group(), () => actions.onGroupSelected());
+    toolbar.addIconButton('Ungroup', ToolbarIconsHammer.ungroup(), () => actions.onUngroupSelected());
+    const filterState = getStateSelectionFilter();
+    toolbar.addIconButton('Ignore Groups', ToolbarIconsHammer.ignoreGroups(), () => {
+      filterState.ignoreGroupsWrite(!filterState.ignoreGroupsRead());
+    });
+    toolbar.setButtonActiveByLabel('Ignore Groups', filterState.ignoreGroupsRead());
+    filterState.changeListenerAdd(() => {
+      toolbar.setButtonActiveByLabel('Ignore Groups', filterState.ignoreGroupsRead());
+    });
   }
 
   /**

@@ -113,4 +113,9 @@ export const Theme = Object.freeze({
   viewportToolbarButtonHover: 'rgba(255, 255, 255, 0.08)',
   /** Frame drawn around the viewport pane under the pointer. */
   viewportFocusBorderColor: '#3e70cd',
+  /**
+   * Text and badge color of entity I/O connections whose target matches
+   * nothing.
+   */
+  logicTargetBrokenColor: '#e45b4c',
 });

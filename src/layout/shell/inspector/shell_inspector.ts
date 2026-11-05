@@ -1,56 +1,43 @@
+import { Theme } from '@/theme.js';
 import { SplitterBox } from '@/ui/splitter/splitter_box.js';
-import { ShellDockTabbed, type ShellDockTabDefinition } from '@/layout/shell/dock/shell_dock_tabbed.js';
+import { ShellDock } from '@/layout/shell/dock/shell_dock.js';
 import type { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
 
-/** Ids of the inspector tabs. */
-export type ShellInspectorTabId = 'map' | 'entity' | 'face';
-
 /** Places inside the inspector that editor panels are mounted into. */
-export type ShellInspectorSlot = 'map_layers' | 'map_outliner' | 'entity_properties' | 'entity_browser' | 'face';
+export type ShellInspectorSlot =
+  'hammer_object_bar' | 'hammer_visgroups' | 'hammer_prefabs' | 'map_layers' | 'map_outliner';
 
-/** Inspector tabs in display order. */
-export const SHELL_INSPECTOR_TABS: readonly ShellDockTabDefinition[] = [
-  { id: 'map', label: 'Map' },
-  { id: 'entity', label: 'Entity' },
-  { id: 'face', label: 'Face' },
+/** Slots of the pinned Hammer bar from top to bottom. */
+export const SHELL_INSPECTOR_HAMMER_BAR_SLOTS: readonly ShellInspectorSlot[] = [
+  'hammer_object_bar',
+  'hammer_visgroups',
+  'hammer_prefabs',
 ];
 
 /** Splitter key and starting size of the layers list above the outliner. */
 const SHELL_INSPECTOR_MAP_SPLIT = { key: 'inspector_map_layers', initialPx: 170, minPx: 80 } as const;
 
-/** Splitter key and starting size of the properties above the entity browser. */
-const SHELL_INSPECTOR_ENTITY_SPLIT = { key: 'inspector_entity_properties', initialPx: 320, minPx: 120 } as const;
-
-/** Splitter description used to build one inner split of an inspector page. */
-interface ShellInspectorSplitDefinition {
-  readonly key: string;
-  readonly initialPx: number;
-  readonly minPx: number;
-}
-
 /**
- * Right-hand inspector with Map, Entity and Face tabs. The Map tab stacks the
- * layers list over the outliner, the Entity tab stacks the properties over the
- * entity browser, and the Face tab holds the face inspector.
+ * Right-hand inspector laid out like the Hammer++ right bar: a pinned,
+ * scrollable Hammer bar on top and the Map section (layers over the outliner)
+ * filling the rest.
  */
-export class ShellInspector extends ShellDockTabbed {
+export class ShellInspector extends ShellDock {
   private readonly slots: Map<ShellInspectorSlot, HTMLElement>;
-  private readonly splitters: SplitterBox[];
+  private readonly mapSplitter: SplitterBox;
 
   /**
-   * Creates the inspector and restores its tab and inner splitter sizes.
+   * Creates the inspector and restores the Map section splitter size.
    *
-   * @param stateStore Store that keeps the shown tab and splitter sizes.
+   * @param stateStore Store that keeps the splitter size.
    */
   constructor(stateStore: ShellStateStore) {
-    super('Inspector', SHELL_INSPECTOR_TABS, stateStore.getState().inspectorTabId);
+    super(document.createElement('div'));
     this.slots = new Map();
-    this.splitters = [];
-    this.splitPageBuild('map', ['map_layers', 'map_outliner'], SHELL_INSPECTOR_MAP_SPLIT, stateStore);
-    this.splitPageBuild('entity', ['entity_properties', 'entity_browser'], SHELL_INSPECTOR_ENTITY_SPLIT, stateStore);
-    this.facePageBuild();
-    this.tabChangeListenerAdd((tabId) => stateStore.update({ inspectorTabId: tabId }));
-    this.getElement().classList.add('shell-inspector');
+    this.inspectorRootStyle();
+    this.getElement().appendChild(this.hammerBarCreate());
+    this.mapSplitter = this.mapSectionCreate(stateStore);
+    this.getElement().appendChild(this.mapSplitter.getElement());
   }
 
   /**
@@ -67,48 +54,84 @@ export class ShellInspector extends ShellDockTabbed {
     return element;
   }
 
-  /** Removes the inspector, its splitters and its pages. */
+  /** Removes the inspector, its splitter and its slots. */
   override dispose(): void {
-    this.splitters.forEach((splitter) => splitter.dispose());
-    this.splitters.length = 0;
+    this.mapSplitter.dispose();
     this.slots.clear();
     super.dispose();
   }
 
   /**
-   * Fills one tab page with a vertical splitter whose upper pane keeps its
-   * size.
-   *
-   * @param tabId Tab whose page receives the splitter.
-   * @param slotNames Slots of the upper and the lower pane.
-   * @param split Splitter key, starting size and minimum size.
-   * @param stateStore Store that keeps the splitter size.
+   * Lays the inspector root out as a column that fills the dock pane and gives
+   * every panel inside it the UI font unless a panel picks its own.
    */
-  private splitPageBuild(
-    tabId: ShellInspectorTabId,
-    slotNames: readonly [ShellInspectorSlot, ShellInspectorSlot],
-    split: ShellInspectorSplitDefinition,
-    stateStore: ShellStateStore,
-  ): void {
+  private inspectorRootStyle(): void {
+    const root = this.getElement();
+    root.classList.add('shell-inspector');
+    root.style.display = 'flex';
+    root.style.flexDirection = 'column';
+    root.style.height = '100%';
+    root.style.overflow = 'hidden';
+    root.style.fontFamily = Theme.uiFontFamily;
+    root.style.color = Theme.buttonTextColor;
+  }
+
+  /**
+   * Creates the pinned Hammer bar holding one slot per Hammer bar section.
+   *
+   * @returns Hammer bar element.
+   */
+  private hammerBarCreate(): HTMLElement {
+    const bar = document.createElement('div');
+    bar.classList.add('shell-inspector-hammer-bar');
+    bar.style.display = 'flex';
+    bar.style.flexDirection = 'column';
+    bar.style.flex = '0 1 auto';
+    bar.style.minHeight = '0';
+    bar.style.maxHeight = '60%';
+    bar.style.overflowY = 'auto';
+    SHELL_INSPECTOR_HAMMER_BAR_SLOTS.forEach((slot) => bar.appendChild(this.hammerBarSlotCreate(slot)));
+    return bar;
+  }
+
+  /**
+   * Creates and registers one Hammer bar section slot.
+   *
+   * @param slot Slot name.
+   * @returns Slot element.
+   */
+  private hammerBarSlotCreate(slot: ShellInspectorSlot): HTMLElement {
+    const element = document.createElement('div');
+    element.classList.add('shell-inspector-slot', `shell-inspector-slot-${slot}`);
+    element.dataset['inspectorSlot'] = slot;
+    element.style.display = 'flex';
+    element.style.flexDirection = 'column';
+    element.style.flex = '0 0 auto';
+    this.slots.set(slot, element);
+    return element;
+  }
+
+  /**
+   * Creates the Map section: a vertical splitter whose upper layers pane keeps
+   * its size over the outliner.
+   *
+   * @param stateStore Store that keeps the splitter size.
+   * @returns Map section splitter.
+   */
+  private mapSectionCreate(stateStore: ShellStateStore): SplitterBox {
     const splitter = new SplitterBox({
       orientation: 'vertical',
       sizedPane: 'first',
-      initialSizePx: stateStore.splitSizeRead(split.key, split.initialPx),
-      minSizedPx: split.minPx,
+      initialSizePx: stateStore.splitSizeRead(SHELL_INSPECTOR_MAP_SPLIT.key, SHELL_INSPECTOR_MAP_SPLIT.initialPx),
+      minSizedPx: SHELL_INSPECTOR_MAP_SPLIT.minPx,
       minFlexiblePx: 80,
     });
-    splitter.changeListenerAdd((sizePx) => stateStore.splitSizeWrite(split.key, sizePx));
-    this.pageRead(tabId)?.appendChild(splitter.getElement());
-    this.slots.set(slotNames[0], splitter.getFirstPane());
-    this.slots.set(slotNames[1], splitter.getSecondPane());
-    this.splitters.push(splitter);
-  }
-
-  /** Uses the whole Face page as the face slot. */
-  private facePageBuild(): void {
-    const page = this.pageRead('face');
-    if (page) {
-      this.slots.set('face', page);
-    }
+    splitter.changeListenerAdd((sizePx) => stateStore.splitSizeWrite(SHELL_INSPECTOR_MAP_SPLIT.key, sizePx));
+    splitter.getElement().classList.add('shell-inspector-map-section');
+    splitter.getElement().style.flex = '1 1 auto';
+    splitter.getElement().style.minHeight = '0';
+    this.slots.set('map_layers', splitter.getFirstPane());
+    this.slots.set('map_outliner', splitter.getSecondPane());
+    return splitter;
   }
 }

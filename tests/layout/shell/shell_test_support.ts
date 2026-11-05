@@ -21,6 +21,8 @@ export type ShellTestToolbarActions = { [Key in keyof EditorToolbarActions]: Moc
 export interface ShellTestDocks {
   readonly storage: Storage;
   readonly container: HTMLElement;
+  /** Main window root that floating windows mount into. */
+  readonly toolbarContainer: HTMLElement;
   readonly stateStore: ShellStateStore;
   readonly frame: ShellFrame;
   readonly inspector: ShellInspector;
@@ -163,6 +165,8 @@ export class ShellTestWindowActions implements ShellWindowActions {
   selectionVisibility: HandlerSelectionVisibility | null = null;
   /** Spy that returns the visibility commands. */
   readonly selectionVisibilityRead = vi.fn(() => this.selectionVisibility);
+  /** Spy for opening the Object Properties dialog. */
+  readonly objectPropertiesOpen = vi.fn<() => void>();
 
   /**
    * Changes the grid size and tells every registered listener.
@@ -218,8 +222,17 @@ export function shellTestDocksCreate(storage: Storage = shellTestStorageCreate()
   const infoPanel = new ShellInfoPanel(stateStore);
   frame.inspectorHostRead().appendChild(inspector.getElement());
   frame.infoPanelHostRead().appendChild(infoPanel.getElement());
-  const dockCommands = new ShellDockCommands(frame, inspector, infoPanel);
-  return { storage, container, stateStore, frame, inspector, infoPanel, dockCommands };
+  const dockCommands = new ShellDockCommands(frame, infoPanel);
+  return {
+    storage,
+    container,
+    toolbarContainer: frame.getElement(),
+    stateStore,
+    frame,
+    inspector,
+    infoPanel,
+    dockCommands,
+  };
 }
 
 /**

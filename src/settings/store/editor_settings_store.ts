@@ -500,10 +500,10 @@ export class EditorSettingsStore {
   }
 
   /**
-   * Sets whether entering face mode or selecting faces reveals the Face
-   * inspector tab.
+   * Sets whether entering face mode or selecting faces opens the Face Edit
+   * Sheet.
    *
-   * @param enabled Whether the Face tab auto-reveals.
+   * @param enabled Whether the Face Edit Sheet opens automatically.
    */
   setFaceInspectorAutoReveal(enabled: boolean): void {
     if (this.view.faceInspectorAutoReveal === enabled) return;

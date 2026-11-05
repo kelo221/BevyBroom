@@ -1,6 +1,7 @@
 import { EditorToolId } from '@/types/editor_tool_id.js';
 import { TransformMode } from '@/types/transform_mode.js';
 import type { ToolInstruction } from './tool_instruction.js';
+import { toolInstructionLookupByToolId } from './tool_instruction_catalog_hammer.js';
 
 /**
  * Returns the rail instruction for a primary editor tool.
@@ -9,34 +10,7 @@ import type { ToolInstruction } from './tool_instruction.js';
  * @returns Instruction for tooltips.
  */
 export function toolInstructionForEditorTool(toolId: EditorToolId): ToolInstruction {
-  if (toolId === EditorToolId.FACE) {
-    return {
-      title: 'Face Select',
-      shortcut: 'Shift+Tab',
-      description:
-        'Select individual faces on content meshes and solid results. Use Shift or Ctrl to extend the selection. Open the Face Inspector or Extrude from the tool options bar.',
-    };
-  }
-  if (toolId === EditorToolId.CLIP_PLANE) {
-    return {
-      title: 'Clip Plane',
-      description:
-        'Place a cutting plane through the selected mesh. Flip keeps the other side, Clip discards one half, Split keeps both. Requires a selected mesh. Esc cancels.',
-    };
-  }
-  if (toolId === EditorToolId.GRID) {
-    return {
-      title: 'Grid',
-      description:
-        'Independent grid and camera orientations. Align the snap grid with a face or edge (X/Y/Z). Camera align and reset leave the grid alone.',
-    };
-  }
-  return {
-    title: 'Object Select',
-    shortcut: 'O',
-    description:
-      'Select whole objects in the viewport. Use transform modes on the options bar, or G / R / S for grab, rotate, and scale. Tab toggles Object Mode and Edit Mode. In Edit Mode, K adds a vertex, Ctrl+R loop-cuts, M merges, and Delete dissolves the selection.',
-  };
+  return toolInstructionLookupByToolId(toolId);
 }
 
 /**
@@ -81,10 +55,10 @@ export function toolInstructionForTransformMode(mode: TransformMode): ToolInstru
   };
 }
 
-/** Instruction for showing the Face Inspector from face mode. */
+/** Instruction for opening the floating texture browser from face mode. */
 export const TOOL_INSTRUCTION_FACE_INSPECTOR: ToolInstruction = {
-  title: 'Face Inspector',
-  description: 'Show the Face tab to set the material, offset, scale, and rotation of the selected faces.',
+  title: 'Texture Browser',
+  description: 'Open the floating texture browser to pick and align the material of the selected faces.',
 };
 
 /** Instruction for face extrude. */

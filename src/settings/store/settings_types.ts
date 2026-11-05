@@ -115,7 +115,7 @@ export interface ViewSettings {
   anisotropyPreference: AnisotropyPreference;
   /** Shows text beside quick-access icons when the top toolbar is expanded. */
   toolbarButtonLabels: boolean;
-  /** Reveals the Face inspector tab when face mode starts or faces get selected. */
+  /** Opens the Face Edit Sheet when face mode starts or faces get selected. */
   faceInspectorAutoReveal: boolean;
 }
 
@@ -184,8 +184,6 @@ export type KeyboardShortcutAction =
   | 'view_maximize'
   | 'play_start'
   | 'inspector_map'
-  | 'inspector_entity'
-  | 'inspector_face'
   | 'info_panel_toggle'
   | 'inspector_toggle'
   | 'toolbar_toggle'
@@ -194,6 +192,7 @@ export type KeyboardShortcutAction =
   | 'visibility_hide'
   | 'visibility_isolate'
   | 'visibility_show_all'
+  | 'object_properties'
   | 'paste_original'
   | 'face_uv_nudge_left'
   | 'face_uv_nudge_right'

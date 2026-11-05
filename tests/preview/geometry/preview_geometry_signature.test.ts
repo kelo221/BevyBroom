@@ -4,6 +4,14 @@ import { PreviewGeometrySignature } from '@/preview/geometry/preview_geometry_si
 import { LightOwner } from '@/light/model/light_owner.js';
 import { lightSettingsCreateDefault } from '@/light/model/light_settings.js';
 import { materialIdentityWrite } from '@/materials/identity/material_identity.js';
+import {
+  displacementTestBoxAdd,
+  displacementTestCreate,
+  displacementTestFaceFacing,
+  displacementTestRigCreate,
+  displacementTestSurfaceMeshFind,
+  displacementTestTarget,
+} from '../../displacement/displacement_test_rig.js';
 
 /**
  * Builds a world with one box mesh.
@@ -49,5 +57,19 @@ describe('PreviewGeometrySignature', () => {
     expect(afterMaterial).not.toBe(before);
     world.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial()));
     expect(PreviewGeometrySignature.compute(world)).not.toBe(afterMaterial);
+  });
+
+  it('changes when a displacement surface of a solid model is rebuilt', () => {
+    const rig = displacementTestRigCreate('SignatureDisplacement');
+    const brush = displacementTestBoxAdd(rig, new THREE.Vector3(2, 1, 2), new THREE.Vector3(1, 0, 1));
+    const target = displacementTestTarget(rig, brush, displacementTestFaceFacing(brush, new THREE.Vector3(0, 1, 0)));
+    const withoutDisplacement = PreviewGeometrySignature.compute(rig.world);
+    displacementTestCreate(rig, target, 2);
+    const withDisplacement = PreviewGeometrySignature.compute(rig.world);
+    expect(withDisplacement).not.toBe(withoutDisplacement);
+    const surfaceMesh = displacementTestSurfaceMeshFind(rig, target);
+    if (!surfaceMesh) throw new Error('surface mesh missing');
+    surfaceMesh.geometry = surfaceMesh.geometry.clone();
+    expect(PreviewGeometrySignature.compute(rig.world)).not.toBe(withDisplacement);
   });
 });

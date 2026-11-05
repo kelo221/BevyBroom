@@ -14,6 +14,8 @@ import type { FaceTextureMapping } from '@/texture/uv/face_texture_mapping.js';
 import { forBatchesAsync } from '@/utils/async_yield.js';
 import { SOLID_TRIANGLE_SOURCES_USERDATA_KEY } from './solid_model_keys.js';
 import { stripStaleDecorativeEdges } from './solid_model_mesh_disposal.js';
+import { DisplacementSurfacePresentation } from '@/displacement/mesh/displacement_surface_presentation.js';
+import { displacementFaceAttachedIs } from '@/displacement/model/displacement_face_eligibility.js';
 
 /** Host accessors the rebuild pipeline needs from SolidModel. */
 export type SolidRebuildHost = {
@@ -32,6 +34,7 @@ export class SolidModelRebuildPipeline {
   private readonly meshChunkCache = new SolidMeshChunkCache();
   private readonly chunkBuilder = new SolidBrushMeshChunkBuilder();
   private readonly resultBuffer = new SolidResultBuffer();
+  private readonly displacementSurfaces = new DisplacementSurfacePresentation();
   private dirty = true;
   private fullRebuildRequired = true;
   private readonly dirtyBrushIds = new Set<string>();
@@ -431,7 +434,9 @@ export class SolidModelRebuildPipeline {
   /** Assembles result buffer after compiler and chunk updates. */
   private assembleResultFromCompiler(): void {
     const brushOrder = this.compiler.getLastBrushOrder();
-    this.meshChunkCache.pruneToIds(new Set(brushOrder));
+    const liveBrushIds = new Set(brushOrder);
+    this.meshChunkCache.pruneToIds(liveBrushIds);
+    this.displacementSurfaces.pruneToBrushIds(liveBrushIds, this.resolveSolidRoot());
     this.writeResultFromChunks(brushOrder);
     this.lastSurfaceRegions = this.resultBuffer.getSurfaceRegions();
     this.host.getResultMesh().userData[SOLID_TRIANGLE_SOURCES_USERDATA_KEY] =
@@ -656,12 +661,23 @@ export class SolidModelRebuildPipeline {
     const chunk = this.chunkBuilder.build(
       polygons,
       (surfaceIndex) => this.resolveBrushFaceSurfaceCached(brush, surfaceIndex, surfaceByIndex),
-      {
-        brushModelMatrix,
-      },
+      { brushModelMatrix },
+      { surfaceCollapsed: (surfaceIndex) => this.surfaceIsDisplaced(brush, surfaceIndex) },
     );
     ModifierBevelSurfaceOverlay.remapChunkToParents(brushId, chunk);
     this.meshChunkCache.set(brushId, chunk);
+    this.displacementSurfaces.brushRefresh(brushId, brush, this.resolveSolidRoot());
+  }
+
+  /**
+   * Returns whether a brush face is replaced by a displacement surface.
+   *
+   * @param brush Owning brush, or undefined for stand-in brushes.
+   * @param surfaceIndex Face index.
+   * @returns True when the face's own triangles collapse.
+   */
+  private surfaceIsDisplaced(brush: SolidBrushInstance | undefined, surfaceIndex: number): boolean {
+    return brush !== undefined && displacementFaceAttachedIs(brush, surfaceIndex);
   }
 
   /**

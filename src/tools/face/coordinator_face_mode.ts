@@ -19,6 +19,13 @@ import { computeRegionWorldNormal } from '@/texture/uv/planar_uv_projector.js';
 import { resolveUvTransformPlaneNormal } from '@/texture/interactive/uv_transform_solid_face_plane.js';
 import { expandFaceSelectionIndices } from '@/selection/face/solid_result_face_indices.js';
 import { FaceAttributeTransferHandler } from './face_attribute_transfer_handler.js';
+import { FaceRegionWorldGeometry } from '@/selection/face/face_region_world_geometry.js';
+import {
+  faceModeStatusLabelExtrude,
+  faceModeStatusLabelSelectionMode,
+  faceModeStatusLabelUvTransform,
+} from './face_mode_status_labels.js';
+import { DisplacementFaceTools } from '@/displacement/controller/displacement_face_tools.js';
 
 /** Keyboard code that enables continuous UV smear while held. */
 const UV_SMEAR_KEY_CODE = 'KeyM';
@@ -72,6 +79,7 @@ export class CoordinatorFaceMode {
   private userSnapEnabledAtSessionStart: boolean = false;
   private uvTransformOwnedByDrag: boolean = false;
   private attributeTransferHandler: FaceAttributeTransferHandler;
+  private displacementTools: DisplacementFaceTools;
 
   /**
    * Creates the coordinator, initializes controllers and drag state, and binds
@@ -87,6 +95,7 @@ export class CoordinatorFaceMode {
     this.uvTransformController = new ControllerUvTransform(deps.commandStack, deps.gridSnap);
     this.dragStateInitialize();
     this.attributeTransferHandler = this.attributeTransferHandlerCreate();
+    this.displacementTools = this.displacementToolsCreate();
     this.bindFaceSelectionCallbacks();
     this.updateSelectionModeStatus();
   }
@@ -113,6 +122,40 @@ export class CoordinatorFaceMode {
       updateShadingMeshes: () => this.deps.updateShadingMeshes(),
       showStatusMessage: (message) => this.deps.showStatusMessage(message),
     });
+  }
+
+  /**
+   * Creates the displacement tools bound to this coordinator's face selection.
+   *
+   * @returns Displacement tab actions and viewport sculpt router.
+   */
+  private displacementToolsCreate(): DisplacementFaceTools {
+    return new DisplacementFaceTools({
+      commandStack: this.deps.commandStack,
+      selectedFacesRead: () => this.faceExtrusionController.getSelectedFaces(),
+      isCtrlDown: () => this.deps.keyboardShortcutHandler.modifiersStateRead().ctrl,
+      afterDab: () => this.displacementDabRefresh(),
+    });
+  }
+
+  /**
+   * Refreshes shading and the face highlight after a sculpt dab changed a
+   * surface.
+   */
+  private displacementDabRefresh(): void {
+    this.deps.updateShadingMeshes();
+    this.faceExtrusionController.faceHighlightRefresh();
+  }
+
+  /**
+   * Ends live strokes, removes window listeners, releases the displacement
+   * tools and disposes the face extrusion controller. Safe to call more than
+   * once.
+   */
+  dispose(): void {
+    this.onWindowPointerUp();
+    this.displacementTools.dispose();
+    this.faceExtrusionController.dispose();
   }
 
   /** Enters face selection mode. */
@@ -175,15 +218,22 @@ export class CoordinatorFaceMode {
   }
 
   /**
-   * Returns whether a face paint, UV smear, or drag-owned UV transform stroke
-   * is live. Single-use G/R/S sessions are owned by the UV tool, not this busy
-   * flag.
+   * Returns whether a face paint, UV smear, displacement sculpt, or drag-owned
+   * UV transform stroke is live. Single-use G/R/S sessions are owned by the UV
+   * tool, not this busy flag.
    *
    * @returns True while stroke tracking is active.
    */
   isFaceSelectStrokeActive(): boolean {
     const uvDragActive = this.uvTransformController.isActive() && this.uvTransformOwnedByDrag;
-    return this.activeDragViewport !== null || this.isSmearStrokeLive || uvDragActive || this.armedUvMove !== null;
+    const sculptActive = this.displacementTools.sculptRouter.isStrokeActive();
+    return (
+      this.activeDragViewport !== null ||
+      this.isSmearStrokeLive ||
+      uvDragActive ||
+      this.armedUvMove !== null ||
+      sculptActive
+    );
   }
 
   /**
@@ -253,7 +303,7 @@ export class CoordinatorFaceMode {
     if (!started) {
       return false;
     }
-    this.deps.showStatusMessage(this.describeUvTransformMode(mode));
+    this.deps.showStatusMessage(faceModeStatusLabelUvTransform(mode));
     return true;
   }
 
@@ -341,36 +391,7 @@ export class CoordinatorFaceMode {
     this.deps.refreshOutliner();
     this.deps.selectionManager.setSelection(createdMeshes);
     this.updateSelectionModeStatus();
-    this.deps.showStatusMessage(this.buildExtrudeStatusLabel(createdMeshes));
-  }
-
-  /**
-   * Builds a status label describing extrude products (meshes and/or brushes).
-   *
-   * @param createdMeshes Meshes created by extrude.
-   * @returns Status string.
-   */
-  /**
-   * Builds a status label describing extrude products (meshes and/or brushes).
-   *
-   * @param createdMeshes Selectable meshes to describe in the label.
-   * @returns Human-readable status string.
-   */
-  private buildExtrudeStatusLabel(createdMeshes: THREE.Mesh[]): string {
-    if (createdMeshes.length === 1) {
-      const mesh = createdMeshes[0]!;
-      const kind = SolidBrushVisual.isBrushObject(mesh) ? 'brush' : 'mesh';
-      return `Created ${kind} ${mesh.name}`;
-    }
-    const brushCount = createdMeshes.filter((mesh) => SolidBrushVisual.isBrushObject(mesh)).length;
-    const meshCount = createdMeshes.length - brushCount;
-    if (brushCount > 0 && meshCount > 0) {
-      return `Created ${brushCount} brush(es) and ${meshCount} mesh(es)`;
-    }
-    if (brushCount > 0) {
-      return `Created ${brushCount} brush(es)`;
-    }
-    return `Created ${createdMeshes.length} convex solids`;
+    this.deps.showStatusMessage(faceModeStatusLabelExtrude(createdMeshes));
   }
 
   /**
@@ -466,6 +487,10 @@ export class CoordinatorFaceMode {
     const camera = viewport.getCamera();
     const pickElement = viewport.getContentElement();
     if (this.attributeTransferHandler.tryBegin(event, camera, pickElement)) {
+      return true;
+    }
+    if (this.displacementTools.sculptRouter.strokeTryBegin(event, camera, pickElement)) {
+      this.beginWindowDragTracking(viewport);
       return true;
     }
     if (this.tryArmUvMoveOnSelectedFace(event, viewport, camera, pickElement, isShiftPressed, isCtrlPressed)) {
@@ -613,6 +638,9 @@ export class CoordinatorFaceMode {
       this.onWindowPointerUp();
       return;
     }
+    if (this.displacementTools.sculptRouter.strokeContinue(event, viewport.getCamera(), viewport.getContentElement())) {
+      return;
+    }
     if (this.processArmedOrActiveUvMove(event, viewport)) {
       return;
     }
@@ -724,6 +752,7 @@ export class CoordinatorFaceMode {
       this.dragPickFrame = 0;
     }
     this.pendingDragEvent = null;
+    this.displacementStrokeFinish();
     this.finishArmedUvClickIfNeeded();
     this.finishUvTransformDragIfNeeded();
     this.faceExtrusionController.onPointerUp();
@@ -735,6 +764,13 @@ export class CoordinatorFaceMode {
     }
     this.endWindowDragTracking();
     this.updateSelectionModeStatus(true);
+  }
+
+  /** Ends a displacement sculpt stroke and reports when it changed geometry. */
+  private displacementStrokeFinish(): void {
+    if (this.displacementTools.sculptRouter.strokeEnd() > 0) {
+      this.deps.showStatusMessage('Displacement stroke applied');
+    }
   }
 
   /** Applies a plain face click when an armed UV move never became a drag. */
@@ -802,7 +838,7 @@ export class CoordinatorFaceMode {
     }
     const triangles = expandFaceSelectionIndices(first.mesh, first.faceIndex);
     const fallback = computeRegionWorldNormal(first.mesh, triangles);
-    const center = computeFaceRegionWorldCenter(first.mesh, triangles);
+    const center = FaceRegionWorldGeometry.centerWorld(first.mesh, triangles);
     const planeNormal = resolveUvTransformPlaneNormal(first.mesh, first.faceIndex, fallback);
     return { worldStart: center, planeNormal };
   }
@@ -927,61 +963,6 @@ export class CoordinatorFaceMode {
       return;
     }
     this.lastStatusFaceCount = count;
-    this.deps.statusBar.setSelectionModeInfo(this.formatSelectionMode(mode), count);
+    this.deps.statusBar.setSelectionModeInfo(faceModeStatusLabelSelectionMode(mode), count);
   }
-
-  /**
-   * Converts a selection mode enum value to its display string.
-   *
-   * @param mode The selection mode to format.
-   * @returns The display name of the selection mode.
-   */
-  private formatSelectionMode(mode: SelectionMode): string {
-    if (mode === SelectionMode.FACE) return 'Face';
-    return 'Object';
-  }
-
-  /**
-   * Builds a short status string for a UV transform mode.
-   *
-   * @param mode Transform mode.
-   * @returns Status text.
-   */
-  private describeUvTransformMode(mode: UvTransformMode): string {
-    if (mode === 'move') {
-      return 'UV Move (single-use) — move mouse, click or Enter to confirm, Esc to cancel';
-    }
-    if (mode === 'rotate') {
-      return 'UV Rotate (single-use) — drag away from pivot first, then orbit; click to confirm';
-    }
-    return 'UV Scale (single-use) — drag away from pivot first, then in/out; click to confirm';
-  }
-}
-
-/**
- * Computes the average world-space center of a face region.
- *
- * @param mesh Mesh owner.
- * @param triangleIndices Region triangles.
- * @returns World-space center.
- */
-function computeFaceRegionWorldCenter(mesh: THREE.Mesh, triangleIndices: number[]): THREE.Vector3 {
-  mesh.updateMatrixWorld(true);
-  const position = mesh.geometry.getAttribute('position');
-  const index = mesh.geometry.getIndex();
-  const local = new THREE.Vector3();
-  const sum = new THREE.Vector3();
-  let count = 0;
-  for (const faceIndex of triangleIndices) {
-    for (let corner = 0; corner < 3; corner++) {
-      const vertexIndex = index ? index.getX(faceIndex * 3 + corner) : faceIndex * 3 + corner;
-      local.fromBufferAttribute(position, vertexIndex);
-      sum.add(local.clone().applyMatrix4(mesh.matrixWorld));
-      count += 1;
-    }
-  }
-  if (count === 0) {
-    return new THREE.Vector3();
-  }
-  return sum.multiplyScalar(1 / count);
 }

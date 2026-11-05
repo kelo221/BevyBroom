@@ -9,10 +9,32 @@ import {
 } from '@/portal/model/portal_settings.js';
 import { PORTAL_CLOSED_COLOR, PORTAL_OPEN_COLOR, PortalVisualBuilder } from '@/portal/visual/portal_visual_builder.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
+import type { EntityClassPointVariant } from '@/entity/class/entity_class_point_variant.js';
+import { entityClassPointVariantSingleCreate } from '@/entity/class/entity_class_point_variant_single.js';
+
+/** The point class every portal owner is. */
+const PORTAL_POINT_CLASS_VARIANTS: readonly EntityClassPointVariant<PortalSettings>[] = [
+  entityClassPointVariantSingleCreate({
+    id: 'portals.portal',
+    label: 'Portal',
+    category: 'Portals',
+    helpText: 'An opening between two rooms. Its front faces local +Z; a closed portal blocks the view through it.',
+    settingsCreateDefault: portalSettingsCreateDefault,
+  }),
+];
 
 /** Rules of authored portals. */
 export class PortalDefinition extends EntityDefinition<PortalSettings> {
   readonly kind: EntityKind = 'portal';
+
+  /**
+   * Returns the portal class.
+   *
+   * @returns Portal point class.
+   */
+  override pointClassVariants(): readonly EntityClassPointVariant<PortalSettings>[] {
+    return PORTAL_POINT_CLASS_VARIANTS;
+  }
 
   /**
    * Returns default portal settings.

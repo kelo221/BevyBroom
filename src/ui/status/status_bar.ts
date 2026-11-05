@@ -1,25 +1,34 @@
 import { Theme } from '@/theme.js';
 import { inputNumericFormatWithMinimumDecimals } from '@/ui/input/input_numeric_parse.js';
 import { ConsoleLogForwarder } from '@/info_panel/console/console_log_forwarder.js';
+import {
+  statusCursorCoordsFormat,
+  statusSelectionFormat,
+  STATUS_CURSOR_COORDS_EMPTY_TEXT,
+  STATUS_SELECTION_EMPTY_TEXT,
+  type StatusCursorWorldPosition,
+} from './status_bar_hammer_format.js';
 
 /**
  * Bottom status bar displaying editor state information. Shows undo/redo counts
  * on the left and mode/snap info on the right.
  */
 export class StatusBar {
-  private container: HTMLElement;
-  private leftPanel: HTMLElement;
-  private rightPanel: HTMLElement;
-  private undoRedoText!: HTMLElement;
-  private lastActionText!: HTMLElement;
-  private modeText!: HTMLElement;
-  private snapText!: HTMLElement;
+  private readonly container: HTMLElement = document.createElement('div');
+  private readonly leftPanel: HTMLElement = document.createElement('div');
+  private readonly rightPanel: HTMLElement = document.createElement('div');
+  private readonly undoRedoText: HTMLElement = StatusBar.textLabelCreate(null);
+  private readonly lastActionText: HTMLElement = StatusBar.textLabelCreate(null);
+  private readonly modeText: HTMLElement = StatusBar.textLabelCreate(null);
+  private readonly snapText: HTMLElement = StatusBar.textLabelCreate(null);
   private snapIntervalFormatted: string;
-  private savedInfoText!: HTMLElement;
-  private unsavedChangesText!: HTMLElement;
-  private fitFeedbackText!: HTMLElement;
-  private shadingModeText!: HTMLElement;
-  private selectionModeText!: HTMLElement;
+  private readonly savedInfoText: HTMLElement = StatusBar.textLabelCreate(null);
+  private readonly unsavedChangesText: HTMLElement = StatusBar.textLabelCreate(null);
+  private readonly fitFeedbackText: HTMLElement = StatusBar.textLabelCreate(null);
+  private readonly shadingModeText: HTMLElement = StatusBar.textLabelCreate(null);
+  private readonly selectionModeText: HTMLElement = StatusBar.textLabelCreate(null);
+  private readonly hammerSelectionText: HTMLElement = StatusBar.textLabelCreate('status-bar-hammer-selection');
+  private readonly cursorCoordsText: HTMLElement = StatusBar.textLabelCreate('status-bar-cursor-coords');
   private isDisposed: boolean;
   private readonly consoleLogForwarder: ConsoleLogForwarder;
 
@@ -37,44 +46,31 @@ export class StatusBar {
     consoleLogForwarder: ConsoleLogForwarder = new ConsoleLogForwarder(),
   ) {
     this.consoleLogForwarder = consoleLogForwarder;
-    this.container = document.createElement('div');
-    this.leftPanel = document.createElement('div');
-    this.rightPanel = document.createElement('div');
-    this.createTextElements();
     this.snapIntervalFormatted = this.formatSnapInterval(0.25);
     this.isDisposed = false;
     this.applyContainerStyles(theme);
     this.applyPanelStyles(this.leftPanel);
     this.applyPanelStyles(this.rightPanel);
-    this.styleAllTextElements();
     this.assembleDomHierarchy(container);
     this.applyInitialTextContent();
   }
 
-  /** Creates all status label span elements. */
-  private createTextElements(): void {
-    this.undoRedoText = document.createElement('span');
-    this.lastActionText = document.createElement('span');
-    this.modeText = document.createElement('span');
-    this.snapText = document.createElement('span');
-    this.savedInfoText = document.createElement('span');
-    this.unsavedChangesText = document.createElement('span');
-    this.fitFeedbackText = document.createElement('span');
-    this.shadingModeText = document.createElement('span');
-    this.selectionModeText = document.createElement('span');
-  }
-
-  /** Applies shared text styles to every status label. */
-  private styleAllTextElements(): void {
-    this.applyTextStyle(this.undoRedoText);
-    this.applyTextStyle(this.lastActionText);
-    this.applyTextStyle(this.modeText);
-    this.applyTextStyle(this.snapText);
-    this.applyTextStyle(this.savedInfoText);
-    this.applyTextStyle(this.unsavedChangesText);
-    this.applyTextStyle(this.fitFeedbackText);
-    this.applyTextStyle(this.shadingModeText);
-    this.applyTextStyle(this.selectionModeText);
+  /**
+   * Creates one styled status label span.
+   *
+   * @param className Class name added to the label, or null for none.
+   * @returns Label element.
+   */
+  private static textLabelCreate(className: string | null): HTMLElement {
+    const label = document.createElement('span');
+    if (className !== null) {
+      label.classList.add(className);
+    }
+    label.style.fontSize = '11px';
+    label.style.fontFamily = 'monospace';
+    label.style.color = Theme.statusBarTextColor;
+    label.style.whiteSpace = 'nowrap';
+    return label;
   }
 
   /**
@@ -89,6 +85,8 @@ export class StatusBar {
     this.leftPanel.appendChild(this.unsavedChangesText);
     this.leftPanel.appendChild(this.fitFeedbackText);
     this.leftPanel.appendChild(this.selectionModeText);
+    this.leftPanel.appendChild(this.hammerSelectionText);
+    this.rightPanel.appendChild(this.cursorCoordsText);
     this.rightPanel.appendChild(this.modeText);
     this.rightPanel.appendChild(this.snapText);
     this.rightPanel.appendChild(this.shadingModeText);
@@ -107,6 +105,29 @@ export class StatusBar {
     this.fitFeedbackText.textContent = '';
     this.shadingModeText.textContent = ' | Shading: Solid';
     this.selectionModeText.textContent = ' | Selection: Object';
+    this.hammerSelectionText.textContent = STATUS_SELECTION_EMPTY_TEXT;
+    this.cursorCoordsText.textContent = STATUS_CURSOR_COORDS_EMPTY_TEXT;
+  }
+
+  /**
+   * Shows the live cursor world position in meters, or the empty marker.
+   *
+   * @param position Cursor world position, or null when off every viewport.
+   */
+  setCursorWorldPosition(position: StatusCursorWorldPosition | null): void {
+    if (this.isDisposed) return;
+    this.cursorCoordsText.textContent = statusCursorCoordsFormat(position);
+  }
+
+  /**
+   * Shows the selected object count, or a custom description when given.
+   *
+   * @param count Number of selected objects.
+   * @param description Optional text replacing the default wording above zero.
+   */
+  setObjectSelectionCount(count: number, description?: string): void {
+    if (this.isDisposed) return;
+    this.hammerSelectionText.textContent = statusSelectionFormat(count, description);
   }
 
   /**
@@ -318,17 +339,5 @@ export class StatusBar {
     panel.style.display = 'flex';
     panel.style.alignItems = 'center';
     panel.style.gap = '8px';
-  }
-
-  /**
-   * Applies text styling to status bar text elements.
-   *
-   * @param element The text element to style.
-   */
-  private applyTextStyle(element: HTMLElement): void {
-    element.style.fontSize = '11px';
-    element.style.fontFamily = 'monospace';
-    element.style.color = Theme.statusBarTextColor;
-    element.style.whiteSpace = 'nowrap';
   }
 }

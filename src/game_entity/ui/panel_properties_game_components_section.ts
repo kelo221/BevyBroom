@@ -59,6 +59,15 @@ export class PanelPropertiesGameComponentsSection implements PanelPropertiesSect
   }
 
   /**
+   * Returns true: game component fields are keyvalues of the objects.
+   *
+   * @returns Always true.
+   */
+  keyvaluesSectionIs(): boolean {
+    return true;
+  }
+
+  /**
    * Shows the section for any selection of scene content and fills it.
    *
    * @param objects Current inspector selection.

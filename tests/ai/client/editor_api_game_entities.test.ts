@@ -4,7 +4,14 @@ import { EditorApi } from '@/ai/client/editor_api.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import { GameEntityDataAssetClient } from '@/game_entity/data_asset/game_entity_data_asset_client.js';
+import { GameEntityLogicStore } from '@/game_entity/logic/game_entity_logic_store.js';
 import { GameEntityOwner } from '@/game_entity/owner/game_entity_owner.js';
+import {
+  logicTestClassesInstall,
+  logicTestRowCreate,
+  logicTestSceneCreate,
+  TEST_BUTTON_OUTPUT_PINS,
+} from '../../game_entity/logic/game_entity_logic_test_support.js';
 import { editorApiTestHostCreate, type EditorApiTestHostParts } from './editor_api_test_host.js';
 import {
   TEST_DOOR_TYPE_PATH,
@@ -138,6 +145,60 @@ describe('EditorApiGameEntities', () => {
     expect(result.ok).toBe(false);
     expect(GameEntityComponentStore.hasAny(mesh)).toBe(false);
     expect(rig.commandStack.undo()).toBe(false);
+  });
+
+  it('sets the full output list of an object as one undoable edit and reports target status', () => {
+    cleanups.push(logicTestClassesInstall());
+    const rig = rigCreate();
+    const { button, doors } = logicTestSceneCreate(2);
+    rig.world.add(button, ...doors);
+    const singleName = doors[0]?.name ?? '';
+    const outputs = [
+      { output: 'OnPressed', target: singleName, input: 'Open', delay: 0.5 },
+      { output: 'OnPressed', target: 'door_*', input: 'Close', times_to_fire: 1 },
+      { output: 'OnReleased', target: 'missing_object', input: 'Open' },
+    ];
+    const result = rig.api.invokeTool('set_logic_outputs', { id: button.uuid, outputs });
+    expect(result.ok).toBe(true);
+    expect(GameEntityLogicStore.read(button)).toEqual(outputs.map((row) => logicTestRowCreate(row)));
+    const report = result.data as { outputs: { status: string; targetIds: string[] }[] };
+    expect(report.outputs.map((row) => row.status)).toEqual(['valid_single', 'valid_multiple', 'broken']);
+    expect(new Set(report.outputs[1]?.targetIds)).toEqual(new Set(doors.map((door) => door.uuid)));
+    rig.commandStack.undo();
+    expect(GameEntityLogicStore.read(button)).toEqual([]);
+  });
+
+  it('refuses malformed output rows and unknown objects without changing anything', () => {
+    const rig = rigCreate();
+    const { button } = logicTestSceneCreate(0);
+    rig.world.add(button);
+    expect(rig.api.invokeTool('set_logic_outputs', { id: 'missing', outputs: [] }).ok).toBe(false);
+    expect(rig.api.invokeTool('set_logic_outputs', { id: button.uuid, outputs: 'OnPressed' }).ok).toBe(false);
+    const missingInput = rig.api.invokeTool('set_logic_outputs', {
+      id: button.uuid,
+      outputs: [{ output: 'OnPressed', target: '!self' }],
+    });
+    expect(missingInput.ok).toBe(false);
+    expect(rig.commandStack.canUndo()).toBe(false);
+  });
+
+  it('reads the outputs, declared outputs and incoming connections of an object', () => {
+    cleanups.push(logicTestClassesInstall());
+    const rig = rigCreate();
+    const { button, doors } = logicTestSceneCreate(1);
+    const door = doors[0] ?? button;
+    rig.world.add(button, door);
+    GameEntityLogicStore.write(button, [logicTestRowCreate({ target: door.name, input: 'Open' })]);
+    const doorReport = rig.api.invokeTool('read_logic_outputs', { id: door.uuid }).data as {
+      outputs: unknown[];
+      incoming: { sourceId: string; input: string }[];
+    };
+    expect(doorReport.outputs).toEqual([]);
+    expect(doorReport.incoming).toEqual([expect.objectContaining({ sourceId: button.uuid, input: 'Open' })]);
+    const buttonReport = rig.api.invokeTool('read_logic_outputs', { id: button.uuid }).data as {
+      declaredOutputs: { name: string }[];
+    };
+    expect(buttonReport.declaredOutputs.map((pin) => pin.name)).toEqual(TEST_BUTTON_OUTPUT_PINS.map((pin) => pin.name));
   });
 
   it('reads and writes data assets through the running game', async () => {

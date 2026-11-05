@@ -29,34 +29,39 @@ describe('EditorApi main window tools', () => {
     shellTestDocksDispose(docks);
   });
 
-  it('lists both tools in the MCP catalog', () => {
+  it('lists both tools in the MCP catalog without an inspector tab argument', () => {
     expect(findMcpTool('get_main_window')).toBeDefined();
-    expect(findMcpTool('set_main_window')).toBeDefined();
+    const setTool = findMcpTool('set_main_window');
+    expect(setTool).toBeDefined();
+    const properties = (setTool?.inputSchema['properties'] ?? {}) as Record<string, unknown>;
+    expect(Object.keys(properties)).not.toContain('inspectorTab');
+    expect(Object.keys(properties)).toContain('inspectorVisible');
   });
 
   it('reads the arrangement of the main window', () => {
     const result = api.invokeTool('get_main_window');
     expect(result.ok).toBe(true);
     const state = result.data as unknown as ShellMainWindowState;
-    expect(state.inspectorTab).toBe(docks.inspector.activeTabIdRead());
+    expect(state.inspectorVisible).toBe(docks.frame.isInspectorVisible());
+    expect(Object.keys(state)).not.toContain('inspectorTab');
     expect(state.menus).toEqual(['File']);
   });
 
-  it('switches the inspector tab and hides the info panel', () => {
-    const result = api.invokeTool('set_main_window', { inspectorTab: 'entity', infoPanelVisible: false });
+  it('switches the info panel tab and hides the info panel', () => {
+    const result = api.invokeTool('set_main_window', { infoPanelTab: 'issues', infoPanelVisible: false });
     expect(result.ok).toBe(true);
     const state = result.data as unknown as ShellMainWindowState;
-    expect(state.inspectorTab).toBe('entity');
+    expect(state.infoPanelTab).toBe('issues');
     expect(state.infoPanelVisible).toBe(false);
-    expect(docks.inspector.activeTabIdRead()).toBe('entity');
+    expect(docks.infoPanel.activeTabIdRead()).toBe('issues');
     expect(docks.frame.isInfoPanelVisible()).toBe(false);
   });
 
-  it('rejects unknown tabs and non boolean flags without changing anything', () => {
-    const tabBefore = docks.inspector.activeTabIdRead();
-    expect(api.invokeTool('set_main_window', { inspectorTab: 'textures' }).ok).toBe(false);
+  it('rejects unknown info panel tabs and non boolean flags without changing anything', () => {
+    const tabBefore = docks.infoPanel.activeTabIdRead();
+    expect(api.invokeTool('set_main_window', { infoPanelTab: 'textures' }).ok).toBe(false);
     expect(api.invokeTool('set_main_window', { toolbarVisible: 'no' }).ok).toBe(false);
-    expect(docks.inspector.activeTabIdRead()).toBe(tabBefore);
+    expect(docks.infoPanel.activeTabIdRead()).toBe(tabBefore);
     expect(docks.frame.isToolbarVisible()).toBe(true);
   });
 

@@ -15,6 +15,8 @@ import {
   meshUsesShadingOverrideMaterials,
 } from '@/viewports/shared/shared_content_material_store.js';
 import { objectInOmittedLayerIs } from '@/layer/model/layer_membership.js';
+import { DisplacementExportResultFilter } from '@/displacement/export/displacement_export_result_filter.js';
+import { displacementSurfaceMeshesUnder } from '@/displacement/mesh/displacement_surface_mesh_keys.js';
 
 /** Export extras key that carries the stable editor identifier of a node. */
 export const EXPORT_OBJECT_IDENTITY_EXTRAS_KEY = 'broom_id';
@@ -157,7 +159,8 @@ function cloneEntityOwnerForExport(owner: THREE.Object3D, options: ExportSceneOp
 }
 
 /**
- * Clones a solid model as a group containing only the compiled CSG result mesh.
+ * Clones a solid model as a group containing the compiled CSG result mesh
+ * without displaced faces, plus one mesh per displacement surface.
  *
  * @param solidRoot Solid model root group.
  * @param options Export behavior switches.
@@ -169,8 +172,11 @@ function cloneSolidModelForExport(solidRoot: THREE.Object3D, options: ExportScen
   const group = new THREE.Group();
   copyObjectTransformAndIdentity(solidRoot, group, options);
   group.name = solidRoot.name || 'SolidModel';
-  const resultClone = cloneContentMeshForExport(resultMesh, options);
-  group.add(resultClone);
+  const resultGeometry = DisplacementExportResultFilter.geometryRead(resultMesh, solidRoot);
+  group.add(cloneContentMeshForExport(resultMesh, options, resultGeometry));
+  displacementSurfaceMeshesUnder(solidRoot).forEach((surfaceMesh) => {
+    group.add(cloneContentMeshForExport(surfaceMesh, options));
+  });
   return group;
 }
 
@@ -219,10 +225,19 @@ function cloneGroupForExport(group: THREE.Group, options: ExportSceneOptions): T
  *
  * @param mesh Live content or solid result mesh.
  * @param options Export behavior switches.
+ * @param sourceGeometry Geometry to export for the mesh; defaults to the mesh's
+ *   own geometry.
  * @returns Mesh clone without helper children.
  */
-function cloneContentMeshForExport(mesh: THREE.Mesh, options: ExportSceneOptions): THREE.Mesh {
-  const geometry = options.includeLightmapUvs === true ? LightmapUvLayout.geometryWithLightmapUvs(mesh) : mesh.geometry;
+function cloneContentMeshForExport(
+  mesh: THREE.Mesh,
+  options: ExportSceneOptions,
+  sourceGeometry: THREE.BufferGeometry = mesh.geometry,
+): THREE.Mesh {
+  const geometry =
+    options.includeLightmapUvs === true
+      ? LightmapUvLayout.geometryWithLightmapUvs(mesh, sourceGeometry)
+      : sourceGeometry;
   const clone = new THREE.Mesh(geometry, cloneMaterialsForExport(exportContentMaterialResolve(mesh), options));
   copyObjectTransformAndIdentity(mesh, clone, options);
   clone.userData[EXPORT_STATIC_MESH_EXTRAS_KEY] = true;

@@ -236,6 +236,27 @@ export interface EditorServices {
   applyObjectClickSelectionAtClientPoint(clientX: number, clientY: number, additive: boolean, toggle: boolean): void;
 
   /**
+   * Offers an object tool click release to the double-click handling before its
+   * click selection runs. Optional so hosts without Object Properties can omit
+   * it.
+   *
+   * @param clientX Release client X.
+   * @param clientY Release client Y.
+   * @param isModifierHeld True when Shift, Ctrl or Meta modify the click.
+   * @returns True when the release completed a double-click that opened Object
+   *   Properties, so the click selection must not run.
+   */
+  objectClickReleaseDoubleClickHandle?: (clientX: number, clientY: number, isModifierHeld: boolean) => boolean;
+
+  /**
+   * Returns whether every selected object may be scaled. Optional so hosts
+   * without such rules can omit it; omitted means scaling is allowed.
+   *
+   * @returns False when a selected object only moves and rotates.
+   */
+  isSelectionScaleAllowed?: () => boolean;
+
+  /**
    * Starts the object drag a viewport press implies (moving the selection or
    * drawing a new brush). Optional so hosts without object editing can omit
    * it.

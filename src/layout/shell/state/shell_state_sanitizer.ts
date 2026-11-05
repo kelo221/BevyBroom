@@ -16,11 +16,11 @@ export function shellStateSanitize(value: unknown): ShellState {
   return {
     inspectorVisible: shellStateBooleanRead(record['inspectorVisible'], defaults.inspectorVisible),
     inspectorWidthPx: shellStatePixelsRead(record['inspectorWidthPx'], defaults.inspectorWidthPx),
-    inspectorTabId: shellStateStringRead(record['inspectorTabId'], defaults.inspectorTabId),
     infoPanelVisible: shellStateBooleanRead(record['infoPanelVisible'], defaults.infoPanelVisible),
     infoPanelHeightPx: shellStatePixelsRead(record['infoPanelHeightPx'], defaults.infoPanelHeightPx),
     infoPanelTabId: shellStateStringRead(record['infoPanelTabId'], defaults.infoPanelTabId),
     toolbarVisible: shellStateBooleanRead(record['toolbarVisible'], defaults.toolbarVisible),
+    toolsPaletteVisible: shellStateBooleanRead(record['toolsPaletteVisible'], defaults.toolsPaletteVisible),
     splitSizesPx: shellStateSplitSizesRead(record['splitSizesPx']),
   };
 }

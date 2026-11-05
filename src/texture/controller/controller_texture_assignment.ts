@@ -15,8 +15,9 @@ import {
 import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import { TextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
-import { SolidModel, SOLID_TRIANGLE_SOURCES_USERDATA_KEY } from '@/solid/model/solid_model.js';
+import { SolidModel } from '@/solid/model/solid_model.js';
 import { FaceSelection } from '@/selection/face/manager_face_selection.js';
+import { solidFaceTargetFromResultTriangle } from '@/selection/face/solid_face_target_resolver.js';
 import { mapPreviewTriangleToBrushFace } from '@/solid/model/brush_preview_face_map.js';
 import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js';
 
@@ -228,18 +229,7 @@ export class ControllerTextureAssignment {
     mesh: THREE.Mesh,
     triangleIndex: number,
   ): { model: SolidModel; brushId: string; surfaceIndex: number } | null {
-    const model = SolidModel.fromObject(mesh);
-    if (!model) return null;
-    const sources = mesh.userData[SOLID_TRIANGLE_SOURCES_USERDATA_KEY] as
-      Array<{ brushId: string; surfaceIndex: number }> | undefined;
-    if (!sources || !sources[triangleIndex]) return null;
-    const source = sources[triangleIndex];
-    if (!source.brushId) return null;
-    return {
-      model,
-      brushId: source.brushId,
-      surfaceIndex: source.surfaceIndex,
-    };
+    return solidFaceTargetFromResultTriangle(mesh, triangleIndex);
   }
 
   /**

@@ -5,7 +5,7 @@ import { entityBrowserSetup } from '@/entity_browser/setup/entity_browser_setup.
 import { EntityBrowserSettingsStore } from '@/entity_browser/state/entity_browser_settings_store.js';
 import type { EntityBrowser } from '@/entity_browser/ui/entity_browser.js';
 import { ENTITY_BROWSER_TILE_ID_ATTRIBUTE } from '@/entity_browser/ui/entity_browser_tile.js';
-import { GAME_ENTITY_ADD_MENU_CLASS_ID_PREFIX } from '@/game_entity/ui/game_entity_add_menu_section.js';
+import { gameEntityClassIdOf } from '@/game_entity/class/game_entity_class_id.js';
 import { MemorySettingsStorage } from '@/settings/storage/settings_storage.js';
 import { testClassesInstall, testDoorClassCreate } from '../../game_entity/game_entity_test_classes.js';
 import { entityBrowserTestEditorCreate, type EntityBrowserTestEditor } from '../entity_browser_test_support.js';
@@ -118,7 +118,7 @@ describe('entityBrowserSetup', () => {
   it('shows game classes as soon as the game reports them', () => {
     const { browser } = setupBrowserCreate();
     cleanups.push(() => browser.dispose());
-    const doorId = `${GAME_ENTITY_ADD_MENU_CLASS_ID_PREFIX}${testDoorClassCreate().type_path}`;
+    const doorId = gameEntityClassIdOf(testDoorClassCreate().type_path);
     expect(shownIds(browser)).not.toContain(doorId);
     const { uninstall } = testClassesInstall();
     cleanups.push(uninstall);

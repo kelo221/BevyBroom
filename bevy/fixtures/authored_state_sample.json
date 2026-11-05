@@ -123,7 +123,17 @@
         "broom_bridge::placeables::properties::BroomProperties": {
           "values": { "team": "red", "lives": 3, "boss": true }
         }
-      }
+      },
+      "logic_outputs": [
+        {
+          "output": "OnSpawn",
+          "target": "Door*",
+          "input": "Open",
+          "parameter": "fast",
+          "delay": 0.25,
+          "times_to_fire": 1
+        }
+      ]
     }
   ]
 }

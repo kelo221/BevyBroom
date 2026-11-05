@@ -4,10 +4,8 @@ import { ToolbarIcons } from '@/ui/toolbar/toolbar_icons.js';
 import type { FaceTextureAlign, FaceTextureMappingTrs } from '@/texture/uv/face_texture_mapping.js';
 import type { UvEditorTrsFieldState } from '@/texture/uv/face_texture_applier.js';
 import type { UvRelativeTrsOp } from '@/texture/uv/uv_trs_ops.js';
-import {
-  FACE_INSPECTOR_METRICS,
-  faceInspectorButtonCreate,
-} from '@/texture/ui/face_inspector/face_inspector_controls.js';
+import { FACE_INSPECTOR_METRICS } from '@/texture/ui/face_inspector/face_inspector_controls.js';
+import { buttonCompactCreate } from '@/ui/button/button_compact.js';
 import type { FaceAttributesView } from './face_attributes_view.js';
 import { FaceAttributesFieldGrid } from './face_attributes_field_grid.js';
 import { FaceAttributesMaterialRow, type FaceAttributesMaterialDescriber } from './face_attributes_material_row.js';
@@ -121,6 +119,18 @@ export class FaceAttributesEditor implements FaceAttributesView {
     this.fieldGrid.setFromFieldState(fields);
   }
 
+  /**
+   * Shows or hides the UV tool strip and the offset, scale and rotation field
+   * grid, keeping the material row and the align strip.
+   *
+   * @param visible True to show the UV tools and fields.
+   */
+  trsControlsVisibleSet(visible: boolean): void {
+    const display = visible ? '' : 'none';
+    this.uvToolStrip.getElement().style.display = display;
+    this.fieldGrid.getElement().style.display = display;
+  }
+
   /** Removes field listeners and detaches the editor element. */
   dispose(): void {
     this.fieldGrid.dispose();
@@ -189,6 +199,6 @@ export class FaceAttributesEditor implements FaceAttributesView {
    */
   private iconButtonCreate(title: string, svgIcon: string, onClick: () => void): HTMLButtonElement {
     const size = FACE_INSPECTOR_METRICS.iconButtonSize;
-    return faceInspectorButtonCreate({ title, svgIcon, widthPx: size, heightPx: size, onClick });
+    return buttonCompactCreate({ title, svgIcon, widthPx: size, heightPx: size, onClick });
   }
 }

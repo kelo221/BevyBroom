@@ -81,6 +81,25 @@ export interface EditorApiHost {
    * @returns Interactive views.
    */
   viewportsInteractiveRead?: () => readonly EditorApiViewportView[];
+  /**
+   * Returns the Object Properties dialog, creating it on first use. Set by
+   * layout bootstrap; unit tests may omit it.
+   *
+   * @returns Dialog control.
+   */
+  objectPropertiesDialogRead?: () => EditorApiObjectPropertiesDialogControl;
+}
+
+/** Object Properties dialog members the dialog tools need. */
+export interface EditorApiObjectPropertiesDialogControl {
+  open(): boolean;
+  apply(): void;
+  cancel(): void;
+  isOpen(): boolean;
+  tabShow(tabId: string): boolean;
+  tabActiveRead(): string | null;
+  tabIdsRead(): string[];
+  editedObjectsRead(): readonly THREE.Object3D[];
 }
 
 /** View members the viewport input tools need (2D and 3D panes satisfy it). */

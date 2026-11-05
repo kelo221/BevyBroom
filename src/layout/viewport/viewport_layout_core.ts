@@ -829,15 +829,15 @@ export abstract class ViewportLayoutCore {
   }
 
   /**
-   * Reveals the Face inspector tab when face mode starts and the auto-reveal
-   * setting allows it.
+   * Opens the Face Edit Sheet when face mode starts and the auto-reveal setting
+   * allows it.
    */
   protected faceInspectorAutoRevealOnFaceMode(): void {
     if (this.faceModeCoordinator.getSelectionMode() !== SelectionMode.FACE) {
       return;
     }
     if (this.settingsStore?.getViewSettings().faceInspectorAutoReveal !== false) {
-      this.faceInspectorReveal();
+      this.faceEditSheetReveal();
     }
   }
 
@@ -1273,6 +1273,7 @@ export abstract class ViewportLayoutCore {
       issuesValidateNow: () => this.shellPanels?.issuesValidateNow() ?? [],
       mainWindowControlRead: () => new ShellMainWindowControl(this.shellElements),
       viewportsInteractiveRead: () => this.getAllInteractiveViewports(),
+      objectPropertiesDialogRead: () => this.objectPropertiesDialogEnsure(),
     });
     this.setupAiCaptureDebugPanel();
   }
@@ -1498,6 +1499,9 @@ export abstract class ViewportLayoutCore {
   /** Builds and mounts the docked inspector and info panel contents. */
   protected abstract setupShellPanels(): void;
 
+  /** @returns The Object Properties dialog, created on first use. */
+  protected abstract objectPropertiesDialogEnsure(): import('@/ui/object_properties/dialog_object_properties.js').DialogObjectProperties;
+
   /**
    * Starts protecting unsaved work and offers work kept from an earlier
    * session.
@@ -1541,8 +1545,11 @@ export abstract class ViewportLayoutCore {
   /** @param mode Transform mode to activate. */
   protected abstract onTransformMode(mode: TransformMode): void;
 
-  /** Shows the Face tab of the inspector. */
+  /** Opens the floating texture browser holding the face inspector. */
   protected abstract faceInspectorReveal(): void;
+
+  /** Opens the Face Edit Sheet. */
+  protected abstract faceEditSheetReveal(): void;
 
   /** @returns True when face selection mode is active. */
   protected abstract isFaceSelectionModeActive(): boolean;

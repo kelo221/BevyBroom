@@ -3,6 +3,9 @@ import { SolidModel } from '@/solid/model/solid_model.js';
 import { entityOwnerOfPart, entityPickMeshIs } from '@/entity/model/entity_owner_keys.js';
 import { collapseToHierarchyRoots } from '@/utils/hierarchy_selection.js';
 import { collectMeshesUnder } from '@/utils/utils_hierarchy.js';
+import { SelectionFilterTargetResolver } from '@/selection/filter/selection_filter_target_resolver.js';
+import { getStateSelectionFilter } from '@/selection/filter/state_selection_filter.js';
+import { SelectionFilterMode } from '@/types/selection_filter_mode.js';
 
 /**
  * Maps selected meshes (and optional hierarchy roots) to objects that should
@@ -154,13 +157,31 @@ function isUnitaryGroupTarget(object: THREE.Object3D): boolean {
 }
 
 /**
- * Resolves one mesh to its transform target.
+ * Resolves one mesh to its transform target, applying the active Groups /
+ * Objects / Solids selection filter when climbing user groups.
  *
  * @param mesh Selected mesh.
- * @returns Solid model root when mesh is a solid result, the light owner when
- *   mesh is a light marker; otherwise the mesh.
+ * @returns Solid model root, entity owner, user group, or leaf mesh.
  */
 function resolveOneTransformTarget(mesh: THREE.Mesh): THREE.Object3D {
+  const mode = getStateSelectionFilter().effectiveModeRead();
+  if (mode === SelectionFilterMode.SOLIDS && !entityPickMeshIs(mesh) && !SolidModel.isResultMesh(mesh)) {
+    return mesh;
+  }
+  const baseTarget = resolveBaseTransformTarget(mesh);
+  if (mode === SelectionFilterMode.GROUPS) {
+    return climbOutermostUserGroup(baseTarget);
+  }
+  return baseTarget;
+}
+
+/**
+ * Resolves the object-level target (entity owner or solid root) for a mesh.
+ *
+ * @param mesh Selected mesh.
+ * @returns Entity owner, solid model root, or mesh.
+ */
+function resolveBaseTransformTarget(mesh: THREE.Mesh): THREE.Object3D {
   if (entityPickMeshIs(mesh)) {
     return entityOwnerOfPart(mesh) ?? mesh;
   }
@@ -169,4 +190,22 @@ function resolveOneTransformTarget(mesh: THREE.Mesh): THREE.Object3D {
   }
   const model = SolidModel.fromObject(mesh);
   return model?.root ?? mesh;
+}
+
+/**
+ * Climbs to the outermost plain user hierarchy group below the scene/world
+ * root.
+ *
+ * @param objectRoot Object-level target.
+ * @returns Outermost user group, or objectRoot when none exists.
+ */
+function climbOutermostUserGroup(objectRoot: THREE.Object3D): THREE.Object3D {
+  let root: THREE.Object3D = objectRoot;
+  while (root.parent) {
+    root = root.parent;
+  }
+  if (root === objectRoot) {
+    return objectRoot;
+  }
+  return SelectionFilterTargetResolver.groupRootResolve(objectRoot, root);
 }

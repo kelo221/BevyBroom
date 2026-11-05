@@ -44,6 +44,15 @@ export class GameEntityDefinition extends EntityDefinition<GameEntitySettings> {
   }
 
   /**
+   * Returns false: a game entity is a point that only moves and rotates.
+   *
+   * @returns Always false.
+   */
+  override transformScaleAllowed(): boolean {
+    return false;
+  }
+
+  /**
    * Returns the puzzle piece icon every game entity uses.
    *
    * @param _settings Game entity settings.

@@ -20,6 +20,8 @@ import {
   surfaceToFaceTextureMapping,
 } from '@/texture/uv_matrix/legacy_mapping_migrate.js';
 import { SurfaceUvMatrix } from '@/texture/uv_matrix/surface_uv_matrix.js';
+import type { DisplacementFaceSurface } from '@/displacement/model/displacement_types.js';
+import { displacementSurfaceClone, displacementSurfaceRead } from '@/displacement/model/displacement_face_surface.js';
 
 const scratchLocalMatrix = new THREE.Matrix4();
 const scratchLocalQuaternion = new THREE.Quaternion();
@@ -59,6 +61,10 @@ export class SolidBrushInstance {
   private defaultSurface: FaceSurfaceDescription;
   /** Sparse per-face surface overrides (index matches brush.faces). */
   private faceSurfaces: (FaceSurfaceDescription | undefined)[];
+  /** Sparse per-face displacements (index matches brush.faces). */
+  private faceDisplacements: (DisplacementFaceSurface | undefined)[];
+  /** Faces whose persisted displacement was malformed and dropped on load. */
+  private faceDisplacementsDropped: number[];
 
   /**
    * Creates a solid brush instance.
@@ -80,6 +86,8 @@ export class SolidBrushInstance {
     this.mesh = null;
     this.defaultSurface = createDefaultFaceSurface(DEFAULT_CHECKER_TEXTURE_ID);
     this.faceSurfaces = [];
+    this.faceDisplacements = [];
+    this.faceDisplacementsDropped = [];
   }
 
   /**
@@ -101,26 +109,123 @@ export class SolidBrushInstance {
   }
 
   /**
-   * Returns the authored face surface (texture + UV matrix) for a brush face.
+   * Returns the authored face surface (texture, UV matrix and displacement) for
+   * a brush face.
    *
    * @param surfaceIndex Brush face index.
    * @returns Cloned face surface description.
    */
   getFaceSurface(surfaceIndex: number): FaceSurfaceDescription {
-    const override = this.faceSurfaces[surfaceIndex];
-    if (override) return cloneFaceSurface(override);
-    return this.buildDefaultFaceSurface(surfaceIndex);
+    const surface = this.faceSurfaceUvRead(surfaceIndex);
+    const displacement = this.faceDisplacements[surfaceIndex];
+    if (displacement) {
+      surface.displacement = displacementSurfaceClone(displacement);
+    }
+    return surface;
   }
 
   /**
-   * Sets the full face surface for one brush face.
+   * Sets the texture and UV matrix of one brush face. A displacement carried by
+   * the surface replaces the face's displacement; a surface without one leaves
+   * the face's displacement unchanged.
    *
    * @param surfaceIndex Brush face index.
    * @param surface Surface to store (cloned).
    */
   setFaceSurface(surfaceIndex: number, surface: FaceSurfaceDescription): void {
     if (surfaceIndex < 0) return;
-    this.faceSurfaces[surfaceIndex] = cloneFaceSurface(surface);
+    const { displacement, ...uvSurface } = surface;
+    this.faceSurfaces[surfaceIndex] = cloneFaceSurface(uvSurface);
+    if (displacement) {
+      this.faceDisplacements[surfaceIndex] = displacementSurfaceClone(displacement);
+    }
+  }
+
+  /**
+   * Returns the live displacement of one face for read-only use.
+   *
+   * @param surfaceIndex Brush face index.
+   * @returns Stored displacement, or undefined when the face is flat.
+   */
+  faceDisplacementRead(surfaceIndex: number): Readonly<DisplacementFaceSurface> | undefined {
+    return this.faceDisplacements[surfaceIndex];
+  }
+
+  /**
+   * Stores or removes the displacement of one face.
+   *
+   * @param surfaceIndex Brush face index.
+   * @param displacement Displacement to store (cloned), or null to remove it.
+   */
+  faceDisplacementWrite(surfaceIndex: number, displacement: DisplacementFaceSurface | null): void {
+    if (surfaceIndex < 0) return;
+    this.faceDisplacements[surfaceIndex] = displacement ? displacementSurfaceClone(displacement) : undefined;
+    this.faceDisplacementsDropped = this.faceDisplacementsDropped.filter((faceIndex) => faceIndex !== surfaceIndex);
+  }
+
+  /**
+   * Lists the face indices that carry a displacement.
+   *
+   * @returns Ascending face indices.
+   */
+  faceDisplacementIndices(): number[] {
+    const indices: number[] = [];
+    this.faceDisplacements.forEach((displacement, faceIndex) => {
+      if (displacement) indices.push(faceIndex);
+    });
+    return indices;
+  }
+
+  /**
+   * Serializes per-face displacements for scene persistence.
+   *
+   * @returns Sparse list of displacement copies.
+   */
+  serializeFaceDisplacements(): (DisplacementFaceSurface | undefined)[] {
+    return this.faceDisplacements.map((displacement) =>
+      displacement ? displacementSurfaceClone(displacement) : undefined,
+    );
+  }
+
+  /**
+   * Restores per-face displacements from persistence. Invalid entries are
+   * dropped, leaving their faces flat, recorded for
+   * faceDisplacementsDroppedRead and reported with a console warning naming the
+   * brush and face.
+   *
+   * @param displacements Sparse list of serialized displacements.
+   */
+  restoreFaceDisplacements(displacements: readonly unknown[] | undefined): void {
+    const entries = displacements ?? [];
+    this.faceDisplacements = entries.map((entry) => displacementSurfaceRead(entry) ?? undefined);
+    this.faceDisplacementsDropped = entries.flatMap((entry, faceIndex) =>
+      entry !== null && entry !== undefined && !this.faceDisplacements[faceIndex] ? [faceIndex] : [],
+    );
+    this.faceDisplacementsDropped.forEach((faceIndex) => {
+      console.warn(`Dropped malformed displacement of brush "${this.name}" (${this.id}) face ${faceIndex}`);
+    });
+  }
+
+  /**
+   * Lists the faces whose persisted displacement was malformed and dropped on
+   * load and that have not received a new displacement since.
+   *
+   * @returns Ascending face indices.
+   */
+  faceDisplacementsDroppedRead(): readonly number[] {
+    return this.faceDisplacementsDropped;
+  }
+
+  /**
+   * Returns the texture and UV matrix of a face without its displacement.
+   *
+   * @param surfaceIndex Brush face index.
+   * @returns Cloned surface.
+   */
+  private faceSurfaceUvRead(surfaceIndex: number): FaceSurfaceDescription {
+    const override = this.faceSurfaces[surfaceIndex];
+    if (override) return cloneFaceSurface(override);
+    return this.buildDefaultFaceSurface(surfaceIndex);
   }
 
   /**
@@ -155,7 +260,7 @@ export class SolidBrushInstance {
    */
   setFaceTextureId(surfaceIndex: number, textureId: string): void {
     if (surfaceIndex < 0) return;
-    const surface = this.getFaceSurface(surfaceIndex);
+    const surface = this.faceSurfaceUvRead(surfaceIndex);
     surface.textureId = textureId || DEFAULT_CHECKER_TEXTURE_ID;
     this.faceSurfaces[surfaceIndex] = surface;
   }
@@ -488,6 +593,7 @@ export class SolidBrushInstance {
     copy.scale.copy(this.scale);
     copy.visible = this.visible;
     copy.restoreFaceSurfaces(this.serializeDefaultSurface(), this.serializeFaceSurfaces());
+    copy.restoreFaceDisplacements(this.serializeFaceDisplacements());
     return copy;
   }
 

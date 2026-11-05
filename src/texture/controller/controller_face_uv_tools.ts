@@ -38,6 +38,11 @@ import {
 import { FaceUvOperationScale } from '@/texture/uv/operations/face_uv_operation_scale.js';
 import { FaceUvOperationResetWorld } from '@/texture/uv/operations/face_uv_operation_reset_world.js';
 import { FaceUvOperationResetFace } from '@/texture/uv/operations/face_uv_operation_reset_face.js';
+import { FaceUvOperationFullTileShift } from '@/texture/uv/operations/face_uv_operation_full_tile_shift.js';
+import { FaceUvOperationVectorsSet } from '@/texture/uv/operations/face_uv_operation_vectors_set.js';
+import { createCombinedWorldPolygonTargetContextFactory } from '@/texture/uv/operations/face_uv_operation_context_combined.js';
+import { surfaceUvVectors2x3Read, type SurfaceUvVectors2x3 } from '@/texture/uv_matrix/surface_uv_matrix_vectors.js';
+import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
 import { faceUvNudgeStepResolve, faceUvRotateStepResolve, type FaceUvToolModifiers } from './face_uv_tool_steps.js';
 
 /** Rotation fallback in degrees when the grid angle is unusable. */
@@ -238,6 +243,40 @@ export class ControllerFaceUvTools {
   }
 
   /**
+   * Shifts the texture by whole-tile increments (`±1.0` per tile) along U and
+   * V.
+   *
+   * @param tilesU Whole tiles along U.
+   * @param tilesV Whole tiles along V.
+   */
+  shiftFullTile(tilesU: number, tilesV: number): void {
+    this.operationApply(new FaceUvOperationFullTileShift(tilesU, tilesV), 'Shifted texture by full tile');
+  }
+
+  /**
+   * Sets the 2×3 U and V projection axis direction vectors across the
+   * selection.
+   *
+   * @param vectors Target U and V direction vectors.
+   */
+  setVectors2x3(vectors: SurfaceUvVectors2x3): void {
+    this.operationApply(new FaceUvOperationVectorsSet(vectors), 'Updated texture UV vectors');
+  }
+
+  /**
+   * Reads the 2×3 UV vectors of the first selected target, or null when empty.
+   *
+   * @returns 2×3 UV axis vectors, or null.
+   */
+  readFirstVectors2x3(): SurfaceUvVectors2x3 | null {
+    const first = this.collectTargets()[0];
+    if (!first) {
+      return null;
+    }
+    return surfaceUvVectors2x3Read(resolveTargetMapping(first).uv);
+  }
+
+  /**
    * Returns whether face mode is active with at least one selected face, the
    * gate every keyboard shortcut checks before running.
    *
@@ -291,9 +330,13 @@ export class ControllerFaceUvTools {
       this.statusCallback?.('Select face(s) in Face mode, or object(s) in Object mode');
       return;
     }
+    const camDirs = this.cameraDirectionsProvider();
+    const factory = getStateFaceEditSession().treatAsOneRead()
+      ? createCombinedWorldPolygonTargetContextFactory(targets, camDirs)
+      : createWorldPolygonTargetContextFactory(camDirs);
     const command = new CommandTextureFaceApply(targets, createDefaultFaceTextureMapping(), {
       matrixOperation: operation,
-      matrixOperationContextFactory: createWorldPolygonTargetContextFactory(this.cameraDirectionsProvider()),
+      matrixOperationContextFactory: factory,
     });
     this.commandStack.push(command);
     this.statusCallback?.(`${statusMessage} on ${targets.length} face region(s)`);

@@ -1,46 +1,62 @@
 import type { ShellFrame } from '@/layout/shell/frame/shell_frame.js';
-import type { ShellInspector, ShellInspectorTabId } from '@/layout/shell/inspector/shell_inspector.js';
 import type { ShellInfoPanel, ShellInfoPanelTabId } from '@/layout/shell/info_panel/shell_info_panel.js';
+import type { ShellFloatingWindow, ShellFloatingWindowId } from './shell_floating_window.js';
 
-/** Commands that show, hide and switch the main window docks. */
+/**
+ * Commands that show, hide and switch the main window docks and floating
+ * windows.
+ */
 export class ShellDockCommands {
   private readonly frame: ShellFrame;
-  private readonly inspector: ShellInspector;
   private readonly infoPanel: ShellInfoPanel;
+  private readonly floatingWindows: Map<ShellFloatingWindowId, ShellFloatingWindow>;
 
   /**
    * Creates dock commands over the main window docks.
    *
    * @param frame Main window skeleton that shows and hides the docks.
-   * @param inspector Right-hand inspector.
    * @param infoPanel Bottom info panel.
    */
-  constructor(frame: ShellFrame, inspector: ShellInspector, infoPanel: ShellInfoPanel) {
+  constructor(frame: ShellFrame, infoPanel: ShellInfoPanel) {
     this.frame = frame;
-    this.inspector = inspector;
     this.infoPanel = infoPanel;
+    this.floatingWindows = new Map();
   }
 
   /**
-   * Shows the inspector with one tab in front.
+   * Registers the floating window opened and closed under one id.
    *
-   * @param tabId Inspector tab to show.
+   * @param windowId Floating window id.
+   * @param floatingWindow Window to open and close.
    */
-  inspectorTabReveal(tabId: ShellInspectorTabId): void {
+  floatingWindowRegister(windowId: ShellFloatingWindowId, floatingWindow: ShellFloatingWindow): void {
+    this.floatingWindows.set(windowId, floatingWindow);
+  }
+
+  /**
+   * Shows a registered floating window when hidden and hides it when shown.
+   *
+   * @param windowId Floating window id.
+   */
+  floatingWindowToggle(windowId: ShellFloatingWindowId): void {
+    this.floatingWindows.get(windowId)?.toggle();
+  }
+
+  /**
+   * Returns whether a registered floating window is shown.
+   *
+   * @param windowId Floating window id.
+   * @returns True while shown; false for an unregistered id.
+   */
+  isFloatingWindowOpen(windowId: ShellFloatingWindowId): boolean {
+    return this.floatingWindows.get(windowId)?.isOpen() ?? false;
+  }
+
+  /** Shows the inspector when it is hidden. */
+  inspectorReveal(): void {
     if (!this.frame.isInspectorVisible()) {
       this.frame.inspectorVisibleSet(true);
     }
-    this.inspector.tabShow(tabId);
-  }
-
-  /**
-   * Returns whether the inspector is shown with one tab in front.
-   *
-   * @param tabId Inspector tab.
-   * @returns True when that tab is visible.
-   */
-  isInspectorTabShown(tabId: ShellInspectorTabId): boolean {
-    return this.frame.isInspectorVisible() && this.inspector.activeTabIdRead() === tabId;
   }
 
   /**
@@ -70,6 +86,11 @@ export class ShellDockCommands {
     this.frame.toolbarVisibleSet(!this.frame.isToolbarVisible());
   }
 
+  /** Shows the left vertical tools palette when hidden and hides it when shown. */
+  toolsPaletteToggle(): void {
+    this.frame.toolsPaletteVisibleSet(!this.frame.isToolsPaletteVisible());
+  }
+
   /**
    * Returns whether the inspector is shown.
    *
@@ -95,5 +116,14 @@ export class ShellDockCommands {
    */
   isToolbarVisible(): boolean {
     return this.frame.isToolbarVisible();
+  }
+
+  /**
+   * Returns whether the left vertical tools palette is shown.
+   *
+   * @returns True while shown.
+   */
+  isToolsPaletteVisible(): boolean {
+    return this.frame.isToolsPaletteVisible();
   }
 }

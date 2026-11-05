@@ -40,6 +40,8 @@ import { ViewportToolModeDropdown } from './viewport_tool_mode_dropdown.js';
 import { ViewportToolObjectDropdown } from './viewport_tool_object_dropdown.js';
 import { ViewportToolNamedDropdown } from './viewport_tool_named_dropdown.js';
 import { ViewportToolShapeControls } from './viewport_tool_shape_controls.js';
+import { ViewportToolEntityPlaceControls } from './viewport_tool_entity_place_controls.js';
+import { ViewportToolPolygonSprinkleControls } from './viewport_tool_polygon_sprinkle_controls.js';
 import type { ObjectApplyTransformKind } from '@/types/object_apply_transform_kind.js';
 import type { TopologyVertexMergeMode } from '@/edit/topology/topology_vertex_merge_mode.js';
 import {
@@ -87,6 +89,8 @@ export class ViewportToolOptionsBar {
   private readonly modeDropdown: ViewportToolModeDropdown;
   private readonly objectDropdown: ViewportToolObjectDropdown;
   private readonly shapeControls: ViewportToolShapeControls;
+  private readonly entityPlaceControls: ViewportToolEntityPlaceControls;
+  private readonly polygonSprinkleControls: ViewportToolPolygonSprinkleControls;
   private readonly meshDropdown: ViewportToolNamedDropdown;
   private readonly vertexMenuDropdown: ViewportToolNamedDropdown;
   private readonly edgeMenuDropdown: ViewportToolNamedDropdown;
@@ -148,6 +152,8 @@ export class ViewportToolOptionsBar {
     this.shapeControls = new ViewportToolShapeControls(parentElement, () => {
       this.handlers.onShapeSettingChanged?.();
     });
+    this.entityPlaceControls = new ViewportToolEntityPlaceControls(parentElement.ownerDocument);
+    this.polygonSprinkleControls = new ViewportToolPolygonSprinkleControls(parentElement.ownerDocument);
     this.flipButton = this.createTextAction('Flip', TOOL_INSTRUCTION_CLIP_FLIP, () => {
       this.handlers.onFlipClipPlane();
     });
@@ -157,7 +163,7 @@ export class ViewportToolOptionsBar {
     this.splitButton = this.createTextAction('Split', TOOL_INSTRUCTION_CLIP_SPLIT, () => {
       this.handlers.onCommitSplit();
     });
-    this.faceInspectorButton = this.createTextAction('Face Inspector', TOOL_INSTRUCTION_FACE_INSPECTOR, () => {
+    this.faceInspectorButton = this.createTextAction('Textures', TOOL_INSTRUCTION_FACE_INSPECTOR, () => {
       this.handlers.faceInspectorReveal();
     });
     this.extrudeButton = this.createTextAction('Extrude', TOOL_INSTRUCTION_EXTRUDE, () => {
@@ -305,6 +311,8 @@ export class ViewportToolOptionsBar {
     this.modeDropdown.dispose();
     this.objectDropdown.dispose();
     this.shapeControls.dispose();
+    this.entityPlaceControls.dispose();
+    this.polygonSprinkleControls.dispose();
     this.meshDropdown.dispose();
     this.vertexMenuDropdown.dispose();
     this.edgeMenuDropdown.dispose();
@@ -391,37 +399,66 @@ export class ViewportToolOptionsBar {
     this.actionsRow.replaceChildren();
     this.actionsRow.appendChild(this.modeDropdown.getElement());
     if (this.activeInteractionMode === EditorInteractionMode.EDIT_MODE) {
-      this.appendComponentModeButtons();
-      this.appendEditModeMenus();
-      this.appendTransformModeButtons();
+      this.appendEditModeActions();
       return;
     }
-    if (toolId === EditorToolId.FACE) {
-      this.actionsRow.appendChild(this.faceInspectorButton);
-      this.actionsRow.appendChild(this.extrudeButton);
-      return;
-    }
-    if (toolId === EditorToolId.CLIP_PLANE) {
-      this.actionsRow.appendChild(this.flipButton);
-      this.actionsRow.appendChild(this.clipButton);
-      this.actionsRow.appendChild(this.splitButton);
-      return;
-    }
-    if (toolId === EditorToolId.GRID) {
-      this.actionsRow.appendChild(this.gridResetButton);
-      this.actionsRow.appendChild(this.gridAlignToFaceButton);
-      this.actionsRow.appendChild(this.gridAlignXButton);
-      this.actionsRow.appendChild(this.gridAlignYButton);
-      this.actionsRow.appendChild(this.gridAlignZButton);
-      this.actionsRow.appendChild(this.gridOriginVertexButton);
-      this.actionsRow.appendChild(this.cameraResetButton);
-      this.actionsRow.appendChild(this.cameraAlignToFaceButton);
-      this.applyActiveGridPickModeStyles();
-      return;
-    }
+    this.appendObjectModeActionsForTool(toolId);
+  }
+
+  /** Appends Edit Mode component toggles, menus, and transform buttons. */
+  private appendEditModeActions(): void {
+    this.appendComponentModeButtons();
+    this.appendEditModeMenus();
+    this.appendTransformModeButtons();
+  }
+
+  /**
+   * Appends Object Mode actions for the selected primary tool.
+   *
+   * @param toolId Active tool id.
+   */
+  private appendObjectModeActionsForTool(toolId: EditorToolId): void {
+    if (toolId === EditorToolId.FACE) return void this.actionsRow.append(this.faceInspectorButton, this.extrudeButton);
+    if (toolId === EditorToolId.CLIP_PLANE)
+      return void this.actionsRow.append(this.flipButton, this.clipButton, this.splitButton);
+    if (toolId === EditorToolId.GRID) return this.appendGridActions();
+    if (toolId === EditorToolId.BLOCK) return this.appendBlockActions();
+    if (toolId === EditorToolId.ENTITY)
+      return void this.actionsRow.appendChild(this.entityPlaceControls.entityElementRead());
+    if (toolId === EditorToolId.POLYGON)
+      return void this.actionsRow.appendChild(this.polygonSprinkleControls.polygonElementRead());
+    if (toolId === EditorToolId.SPRINKLE)
+      return void this.actionsRow.appendChild(this.polygonSprinkleControls.sprinkleElementRead());
+    this.appendObjectSelectActions();
+  }
+
+  /** Appends shape controls for the Block tool. */
+  private appendBlockActions(): void {
+    this.actionsRow.appendChild(this.shapeControls.getElement());
+    this.shapeControls.selectionRefresh();
+  }
+
+  /** Appends Grid tool action buttons. */
+  private appendGridActions(): void {
+    this.actionsRow.append(
+      this.gridResetButton,
+      this.gridAlignToFaceButton,
+      this.gridAlignXButton,
+      this.gridAlignYButton,
+      this.gridAlignZButton,
+      this.gridOriginVertexButton,
+      this.cameraResetButton,
+      this.cameraAlignToFaceButton,
+    );
+    this.applyActiveGridPickModeStyles();
+  }
+
+  /** Appends Object Select transform, object, shape, and empty-draw controls. */
+  private appendObjectSelectActions(): void {
     this.appendTransformModeButtons();
     this.actionsRow.appendChild(this.objectDropdown.getElement());
     this.actionsRow.appendChild(this.shapeControls.getElement());
+    this.actionsRow.appendChild(this.entityPlaceControls.emptyDrawButtonRead());
     this.shapeControls.selectionRefresh();
   }
 

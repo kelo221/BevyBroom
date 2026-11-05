@@ -3,7 +3,16 @@ import type { EditorApiHost } from './editor_api_host.js';
 import { failResult, okResult } from './editor_api_result.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 import { GameEntityClassRegistry } from '@/game_entity/class/game_entity_class_registry.js';
-import type { GameEntityAssetType } from '@/game_entity/class/game_entity_class_schema.js';
+import {
+  gameEntityRecordIs,
+  type GameEntityAssetType,
+  type GameEntityIoPin,
+} from '@/game_entity/class/game_entity_class_schema.js';
+import { CommandGameEntityLogicSet } from '@/game_entity/logic/command_game_entity_logic_set.js';
+import { GameEntityLogicMatcher } from '@/game_entity/logic/game_entity_logic_matcher.js';
+import { GameEntityLogicPins } from '@/game_entity/logic/game_entity_logic_pins.js';
+import { GameEntityLogicStore } from '@/game_entity/logic/game_entity_logic_store.js';
+import type { AuthoredLogicOutput, LogicTargetValidationStatus } from '@/game_entity/logic/game_entity_logic_types.js';
 import { CommandGameEntityComponentsSet } from '@/game_entity/commands/command_game_entity_components_set.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import {
@@ -28,6 +37,29 @@ export interface GameComponentsSetArgs {
   id: string;
   components: GameEntityComponentsPatch;
 }
+
+/** Arguments of the set_logic_outputs tool. */
+export interface LogicOutputsSetArgs {
+  id: string;
+  outputs: unknown;
+}
+
+/** Arguments of the read_logic_outputs tool. */
+export interface LogicOutputsReadArgs {
+  id: string;
+}
+
+/** Entity I/O of one object as the logic tools report it. */
+interface EditorApiGameLogicReport {
+  id: string;
+  name: string;
+  outputs: Array<AuthoredLogicOutput & { status: LogicTargetValidationStatus; targetIds: string[] }>;
+  declaredOutputs: GameEntityIoPin[];
+  incoming: Array<AuthoredLogicOutput & { sourceId: string; sourceName: string; rowIndex: number }>;
+}
+
+/** Fields every set_logic_outputs row must give as text. */
+const EDITOR_API_GAME_LOGIC_ROW_TEXT_FIELDS = ['output', 'target', 'input'] as const;
 
 /** Arguments of the read_data_asset tool. */
 export interface DataAssetReadArgs {
@@ -113,6 +145,105 @@ export class EditorApiGameEntities {
       this.host.refreshAfterWorldMutation();
     }
     return okResult(`Updated game components of ${object.name}`, { id: object.uuid, components: patched.components });
+  }
+
+  /**
+   * Runs an entity I/O tool.
+   *
+   * @param name Tool name.
+   * @param args Tool arguments.
+   * @returns Tool result, or null when the name is no entity I/O tool.
+   */
+  gameLogicToolDispatch(name: string, args: Record<string, unknown>): McpToolResult | null {
+    switch (name) {
+      case 'set_logic_outputs':
+        return this.logicOutputsSet(args as unknown as LogicOutputsSetArgs);
+      case 'read_logic_outputs':
+        return this.logicOutputsRead(args as unknown as LogicOutputsReadArgs);
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Replaces every output connection of an object as one undoable edit.
+   *
+   * @param args Object id and the complete list of output rows.
+   * @returns Result with the object's entity I/O afterwards.
+   */
+  logicOutputsSet(args: LogicOutputsSetArgs): McpToolResult {
+    const object = this.objectFind(args.id);
+    if (!object) {
+      return failResult(`No object with id ${args.id}`);
+    }
+    const problem = EditorApiGameEntities.logicRowsProblemFind(args.outputs);
+    if (problem !== null) {
+      return failResult(problem);
+    }
+    const rows = GameEntityLogicStore.fromUnknown(args.outputs);
+    this.host.commandStack.push(new CommandGameEntityLogicSet(object, rows));
+    this.host.refreshAfterWorldMutation();
+    return okResult(`Set ${rows.length} outputs of ${object.name}`, this.logicReportCreate(object));
+  }
+
+  /**
+   * Reads the output rows, declared outputs and incoming connections of an
+   * object.
+   *
+   * @param args Object id.
+   * @returns Result with the object's entity I/O.
+   */
+  logicOutputsRead(args: LogicOutputsReadArgs): McpToolResult {
+    const object = this.objectFind(args.id);
+    if (!object) {
+      return failResult(`No object with id ${args.id}`);
+    }
+    const report = this.logicReportCreate(object);
+    return okResult(`${report.outputs.length} outputs and ${report.incoming.length} inputs of ${object.name}`, report);
+  }
+
+  /**
+   * Describes the entity I/O of an object with the target status of each row.
+   *
+   * @param object Scene object.
+   * @returns Entity I/O report.
+   */
+  private logicReportCreate(object: THREE.Object3D): EditorApiGameLogicReport {
+    const world = this.host.worldObject;
+    return {
+      id: object.uuid,
+      name: object.name,
+      outputs: GameEntityLogicStore.read(object).map((row) => ({
+        ...row,
+        status: GameEntityLogicMatcher.targetValidate(object, row.target, world),
+        targetIds: GameEntityLogicMatcher.targetsResolve(object, row.target, world).map((target) => target.uuid),
+      })),
+      declaredOutputs: GameEntityLogicPins.outputsOfObject(object),
+      incoming: GameEntityLogicMatcher.incomingConnectionsCollect(object, world).map((connection) => ({
+        ...connection.row,
+        sourceId: connection.sourceObject.uuid,
+        sourceName: connection.sourceName,
+        rowIndex: connection.rowIndex,
+      })),
+    };
+  }
+
+  /**
+   * Finds the first malformed output row of a set_logic_outputs call.
+   *
+   * @param outputs Untrusted rows.
+   * @returns Problem description, or null when every row is well formed.
+   */
+  private static logicRowsProblemFind(outputs: unknown): string | null {
+    if (!Array.isArray(outputs)) {
+      return 'outputs must be an array';
+    }
+    const badIndex = outputs.findIndex(
+      (row) =>
+        !gameEntityRecordIs(row) ||
+        EDITOR_API_GAME_LOGIC_ROW_TEXT_FIELDS.some((field) => typeof row[field] !== 'string'),
+    );
+    return badIndex < 0 ? null : `outputs[${badIndex}] needs output, target and input strings`;
   }
 
   /**

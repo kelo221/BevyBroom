@@ -62,6 +62,8 @@ Rotate mode (`E`) turns the selection around an axis. Rotation values in the Pro
 
 Scale mode (`R`) changes size by a multiplier. Use it for proportional resizing or per-axis stretching. For exact wall dimensions, Bounds mode is often easier to predict.
 
+Point entities (lights and game entities) only move and rotate. While one is selected, Scale mode shows no handles, Bounds mode shows no resize bars, and the Scale fields are hidden. Rooms and portals keep their sizing.
+
 ## Global and Local transform space
 
 - **Global** aligns the gizmo to the world's fixed X, Y, and Z directions.

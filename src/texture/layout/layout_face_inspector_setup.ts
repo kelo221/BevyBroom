@@ -9,14 +9,17 @@ import { ControllerFaceUvTools } from '@/texture/controller/controller_face_uv_t
 import { faceUvShortcutsRegister } from '@/texture/controller/face_uv_shortcut_bindings.js';
 import { ControllerTextureBrowser } from '@/texture/controller/controller_texture_browser.js';
 import { ControllerTextureAssignment } from '@/texture/controller/controller_texture_assignment.js';
-import { HandlerTextureReplace } from '@/texture/replace/handler_texture_replace.js';
+import { TextureReplaceRunner } from '@/texture/replace/texture_replace_runner.js';
 import type { MaterialBrowserContextMenuHandlers } from '@/texture/ui/material_browser/material_browser_context_menu.js';
 import { ControllerMaterialUsage } from '@/texture/controller/controller_material_usage.js';
 import {
   FaceAttributesEditor,
   type FaceAttributesEditorHandlers,
 } from '@/texture/ui/face_attributes/face_attributes_editor.js';
-import type { FaceAttributesMaterialDescription } from '@/texture/ui/face_attributes/face_attributes_material_row.js';
+import type {
+  FaceAttributesMaterialDescriber,
+  FaceAttributesMaterialDescription,
+} from '@/texture/ui/face_attributes/face_attributes_material_row.js';
 import { MaterialBrowser } from '@/texture/ui/material_browser/material_browser.js';
 import { FaceInspector } from '@/texture/ui/face_inspector/face_inspector.js';
 import type { TextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
@@ -36,11 +39,11 @@ export interface FaceInspectorSetupDeps {
   keyboardShortcutHandler?: HandlerKeyboardShortcut | null;
   /** Supplies the active viewport camera, or null. */
   activeCameraRead?: (() => THREE.Camera | null) | null;
-  /** Shows the Face inspector tab when faces become selected. */
+  /** Reveals the face editing window when faces become selected. */
   revealFaceInspector?: (() => void) | null;
   /** Editor world root used by the material usage actions. */
   worldObject?: THREE.Group | null;
-  /** Reads whether the Face inspector auto-reveal setting is enabled. */
+  /** Reads whether the face editing auto-reveal setting is enabled. */
   isFaceInspectorAutoRevealEnabled?: (() => boolean) | null;
 }
 
@@ -51,6 +54,12 @@ export interface FaceInspectorSetupResult {
   faceUvToolsController: ControllerFaceUvTools | null;
   textureBrowserController: ControllerTextureBrowser;
   textureAssignmentController: ControllerTextureAssignment;
+  /** Finds faces and objects by material, or null without a world. */
+  materialUsageController: ControllerMaterialUsage | null;
+  /** Edit callbacks of the face attributes, shared by every face editing view. */
+  faceAttributesHandlers: FaceAttributesEditorHandlers;
+  /** Looks up the name, preview and size of a material. */
+  materialDescribe: FaceAttributesMaterialDescriber;
 }
 
 /** Late-bound controller references the views call into after construction. */
@@ -65,7 +74,7 @@ interface FaceUvToolsServices {
 }
 
 /**
- * Builds the docked Face tab: face attributes over the material browser, with
+ * Builds the face inspector: face attributes over the material browser, with
  * the UV, face UV tools, library and assignment controllers wired to selection
  * and undo.
  *
@@ -85,21 +94,26 @@ export function faceInspectorSetup(deps: FaceInspectorSetupDeps): FaceInspectorS
     faceUvToolsController: parts.faceUvToolsController,
     textureBrowserController: parts.textureBrowserController,
     textureAssignmentController: parts.textureAssignmentController,
+    materialUsageController: parts.materialUsageController,
+    faceAttributesHandlers: parts.faceAttributesHandlers,
+    materialDescribe: (textureId) => faceInspectorMaterialDescribe(slots.textureBrowserController, textureId),
   };
 }
 
-/** Controllers and views the Face tab is assembled from. */
+/** Controllers and views the face inspector is assembled from. */
 interface FaceInspectorParts {
   faceInspector: FaceInspector;
   uvEditorController: ControllerUvEditor;
   faceUvToolsController: ControllerFaceUvTools | null;
   textureBrowserController: ControllerTextureBrowser;
   textureAssignmentController: ControllerTextureAssignment;
+  materialUsageController: ControllerMaterialUsage | null;
+  faceAttributesHandlers: FaceAttributesEditorHandlers;
   faceAttributesEditor: FaceAttributesEditor;
 }
 
 /**
- * Creates every controller and view of the Face tab.
+ * Creates every controller and view of the face inspector.
  *
  * @param deps Shared editor services.
  * @param slots Late-bound browser controller slot.
@@ -111,27 +125,18 @@ function faceInspectorPartsCreate(
 ): FaceInspectorParts {
   const uvEditorController = faceInspectorUvControllerCreate(deps);
   const faceUvToolsController = faceInspectorUvToolsControllerCreate(deps);
-  const textureAssignmentController = faceInspectorAssignmentControllerCreate(deps);
-  const faceAttributesEditor = faceInspectorAttributesEditorCreate(
-    deps,
-    uvEditorController,
-    faceUvToolsController,
-    slots,
-  );
+  const faceAttributesHandlers = faceAttributesHandlersBuild(deps, uvEditorController, faceUvToolsController);
+  const faceAttributesEditor = faceInspectorAttributesEditorCreate(faceAttributesHandlers, slots);
   const materialUsageController = faceInspectorMaterialUsageControllerCreate(deps);
   const materialBrowser = faceInspectorMaterialBrowserCreate(slots, materialUsageController, deps);
-  const textureBrowserController = faceInspectorBrowserControllerCreate(deps, materialBrowser);
-  const faceInspector = new FaceInspector({
-    faceAttributesEditor,
-    materialBrowser,
-    selectionSource: uvEditorController,
-  });
   return {
-    faceInspector,
+    faceInspector: new FaceInspector({ faceAttributesEditor, materialBrowser, selectionSource: uvEditorController }),
     uvEditorController,
     faceUvToolsController,
-    textureBrowserController,
-    textureAssignmentController,
+    textureBrowserController: faceInspectorBrowserControllerCreate(deps, materialBrowser),
+    textureAssignmentController: faceInspectorAssignmentControllerCreate(deps),
+    materialUsageController,
+    faceAttributesHandlers,
     faceAttributesEditor,
   };
 }
@@ -231,19 +236,15 @@ function faceInspectorAssignmentControllerCreate(deps: FaceInspectorSetupDeps): 
 /**
  * Creates the face attributes editor whose edits go through the UV controllers.
  *
- * @param deps Face inspector setup dependencies.
- * @param controller UV mapping controller.
- * @param uvToolsController Face UV tools controller, or null.
+ * @param handlers Edit callbacks that run the UV controllers.
  * @param slots Late-bound browser controller used to describe materials.
  * @returns Face attributes editor.
  */
 function faceInspectorAttributesEditorCreate(
-  deps: FaceInspectorSetupDeps,
-  controller: ControllerUvEditor,
-  uvToolsController: ControllerFaceUvTools | null,
+  handlers: FaceAttributesEditorHandlers,
   slots: FaceInspectorControllerSlots,
 ): FaceAttributesEditor {
-  return new FaceAttributesEditor(faceAttributesHandlersBuild(deps, controller, uvToolsController), (textureId) =>
+  return new FaceAttributesEditor(handlers, (textureId) =>
     faceInspectorMaterialDescribe(slots.textureBrowserController, textureId),
   );
 }
@@ -367,12 +368,12 @@ function faceInspectorMaterialContextActionsCreate(
   deps: FaceInspectorSetupDeps,
 ): MaterialBrowserContextMenuHandlers {
   const selectedMaterialIdRead = faceInspectorSelectedMaterialIdReaderCreate(slots);
-  const textureReplace = faceInspectorTextureReplaceCreate(deps, worldObject);
+  const textureReplaceRunner = faceInspectorTextureReplaceRunnerCreate(deps, worldObject);
   return {
     onSelectFacesUsingMaterial: (entry) => usageController.selectFacesUsingTexture(entry.id),
     onSelectObjectsUsingMaterial: (entry) => usageController.selectObjectsUsingTexture(entry.id),
     onReplaceWithSelectedMaterial: (entry) =>
-      faceInspectorMaterialReplace(textureReplace, entry.id, selectedMaterialIdRead(), deps),
+      faceInspectorMaterialReplace(textureReplaceRunner, entry.id, selectedMaterialIdRead()),
     selectedMaterialIdRead,
     onCopyName: (entry) => faceInspectorMaterialNameCopy(entry.displayName, deps),
   };
@@ -389,45 +390,43 @@ function faceInspectorSelectedMaterialIdReaderCreate(slots: FaceInspectorControl
 }
 
 /**
- * Creates the material replacement over the editor world.
+ * Creates the material replacement runner over the editor world that reports to
+ * the status bar.
  *
  * @param deps Face inspector setup dependencies.
  * @param worldObject Scene root searched for brushes.
- * @returns Material replacement.
+ * @returns Material replacement runner.
  */
-function faceInspectorTextureReplaceCreate(
+function faceInspectorTextureReplaceRunnerCreate(
   deps: FaceInspectorSetupDeps,
   worldObject: THREE.Object3D,
-): HandlerTextureReplace {
-  return new HandlerTextureReplace({
+): TextureReplaceRunner {
+  return new TextureReplaceRunner({
     commandStack: deps.commandStack,
     worldObject,
     selectionManager: deps.selectionManager,
     afterReplace: () => deps.afterSurfaceChange(),
+    resultReport: (message) => deps.statusBar?.setLastAction(message),
   });
 }
 
 /**
  * Replaces a material with the selected one, in the selected objects when
- * anything is selected and everywhere otherwise, and reports the face count.
+ * anything is selected and everywhere otherwise.
  *
- * @param textureReplace Material replacement.
+ * @param textureReplaceRunner Material replacement runner.
  * @param findTextureId Material to replace.
- * @param replaceTextureId Material painted instead.
- * @param deps Face inspector setup dependencies for status feedback.
+ * @param replaceTextureId Material painted instead; nothing happens when empty.
  */
 function faceInspectorMaterialReplace(
-  textureReplace: HandlerTextureReplace,
+  textureReplaceRunner: TextureReplaceRunner,
   findTextureId: string,
   replaceTextureId: string,
-  deps: FaceInspectorSetupDeps,
 ): void {
   if (replaceTextureId === '') {
     return;
   }
-  const scope = deps.selectionManager.getSelectedObjectCount() > 0 ? 'selection' : 'all';
-  const faceCount = textureReplace.replace(findTextureId, replaceTextureId, scope);
-  deps.statusBar?.setLastAction(`Replaced the material of ${faceCount} face(s)`);
+  textureReplaceRunner.runInSelectionOrEverywhere(findTextureId, replaceTextureId);
 }
 
 /**
@@ -498,7 +497,7 @@ function faceInspectorMaterialSelectionWire(
 }
 
 /**
- * Wires the face selection callback: auto-reveals the Face tab when faces
+ * Wires the face selection callback: auto-reveals face editing when faces
  * become selected, refreshes the attributes, and refreshes UV tool status.
  *
  * @param deps Face inspector setup dependencies.
@@ -524,8 +523,8 @@ function faceInspectorSelectionCallbackWire(
 }
 
 /**
- * Reveals the Face inspector tab on the first selected face when the
- * auto-reveal setting allows it.
+ * Reveals face editing on the first selected face when the auto-reveal setting
+ * allows it.
  *
  * @param deps Face inspector setup dependencies.
  * @param selectedFaceCount Current selected face count.

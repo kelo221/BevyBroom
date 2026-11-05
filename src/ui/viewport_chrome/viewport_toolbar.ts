@@ -6,6 +6,7 @@ import { appendMenuDropdownCaret } from '@/ui/menu/menu_dropdown_caret.js';
 import { MenuOutsidePointerClose } from '@/ui/menu/menu_outside_pointer_close.js';
 import { ViewportKind, getViewportKindDisplayLabel } from '@/viewports/core/viewport_kind.js';
 import { buildViewportTypeMenuEntries } from './viewport_type_menu.js';
+import { viewportAxisCaptionForKind, viewportAxisCaptionForTitle } from './viewport_axis_caption.js';
 import { UiStackLayers } from '@/ui/stack/ui_stack_layers.js';
 
 /**
@@ -19,6 +20,7 @@ export class ViewportToolbar {
   private titleWrapper: HTMLElement;
   private titleButton: HTMLButtonElement;
   private titleLabel: HTMLElement;
+  private axisCaption: HTMLElement;
   private typeMenuPanel: PanelMenu | null;
   private readonly outsideCloser: MenuOutsidePointerClose;
   private buttonRow: HTMLElement;
@@ -52,6 +54,7 @@ export class ViewportToolbar {
     this.titleWrapper = this.ownerDocument.createElement('div');
     this.titleButton = this.ownerDocument.createElement('button');
     this.titleLabel = this.ownerDocument.createElement('span');
+    this.axisCaption = this.ownerDocument.createElement('span');
     this.typeMenuPanel = null;
     this.outsideCloser = new MenuOutsidePointerClose();
     this.buttonRow = this.ownerDocument.createElement('div');
@@ -152,6 +155,7 @@ export class ViewportToolbar {
   setViewportKind(kind: ViewportKind): void {
     this.currentKind = kind;
     this.setTitle(getViewportKindDisplayLabel(kind));
+    this.axisCaption.textContent = viewportAxisCaptionForKind(kind);
     this.rebuildTypeMenu();
   }
 
@@ -204,6 +208,15 @@ export class ViewportToolbar {
    */
   getTitleElement(): HTMLElement {
     return this.titleButton;
+  }
+
+  /**
+   * Returns the axis caption element shown beside the title.
+   *
+   * @returns Caption HTML element.
+   */
+  getAxisCaptionElement(): HTMLElement {
+    return this.axisCaption;
   }
 
   /**
@@ -354,7 +367,27 @@ export class ViewportToolbar {
       this.toggleTypeMenu();
     });
     this.titleWrapper.appendChild(this.titleButton);
+    this.buildAxisCaption(titleText);
     this.rebuildTypeMenu();
+  }
+
+  /**
+   * Builds the muted axis caption placed after the title button.
+   *
+   * @param titleText Viewport title used to pick the initial caption.
+   */
+  private buildAxisCaption(titleText: string): void {
+    this.axisCaption.classList.add('viewport-toolbar-hammer-caption');
+    this.axisCaption.textContent = viewportAxisCaptionForTitle(titleText);
+    this.axisCaption.style.fontFamily = Theme.uiFontFamily;
+    this.axisCaption.style.fontSize = '10px';
+    this.axisCaption.style.lineHeight = '1';
+    this.axisCaption.style.color = Theme.viewportLabelTextColor;
+    this.axisCaption.style.opacity = '0.6';
+    this.axisCaption.style.marginLeft = '4px';
+    this.axisCaption.style.whiteSpace = 'nowrap';
+    this.axisCaption.style.pointerEvents = 'none';
+    this.titleWrapper.appendChild(this.axisCaption);
   }
 
   /** Applies layout styles to the type menu header button chrome. */

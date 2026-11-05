@@ -14,13 +14,20 @@ const SHELL_FRAME_VIEWS_MIN_WIDTH_PX = 320;
 /** Smallest height of the map views above the info panel in CSS pixels. */
 const SHELL_FRAME_VIEWS_MIN_HEIGHT_PX = 160;
 
+/** Fixed width of the left vertical tools palette in CSS pixels. */
+export const SHELL_FRAME_TOOLS_PALETTE_WIDTH_PX = 44;
+
+/** CSS class of the left vertical tools palette column. */
+export const SHELL_FRAME_TOOLS_PALETTE_CLASS = 'shell-tools-palette-host';
+
 /** Listener told that a dock was shown or hidden. */
 export type ShellFrameVisibilityListener = () => void;
 
 /**
- * Main window skeleton: a menu bar row, a toolbar row, the map views with a
- * view bar above them and the info panel below them, and the inspector on the
- * right. Dock sizes and visibility are kept in the shell state store.
+ * Main window skeleton: a menu bar row, a toolbar row, the vertical tools
+ * palette on the left, the map views with a view bar above them and the info
+ * panel below them, and the inspector on the right. Dock sizes and visibility
+ * are kept in the shell state store.
  */
 export class ShellFrame {
   private readonly root: HTMLElement;
@@ -33,6 +40,7 @@ export class ShellFrame {
   private readonly viewBar: HTMLElement;
   private readonly viewBarToolSlot: HTMLElement;
   private readonly viewBarWorkspaceSlot: HTMLElement;
+  private readonly toolsPaletteHost: HTMLElement;
   private readonly visibilityListeners: Set<ShellFrameVisibilityListener>;
 
   /**
@@ -54,6 +62,7 @@ export class ShellFrame {
     this.viewBarToolSlot = this.viewBarSlotCreate('shell-view-bar-tool-slot', '1 1 auto');
     this.viewBarWorkspaceSlot = this.viewBarSlotCreate('shell-view-bar-workspace-slot', '0 0 auto');
     this.viewColumn = this.viewColumnCreate();
+    this.toolsPaletteHost = this.toolsPaletteHostCreate();
     this.splittersMount();
     this.visibilityRestore(stateStore.getState());
   }
@@ -110,6 +119,15 @@ export class ShellFrame {
    */
   viewBarWorkspaceSlotRead(): HTMLElement {
     return this.viewBarWorkspaceSlot;
+  }
+
+  /**
+   * Returns the left vertical column that holds the map tool buttons.
+   *
+   * @returns Tools palette host.
+   */
+  toolsPaletteHostRead(): HTMLElement {
+    return this.toolsPaletteHost;
   }
 
   /**
@@ -187,6 +205,26 @@ export class ShellFrame {
   toolbarVisibleSet(visible: boolean): void {
     this.toolbarHost.style.display = visible ? 'flex' : 'none';
     this.stateStore.update({ toolbarVisible: visible });
+    this.visibilityListenersNotify();
+  }
+
+  /**
+   * Returns whether the left vertical tools palette is shown.
+   *
+   * @returns True while shown.
+   */
+  isToolsPaletteVisible(): boolean {
+    return this.toolsPaletteHost.style.display !== 'none';
+  }
+
+  /**
+   * Shows or hides the left vertical tools palette and remembers the choice.
+   *
+   * @param visible True to show it.
+   */
+  toolsPaletteVisibleSet(visible: boolean): void {
+    this.toolsPaletteHost.style.display = visible ? 'flex' : 'none';
+    this.stateStore.update({ toolsPaletteVisible: visible });
     this.visibilityListenersNotify();
   }
 
@@ -337,12 +375,36 @@ export class ShellFrame {
   }
 
   /**
-   * Nests the splitters: views over info panel on the left, inspector on the
-   * right.
+   * Creates the fixed-width left column that receives the map tool buttons.
+   *
+   * @returns Tools palette host.
+   */
+  private toolsPaletteHostCreate(): HTMLElement {
+    const host = document.createElement('div');
+    host.classList.add(SHELL_FRAME_TOOLS_PALETTE_CLASS);
+    host.style.display = 'flex';
+    host.style.flexDirection = 'column';
+    host.style.alignItems = 'center';
+    host.style.flex = `0 0 ${SHELL_FRAME_TOOLS_PALETTE_WIDTH_PX}px`;
+    host.style.width = `${SHELL_FRAME_TOOLS_PALETTE_WIDTH_PX}px`;
+    host.style.boxSizing = 'border-box';
+    host.style.padding = '4px 2px';
+    host.style.overflowY = 'auto';
+    host.style.overflowX = 'hidden';
+    host.style.background = hexToRgb(Theme.toolbarBackground);
+    host.style.borderRight = `1px solid ${hexToRgb(Theme.separatorColor)}`;
+    return host;
+  }
+
+  /**
+   * Nests the splitters: the tools palette and the views over the info panel
+   * side by side on the left, the inspector on the right.
    */
   private splittersMount(): void {
     this.infoPanelSplitter.getFirstPane().appendChild(this.viewColumn);
-    this.inspectorSplitter.getFirstPane().appendChild(this.infoPanelSplitter.getElement());
+    const bodyRow = this.inspectorSplitter.getFirstPane();
+    bodyRow.style.flexDirection = 'row';
+    bodyRow.append(this.toolsPaletteHost, this.infoPanelSplitter.getElement());
     this.root.appendChild(this.inspectorSplitter.getElement());
   }
 
@@ -355,6 +417,7 @@ export class ShellFrame {
     this.inspectorSplitter.setSizedPaneCollapsed(!state.inspectorVisible);
     this.infoPanelSplitter.setSizedPaneCollapsed(!state.infoPanelVisible);
     this.toolbarHost.style.display = state.toolbarVisible ? 'flex' : 'none';
+    this.toolsPaletteHost.style.display = state.toolsPaletteVisible ? 'flex' : 'none';
   }
 
   /** Tells every visibility listener that a dock or the toolbar changed. */

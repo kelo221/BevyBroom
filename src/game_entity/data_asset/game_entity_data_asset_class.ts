@@ -1,4 +1,5 @@
 import type { GameEntityAssetType, GameEntityClass } from '@/game_entity/class/game_entity_class_schema.js';
+import { GAME_ENTITY_CLASS_CATEGORY_DATA_ASSETS } from '@/game_entity/class/game_entity_class_category_data.js';
 
 /** Grey used where a data asset needs a marker color. */
 const GAME_ENTITY_DATA_ASSET_COLOR: [number, number, number] = [0.5, 0.5, 0.5];
@@ -14,7 +15,7 @@ export function gameEntityDataAssetClassCreate(assetType: GameEntityAssetType): 
   return {
     type_path: assetType.type_path,
     label: assetType.label,
-    category: 'Data Assets',
+    category: GAME_ENTITY_CLASS_CATEGORY_DATA_ASSETS,
     placement: 'any',
     marker_color: GAME_ENTITY_DATA_ASSET_COLOR,
     fields: assetType.fields ?? [],

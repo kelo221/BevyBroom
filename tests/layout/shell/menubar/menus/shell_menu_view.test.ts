@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { HandlerSelectionVisibility } from '@/selection/visibility/handler_selection_visibility.js';
 import { ShellMenuView } from '@/layout/shell/menubar/menus/shell_menu_view.js';
 import type { ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
-import type { ShellInspectorTabId } from '@/layout/shell/inspector/shell_inspector.js';
+import type { ShellFloatingWindowId } from '@/layout/shell/actions/shell_floating_window.js';
 import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
 import { SNAP_PRESETS } from '@/types/snap_presets.js';
 import { formatGridIntervalLabel } from '@/layout/shell/toolbar/shell_grid_interval_label.js';
@@ -13,6 +13,7 @@ import {
   shellTestDocksDispose,
   shellTestMenuActionFind,
   shellTestMenuContextCreate,
+  shellTestMenuLabelsRead,
   shellTestMenuShortcutRead,
   shellTestMenuSubmenuChildrenRead,
   shellTestShortcutLabelFormat,
@@ -21,13 +22,10 @@ import {
   type ShellTestToolbarActions,
 } from '../../shell_test_support.js';
 
-/** Inspector rows of the View menu with their tab and shortcut action. */
-const SHELL_MENU_VIEW_TEST_INSPECTOR_ROWS: ReadonlyArray<
-  readonly [string, ShellInspectorTabId, KeyboardShortcutAction]
-> = [
-  ['Map Inspector', 'map', 'inspector_map'],
-  ['Entity Inspector', 'entity', 'inspector_entity'],
-  ['Face Inspector', 'face', 'inspector_face'],
+/** Floating window rows of the View menu with the window they open. */
+const SHELL_MENU_VIEW_TEST_FLOATING_ROWS: ReadonlyArray<readonly [string, ShellFloatingWindowId]> = [
+  ['Texture Browser', 'texture_browser'],
+  ['Entity Browser', 'entity_browser'],
 ];
 
 /**
@@ -179,17 +177,41 @@ describe('ShellMenuView', () => {
     });
   });
 
-  SHELL_MENU_VIEW_TEST_INSPECTOR_ROWS.forEach(([label, tabId, shortcutAction]) => {
-    it(`reveals the ${tabId} inspector tab from ${label} and checks it while shown`, () => {
+  it('reveals the inspector from Map Inspector and checks it while shown', () => {
+    const { entries, docks } = shellMenuViewTestRigCreate();
+    const row = shellTestMenuActionFind(entries, 'Map Inspector');
+    docks.frame.inspectorVisibleSet(false);
+    expect(row.isChecked?.()).toBe(false);
+    row.onClick();
+    expect(docks.frame.isInspectorVisible()).toBe(true);
+    expect(row.isChecked?.()).toBe(true);
+    expect(shellTestMenuShortcutRead(row)).toBe(shellTestShortcutLabelFormat('inspector_map'));
+  });
+
+  it('lists no Entity or Face inspector rows', () => {
+    const { entries } = shellMenuViewTestRigCreate();
+    const labels = shellTestMenuLabelsRead(entries);
+    expect(labels).not.toContain('Entity Inspector');
+    expect(labels).not.toContain('Face Inspector');
+  });
+
+  SHELL_MENU_VIEW_TEST_FLOATING_ROWS.forEach(([label, windowId]) => {
+    it(`toggles the ${windowId} floating window from ${label} and checks it while open`, () => {
       const { entries, docks } = shellMenuViewTestRigCreate();
+      let isOpen = false;
+      docks.dockCommands.floatingWindowRegister(windowId, {
+        toggle: () => {
+          isOpen = !isOpen;
+        },
+        isOpen: () => isOpen,
+      });
       const row = shellTestMenuActionFind(entries, label);
-      docks.frame.inspectorVisibleSet(false);
       expect(row.isChecked?.()).toBe(false);
       row.onClick();
-      expect(docks.frame.isInspectorVisible()).toBe(true);
-      expect(docks.inspector.activeTabIdRead()).toBe(tabId);
+      expect(isOpen).toBe(true);
       expect(row.isChecked?.()).toBe(true);
-      expect(shellTestMenuShortcutRead(row)).toBe(shellTestShortcutLabelFormat(shortcutAction));
+      row.onClick();
+      expect(row.isChecked?.()).toBe(false);
     });
   });
 

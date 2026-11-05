@@ -3,7 +3,12 @@
  * the game bridge reads them with serde.
  */
 
-import type { PreviewAuthoredComponents } from '@/preview/protocol/preview_protocol_placeable_types.js';
+import type {
+  PreviewAuthoredComponents,
+  PreviewAuthoredLogicOutput,
+} from '@/preview/protocol/preview_protocol_placeable_types.js';
+
+export type { PreviewAuthoredLogicOutput };
 
 /** Wire protocol version spoken by this editor. */
 export const PREVIEW_PROTOCOL_VERSION = 4;
@@ -164,6 +169,7 @@ export interface PreviewAuthoredObject {
   room?: PreviewAuthoredRoom;
   portal?: PreviewAuthoredPortal;
   components?: PreviewAuthoredComponents;
+  logic_outputs?: PreviewAuthoredLogicOutput[];
 }
 
 /** Complete authored snapshot of one document. */

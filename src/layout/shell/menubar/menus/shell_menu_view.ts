@@ -1,18 +1,13 @@
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
-import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
 import { SNAP_PRESETS } from '@/types/snap_presets.js';
 import { formatGridIntervalLabel } from '@/layout/shell/toolbar/shell_grid_interval_label.js';
-import type { ShellInspectorTabId } from '@/layout/shell/inspector/shell_inspector.js';
+import type { ShellFloatingWindowId } from '@/layout/shell/actions/shell_floating_window.js';
 import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 
-/**
- * Inspector tabs listed in the View menu with their labels and shortcut
- * actions.
- */
-const SHELL_MENU_VIEW_INSPECTOR_TABS: ReadonlyArray<readonly [ShellInspectorTabId, string, KeyboardShortcutAction]> = [
-  ['map', 'Map Inspector', 'inspector_map'],
-  ['entity', 'Entity Inspector', 'inspector_entity'],
-  ['face', 'Face Inspector', 'inspector_face'],
+/** Floating windows listed in the View menu with their labels. */
+const SHELL_MENU_VIEW_FLOATING_WINDOWS: ReadonlyArray<readonly [ShellFloatingWindowId, string]> = [
+  ['texture_browser', 'Texture Browser'],
+  ['entity_browser', 'Entity Browser'],
 ];
 
 /** View menu: grid, camera framing, view switching and the main window docks. */
@@ -37,7 +32,10 @@ export class ShellMenuView extends ShellMenu {
       this.separatorEntry(),
       ...this.visibilityEntriesBuild(context),
       this.separatorEntry(),
-      ...SHELL_MENU_VIEW_INSPECTOR_TABS.map((tab) => this.inspectorTabEntryBuild(context, tab)),
+      this.mapInspectorEntryBuild(context),
+      ...SHELL_MENU_VIEW_FLOATING_WINDOWS.map((floatingWindow) =>
+        this.floatingWindowEntryBuild(context, floatingWindow),
+      ),
       this.separatorEntry(),
       ...this.dockToggleEntriesBuild(context),
       this.separatorEntry(),
@@ -108,21 +106,34 @@ export class ShellMenuView extends ShellMenu {
   }
 
   /**
-   * Builds the row that shows one inspector tab.
+   * Builds the row that shows the Map inspector.
    *
    * @param context Actions and docks the entries run.
-   * @param tab Tab id, row label and shortcut action.
-   * @returns Menu action entry checked while that tab is shown.
+   * @returns Menu action entry checked while the inspector is shown.
    */
-  private inspectorTabEntryBuild(
-    context: ShellMenuContext,
-    tab: readonly [ShellInspectorTabId, string, KeyboardShortcutAction],
-  ): ToolbarMenuEntry {
-    const [tabId, label, shortcutAction] = tab;
+  private mapInspectorEntryBuild(context: ShellMenuContext): ToolbarMenuEntry {
     const docks = context.dockCommands;
-    return this.actionEntry(context, label, () => docks.inspectorTabReveal(tabId), {
-      shortcutAction,
-      isChecked: () => docks.isInspectorTabShown(tabId),
+    return this.actionEntry(context, 'Map Inspector', () => docks.inspectorReveal(), {
+      shortcutAction: 'inspector_map',
+      isChecked: () => docks.isInspectorVisible(),
+    });
+  }
+
+  /**
+   * Builds the row that opens or closes one floating window.
+   *
+   * @param context Actions and docks the entries run.
+   * @param floatingWindow Floating window id and row label.
+   * @returns Menu action entry checked while that window is shown.
+   */
+  private floatingWindowEntryBuild(
+    context: ShellMenuContext,
+    floatingWindow: readonly [ShellFloatingWindowId, string],
+  ): ToolbarMenuEntry {
+    const [windowId, label] = floatingWindow;
+    const docks = context.dockCommands;
+    return this.actionEntry(context, label, () => docks.floatingWindowToggle(windowId), {
+      isChecked: () => docks.isFloatingWindowOpen(windowId),
     });
   }
 
@@ -147,6 +158,9 @@ export class ShellMenuView extends ShellMenu {
       this.actionEntry(context, 'Show Toolbar', () => docks.toolbarToggle(), {
         shortcutAction: 'toolbar_toggle',
         isChecked: () => docks.isToolbarVisible(),
+      }),
+      this.actionEntry(context, 'Show Tools Palette', () => docks.toolsPaletteToggle(), {
+        isChecked: () => docks.isToolsPaletteVisible(),
       }),
     ];
   }

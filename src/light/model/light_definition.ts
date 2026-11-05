@@ -14,12 +14,17 @@ import type { IconName } from '@/ui/icons/icon_name.js';
 import type { EntityHandle } from '@/entity/handles/entity_handle.js';
 import { LightHandleConeAngle } from '@/light/handles/light_handle_cone_angle.js';
 import { LightHandleRadius } from '@/light/handles/light_handle_radius.js';
+import type { EntityClassPointVariant } from '@/entity/class/entity_class_point_variant.js';
+import { lightPointClassVariantsCreate } from '@/light/model/light_point_class_variants.js';
 
 /** Radius ball shared by every light; handles keep no state. */
 const LIGHT_HANDLE_RADIUS = new LightHandleRadius();
 
 /** Cone angle ball shared by every spot light; handles keep no state. */
 const LIGHT_HANDLE_CONE_ANGLE = new LightHandleConeAngle();
+
+/** Point classes every light owner may be. */
+const LIGHT_POINT_CLASS_VARIANTS = lightPointClassVariantsCreate();
 
 /** Rules of authored lights: point or spot settings and their visuals. */
 export class LightDefinition extends EntityDefinition<LightSettings> {
@@ -86,6 +91,16 @@ export class LightDefinition extends EntityDefinition<LightSettings> {
   }
 
   /**
+   * Returns false: a light is a point that only moves and rotates; its radius
+   * has its own handle and property.
+   *
+   * @returns Always false.
+   */
+  override transformScaleAllowed(): boolean {
+    return false;
+  }
+
+  /**
    * Returns false: a light box only moves; its radius has its own handle.
    *
    * @returns Always false.
@@ -121,6 +136,15 @@ export class LightDefinition extends EntityDefinition<LightSettings> {
     const isRadiusOnly = typeof radius === 'number' && !('fogRadius' in patch);
     const base = isRadiusOnly ? lightSettingsRadiusWrite(settings, radius) : settings;
     return { ...base, ...patch };
+  }
+
+  /**
+   * Returns the point light and spot light classes.
+   *
+   * @returns Light point classes.
+   */
+  override pointClassVariants(): readonly EntityClassPointVariant<LightSettings>[] {
+    return LIGHT_POINT_CLASS_VARIANTS;
   }
 
   /**

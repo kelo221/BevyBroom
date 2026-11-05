@@ -276,12 +276,12 @@ describe.skipIf(desktopExecutable === '')('desktop app end to end', () => {
     async () => {
       const initial = toolDataRead<ShellMainWindowState>(await client.toolCallExpectOk('get_main_window'));
       expect(initial.menus).toEqual(shellMenusBuiltinCreate().map((menu) => menu.label));
-      const faceAndIssues = await mainWindowChange({ inspectorTab: 'face', infoPanelTab: 'issues' });
-      expect(faceAndIssues).toMatchObject({ inspectorTab: 'face', inspectorVisible: true, infoPanelTab: 'issues' });
+      expect(Object.keys(initial)).not.toContain('inspectorTab');
+      const issuesShown = await mainWindowChange({ infoPanelTab: 'issues' });
+      expect(issuesShown).toMatchObject({ inspectorVisible: true, infoPanelTab: 'issues' });
       const infoPanelHidden = await mainWindowChange({ infoPanelVisible: false, toolbarVisible: false });
       expect(infoPanelHidden).toMatchObject({ infoPanelVisible: false, toolbarVisible: false });
       const restored = await mainWindowChange({
-        inspectorTab: initial.inspectorTab,
         infoPanelTab: initial.infoPanelTab,
         infoPanelVisible: initial.infoPanelVisible,
         toolbarVisible: initial.toolbarVisible,

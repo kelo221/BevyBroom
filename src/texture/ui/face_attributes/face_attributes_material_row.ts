@@ -4,6 +4,7 @@ import {
   FACE_INSPECTOR_METRICS,
   faceInspectorCaptionCreate,
   faceInspectorPreviewImageWrite,
+  faceInspectorPreviewThumbnailCreate,
 } from '@/texture/ui/face_inspector/face_inspector_controls.js';
 
 /** Edge length of the material preview swatch in pixels. */
@@ -31,6 +32,19 @@ export interface FaceAttributesMaterialDescription {
  */
 export type FaceAttributesMaterialDescriber = (textureId: string) => FaceAttributesMaterialDescription | null;
 
+/**
+ * Formats the image size of a material as `width×height`.
+ *
+ * @param description Material description, or null.
+ * @returns Size text, or null while the size is unknown.
+ */
+export function faceAttributesMaterialSizeTextRead(
+  description: FaceAttributesMaterialDescription | null,
+): string | null {
+  const size = description?.sizePixels;
+  return size && size.width > 0 && size.height > 0 ? `${size.width}×${size.height}` : null;
+}
+
 /** Top row of the face attributes: material swatch, name and face count. */
 export class FaceAttributesMaterialRow {
   private readonly element: HTMLElement;
@@ -47,11 +61,10 @@ export class FaceAttributesMaterialRow {
   constructor(materialDescribe: FaceAttributesMaterialDescriber) {
     this.materialDescribe = materialDescribe;
     this.element = document.createElement('div');
-    this.swatchElement = document.createElement('div');
+    this.swatchElement = this.swatchCreate();
     this.nameElement = document.createElement('div');
     this.statusElement = faceInspectorCaptionCreate('');
     this.rowStyleApply();
-    this.swatchStyleApply();
     this.nameStyleApply();
     this.element.append(this.swatchElement, this.textColumnCreate());
   }
@@ -89,9 +102,8 @@ export class FaceAttributesMaterialRow {
     if (targetCount === 0) {
       return 'No surfaces selected';
     }
-    const size = description?.sizePixels;
-    const sizeText = size && size.width > 0 && size.height > 0 ? `${size.width}×${size.height} px · ` : '';
-    return `${sizeText}${targetCount} face region(s)`;
+    const sizeText = faceAttributesMaterialSizeTextRead(description);
+    return `${sizeText === null ? '' : `${sizeText} px · `}${targetCount} face region(s)`;
   }
 
   /**
@@ -147,20 +159,19 @@ export class FaceAttributesMaterialRow {
     this.element.style.minWidth = '0';
   }
 
-  /** Styles the square checker-backed preview swatch. */
-  private swatchStyleApply(): void {
-    const size = `${FACE_ATTRIBUTES_MATERIAL_SWATCH_PX}px`;
-    this.swatchElement.dataset['materialPreview'] = 'true';
-    this.swatchElement.setAttribute('role', 'img');
-    this.swatchElement.setAttribute('aria-label', 'Material preview');
-    this.swatchElement.style.width = size;
-    this.swatchElement.style.height = size;
-    this.swatchElement.style.flex = `0 0 ${size}`;
-    this.swatchElement.style.border = `1px solid ${Theme.inputBorderColor}`;
-    this.swatchElement.style.borderRadius = '2px';
-    this.swatchElement.style.backgroundColor = '#111';
-    this.swatchElement.style.backgroundSize = 'cover';
-    this.swatchElement.style.backgroundPosition = 'center';
+  /**
+   * Creates the square checker-backed preview swatch.
+   *
+   * @returns Swatch element.
+   */
+  private swatchCreate(): HTMLElement {
+    const swatch = faceInspectorPreviewThumbnailCreate(
+      FACE_ATTRIBUTES_MATERIAL_SWATCH_PX,
+      'face-attributes-material-preview',
+      'Material preview',
+    );
+    swatch.dataset['materialPreview'] = 'true';
+    return swatch;
   }
 
   /** Styles the material name as the row's primary text. */

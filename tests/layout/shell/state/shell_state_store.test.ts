@@ -42,13 +42,13 @@ describe('ShellStateStore', () => {
   it('restores panel visibility, sizes, tabs and splitter sizes in a new store', () => {
     const storage = memoryStorageCreate();
     const first = new ShellStateStore(storage);
-    first.update({ inspectorVisible: false, inspectorWidthPx: 420, inspectorTabId: 'face', infoPanelHeightPx: 180 });
+    first.update({ inspectorVisible: false, inspectorWidthPx: 420, infoPanelTabId: 'issues', infoPanelHeightPx: 180 });
     first.splitSizeWrite('map_layers', 230);
     const second = new ShellStateStore(storage);
     const state = second.getState();
     expect(state.inspectorVisible).toBe(false);
     expect(state.inspectorWidthPx).toBe(420);
-    expect(state.inspectorTabId).toBe('face');
+    expect(state.infoPanelTabId).toBe('issues');
     expect(state.infoPanelHeightPx).toBe(180);
     expect(second.splitSizeRead('map_layers', 1)).toBe(230);
     expect(second.splitSizeRead('unknown', 77)).toBe(77);
@@ -65,6 +65,20 @@ describe('ShellStateStore', () => {
     expect(state.inspectorVisible).toBe(defaults.inspectorVisible);
     expect(state.inspectorWidthPx).toBe(defaults.inspectorWidthPx);
     expect(state.splitSizesPx).toEqual({ good: 40 });
+  });
+
+  it('loads state saved with the removed inspector tab without keeping the stale field', () => {
+    const storage = memoryStorageCreate();
+    const storedWidthPx = shellStateDefaultCreate().inspectorWidthPx + 40;
+    storage.setItem(
+      SHELL_STATE_STORAGE_KEY,
+      JSON.stringify({ inspectorTabId: 'entity', inspectorWidthPx: storedWidthPx, unknownField: true }),
+    );
+    const state = new ShellStateStore(storage).getState();
+    expect(state.inspectorWidthPx).toBe(storedWidthPx);
+    expect(Object.keys(state)).not.toContain('inspectorTabId');
+    expect(Object.keys(state)).not.toContain('unknownField');
+    expect(Object.keys(state).sort()).toEqual(Object.keys(shellStateDefaultCreate()).sort());
   });
 
   it('falls back to defaults when the stored text is not JSON', () => {

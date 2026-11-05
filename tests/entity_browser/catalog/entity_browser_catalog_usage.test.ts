@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { EntityBrowserCatalogBuilder } from '@/entity_browser/catalog/entity_browser_catalog_builder.js';
 import type { EntityBrowserCatalogEntry } from '@/entity_browser/catalog/entity_browser_catalog_entry.js';
 import { EntityBrowserCatalogUsage } from '@/entity_browser/catalog/entity_browser_catalog_usage.js';
-import { GAME_ENTITY_ADD_MENU_CLASS_ID_PREFIX } from '@/game_entity/ui/game_entity_add_menu_section.js';
+import { gameEntityClassIdOf } from '@/game_entity/class/game_entity_class_id.js';
 import { testClassesInstall, testDoorClassCreate } from '../../game_entity/game_entity_test_classes.js';
 import { entityBrowserTestEditorCreate } from '../entity_browser_test_support.js';
 
@@ -38,7 +38,7 @@ describe('EntityBrowserCatalogUsage', () => {
     cleanups.push(uninstall);
     const editor = entityBrowserTestEditorCreate();
     const catalog = EntityBrowserCatalogBuilder.catalogBuild(editor.actions);
-    const doorId = `${GAME_ENTITY_ADD_MENU_CLASS_ID_PREFIX}${testDoorClassCreate().type_path}`;
+    const doorId = gameEntityClassIdOf(testDoorClassCreate().type_path);
     entryActivateTimes(catalog, 'geometry.box', 2);
     entryActivateTimes(catalog, 'lights.point', 1);
     entryActivateTimes(catalog, 'portals.portal', 1);

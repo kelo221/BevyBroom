@@ -4,9 +4,9 @@ import type { UvRelativeTrsOp } from '@/texture/uv/uv_trs_ops.js';
 import { InputNumeric } from '@/ui/input/input_numeric.js';
 import {
   FACE_INSPECTOR_METRICS,
-  faceInspectorButtonCreate,
   faceInspectorCaptionCreate,
 } from '@/texture/ui/face_inspector/face_inspector_controls.js';
+import { buttonCompactCreate } from '@/ui/button/button_compact.js';
 import {
   FACE_ATTRIBUTES_ROWS,
   type FaceAttributesFieldSpec,
@@ -133,7 +133,7 @@ export class FaceAttributesFieldGrid {
     cell.appendChild(this.fieldInputCreate(spec).getElement());
     spec.nudges.forEach((nudge) => {
       cell.appendChild(
-        faceInspectorButtonCreate({
+        buttonCompactCreate({
           title: nudge.title,
           text: nudge.text,
           widthPx: FACE_INSPECTOR_METRICS.nudgeWidth,

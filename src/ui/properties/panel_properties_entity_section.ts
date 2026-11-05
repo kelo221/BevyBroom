@@ -72,6 +72,15 @@ export abstract class PanelPropertiesEntitySection<TSettings extends object> {
   }
 
   /**
+   * Returns true: the settings of an entity kind are its keyvalues.
+   *
+   * @returns Always true.
+   */
+  keyvaluesSectionIs(): boolean {
+    return true;
+  }
+
+  /**
    * Shows the section when every selected object is an owner of this kind and
    * fills it with the shared values.
    *

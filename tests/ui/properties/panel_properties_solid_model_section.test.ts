@@ -15,7 +15,8 @@ describe('PropertiesPanel solid model section', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     selectionManager = new ManagerSelection();
-    panel = new PanelProperties(container, Theme, selectionManager);
+    panel = new PanelProperties(Theme, selectionManager);
+    panel.hostAttach(container);
     model = new SolidModel('SolidProps');
     model.addBoxBrush(2, SolidOperation.Additive);
   });

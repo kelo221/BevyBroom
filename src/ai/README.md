@@ -325,13 +325,18 @@ These tools need the desktop app; the browser editor answers that it cannot star
 
 ## Main window
 
-| Tool              | What it does                                                                                                                                                      |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_main_window` | `inspectorVisible`, `inspectorTab` (`map`, `entity`, `face`), `infoPanelVisible`, `infoPanelTab` (`console`, `issues`), `toolbarVisible` and the menu bar `menus` |
-| `set_main_window` | Change any of those fields except `menus`; returns the arrangement afterwards                                                                                     |
+| Tool              | What it does                                                                                                            |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `get_main_window` | `inspectorVisible`, `infoPanelVisible`, `infoPanelTab` (`console`, `issues`), `toolbarVisible` and the menu bar `menus` |
+| `set_main_window` | Change any of those fields except `menus`; returns the arrangement afterwards                                           |
 
 - Choosing a tab does not show a hidden dock; set `inspectorVisible` or `infoPanelVisible` too.
 - The arrangement is remembered between sessions, the same as when it is changed from the View menu.
+
+| Tool                           | What it does                                                                                       |
+| ------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `get_object_properties_dialog` | `open`, the visible `tab`, the `tabs` in order and the `editedIds` of the Object Properties dialog |
+| `set_object_properties_dialog` | `action` `open` (needs a selection), `apply` (one undo step) or `cancel`, and/or switch to `tab`   |
 
 ## Clipboard
 

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { entityBoundsResizableAny } from '@/entity/bounds/entity_bounds.js';
+import { entityTransformScaleAllowedAll } from '@/entity/scale/entity_scale_allowed.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { GizmoTransform } from '@/transform/gizmo/gizmo_transform.js';
 import { TransformExecutor } from '@/transform/core/transform_executor.js';
@@ -48,7 +49,7 @@ export function updateLayoutGizmoPivot(context: ContextHelpersLayoutGizmo): void
     applySelectionGizmoPose(context, selected);
     return;
   }
-  context.transformGizmo.setBoundsResizeAllowed(true);
+  applyUnrestrictedGizmoScalePolicy(context);
   context.transformGizmo.setPivot(new THREE.Vector3(0, 0, 0));
   context.transformGizmo.setOrientation(resolveLayoutGizmoOrientation(context, []));
   context.transformGizmo.updateBoundsFromMeshes([]);
@@ -62,7 +63,7 @@ export function updateLayoutGizmoPivot(context: ContextHelpersLayoutGizmo): void
  */
 function applyComponentEditGizmoPose(context: ContextHelpersLayoutGizmo, pivot: THREE.Vector3): void {
   const selected = Array.from(context.selectionManager.getSelectedObjects());
-  context.transformGizmo.setBoundsResizeAllowed(true);
+  applyUnrestrictedGizmoScalePolicy(context);
   context.transformGizmo.setPivot(pivot);
   context.transformGizmo.setOrientation(resolveLayoutGizmoOrientation(context, selected));
   syncGizmoOrthoDepthAxisPolicy(context);
@@ -82,7 +83,7 @@ function applyComponentEditGizmoPose(context: ContextHelpersLayoutGizmo, pivot: 
  */
 function applySelectionGizmoPose(context: ContextHelpersLayoutGizmo, selected: THREE.Mesh[]): void {
   const pivot = context.transformExecutor.computePivot(selected);
-  context.transformGizmo.setBoundsResizeAllowed(entityBoundsResizableAny(selected));
+  applySelectionGizmoScalePolicy(context, selected);
   context.transformGizmo.setPivot(pivot);
   context.transformGizmo.setOrientation(resolveLayoutGizmoOrientation(context, selected));
   syncGizmoOrthoDepthAxisPolicy(context);
@@ -93,6 +94,30 @@ function applySelectionGizmoPose(context: ContextHelpersLayoutGizmo, selected: T
     return;
   }
   context.transformGizmo.updateBoundsFromMeshes(selected);
+}
+
+/**
+ * Offers scale handles and bounds resizing only when every selected object may
+ * be scaled; bounds resizing also needs one object whose bounds may resize.
+ *
+ * @param context Gizmo subsystem dependencies.
+ * @param selected Currently selected meshes.
+ */
+function applySelectionGizmoScalePolicy(context: ContextHelpersLayoutGizmo, selected: THREE.Mesh[]): void {
+  const isScaleAllowed = entityTransformScaleAllowedAll(selected);
+  context.transformGizmo.setScaleHandlesAllowed(isScaleAllowed);
+  context.transformGizmo.setBoundsResizeAllowed(isScaleAllowed && entityBoundsResizableAny(selected));
+}
+
+/**
+ * Offers every scale handle and bounds resizing, for poses without an object
+ * selection.
+ *
+ * @param context Gizmo subsystem dependencies.
+ */
+function applyUnrestrictedGizmoScalePolicy(context: ContextHelpersLayoutGizmo): void {
+  context.transformGizmo.setScaleHandlesAllowed(true);
+  context.transformGizmo.setBoundsResizeAllowed(true);
 }
 
 /**

@@ -5,6 +5,7 @@ import { IssueProviderGameComponentUnknown } from '@/info_panel/issues/providers
 import { IssueProviderGameComponentOnBrush } from '@/info_panel/issues/providers/issue_provider_game_component_on_brush.js';
 import { IssueProviderFaceUvScale } from '@/info_panel/issues/providers/issue_provider_face_uv_scale.js';
 import { IssueProviderProjectBuild } from '@/project/issues/issue_provider_project_build.js';
+import { IssueProviderDisplacementDropped } from '@/displacement/issues/issue_provider_displacement_dropped.js';
 
 /**
  * Returns the issue providers the editor ships with, in report order.
@@ -18,6 +19,7 @@ export function issueProvidersBuiltin(): readonly IssueProvider[] {
     new IssueProviderGameComponentUnknown(),
     new IssueProviderGameComponentOnBrush(),
     new IssueProviderFaceUvScale(),
+    new IssueProviderDisplacementDropped(),
     new IssueProviderProjectBuild(),
   ];
 }

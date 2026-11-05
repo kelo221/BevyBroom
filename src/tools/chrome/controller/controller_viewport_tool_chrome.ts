@@ -23,6 +23,12 @@ import { ViewportToolChromeHoverOwner } from '@/tools/chrome/focus/viewport_tool
 import type { ViewportToolChromeDocking } from '@/tools/chrome/host/viewport_tool_chrome_docking.js';
 import type { ObjectApplyTransformKind } from '@/types/object_apply_transform_kind.js';
 import type { GridAlignPickMode } from '@/tools/grid/grid_align_pick_mode.js';
+import { getStateBlockDrawSettings } from '@/tools/block/state_block_draw_settings.js';
+import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js';
+import { getStatePolygonTool } from '@/tools/polygon/state_polygon_tool.js';
+import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
+import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
+import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
 
 /** Dependencies for coordinating per-pane tool chrome with editor modes. */
 export interface ControllerViewportToolChromeDependencies {
@@ -87,6 +93,12 @@ export interface ControllerViewportToolChromeDependencies {
    * (e.g. hide bounds widgets while Grid is active).
    */
   onPrimaryToolChanged?: () => void;
+  /** Stamps the current texture onto the active selection. */
+  onStampCurrentTexture?: () => void;
+  /** Switches the editor tool stack to the Polygon brush tool. */
+  switchToPolygonTool?: () => void;
+  /** Switches the editor tool stack to the Sprinkle scatter tool. */
+  switchToSprinkleTool?: () => void;
 }
 
 /**
@@ -306,25 +318,56 @@ export class ControllerViewportToolChrome {
       return;
     }
     if (this.activeInteractionMode === EditorInteractionMode.EDIT_MODE) {
-      if (toolId === EditorToolId.FACE || toolId === EditorToolId.CLIP_PLANE || toolId === EditorToolId.GRID) {
-        this.deps.showStatusMessage('Face Select, Clip, and Grid are Object Mode tools');
-        return;
-      }
-      this.activateEditSelectTool();
+      this.selectToolInEditMode(toolId);
       return;
     }
-    if (toolId === EditorToolId.OBJECT) {
-      this.activateObjectTool();
+    if (toolId === EditorToolId.STAMP) {
+      this.activateStampTool();
       return;
     }
-    if (toolId === EditorToolId.FACE) {
-      this.activateFaceTool();
+    if (toolId === EditorToolId.VERTEX) {
+      this.activateVertexTool();
       return;
     }
-    if (toolId === EditorToolId.GRID) {
-      this.activateGridTool();
+    this.selectObjectModeTool(toolId);
+  }
+
+  /**
+   * Handles rail clicks while Edit Mode is open.
+   *
+   * @param toolId Clicked tool id.
+   */
+  private selectToolInEditMode(toolId: EditorToolId): void {
+    if (toolId === EditorToolId.VERTEX) {
+      this.setComponentMode(EditorComponentMode.VERTEX);
+      this.activeTool = EditorToolId.VERTEX;
+      this.broadcastActiveTool();
       return;
     }
+    if (toolId !== EditorToolId.OBJECT) {
+      this.deps.showStatusMessage('Face Select, Clip, and Grid are Object Mode tools');
+      return;
+    }
+    this.activateEditSelectTool();
+  }
+
+  /**
+   * Dispatches Object Mode primary tools.
+   *
+   * @param toolId Tool id to activate.
+   */
+  private selectObjectModeTool(toolId: EditorToolId): void {
+    getStateBlockDrawSettings().blockToolActiveWrite(toolId === EditorToolId.BLOCK);
+    getStateEntityPlace().toolActiveWrite(toolId === EditorToolId.ENTITY);
+    getStatePolygonTool().toolActiveWrite(toolId === EditorToolId.POLYGON);
+    getStateSprinkleTool().toolActiveWrite(toolId === EditorToolId.SPRINKLE);
+    if (toolId === EditorToolId.OBJECT) return this.activateObjectTool();
+    if (toolId === EditorToolId.BLOCK) return this.activateBlockTool();
+    if (toolId === EditorToolId.ENTITY) return this.activateEntityTool();
+    if (toolId === EditorToolId.FACE) return this.activateFaceTool();
+    if (toolId === EditorToolId.GRID) return this.activateGridTool();
+    if (toolId === EditorToolId.POLYGON) return this.activatePolygonTool();
+    if (toolId === EditorToolId.SPRINKLE) return this.activateSprinkleTool();
     this.activateClipTool();
   }
 
@@ -341,16 +384,26 @@ export class ControllerViewportToolChrome {
     }
     this.endClipSessionIfActive();
     if (mode === SelectionMode.FACE) {
-      this.clearObjectToolOverlays();
-      if (this.activeTool !== EditorToolId.FACE) {
-        this.activeTool = EditorToolId.FACE;
-        this.deps.switchToFaceSelect?.();
-      }
-      this.broadcastActiveTool();
-      this.refreshChromeContext();
-      this.notifyPrimaryToolChanged();
+      this.syncExternalFaceSelectionMode();
       return;
     }
+    this.syncExternalObjectSelectionMode();
+  }
+
+  /** Syncs rail state when Face selection mode is entered externally. */
+  private syncExternalFaceSelectionMode(): void {
+    this.clearObjectToolOverlays();
+    if (this.activeTool !== EditorToolId.FACE) {
+      this.activeTool = EditorToolId.FACE;
+      this.deps.switchToFaceSelect?.();
+    }
+    this.broadcastActiveTool();
+    this.refreshChromeContext();
+    this.notifyPrimaryToolChanged();
+  }
+
+  /** Syncs rail state when Object selection mode is entered externally. */
+  private syncExternalObjectSelectionMode(): void {
     if (this.activeTool !== EditorToolId.OBJECT) {
       this.activeTool = EditorToolId.OBJECT;
       this.deps.switchToObjectSelect?.();
@@ -428,12 +481,13 @@ export class ControllerViewportToolChrome {
     this.notifyPrimaryToolChanged();
   }
 
-  /** Activates face selection mode. */
+  /** Activates face selection mode and opens the Face Edit Sheet. */
   private activateFaceTool(): void {
     this.endClipSessionIfActive();
     this.clearObjectToolOverlays();
     this.clearEditModeToolOverlays();
     this.activeTool = EditorToolId.FACE;
+    getStateFaceEditSession().sheetOpenWrite(true);
     this.broadcastActiveTool();
     if (this.deps.switchToFaceSelect) {
       this.deps.switchToFaceSelect();
@@ -443,6 +497,90 @@ export class ControllerViewportToolChrome {
     this.refreshChromeContext();
     this.notifyPrimaryToolChanged();
     this.deps.showStatusMessage('Face select');
+  }
+
+  /** Activates the dedicated Block brush creation tool. */
+  private activateBlockTool(): void {
+    this.endClipSessionIfActive();
+    this.clearObjectToolOverlays();
+    this.clearEditModeToolOverlays();
+    this.deps.faceExtrusionController.setSelectionMode(SelectionMode.OBJECT);
+    this.activeTool = EditorToolId.BLOCK;
+    this.broadcastActiveTool();
+    this.deps.switchToObjectSelect?.();
+    this.refreshChromeContext();
+    this.notifyPrimaryToolChanged();
+    this.deps.showStatusMessage('Block tool · drag in a viewport to draw a brush');
+  }
+
+  /** Activates the Entity click-to-place tool. */
+  private activateEntityTool(): void {
+    this.endClipSessionIfActive();
+    this.clearObjectToolOverlays();
+    this.clearEditModeToolOverlays();
+    this.deps.faceExtrusionController.setSelectionMode(SelectionMode.OBJECT);
+    this.activeTool = EditorToolId.ENTITY;
+    this.broadcastActiveTool();
+    this.deps.switchToObjectSelect?.();
+    this.refreshChromeContext();
+    this.notifyPrimaryToolChanged();
+    this.deps.showStatusMessage('Entity tool · click in a viewport to place entity');
+  }
+
+  /** Applies the current paint texture to the selection. */
+  private activateStampTool(): void {
+    this.deps.onStampCurrentTexture?.();
+    const textureId = getStateTexturePaint().getLastTextureId();
+    this.deps.showStatusMessage(`Applied current texture: ${textureId}`);
+  }
+
+  /** Enters Edit Mode in Vertex selection mode on the selected object. */
+  private activateVertexTool(): void {
+    this.enterEditMode();
+    if (this.activeInteractionMode === EditorInteractionMode.EDIT_MODE) {
+      this.activeTool = EditorToolId.VERTEX;
+      this.setComponentMode(EditorComponentMode.VERTEX);
+      this.broadcastActiveTool();
+      this.deps.showStatusMessage('Vertex tool · Edit Mode');
+    } else {
+      this.deps.showStatusMessage('Select a brush or mesh to edit vertices');
+    }
+  }
+
+  /** Activates the 2D Polygon polyline-extrude brush tool. */
+  private activatePolygonTool(): void {
+    this.endClipSessionIfActive();
+    this.clearObjectToolOverlays();
+    this.clearEditModeToolOverlays();
+    this.deps.faceExtrusionController.setSelectionMode(SelectionMode.OBJECT);
+    this.activeTool = EditorToolId.POLYGON;
+    this.broadcastActiveTool();
+    if (this.deps.switchToPolygonTool) {
+      this.deps.switchToPolygonTool();
+    } else {
+      this.deps.switchToObjectSelect?.();
+    }
+    this.refreshChromeContext();
+    this.notifyPrimaryToolChanged();
+    this.deps.showStatusMessage('Polygon tool · click outline vertices in 2D view, Enter to extrude');
+  }
+
+  /** Activates the Sprinkle surface scatter-placement tool. */
+  private activateSprinkleTool(): void {
+    this.endClipSessionIfActive();
+    this.clearObjectToolOverlays();
+    this.clearEditModeToolOverlays();
+    this.deps.faceExtrusionController.setSelectionMode(SelectionMode.OBJECT);
+    this.activeTool = EditorToolId.SPRINKLE;
+    this.broadcastActiveTool();
+    if (this.deps.switchToSprinkleTool) {
+      this.deps.switchToSprinkleTool();
+    } else {
+      this.deps.switchToObjectSelect?.();
+    }
+    this.refreshChromeContext();
+    this.notifyPrimaryToolChanged();
+    this.deps.showStatusMessage('Sprinkle tool · drag across surfaces to scatter entities');
   }
 
   /** Activates the global grid orientation tool. */
@@ -564,14 +702,36 @@ export class ControllerViewportToolChrome {
       onCommitSplit: () => this.deps.clipPlaneHandler.commitSplit(),
       faceInspectorReveal: () => this.deps.faceInspectorReveal(),
       onExtrudeFaces: () => this.deps.onExtrudeFaces(),
+      onInteractionMode: (mode) => this.setInteractionMode(mode),
+      onComponentMode: (mode) => this.setComponentMode(mode),
+      ...this.buildGridAndEditHandlers(),
+    };
+  }
+
+  /**
+   * Builds grid, camera, object transform, and topology edit handlers.
+   *
+   * @returns Partial chrome handlers.
+   */
+  private buildGridAndEditHandlers(): Omit<
+    ViewportToolChromeHandlers,
+    | 'onSelectTool'
+    | 'onTransformMode'
+    | 'onFlipClipPlane'
+    | 'onCommitClip'
+    | 'onCommitSplit'
+    | 'faceInspectorReveal'
+    | 'onExtrudeFaces'
+    | 'onInteractionMode'
+    | 'onComponentMode'
+  > {
+    return {
       onGridReset: () => this.deps.onGridReset?.(),
       onGridAlignToFace: () => this.deps.onGridAlignToFace?.(),
       onGridAlignAxis: (axis) => this.deps.onGridAlignAxis?.(axis),
       onGridOriginVertex: () => this.deps.onGridOriginVertex?.(),
       onCameraReset: () => this.deps.onCameraReset?.(),
       onCameraAlignToFace: () => this.deps.onCameraAlignToFace?.(),
-      onInteractionMode: (mode) => this.setInteractionMode(mode),
-      onComponentMode: (mode) => this.setComponentMode(mode),
       onApplyObjectTransform: (kind) => this.deps.onApplyObjectTransform?.(kind),
       onConvexHull: () => this.deps.onConvexHull?.(),
       onEditKnife: () => this.deps.onEditKnife?.(),

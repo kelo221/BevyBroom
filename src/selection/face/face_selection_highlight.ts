@@ -3,9 +3,10 @@ import { Theme } from '@/theme.js';
 import { FaceSelection } from './manager_face_selection.js';
 import { expandFaceSelectionIndices } from './solid_result_face_indices.js';
 import { buildFacePickRegionKey } from './solid_triangle_source_index.js';
-import { getTriangleVertexIndices } from '@/selection/pick/utils_triangle_geometry.js';
+import { FaceRegionWorldGeometry } from './face_region_world_geometry.js';
 import { GizmoVisualStyle } from '@/transform/gizmo/gizmo_visual_style.js';
 import { isResultMesh, SOLID_TRIANGLE_SOURCES_USERDATA_KEY } from '@/solid/model/solid_model_keys.js';
+import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
 
 /**
  * Face-fill opacities for ordinary content meshes (light underlays like default
@@ -45,7 +46,9 @@ export class FaceSelectionHighlight {
   private regionSeeds: Map<string, FaceSelection>;
   private pendingFaces: FaceSelection[] | null;
   private coalesceFrame: number;
-  private readonly scratchVertex = new THREE.Vector3();
+  /** Overlay geometry identity each active region group was built from. */
+  private regionSourceIds: Map<string, string>;
+  private readonly unsubscribeFaceEditSession: () => void;
 
   /**
    * Creates a new face highlight renderer and adds it to the scene.
@@ -59,8 +62,13 @@ export class FaceSelectionHighlight {
     this.solidMaterials = this.createMaterialPair(SOLID_FACE_FRONT_OPACITY, SOLID_FACE_OCCLUDED_OPACITY);
     this.regionGroups = new Map();
     this.regionSeeds = new Map();
+    this.regionSourceIds = new Map();
     this.pendingFaces = null;
     this.coalesceFrame = 0;
+    this.highlightGroup.visible = !getStateFaceEditSession().hideMaskRead();
+    this.unsubscribeFaceEditSession = getStateFaceEditSession().changeListenerAdd(() => {
+      this.highlightGroup.visible = !getStateFaceEditSession().hideMaskRead();
+    });
     this.scene.add(this.highlightGroup);
   }
 
@@ -142,7 +150,8 @@ export class FaceSelectionHighlight {
   private applySelectedFacesIncremental(faces: FaceSelection[]): void {
     const desired = this.buildDesiredRegionSeeds(faces);
     for (const regionKey of Array.from(this.regionGroups.keys())) {
-      if (!desired.has(regionKey)) {
+      const desiredSeed = desired.get(regionKey);
+      if (!desiredSeed || this.regionSourceIds.get(regionKey) !== this.regionSourceIdRead(desiredSeed)) {
         this.removeRegion(regionKey);
       }
     }
@@ -150,6 +159,16 @@ export class FaceSelectionHighlight {
       if (this.regionGroups.has(regionKey)) return;
       this.addRegion(regionKey, seed);
     });
+  }
+
+  /**
+   * Reads the overlay geometry identity of the region a seed belongs to.
+   *
+   * @param seed Seed triangle selection of the region.
+   * @returns Identity that changes whenever the region overlay changes shape.
+   */
+  private regionSourceIdRead(seed: FaceSelection): string {
+    return FaceRegionWorldGeometry.overlaySourceIdRead(seed.mesh, [seed.faceIndex]);
   }
 
   /**
@@ -182,6 +201,7 @@ export class FaceSelectionHighlight {
     this.highlightGroup.add(group);
     this.regionGroups.set(regionKey, group);
     this.regionSeeds.set(regionKey, seed);
+    this.regionSourceIds.set(regionKey, this.regionSourceIdRead(seed));
   }
 
   /**
@@ -195,6 +215,7 @@ export class FaceSelectionHighlight {
     this.disposeFaceGroup(group);
     this.regionGroups.delete(regionKey);
     this.regionSeeds.delete(regionKey);
+    this.regionSourceIds.delete(regionKey);
   }
 
   /**
@@ -245,48 +266,15 @@ export class FaceSelectionHighlight {
    * @returns Batched geometry, or null when no valid triangles exist.
    */
   private buildWorldSpaceBatchedGeometry(mesh: THREE.Mesh, faceIndices: number[]): THREE.BufferGeometry | null {
-    const positions = mesh.geometry.getAttribute('position');
-    if (!positions || faceIndices.length === 0) return null;
-    mesh.updateMatrixWorld(true);
-    const worldMatrix = mesh.matrixWorld;
-    const floats = new Float32Array(faceIndices.length * 9);
-    let write = 0;
-    for (const faceIndex of faceIndices) {
-      const [i0, i1, i2] = getTriangleVertexIndices(mesh.geometry, faceIndex);
-      write = this.writeWorldVertex(positions, i0, worldMatrix, floats, write);
-      write = this.writeWorldVertex(positions, i1, worldMatrix, floats, write);
-      write = this.writeWorldVertex(positions, i2, worldMatrix, floats, write);
-    }
-    if (write === 0) return null;
+    if (faceIndices.length === 0) return null;
+    const corners = FaceRegionWorldGeometry.overlayTrianglesWorld(mesh, faceIndices);
+    if (corners.length < 3) return null;
+    const floats = new Float32Array(corners.length * 3);
+    corners.forEach((corner, cornerIndex) => corner.toArray(floats, cornerIndex * 3));
     const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(floats.subarray(0, write), 3));
+    geometry.setAttribute('position', new THREE.BufferAttribute(floats, 3));
     geometry.computeBoundingSphere();
     return geometry;
-  }
-
-  /**
-   * Writes one transformed vertex into the batch float buffer.
-   *
-   * @param positions Position attribute.
-   * @param vertexIndex Attribute vertex index.
-   * @param worldMatrix Mesh world matrix.
-   * @param floats Destination float buffer.
-   * @param write Next float write index.
-   * @returns Updated write index.
-   */
-  private writeWorldVertex(
-    positions: THREE.BufferAttribute | THREE.InterleavedBufferAttribute,
-    vertexIndex: number,
-    worldMatrix: THREE.Matrix4,
-    floats: Float32Array,
-    write: number,
-  ): number {
-    this.scratchVertex.set(positions.getX(vertexIndex), positions.getY(vertexIndex), positions.getZ(vertexIndex));
-    this.scratchVertex.applyMatrix4(worldMatrix);
-    floats[write] = this.scratchVertex.x;
-    floats[write + 1] = this.scratchVertex.y;
-    floats[write + 2] = this.scratchVertex.z;
-    return write + 3;
   }
 
   /**
@@ -355,6 +343,7 @@ export class FaceSelectionHighlight {
 
   /** Disposes all highlight resources and removes the group from the scene. */
   dispose(): void {
+    this.unsubscribeFaceEditSession();
     if (this.coalesceFrame !== 0) {
       cancelAnimationFrame(this.coalesceFrame);
       this.coalesceFrame = 0;

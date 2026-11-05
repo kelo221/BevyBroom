@@ -65,8 +65,6 @@ const WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, stri
   ['view_maximize', 'Maximize / Restore View'],
   ['play_start', 'Play'],
   ['inspector_map', 'Show Map Inspector'],
-  ['inspector_entity', 'Show Entity Inspector'],
-  ['inspector_face', 'Show Face Inspector'],
   ['info_panel_toggle', 'Toggle Info Panel'],
   ['inspector_toggle', 'Toggle Inspector'],
   ['toolbar_toggle', 'Toggle Toolbar'],
@@ -75,6 +73,7 @@ const WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, stri
   ['visibility_hide', 'Hide Selected'],
   ['visibility_isolate', 'Isolate Selected'],
   ['visibility_show_all', 'Show All'],
+  ['object_properties', 'Object Properties'],
 ];
 
 /**

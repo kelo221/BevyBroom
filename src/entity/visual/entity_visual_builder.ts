@@ -40,16 +40,19 @@ export class EntityVisualBuilder {
   }
 
   /**
-   * Returns the owner's marker, creating it from the geometry when missing.
+   * Returns the owner's marker with the given geometry and name, creating it
+   * when missing.
    *
    * @param owner Entity owner group.
-   * @param geometry Marker geometry used when a marker is created.
+   * @param geometry Marker geometry.
    * @param name Marker object name.
    * @returns The marker mesh.
    */
   static markerEnsure(owner: THREE.Object3D, geometry: THREE.BufferGeometry, name: string): THREE.Mesh {
     const existing = EntityVisualBuilder.markerFind(owner);
     if (existing) {
+      existing.geometry = geometry;
+      existing.name = name;
       return existing;
     }
     const marker = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xffffff }));
@@ -92,6 +95,59 @@ export class EntityVisualBuilder {
       owner.remove(part);
       EntityVisualBuilder.lineDispose(part);
     }
+  }
+
+  /**
+   * Strips an owner's visuals down to a plain marker, so the visuals of another
+   * entity kind can be built on it. The marker object itself stays, so a
+   * selection holding it stays valid.
+   *
+   * @param owner Entity owner group.
+   */
+  static visualsResetForKindChange(owner: THREE.Object3D): void {
+    EntityVisualBuilder.guidesRemove(owner);
+    const marker = EntityVisualBuilder.markerFind(owner);
+    const persistentParts = owner.children.filter((child) => entityVisualPartIs(child) && child !== marker);
+    for (const part of persistentParts) {
+      owner.remove(part);
+      EntityVisualBuilder.partMaterialsDispose(part);
+    }
+    if (marker) {
+      EntityVisualBuilder.markerReset(marker);
+    }
+  }
+
+  /**
+   * Returns a marker to the state of a newly created one: no child parts, unit
+   * scale, only the marker flags and a plain white material.
+   *
+   * @param marker Marker mesh.
+   */
+  private static markerReset(marker: THREE.Mesh): void {
+    for (const child of [...marker.children]) {
+      marker.remove(child);
+      EntityVisualBuilder.partMaterialsDispose(child);
+    }
+    marker.scale.set(1, 1, 1);
+    marker.userData = {};
+    EntityVisualBuilder.partFlag(marker);
+    marker.userData[ENTITY_PICK_MESH_USERDATA_KEY] = true;
+    EntityVisualBuilder.partMaterialsDispose(marker);
+    marker.material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  }
+
+  /**
+   * Disposes the materials of a removed persistent part. Persistent parts share
+   * their geometries, so those are kept.
+   *
+   * @param part Removed part.
+   */
+  private static partMaterialsDispose(part: THREE.Object3D): void {
+    if (!(part instanceof THREE.Mesh || part instanceof THREE.LineSegments)) {
+      return;
+    }
+    const materials: THREE.Material[] = Array.isArray(part.material) ? part.material : [part.material];
+    materials.forEach((material) => material.dispose());
   }
 
   /**

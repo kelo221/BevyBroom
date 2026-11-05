@@ -49,8 +49,8 @@ export class EditorApiSolidReads {
       handedness: 'right',
       upAxis: 'y',
       snap: this.getSnapSettingsDto(),
-      undoCount: this.host.commandStack.getUndoCount(),
-      redoCount: this.host.commandStack.getRedoCount(),
+      undoCount: this.host.commandStack.undoAvailableCount(),
+      redoCount: this.host.commandStack.redoAvailableCount(),
       solidModelCount: listSolidModels(this.host.worldObject).length,
       selection: this.buildSelectionSummary(),
     };

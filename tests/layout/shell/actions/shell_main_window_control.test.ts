@@ -37,7 +37,7 @@ describe('ShellMainWindowControl', () => {
   it('reads the shown docks, tabs and menu titles', () => {
     const state = control.stateRead();
     expect(state.inspectorVisible).toBe(docks.frame.isInspectorVisible());
-    expect(state.inspectorTab).toBe(docks.inspector.activeTabIdRead());
+    expect(Object.keys(state)).not.toContain('inspectorTab');
     expect(state.infoPanelVisible).toBe(docks.frame.isInfoPanelVisible());
     expect(state.infoPanelTab).toBe(docks.infoPanel.activeTabIdRead());
     expect(state.toolbarVisible).toBe(docks.frame.isToolbarVisible());
@@ -46,9 +46,7 @@ describe('ShellMainWindowControl', () => {
 
   it('switches tabs and hides docks, leaving omitted fields alone', () => {
     const before = control.stateRead();
-    const after = control.changesApply({ inspectorTab: 'face', infoPanelTab: 'issues', infoPanelVisible: false });
-    expect(after.inspectorTab).toBe('face');
-    expect(docks.inspector.activeTabIdRead()).toBe('face');
+    const after = control.changesApply({ infoPanelTab: 'issues', infoPanelVisible: false });
     expect(after.infoPanelTab).toBe('issues');
     expect(after.infoPanelVisible).toBe(false);
     expect(docks.frame.isInfoPanelVisible()).toBe(false);

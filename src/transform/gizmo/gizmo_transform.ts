@@ -49,6 +49,11 @@ export class GizmoTransform {
    * rebuilds.
    */
   private lastBoundsPoseSignature: string;
+  /**
+   * False while the selection may not be scaled, so Scale mode offers no
+   * handles.
+   */
+  private scaleHandlesAllowed: boolean;
 
   /**
    * Creates a new transform gizmo.
@@ -72,6 +77,7 @@ export class GizmoTransform {
     this.handleGroup.visible = false;
     this.hideOrthoDepthAxes = true;
     this.lastBoundsPoseSignature = '';
+    this.scaleHandlesAllowed = true;
     this.buildHandlesForMode(this.currentMode);
   }
 
@@ -343,6 +349,29 @@ export class GizmoTransform {
   }
 
   /**
+   * Allows or forbids the Scale mode handles in all viewports. Forbidden scale
+   * leaves Scale mode without handles, so nothing can be grabbed to scale.
+   *
+   * @param allowed Whether the selection may be scaled.
+   */
+  setScaleHandlesAllowed(allowed: boolean): void {
+    if (this.scaleHandlesAllowed === allowed) return;
+    this.scaleHandlesAllowed = allowed;
+    if (this.currentMode === TransformMode.SCALE) {
+      this.setMode(this.currentMode);
+    }
+  }
+
+  /**
+   * Returns whether Scale mode offers handles for the selection.
+   *
+   * @returns False when scaling was forbidden for the selection.
+   */
+  isScaleHandlesAllowed(): boolean {
+    return this.scaleHandlesAllowed;
+  }
+
+  /**
    * Highlights a bounds face for resize hover on master and all viewport
    * clones.
    *
@@ -501,7 +530,9 @@ export class GizmoTransform {
       return;
     }
     if (mode === TransformMode.SCALE) {
-      this.attachModeGizmo(this.gizmoScale);
+      if (this.scaleHandlesAllowed) {
+        this.attachModeGizmo(this.gizmoScale);
+      }
       return;
     }
     if (isBoundsWidgetMode(mode)) {

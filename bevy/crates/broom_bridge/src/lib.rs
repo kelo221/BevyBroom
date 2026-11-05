@@ -11,6 +11,7 @@
 pub mod authoring;
 pub mod bake_link;
 pub mod level;
+pub mod logic;
 pub mod materials;
 pub mod placeables;
 pub mod project;
@@ -32,6 +33,9 @@ pub mod prelude {
         AuthoredLightEntity, AuthoredNode, BroomSystems, ShippedLight, ShippedLightReplaced,
     };
     pub use crate::level::{LevelGeometryRoot, LevelLoadRequest};
+    pub use crate::logic::{
+        BroomLogicEnabled, BroomLogicOutputs, LogicFireOutput, LogicInputReceived, LogicPlugin,
+    };
     pub use crate::materials::{CatalogResolver, CatalogResolvers, CatalogState};
     pub use crate::placeables::{
         AppDataAssetExt, AppPlaceableAssetExt, AppPlaceableExt, AuthoredGameEntity,
@@ -56,6 +60,7 @@ impl Plugin for BroomLevelPlugin {
                 level::LevelPlugin,
                 materials::MaterialsPlugin,
                 placeables::PlaceablesPlugin,
+                logic::LogicPlugin,
                 bake_link::BakeLinkPlugin,
                 status::StatusPlugin,
             ));

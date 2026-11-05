@@ -1,6 +1,10 @@
 import { Theme } from '@/theme.js';
 import { FloatingPanelStack, type FloatingPanelStackLayer } from './panel_floating_stack.js';
-import { clampFloatingPanelRectToScreen, FLOATING_PANEL_SCREEN_PADDING_PX } from './panel_floating_screen_bounds.js';
+import {
+  clampFloatingPanelRectToScreen,
+  floatingPanelCenterInBounds,
+  FLOATING_PANEL_SCREEN_PADDING_PX,
+} from './panel_floating_screen_bounds.js';
 import {
   buildFloatingPanelTitleBar,
   type FloatingPanelTitleBarOptions,
@@ -25,7 +29,12 @@ export interface FloatingPanelOptions {
   draggable?: boolean;
   /** When true, mounts a full-screen dimmed backdrop behind the panel. */
   modal?: boolean;
-  /** When true, centers the panel in the viewport (typical for modals). */
+  /**
+   * When true, centers the panel. Modal panels stay flex-centered on their
+   * backdrop. Non-modal panels are centered in the placement anchor on their
+   * first open and keep their (dragged) position on later opens, clamped to the
+   * screen. The corner option is ignored for centered panels.
+   */
   centered?: boolean;
   /** When true and modal, backdrop pointer-down outside the panel closes it. */
   closeOnBackdropClick?: boolean;
@@ -69,6 +78,7 @@ export abstract class PanelFloating {
   private dragOffsetY: number;
   private isDragging: boolean;
   private isShellMounted: boolean;
+  private hasFreeCenteredPlacement: boolean;
   private readonly boundDocumentKeyDown: (event: KeyboardEvent) => void;
 
   /**
@@ -95,6 +105,7 @@ export abstract class PanelFloating {
     this.isVisible = false;
     this.isDragging = false;
     this.isShellMounted = false;
+    this.hasFreeCenteredPlacement = false;
     this.dragOffsetX = 0;
     this.dragOffsetY = 0;
     this.boundDocumentKeyDown = (event) => this.onDocumentKeyDown(event);
@@ -370,12 +381,34 @@ export abstract class PanelFloating {
     }
   }
 
-  /** Positions using the corner anchor when the panel is not flex-centered. */
+  /**
+   * Positions a corner panel at its corner, centers a free centered panel on
+   * its first placement only, and leaves flex-centered modal panels alone.
+   */
   private positionDefaultIfNeeded(): void {
     if (this.centered && this.modal) {
       return;
     }
+    if (this.centered) {
+      this.positionFreeCenteredOnFirstPlacement();
+      return;
+    }
     this.positionDefault();
+  }
+
+  /**
+   * Centers a non-modal centered panel in its placement anchor the first time
+   * it is placed, keeping any later (dragged) position afterwards.
+   */
+  private positionFreeCenteredOnFirstPlacement(): void {
+    if (this.hasFreeCenteredPlacement) {
+      return;
+    }
+    const bounds = this.resolvePlacementAnchor().getBoundingClientRect();
+    const size = this.resolvePanelSizeForPlacement();
+    const centered = floatingPanelCenterInBounds(bounds, size.width, size.height);
+    this.setTopLeftPosition(centered.left, centered.top);
+    this.hasFreeCenteredPlacement = true;
   }
 
   /** Clamps free-positioned panels into the screen. */

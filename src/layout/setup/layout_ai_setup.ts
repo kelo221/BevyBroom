@@ -36,6 +36,8 @@ export interface LayoutAiSetupHost {
   mainWindowControlRead?: EditorApiHost['mainWindowControlRead'];
   /** Returns the interactive views viewport_drag and viewport_click drive. */
   viewportsInteractiveRead?: EditorApiHost['viewportsInteractiveRead'];
+  /** Returns the Object Properties dialog, creating it on first use. */
+  objectPropertiesDialogRead?: EditorApiHost['objectPropertiesDialogRead'];
 }
 
 /** Result of AI layout wiring. */
@@ -73,6 +75,7 @@ export function setupLayoutAi(host: LayoutAiSetupHost): LayoutAiSetupResult {
     ...(host.issuesValidateNow ? { issuesValidateNow: host.issuesValidateNow } : {}),
     ...(host.mainWindowControlRead ? { mainWindowControlRead: host.mainWindowControlRead } : {}),
     ...(host.viewportsInteractiveRead ? { viewportsInteractiveRead: host.viewportsInteractiveRead } : {}),
+    ...(host.objectPropertiesDialogRead ? { objectPropertiesDialogRead: host.objectPropertiesDialogRead } : {}),
   });
   sharedMcpBridgeHandler.bindEditorApi(editorApi);
   return { editorApi };

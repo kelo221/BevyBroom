@@ -17,7 +17,8 @@ describe('PropertiesPanel Undo Integration', () => {
     document.body.appendChild(container);
     selectionManager = new ManagerSelection();
     commandStack = new CommandStack(64);
-    panel = new PanelProperties(container, Theme, selectionManager);
+    panel = new PanelProperties(Theme, selectionManager);
+    panel.hostAttach(container);
     panel.setCommandStack(commandStack);
     mesh = new THREE.Mesh();
     mesh.position.set(1, 2, 3);
@@ -258,6 +259,7 @@ function createUnboundPanel(): PanelProperties {
   const tempContainer = document.createElement('div');
   document.body.appendChild(tempContainer);
   const tempSelectionManager = new ManagerSelection();
-  const tempPanel = new PanelProperties(tempContainer, Theme, tempSelectionManager);
+  const tempPanel = new PanelProperties(Theme, tempSelectionManager);
+  tempPanel.hostAttach(tempContainer);
   return tempPanel;
 }

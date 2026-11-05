@@ -1,12 +1,15 @@
 import type { GameEntityField } from '@/game_entity/class/game_entity_class_schema.js';
 import { Theme } from '@/theme.js';
-import { panelPropertiesRowCaptionPaint } from '@/ui/properties/panel_properties_row.js';
+import {
+  PANEL_PROPERTIES_ROW_INDENT_STEP_PX,
+  panelPropertiesGroupRowMark,
+  panelPropertiesRowCaptionPaint,
+  panelPropertiesRowIndentWrite,
+  panelPropertiesRowMark,
+} from '@/ui/properties/panel_properties_row.js';
 
 /** CSS color of overridden field captions: the selection orange. */
 const GAME_ENTITY_OVERRIDE_COLOR = `#${Theme.selectionColor.toString(16).padStart(6, '0')}`;
-
-/** Indentation of one group level in pixels. */
-const GAME_ENTITY_GROUP_INDENT_PX = 10;
 
 /** Element factories that give the game component inspector its look. */
 export class GameEntityUiChrome {
@@ -44,6 +47,7 @@ export class GameEntityUiChrome {
    */
   static titleRowCreate(text: string, tooltip: string, trailing: HTMLElement): HTMLElement {
     const row = GameEntityUiChrome.rowCreate();
+    panelPropertiesGroupRowMark(row);
     row.style.borderTop = `1px solid ${Theme.inputBorderColor}`;
     row.style.paddingTop = '6px';
     const title = document.createElement('span');
@@ -65,7 +69,8 @@ export class GameEntityUiChrome {
    */
   static groupCaptionCreate(text: string, depth: number): HTMLElement {
     const row = GameEntityUiChrome.rowCreate();
-    row.style.paddingLeft = `${8 + depth * GAME_ENTITY_GROUP_INDENT_PX}px`;
+    panelPropertiesGroupRowMark(row);
+    GameEntityUiChrome.rowIndentApply(row, depth);
     const caption = document.createElement('span');
     caption.textContent = text;
     panelPropertiesRowCaptionPaint(caption);
@@ -93,14 +98,37 @@ export class GameEntityUiChrome {
     reset: HTMLElement | null,
   ): HTMLElement {
     const row = GameEntityUiChrome.rowCreate();
-    row.style.paddingLeft = `${8 + depth * GAME_ENTITY_GROUP_INDENT_PX}px`;
+    GameEntityUiChrome.rowIndentApply(row, depth);
     row.dataset['fieldPath'] = field.path;
     row.dataset['overridden'] = String(overridden);
+    panelPropertiesRowMark(row, field.label, GameEntityUiChrome.fieldHelpText(field));
     row.append(GameEntityUiChrome.captionCreate(field, overridden), editor);
     if (reset) {
       row.appendChild(reset);
     }
     return row;
+  }
+
+  /**
+   * Indents a row by its group nesting depth, both as left padding and as the
+   * recorded depth table hosts read.
+   *
+   * @param row Field or group caption row.
+   * @param depth Group nesting depth.
+   */
+  private static rowIndentApply(row: HTMLElement, depth: number): void {
+    row.style.paddingLeft = `${8 + depth * PANEL_PROPERTIES_ROW_INDENT_STEP_PX}px`;
+    panelPropertiesRowIndentWrite(row, depth);
+  }
+
+  /**
+   * Describes a field by its path, kind and game default.
+   *
+   * @param field Field description.
+   * @returns Help text.
+   */
+  static fieldHelpText(field: GameEntityField): string {
+    return `${field.path}: ${field.kind}, game default ${JSON.stringify(field.default)}.`;
   }
 
   /**

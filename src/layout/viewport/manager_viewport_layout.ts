@@ -312,6 +312,7 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
         isObjectEditingAllowed: () => this.areObjectTransformWidgetsAllowed(),
         refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
       },
+      objectSelectDoubleClick: this.objectSelectDoubleClickCreate(),
     });
     this.keyboardShortcutHandler = createAndRegisterKeyboardShortcuts(
       this.inputManager,
@@ -791,6 +792,8 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
     this.clipboardSystem?.dispose();
     this.clipboardSystem = null;
     this.sceneRecoveryDispose();
+    this.objectPropertiesDialogDispose();
+    this.objectSelectDoubleClickDispose();
     this.toolEditorSystem?.uninstallFocusPointerRouter();
     this.inputManager?.dispose();
     this.viewportRegistry?.dispose();
@@ -807,7 +810,7 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
   /** Disposes subsystems that own DOM listeners, GPU helpers, or stacks. */
   private disposeOwnedUiAndManagers(): void {
     disposeLayoutOwnedResources({
-      faceExtrusionController: this.faceModeCoordinator?.getFaceExtrusionController(),
+      faceModeCoordinator: this.faceModeCoordinator,
       selectionVisualController: this.selectionVisualController,
       selectionManager: this.selectionManager,
       commandStack: this.commandStack,

@@ -3,7 +3,6 @@ import { failResult, okResult } from './editor_api_result.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 import {
   SHELL_MAIN_WINDOW_INFO_PANEL_TABS,
-  SHELL_MAIN_WINDOW_INSPECTOR_TABS,
   type ShellMainWindowChanges,
   type ShellMainWindowControl,
 } from '@/layout/shell/actions/shell_main_window_control.js';
@@ -68,9 +67,6 @@ export class EditorApiMainWindow {
    * @returns Problem description, or null when every field is valid.
    */
   private changesProblemFind(args: Record<string, unknown>): string | null {
-    if (!this.tabArgValidIs(args['inspectorTab'], SHELL_MAIN_WINDOW_INSPECTOR_TABS)) {
-      return `inspectorTab must be one of ${SHELL_MAIN_WINDOW_INSPECTOR_TABS.join(', ')}`;
-    }
     if (!this.tabArgValidIs(args['infoPanelTab'], SHELL_MAIN_WINDOW_INFO_PANEL_TABS)) {
       return `infoPanelTab must be one of ${SHELL_MAIN_WINDOW_INFO_PANEL_TABS.join(', ')}`;
     }

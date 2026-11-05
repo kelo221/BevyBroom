@@ -99,6 +99,19 @@ export class PanelPropertiesSolidBrushSection {
   }
 
   /**
+   * Shows only the registered inspector sections the filter accepts, keeping
+   * their order; every section shows again for a null filter.
+   *
+   * @param sectionShown Returns false for sections to leave out, or null.
+   */
+  registeredSectionsFilterSet(sectionShown: ((section: PanelPropertiesSection) => boolean) | null): void {
+    const shownElements = this.registeredSections
+      .filter((registeredSection) => sectionShown?.(registeredSection) ?? true)
+      .map((registeredSection) => registeredSection.getElement());
+    this.root.replaceChildren(this.section, ...shownElements);
+  }
+
+  /**
    * Wires solid-brush operation and rebuild handlers.
    *
    * @param handlers Brush property handlers, or null to clear.

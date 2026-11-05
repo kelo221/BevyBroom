@@ -1,10 +1,13 @@
 import {
   PREVIEW_PLACEABLE_FIELD_KINDS,
+  PREVIEW_PLACEABLE_IO_PARAMETER_KINDS,
   type PreviewPlaceableAssetType,
   type PreviewPlaceableClass,
   type PreviewPlaceableClassList,
   type PreviewPlaceableField,
   type PreviewPlaceableFieldKind,
+  type PreviewPlaceableIoParameterKind,
+  type PreviewPlaceableIoPin,
 } from '@/preview/protocol/preview_protocol_placeable_types.js';
 import { gameEntityFieldValueFromUnknown } from '@/game_entity/component/game_entity_component_value.js';
 
@@ -16,6 +19,9 @@ export type GameEntityField = PreviewPlaceableField;
 
 /** One asset type that asset fields may reference. */
 export type GameEntityAssetType = PreviewPlaceableAssetType;
+
+/** One declared entity I/O input or output of a game component class. */
+export type GameEntityIoPin = PreviewPlaceableIoPin;
 
 /** Every class and asset type one source knows. */
 export type GameEntityClassList = PreviewPlaceableClassList;
@@ -62,7 +68,7 @@ export function gameEntityClassFromUnknown(value: unknown): GameEntityClass | nu
     return null;
   }
   const typePath = value['type_path'];
-  return {
+  const gameClass: GameEntityClass = {
     type_path: typePath,
     label: gameEntityTextRead(value['label'], gameEntityClassShortName(typePath)),
     category: gameEntityTextRead(value['category'], 'Game'),
@@ -70,6 +76,45 @@ export function gameEntityClassFromUnknown(value: unknown): GameEntityClass | nu
     marker_color: gameEntityColorRead(value['marker_color']),
     fields: gameEntityArrayRead(value['fields'], gameEntityFieldFromUnknown),
   };
+  gameEntityClassPinsRead(value, gameClass);
+  return gameClass;
+}
+
+/**
+ * Copies the declared entity I/O inputs and outputs of an untrusted class,
+ * leaving them out when the class declares none.
+ *
+ * @param value Untrusted class record.
+ * @param gameClass Class being built.
+ */
+function gameEntityClassPinsRead(value: Record<string, unknown>, gameClass: GameEntityClass): void {
+  const inputs = gameEntityArrayRead(value['inputs'], gameEntityIoPinFromUnknown);
+  const outputs = gameEntityArrayRead(value['outputs'], gameEntityIoPinFromUnknown);
+  if (inputs.length > 0) {
+    gameClass.inputs = inputs;
+  }
+  if (outputs.length > 0) {
+    gameClass.outputs = outputs;
+  }
+}
+
+/**
+ * Reads one untrusted entity I/O pin.
+ *
+ * @param value Any value.
+ * @returns Valid pin, or null when it has no name.
+ */
+export function gameEntityIoPinFromUnknown(value: unknown): GameEntityIoPin | null {
+  if (!gameEntityRecordIs(value) || !gameEntityTextIsFilled(value['name'])) {
+    return null;
+  }
+  const pin: GameEntityIoPin = { name: value['name'], description: gameEntityTextRead(value['description'], '') };
+  const kinds: readonly string[] = PREVIEW_PLACEABLE_IO_PARAMETER_KINDS;
+  const kind = value['parameter_kind'];
+  if (typeof kind === 'string' && kinds.includes(kind)) {
+    pin.parameter_kind = kind as PreviewPlaceableIoParameterKind;
+  }
+  return pin;
 }
 
 /**

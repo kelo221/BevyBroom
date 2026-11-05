@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
+import type { KeyboardShortcutSettings } from '@/settings/store/settings_types.js';
 import {
   areShortcutsEqual,
   isValidKeyboardShortcut,
@@ -27,6 +28,17 @@ describe('settings_keyboard_helpers', () => {
     expect(merged.move).toEqual(customMove);
     expect(merged.rotate).toEqual(defaults.rotate);
     expect(areShortcutsEqual(merged.rotate, defaults.rotate)).toBe(true);
+  });
+
+  it('drops stored bindings of removed inspector tab actions and keeps the Map inspector binding', () => {
+    const defaults = createDefaultKeyboardShortcutSettings();
+    const storedEntityBinding = { code: 'Digit2', ctrl: false, shift: false, alt: false, meta: false };
+    const storedJson = JSON.stringify({ inspector_entity: storedEntityBinding, inspector_face: storedEntityBinding });
+    const stored = JSON.parse(storedJson) as Partial<KeyboardShortcutSettings>;
+    const merged = mergeKeyboardShortcutSettings(defaults, stored);
+    expect(Object.keys(merged)).not.toContain('inspector_entity');
+    expect(Object.keys(merged)).not.toContain('inspector_face');
+    expect(merged.inspector_map).toEqual(defaults.inspector_map);
   });
 
   it('binds paste at original position to Ctrl+Alt+V by default and keeps a stored rebinding', () => {

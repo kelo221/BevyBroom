@@ -4,12 +4,14 @@ import { CommandUndoBatch } from './command_undo_batch.js';
 
 /**
  * Groups every command pushed onto a command stack after it began into one
- * history entry, or removes them again. Commands are identified by the undo
- * entry that was on top when the transaction began.
+ * history entry, or removes them again. The transaction remembers the undo
+ * depth at its start and lowers it by the entries the size limit trimmed since,
+ * so entries recorded before it began are never taken.
  */
 export class CommandStackTransaction {
   private readonly commandStack: CommandStack;
-  private readonly topCommandAtBegin: UndoCommand | null;
+  private readonly undoDepthAtBegin: number;
+  private readonly undoTrimmedTotalAtBegin: number;
 
   /**
    * Begins a transaction on a command stack.
@@ -18,7 +20,8 @@ export class CommandStackTransaction {
    */
   constructor(commandStack: CommandStack) {
     this.commandStack = commandStack;
-    this.topCommandAtBegin = commandStack.peekUndo();
+    this.undoDepthAtBegin = commandStack.getUndoCount();
+    this.undoTrimmedTotalAtBegin = commandStack.undoTrimmedTotalRead();
   }
 
   /**
@@ -53,17 +56,31 @@ export class CommandStackTransaction {
   }
 
   /**
+   * Returns how many undo entries were recorded since the transaction began.
+   * Entries the size limit trimmed lower the start depth; entries undone below
+   * the start depth leave nothing to take.
+   *
+   * @returns Number of entries owned by the transaction.
+   */
+  private commandCountSinceBegin(): number {
+    const trimmedSinceBegin = this.commandStack.undoTrimmedTotalRead() - this.undoTrimmedTotalAtBegin;
+    const startDepth = Math.max(0, this.undoDepthAtBegin - trimmedSinceBegin);
+    return Math.max(0, this.commandStack.getUndoCount() - startDepth);
+  }
+
+  /**
    * Removes the entries pushed since the transaction began from the undo stack.
    *
    * @returns Removed commands in execution order.
    */
   private commandsSinceBeginDetach(): UndoCommand[] {
     const commands: UndoCommand[] = [];
-    let top = this.commandStack.peekUndo();
-    while (top !== null && top !== this.topCommandAtBegin) {
-      this.commandStack.discardTopIf(top);
+    for (let remaining = this.commandCountSinceBegin(); remaining > 0; remaining--) {
+      const top = this.commandStack.peekUndo();
+      if (!top || !this.commandStack.discardTopIf(top)) {
+        break;
+      }
       commands.unshift(top);
-      top = this.commandStack.peekUndo();
     }
     return commands;
   }

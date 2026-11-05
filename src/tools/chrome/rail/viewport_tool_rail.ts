@@ -1,9 +1,9 @@
 import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
-import { ToolbarIcons } from '@/ui/toolbar/toolbar_icons.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
 import { UiStackLayers } from '@/ui/stack/ui_stack_layers.js';
 import { toolInstructionForEditorTool } from '@/tools/chrome/instruction/tool_instruction_catalog.js';
+import { TOOL_RAIL_CATALOG_ORDER } from './tool_rail_catalog.js';
 import { createViewportToolRailButton, styleViewportToolRailButton } from './viewport_tool_rail_button.js';
 
 /** Callbacks from the floating tool rail. */
@@ -136,12 +136,11 @@ export class ViewportToolRail {
     this.root.style.pointerEvents = 'auto';
   }
 
-  /** Builds Object / Face / Clip / Grid rail buttons. */
+  /** Builds all primary tool rail buttons from the Hammer++ catalog order. */
   private buildButtons(): void {
-    this.addToolButton(EditorToolId.OBJECT, ToolbarIcons.toolObjectSelect());
-    this.addToolButton(EditorToolId.FACE, ToolbarIcons.toolFaceSelect());
-    this.addToolButton(EditorToolId.CLIP_PLANE, ToolbarIcons.toolClipPlane());
-    this.addToolButton(EditorToolId.GRID, ToolbarIcons.toolGrid());
+    TOOL_RAIL_CATALOG_ORDER.forEach((entry) => {
+      this.addToolButton(entry.id, entry.iconSvgRead());
+    });
   }
 
   /**

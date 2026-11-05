@@ -4,8 +4,6 @@ export interface ShellState {
   inspectorVisible: boolean;
   /** Inspector width in CSS pixels. */
   inspectorWidthPx: number;
-  /** Id of the visible inspector tab. */
-  inspectorTabId: string;
   /** True while the bottom info panel is shown. */
   infoPanelVisible: boolean;
   /** Info panel height in CSS pixels. */
@@ -14,6 +12,8 @@ export interface ShellState {
   infoPanelTabId: string;
   /** True while the main icon toolbar is shown. */
   toolbarVisible: boolean;
+  /** True while the left vertical tools palette is shown. */
+  toolsPaletteVisible: boolean;
   /** Sizes of inner splitters in CSS pixels, keyed by splitter name. */
   splitSizesPx: Record<string, number>;
 }
@@ -33,11 +33,11 @@ export function shellStateDefaultCreate(): ShellState {
   return {
     inspectorVisible: true,
     inspectorWidthPx: SHELL_INSPECTOR_MIN_WIDTH_PX,
-    inspectorTabId: 'map',
     infoPanelVisible: true,
     infoPanelHeightPx: 120,
     infoPanelTabId: 'console',
     toolbarVisible: true,
+    toolsPaletteVisible: true,
     splitSizesPx: {},
   };
 }

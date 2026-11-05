@@ -57,6 +57,7 @@ const OBJECT_FIELDS: Record<keyof PreviewAuthoredObject, true> = {
   room: true,
   portal: true,
   components: true,
+  logic_outputs: true,
 };
 
 /**
@@ -102,6 +103,18 @@ describe('preview protocol fixtures', () => {
     expect(fieldsUndeclared(state, STATE_FIELDS)).toEqual([]);
     expect(state.objects.length).toBeGreaterThan(0);
     state.objects.forEach((object) => expect(fieldsUndeclared(object, OBJECT_FIELDS)).toEqual([]));
+    const withLogic = state.objects.find((obj) => (obj.logic_outputs?.length ?? 0) > 0);
+    expect(withLogic?.logic_outputs?.[0]?.output).toBe('OnSpawn');
+    expect(withLogic?.logic_outputs?.[0]?.target).toBe('Door*');
+  });
+
+  it('parses inputs and outputs pins on the shared placeable classes fixture', () => {
+    const list = fixtureBridgeRead<{ classes: Array<{ type_path: string; inputs?: unknown[]; outputs?: unknown[] }> }>(
+      'placeable_classes_sample.json',
+    );
+    const door = list.classes.find((cls) => cls.type_path === 'broom_preview::placeables::Door');
+    expect(door?.inputs).toHaveLength(2);
+    expect(door?.outputs).toHaveLength(1);
   });
 
   it('writes exactly the light node extras the bridge sample reads', () => {

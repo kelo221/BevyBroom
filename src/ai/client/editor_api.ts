@@ -348,7 +348,7 @@ export class EditorApi {
       case 'issues_list':
         return this.infoPanel.issuesList();
       default:
-        return this.dispatchToolGroups(name, args);
+        return this.gameEntities.gameLogicToolDispatch(name, args) ?? this.dispatchToolGroups(name, args);
     }
   }
 

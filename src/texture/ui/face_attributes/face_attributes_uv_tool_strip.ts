@@ -1,5 +1,3 @@
-import { Theme } from '@/theme.js';
-import { hexToRgb } from '@/utils/utils_color.js';
 import { InputNumeric } from '@/ui/input/input_numeric.js';
 import type { FaceUvFitAxis } from '@/texture/uv/operations/face_uv_operation_fit.js';
 import type { FaceUvJustifySide } from '@/texture/uv/operations/face_uv_operation_justify.js';
@@ -9,12 +7,14 @@ import type { FaceUvShearMode } from '@/texture/uv/operations/face_uv_operation_
 import type { FaceUvToolSelectionStatus } from '@/texture/controller/controller_face_uv_tools.js';
 import {
   FACE_INSPECTOR_METRICS,
-  faceInspectorButtonCreate,
   faceInspectorCaptionCreate,
 } from '@/texture/ui/face_inspector/face_inspector_controls.js';
-
-/** Background tint of a highlighted (already satisfied) button. */
-const UV_TOOL_HIGHLIGHT_BACKGROUND = 'rgba(232, 106, 23, 0.22)';
+import { buttonCompactCreate } from '@/ui/button/button_compact.js';
+import {
+  FACE_ATTRIBUTES_UV_TOOL_ROWS_DEFAULT,
+  faceAttributesUvToolButtonHighlightApply,
+  type FaceAttributesUvToolButtonSpec,
+} from './face_attributes_uv_tool_specs.js';
 
 /** Callbacks the UV tool strip uses to run face UV operations. */
 export interface FaceAttributesUvToolStripHandlers {
@@ -35,9 +35,9 @@ interface UvToolStripButton {
 }
 
 /**
- * Compact strip of face UV tool buttons (fit, justify, align, flip, rotate,
- * resets) plus shear U/V numeric fields. Fit, justify, and align buttons
- * highlight while the single selected face already satisfies them.
+ * Compact strip of face UV tool button rows (by default fit, justify, align,
+ * flip, rotate, resets) plus shear U/V numeric fields. Buttons with a highlight
+ * flag highlight while the single selected face already satisfies them.
  */
 export class FaceAttributesUvToolStrip {
   private readonly element: HTMLElement;
@@ -50,15 +50,20 @@ export class FaceAttributesUvToolStrip {
    * Creates the UV tool strip.
    *
    * @param handlers Operation callbacks.
+   * @param buttonRows Button rows shown above the shear fields, top to bottom.
    */
-  constructor(handlers: FaceAttributesUvToolStripHandlers) {
+  constructor(
+    handlers: FaceAttributesUvToolStripHandlers,
+    buttonRows: ReadonlyArray<readonly FaceAttributesUvToolButtonSpec[]> = FACE_ATTRIBUTES_UV_TOOL_ROWS_DEFAULT,
+  ) {
     this.handlers = handlers;
     this.element = document.createElement('div');
     this.buttons = [];
     this.shearUField = this.shearFieldCreate('u-by-v');
     this.shearVField = this.shearFieldCreate('v-by-u');
     this.rootStyleApply();
-    this.element.append(this.fitJustifyRowCreate(), this.alignFlipRowCreate(), this.shearRowCreate());
+    buttonRows.forEach((specs) => this.element.appendChild(this.specRowCreate(specs)));
+    this.element.appendChild(this.shearRowCreate());
   }
 
   /**
@@ -79,7 +84,7 @@ export class FaceAttributesUvToolStrip {
   setFromStatus(status: FaceUvToolSelectionStatus | null): void {
     this.buttons.forEach((button) => {
       const highlighted = status !== null && button.isHighlighted(status);
-      faceUvToolButtonHighlightApply(button.element, highlighted);
+      faceAttributesUvToolButtonHighlightApply(button.element, highlighted);
     });
   }
 
@@ -110,37 +115,13 @@ export class FaceAttributesUvToolStrip {
   }
 
   /**
-   * Creates the fit and justify button row from its spec table.
-   *
-   * @returns Row element.
-   */
-  private fitJustifyRowCreate(): HTMLElement {
-    return this.specRowCreate(FIT_JUSTIFY_BUTTON_SPECS);
-  }
-
-  /**
-   * Creates the align, flip, rotate, and reset button row from its spec table.
-   *
-   * @returns Row element.
-   */
-  private alignFlipRowCreate(): HTMLElement {
-    return this.specRowCreate(ALIGN_FLIP_BUTTON_SPECS);
-  }
-
-  /**
    * Creates one wrapping row of buttons built from specs.
    *
    * @param specs Button specs of the row.
    * @returns Row element.
    */
-  private specRowCreate(specs: readonly UvToolStripButtonSpec[]): HTMLElement {
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.flexWrap = 'wrap';
-    row.style.gap = `${FACE_INSPECTOR_METRICS.gap}px`;
-    row.style.alignItems = 'center';
-    specs.forEach((spec) => row.appendChild(this.specButtonCreate(spec)));
-    return row;
+  private specRowCreate(specs: readonly FaceAttributesUvToolButtonSpec[]): HTMLElement {
+    return this.rowCreate(...specs.map((spec) => this.specButtonCreate(spec)));
   }
 
   /**
@@ -150,8 +131,8 @@ export class FaceAttributesUvToolStrip {
    * @param spec Button spec.
    * @returns Button element.
    */
-  private specButtonCreate(spec: UvToolStripButtonSpec): HTMLButtonElement {
-    const button = faceInspectorButtonCreate({
+  private specButtonCreate(spec: FaceAttributesUvToolButtonSpec): HTMLButtonElement {
+    const button = buttonCompactCreate({
       title: spec.title,
       text: spec.title,
       widthPx: null,
@@ -227,50 +208,4 @@ export class FaceAttributesUvToolStrip {
     cell.append(faceInspectorCaptionCreate(label), field.getElement());
     return cell;
   }
-}
-
-/** Declarative description of one tool strip button. */
-interface UvToolStripButtonSpec {
-  /** Button label and tooltip. */
-  title: string;
-  /** Runs the button's operation against the strip handlers. */
-  run: (handlers: FaceAttributesUvToolStripHandlers) => void;
-  /** Highlight flag read from the selection status, when tracked. */
-  isHighlighted?: (status: FaceUvToolSelectionStatus) => boolean;
-}
-
-/** Fit and justify buttons with their status highlight flags. */
-const FIT_JUSTIFY_BUTTON_SPECS: readonly UvToolStripButtonSpec[] = [
-  { title: 'Fit H', run: (h) => h.onFit('u'), isHighlighted: (s) => s.fittedU },
-  { title: 'Fit V', run: (h) => h.onFit('v'), isHighlighted: (s) => s.fittedV },
-  { title: 'Fit', run: (h) => h.onFit('both'), isHighlighted: (s) => s.fittedU && s.fittedV },
-  { title: 'Justify ←', run: (h) => h.onJustify('left'), isHighlighted: (s) => s.justifiedLeft },
-  { title: 'Justify →', run: (h) => h.onJustify('right'), isHighlighted: (s) => s.justifiedRight },
-  { title: 'Justify ↑', run: (h) => h.onJustify('top'), isHighlighted: (s) => s.justifiedTop },
-  { title: 'Justify ↓', run: (h) => h.onJustify('bottom'), isHighlighted: (s) => s.justifiedBottom },
-  { title: 'Center', run: (h) => h.onJustify('center'), isHighlighted: (s) => s.justifiedCenter },
-];
-
-/** Align, flip, rotate, and reset buttons with their status highlight flags. */
-const ALIGN_FLIP_BUTTON_SPECS: readonly UvToolStripButtonSpec[] = [
-  { title: 'Align ◀', run: (h) => h.onAlignEdge('previous'), isHighlighted: (s) => s.aligned },
-  { title: 'Align', run: (h) => h.onAlignEdge('best'), isHighlighted: (s) => s.aligned },
-  { title: 'Align ▶', run: (h) => h.onAlignEdge('next'), isHighlighted: (s) => s.aligned },
-  { title: 'Flip H', run: (h) => h.onFlip('horizontal') },
-  { title: 'Flip V', run: (h) => h.onFlip('vertical') },
-  { title: 'Rot −90', run: (h) => h.onRotate(-90) },
-  { title: 'Rot 90', run: (h) => h.onRotate(90) },
-  { title: 'Reset Face', run: (h) => h.onResetFace() },
-  { title: 'Reset World', run: (h) => h.onResetWorld() },
-];
-
-/**
- * Paints a tool button as highlighted (already satisfied) or idle.
- *
- * @param button Button element.
- * @param highlighted Whether the condition is satisfied.
- */
-function faceUvToolButtonHighlightApply(button: HTMLButtonElement, highlighted: boolean): void {
-  button.style.borderColor = highlighted ? hexToRgb(Theme.selectionColor) : Theme.inputBorderColor;
-  button.style.background = highlighted ? UV_TOOL_HIGHLIGHT_BACKGROUND : hexToRgb(Theme.buttonBackground);
 }

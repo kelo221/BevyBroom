@@ -39,17 +39,15 @@ import {
   shouldPublishLiveVisualsAfterModalKey,
 } from './layout_transform_live_visuals.js';
 import { audioViewportFocus } from '@/audio/spatial/audio_viewport_focus.js';
+import type { DomModifierKeyFlags } from '@/input/modifier_keys_query.js';
 import {
-  isAltPressedOnDomFlags,
-  isAltPressedOnInputManagers,
-  isAnyModifierPressedOnDomFlags,
-  isAnyModifierPressedOnInputManagers,
-  isCtrlOrMetaPressedOnDomFlags,
-  isCtrlOrMetaPressedOnInputManagers,
-  isShiftPressedOnDomFlags,
-  isShiftPressedOnInputManagers,
-  type DomModifierKeyFlags,
-} from '@/input/modifier_keys_query.js';
+  layoutToolEditorAltPressedResolve,
+  layoutToolEditorAnyModifierPressedResolve,
+  layoutToolEditorCtrlPressedResolve,
+  layoutToolEditorShiftPressedResolve,
+} from './layout_tool_editor_modifier_keys.js';
+import type { ObjectSelectDoubleClickProperties } from '@/tools/object_select/object_select_double_click_properties.js';
+import { entityTransformScaleAllowedAll } from '@/entity/scale/entity_scale_allowed.js';
 import { findPickSurfaceAtClientPoint } from '@/utils/pointer_client_hit.js';
 import { snapLoopCutParameterToGridPlanes } from '@/edit/tool/edit_loop_cut_slide_snap.js';
 import type { LoopCutBeltParameterRange } from '@/edit/topology/topology_loop_cut_belt_range.js';
@@ -163,6 +161,8 @@ export interface LayoutToolEditorSetupDeps {
    * object dragging is off when omitted.
    */
   objectDragHost?: LayoutObjectDragHost;
+  /** Opens Object Properties on object double-clicks; off when omitted. */
+  objectSelectDoubleClick?: ObjectSelectDoubleClickProperties;
 }
 
 /** Built tool system exposed to the layout for keyboard and mode switches. */
@@ -552,6 +552,9 @@ function createEditorServices(
       }
       applyObjectClickSelectionAtClientPoint(deps, clientX, clientY, additive, toggle, getPointerOwnerDocument());
     },
+    objectClickReleaseDoubleClickHandle: (clientX, clientY, isModifierHeld) =>
+      deps.objectSelectDoubleClick?.clickRelease(clientX, clientY, isModifierHeld) === true,
+    isSelectionScaleAllowed: () => entityTransformScaleAllowedAll(deps.selectionManager.getAllSelectedObjectsAsArray()),
     beginObjectDragAtClientPoint: (press) => objectDragController?.dragBegin(press) ?? null,
     tryBeginPermanentGizmoDragFromEditorPointer: (clientX, clientY, modifiers) => {
       if (deps.getEditModeCoordinator?.()?.isActive() === true) {
@@ -709,10 +712,10 @@ function createEditorServices(
       deps.onAfterTransformCommit([...objects]);
     },
     getLastPointerClientPosition: (ownerDocument) => resolveLastPointerClientPosition(deps, ownerDocument),
-    isShiftPressed: () => resolveIsShiftPressed(deps, getLatchedModifierFlags),
-    isCtrlPressed: () => resolveIsCtrlPressed(deps, getLatchedModifierFlags),
-    isAltPressed: () => resolveIsAltPressed(deps, getLatchedModifierFlags),
-    isModifierPressed: () => resolveIsModifierPressed(deps, getLatchedModifierFlags),
+    isShiftPressed: () => layoutToolEditorShiftPressedResolve(deps, getLatchedModifierFlags),
+    isCtrlPressed: () => layoutToolEditorCtrlPressedResolve(deps, getLatchedModifierFlags),
+    isAltPressed: () => layoutToolEditorAltPressedResolve(deps, getLatchedModifierFlags),
+    isModifierPressed: () => layoutToolEditorAnyModifierPressedResolve(deps, getLatchedModifierFlags),
     handleGlobalKeyDown: (_keyCode, event) => getGlobalKeyDown()?.(event) === true,
     isNavigationBlockingTools: () => getNavigationBlocks()?.() === true,
   };
@@ -1107,93 +1110,6 @@ function resolveLastPointerClientPosition(
     return deps.inputManager.getLastPointerClientPosition();
   }
   return deps.getLastPointerClientPositionForDocument?.(ownerDocument) ?? null;
-}
-
-/**
- * Collects main and detached input managers for multi-window modifier queries.
- *
- * @param deps Layout services.
- * @returns Input managers in query order.
- */
-function collectInputManagers(deps: LayoutToolEditorSetupDeps): ManagerInput[] {
-  const managers: ManagerInput[] = [deps.inputManager];
-  const detached = deps.getDetachedInputManagers?.() ?? [];
-  for (const manager of detached) {
-    managers.push(manager);
-  }
-  return managers;
-}
-
-/**
- * Resolves Shift for tools and widgets (bridge latch, then all input managers).
- *
- * @param deps Layout services.
- * @param getLatchedModifierFlags Bridge-latched DOM modifiers.
- * @returns True when Shift is active.
- */
-function resolveIsShiftPressed(
-  deps: LayoutToolEditorSetupDeps,
-  getLatchedModifierFlags: () => DomModifierKeyFlags | null,
-): boolean {
-  const latch = getLatchedModifierFlags();
-  if (latch && isShiftPressedOnDomFlags(latch)) {
-    return true;
-  }
-  return isShiftPressedOnInputManagers(collectInputManagers(deps));
-}
-
-/**
- * Resolves Ctrl/Meta for tools and widgets.
- *
- * @param deps Layout services.
- * @param getLatchedModifierFlags Bridge-latched DOM modifiers.
- * @returns True when Ctrl or Meta is active.
- */
-function resolveIsCtrlPressed(
-  deps: LayoutToolEditorSetupDeps,
-  getLatchedModifierFlags: () => DomModifierKeyFlags | null,
-): boolean {
-  const latch = getLatchedModifierFlags();
-  if (latch && isCtrlOrMetaPressedOnDomFlags(latch)) {
-    return true;
-  }
-  return isCtrlOrMetaPressedOnInputManagers(collectInputManagers(deps));
-}
-
-/**
- * Resolves Alt for tools and widgets.
- *
- * @param deps Layout services.
- * @param getLatchedModifierFlags Bridge-latched DOM modifiers.
- * @returns True when Alt is active.
- */
-function resolveIsAltPressed(
-  deps: LayoutToolEditorSetupDeps,
-  getLatchedModifierFlags: () => DomModifierKeyFlags | null,
-): boolean {
-  const latch = getLatchedModifierFlags();
-  if (latch && isAltPressedOnDomFlags(latch)) {
-    return true;
-  }
-  return isAltPressedOnInputManagers(collectInputManagers(deps));
-}
-
-/**
- * Resolves any modifier for tools and widgets.
- *
- * @param deps Layout services.
- * @param getLatchedModifierFlags Bridge-latched DOM modifiers.
- * @returns True when any modifier is active.
- */
-function resolveIsModifierPressed(
-  deps: LayoutToolEditorSetupDeps,
-  getLatchedModifierFlags: () => DomModifierKeyFlags | null,
-): boolean {
-  const latch = getLatchedModifierFlags();
-  if (latch && isAnyModifierPressedOnDomFlags(latch)) {
-    return true;
-  }
-  return isAnyModifierPressedOnInputManagers(collectInputManagers(deps));
 }
 
 /**

@@ -25,6 +25,15 @@ export class EntityOwnerRegistry {
   }
 
   /**
+   * Returns every owner helper: the built-in kinds first, then registered ones.
+   *
+   * @returns Owner helpers in lookup order.
+   */
+  static list(): readonly EntityOwner<object>[] {
+    return EntityOwnerRegistry.owners.list();
+  }
+
+  /**
    * Returns the owner helper matching an entity owner's kind.
    *
    * @param object Candidate entity owner.

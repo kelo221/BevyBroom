@@ -3,6 +3,7 @@ import { exportContentMaterialResolve, shouldOmitFromExport } from '@/io/scene/b
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { CLIP_PREVIEW_USERDATA_KEY } from '@/tools/clip_plane/clip_plane_preview.js';
 import { objectInOmittedLayerIs } from '@/layer/model/layer_membership.js';
+import { displacementSurfaceMeshIs } from '@/displacement/mesh/displacement_surface_mesh_keys.js';
 
 /**
  * Builds a cheap text signature of everything that ends up inside exported
@@ -56,7 +57,8 @@ export class PreviewGeometrySignature {
   }
 
   /**
-   * Appends a solid model and its compiled result mesh.
+   * Appends a solid model, its compiled result mesh and its displacement
+   * surfaces.
    *
    * @param solidRoot Solid model root.
    * @param parts Output signature parts.
@@ -64,7 +66,7 @@ export class PreviewGeometrySignature {
   private static solidAppend(solidRoot: THREE.Object3D, parts: string[]): void {
     parts.push(`s:${solidRoot.uuid}[`);
     for (const child of solidRoot.children) {
-      if (child instanceof THREE.Mesh && SolidModel.isResultMesh(child)) {
+      if (child instanceof THREE.Mesh && (SolidModel.isResultMesh(child) || displacementSurfaceMeshIs(child))) {
         PreviewGeometrySignature.meshAppend(child, parts);
       }
     }

@@ -22,6 +22,7 @@ export class ShellMenuEdit extends ShellMenu {
       ...this.clipboardEntriesBuild(context),
       this.actionEntry(context, 'Duplicate', () => actions.onDuplicateSelected(), { shortcutAction: 'duplicate' }),
       this.actionEntry(context, 'Delete', () => actions.onDeleteSelected(), { shortcutAction: 'delete_selected' }),
+      this.objectPropertiesEntryBuild(context),
       this.separatorEntry(),
       ...this.selectionEntriesBuild(context),
       this.separatorEntry(),
@@ -53,6 +54,21 @@ export class ShellMenuEdit extends ShellMenu {
         shortcutAction: 'paste_original',
       }),
     ];
+  }
+
+  /**
+   * Builds the Object Properties entry, enabled only while something is
+   * selected.
+   *
+   * @param context Actions and docks the entry runs.
+   * @returns Object Properties entry.
+   */
+  private objectPropertiesEntryBuild(context: ShellMenuContext): ToolbarMenuEntry {
+    const window = context.windowActions;
+    return this.actionEntry(context, 'Object Properties', () => window.objectPropertiesOpen(), {
+      shortcutAction: 'object_properties',
+      isEnabled: () => window.selectionHasObjectsIs(),
+    });
   }
 
   /**

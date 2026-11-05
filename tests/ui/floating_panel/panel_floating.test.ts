@@ -187,6 +187,165 @@ describe('FloatingPanel', () => {
   });
 });
 
+/** Non-modal centered panel with a draggable title bar. */
+class TestCenteredPanel extends PanelFloating {
+  /** Title bar element the tests drag. */
+  readonly titleBar: HTMLElement;
+
+  /**
+   * Creates a non-modal centered panel with a draggable title bar.
+   *
+   * @param host Host element the panel centers in.
+   * @param width Panel width in pixels.
+   * @param height Panel height in pixels.
+   */
+  constructor(host: HTMLElement, width: number, height: number) {
+    super(host, { corner: 'bottom-left', centered: true, paddingPx: 8 });
+    this.titleBar = document.createElement('div');
+    this.bindTitleBarDrag(this.titleBar);
+    this.root.appendChild(this.titleBar);
+    this.root.style.width = `${width}px`;
+    this.root.style.height = `${height}px`;
+  }
+}
+
+/**
+ * Sets the browser window size seen by screen clamping.
+ *
+ * @param width Window width in pixels.
+ * @param height Window height in pixels.
+ */
+function windowSizeSet(width: number, height: number): void {
+  Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+  Object.defineProperty(window, 'innerHeight', { configurable: true, value: height });
+}
+
+/**
+ * Drags a title bar by a pointer offset.
+ *
+ * @param titleBar Title bar element.
+ * @param startX Pointer start X in client pixels.
+ * @param startY Pointer start Y in client pixels.
+ * @param deltaX Horizontal drag distance.
+ * @param deltaY Vertical drag distance.
+ */
+function titleBarDrag(titleBar: HTMLElement, startX: number, startY: number, deltaX: number, deltaY: number): void {
+  titleBar.dispatchEvent(
+    new PointerEvent('pointerdown', { button: 0, clientX: startX, clientY: startY, bubbles: true }),
+  );
+  window.dispatchEvent(new PointerEvent('pointermove', { clientX: startX + deltaX, clientY: startY + deltaY }));
+  window.dispatchEvent(new PointerEvent('pointerup', {}));
+}
+
+/**
+ * Reads the CSS left/top of a panel root in pixels.
+ *
+ * @param panel Panel to read.
+ * @returns Left and top.
+ */
+function panelLeftTopRead(panel: PanelFloating): { left: number; top: number } {
+  const root = panel.getRootElement();
+  return { left: parseFloat(root.style.left), top: parseFloat(root.style.top) };
+}
+
+describe('FloatingPanel non-modal centered placement', () => {
+  const panelWidth = 120;
+  const panelHeight = 80;
+  const hostRect = { left: 100, top: 50, width: 800, height: 600 };
+  let host: HTMLElement;
+  let panel: PanelFloating | null;
+
+  beforeEach(() => {
+    FloatingPanelStack.resetForTests();
+    windowSizeSet(hostRect.left + hostRect.width + 200, hostRect.top + hostRect.height + 200);
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    stubBoundingRect(host, hostRect);
+  });
+
+  afterEach(() => {
+    panel?.dispose();
+    panel = null;
+    host.remove();
+    FloatingPanelStack.resetForTests();
+  });
+
+  /**
+   * Creates and returns a centered panel whose rect follows its style.
+   *
+   * @returns Centered test panel.
+   */
+  function centeredPanelCreate(): TestCenteredPanel {
+    const centeredPanel = new TestCenteredPanel(host, panelWidth, panelHeight);
+    stubPanelRectFromStyle(centeredPanel.getRootElement(), panelWidth, panelHeight);
+    panel = centeredPanel;
+    return centeredPanel;
+  }
+
+  it('centers in the host on first show without a backdrop', () => {
+    const centeredPanel = centeredPanelCreate();
+    centeredPanel.show();
+    const position = panelLeftTopRead(centeredPanel);
+    expect(centeredPanel.getBackdropElement()).toBeNull();
+    expect(centeredPanel.getRootElement().style.position).toBe('fixed');
+    expect(position.left + panelWidth / 2).toBeCloseTo(hostRect.left + hostRect.width / 2, 0);
+    expect(position.top + panelHeight / 2).toBeCloseTo(hostRect.top + hostRect.height / 2, 0);
+  });
+
+  it('keeps the dragged position when shown again', () => {
+    const centeredPanel = centeredPanelCreate();
+    centeredPanel.show();
+    const centeredPosition = panelLeftTopRead(centeredPanel);
+    const dragDelta = { x: -70, y: 45 };
+    titleBarDrag(
+      centeredPanel.titleBar,
+      centeredPosition.left + 10,
+      centeredPosition.top + 5,
+      dragDelta.x,
+      dragDelta.y,
+    );
+    const draggedPosition = panelLeftTopRead(centeredPanel);
+    expect(draggedPosition.left).toBeCloseTo(centeredPosition.left + dragDelta.x, 0);
+    expect(draggedPosition.top).toBeCloseTo(centeredPosition.top + dragDelta.y, 0);
+    centeredPanel.hide();
+    centeredPanel.show();
+    expect(panelLeftTopRead(centeredPanel)).toEqual(draggedPosition);
+  });
+
+  it('clamps the kept position into the window when the window shrinks', () => {
+    const centeredPanel = centeredPanelCreate();
+    centeredPanel.show();
+    const position = panelLeftTopRead(centeredPanel);
+    const padding = 8;
+    const shrunkWidth = position.left + panelWidth / 2;
+    const shrunkHeight = position.top + panelHeight / 2;
+    windowSizeSet(shrunkWidth, shrunkHeight);
+    window.dispatchEvent(new Event('resize'));
+    const clamped = panelLeftTopRead(centeredPanel);
+    expect(clamped.left + panelWidth).toBeLessThanOrEqual(shrunkWidth - padding);
+    expect(clamped.top + panelHeight).toBeLessThanOrEqual(shrunkHeight - padding);
+    centeredPanel.hide();
+    centeredPanel.show();
+    expect(panelLeftTopRead(centeredPanel)).toEqual(clamped);
+  });
+
+  it('keeps corner panels snapping back to their corner on every show', () => {
+    const cornerPanel = new TestFloatingPanel(host);
+    stubPanelRectFromStyle(cornerPanel.getRootElement(), panelWidth, panelHeight);
+    panel = cornerPanel;
+    cornerPanel.show();
+    const cornerPosition = panelLeftTopRead(cornerPanel);
+    expect(cornerPosition.left).toBe(hostRect.left + 8);
+    expect(cornerPosition.top).toBe(hostRect.top + hostRect.height - panelHeight - 8);
+    const title = cornerPanel.getRootElement().querySelector('[data-test-title="1"]') as HTMLElement;
+    titleBarDrag(title, cornerPosition.left + 10, cornerPosition.top + 5, 60, -40);
+    expect(panelLeftTopRead(cornerPanel)).not.toEqual(cornerPosition);
+    cornerPanel.hide();
+    cornerPanel.show();
+    expect(panelLeftTopRead(cornerPanel)).toEqual(cornerPosition);
+  });
+});
+
 /** Modal non-draggable panel for dialog feature tests. */
 class TestModalPanel extends PanelFloating {
   /**

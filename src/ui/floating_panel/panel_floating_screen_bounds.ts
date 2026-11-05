@@ -39,6 +39,26 @@ export function clampFloatingPanelRectToScreen(
 }
 
 /**
+ * Computes the left/top that centers a panel of the given size inside a
+ * bounding rectangle.
+ *
+ * @param bounds Rectangle the panel is centered in.
+ * @param panelWidth Panel width in CSS pixels.
+ * @param panelHeight Panel height in CSS pixels.
+ * @returns Unclamped left/top of the centered panel.
+ */
+export function floatingPanelCenterInBounds(
+  bounds: FloatingPanelRect,
+  panelWidth: number,
+  panelHeight: number,
+): { left: number; top: number } {
+  return {
+    left: Math.round(bounds.left + (bounds.width - panelWidth) / 2),
+    top: Math.round(bounds.top + (bounds.height - panelHeight) / 2),
+  };
+}
+
+/**
  * Clamps a scalar into an inclusive range.
  *
  * @param value Input value.

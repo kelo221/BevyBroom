@@ -1,8 +1,11 @@
 import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
 
-/** Visual style of a tab strip: an underlined tab row or rounded pill buttons. */
-export type TabBookVariant = 'underline' | 'pill';
+/**
+ * Visual style of a tab strip: an underlined tab row, rounded pill buttons, or
+ * a compact one-line row of small underlined tabs for dialogs.
+ */
+export type TabBookVariant = 'underline' | 'pill' | 'compact';
 
 /** Id of the style element that holds the shared tab book CSS. */
 const TAB_BOOK_STYLE_ELEMENT_ID = 'bevybroom-tab-book-styles';
@@ -43,7 +46,9 @@ export function tabBookStylesEnsure(ownerDocument: Document): void {
   }
   const styleElement = ownerDocument.createElement('style');
   styleElement.id = TAB_BOOK_STYLE_ELEMENT_ID;
-  styleElement.textContent = [tabBookBaseCss(), tabBookUnderlineCss(), tabBookPillCss()].join('\n');
+  styleElement.textContent = [tabBookBaseCss(), tabBookUnderlineCss(), tabBookPillCss(), tabBookCompactCss()].join(
+    '\n',
+  );
   ownerDocument.head.appendChild(styleElement);
 }
 
@@ -74,6 +79,23 @@ function tabBookUnderlineCss(): string {
   return `
 ${root} > .${TAB_BOOK_STRIP_CLASS} { gap: 2px; padding: 0 8px; background: ${hexToRgb(Theme.toolbarBackground)}; border-bottom: 1px solid ${hexToRgb(Theme.separatorColor)}; }
 ${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS} { padding: 6px 10px 5px; border-width: 0 0 2px 0; border-radius: 0; font-weight: 600; color: #b0b0b0; }
+${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}:hover { color: #ffffff; }
+${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}[aria-selected="true"] { color: #ffffff; border-bottom-color: ${selection}; }
+`.trim();
+}
+
+/**
+ * Builds the rules of the compact variant: small underlined tabs that stay on
+ * one line.
+ *
+ * @returns CSS text.
+ */
+function tabBookCompactCss(): string {
+  const root = `.${tabBookVariantClass('compact')}`;
+  const selection = hexToRgb(Theme.selectionColor);
+  return `
+${root} > .${TAB_BOOK_STRIP_CLASS} { flex-wrap: nowrap; gap: 0; padding: 0 6px; overflow: hidden; background: ${hexToRgb(Theme.toolbarBackground)}; border-bottom: 1px solid ${hexToRgb(Theme.separatorColor)}; }
+${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS} { padding: 4px 8px 3px; font-size: 11px; white-space: nowrap; flex-shrink: 0; border-width: 0 0 2px 0; border-radius: 0; color: #b0b0b0; }
 ${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}:hover { color: #ffffff; }
 ${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}[aria-selected="true"] { color: #ffffff; border-bottom-color: ${selection}; }
 `.trim();

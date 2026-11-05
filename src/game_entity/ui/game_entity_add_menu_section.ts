@@ -1,5 +1,6 @@
 import type * as THREE from 'three';
 import { GameEntityClassRegistry } from '@/game_entity/class/game_entity_class_registry.js';
+import { gameEntityClassIdOf } from '@/game_entity/class/game_entity_class_id.js';
 import type { GameEntityClass } from '@/game_entity/class/game_entity_class_schema.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import { GameEntityOwner, gameEntityCreateForClass } from '@/game_entity/owner/game_entity_owner.js';
@@ -15,9 +16,6 @@ const GAME_ENTITY_MENU_ICON: IconName = GameEntityOwner.definition.iconName({});
 
 /** Approximate half-extent of a new game entity, used for wall clearance. */
 const GAME_ENTITY_PLACEMENT_RADIUS = 0.3;
-
-/** Catalog id prefix of entries that place a game entity carrying one class. */
-export const GAME_ENTITY_ADD_MENU_CLASS_ID_PREFIX = 'game_entity.class.';
 
 /**
  * Builds the Game Entities submenu: an empty game entity, then one submenu per
@@ -114,7 +112,7 @@ function gameEntityAddMenuClassEntry(actions: AddMenuActions, gameClass: GameEnt
       onClick: () => actions.onAddEntityPlaced(() => gameEntityCreateForClass(gameClass), GAME_ENTITY_PLACEMENT_RADIUS),
     },
     {
-      id: `${GAME_ENTITY_ADD_MENU_CLASS_ID_PREFIX}${gameClass.type_path}`,
+      id: gameEntityClassIdOf(gameClass.type_path),
       objectMatches: (object) => Object.hasOwn(GameEntityComponentStore.read(object), gameClass.type_path),
     },
   );

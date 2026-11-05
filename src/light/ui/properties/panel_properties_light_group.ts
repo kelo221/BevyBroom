@@ -10,7 +10,12 @@ import {
   panelPropertiesEntitySwitchCreate,
   panelPropertiesEntitySwitchValue,
 } from '@/ui/properties/panel_properties_entity_section.js';
-import { panelPropertiesRowCreate, type PanelPropertiesRowField } from '@/ui/properties/panel_properties_row.js';
+import {
+  panelPropertiesGroupRowMark,
+  panelPropertiesRowCreate,
+  panelPropertiesRowIndentWrite,
+  type PanelPropertiesRowField,
+} from '@/ui/properties/panel_properties_row.js';
 
 /** Keys of light settings fields holding values of one type. */
 type LightSettingsKeyOfType<TValue> = {
@@ -58,6 +63,7 @@ export abstract class PanelPropertiesLightGroup {
   private readonly element: HTMLElement;
   private readonly content: HTMLElement;
   private readonly writers: PanelPropertiesLightGroupWriter[];
+  private readonly hasHeader: boolean;
 
   /**
    * Creates the group: collapsed below a header, or always open without one.
@@ -69,6 +75,7 @@ export abstract class PanelPropertiesLightGroup {
   protected constructor(host: PanelPropertiesLightGroupHost, header: PanelPropertiesLightGroupHeader | null) {
     this.host = host;
     this.writers = [];
+    this.hasHeader = header !== null;
     this.element = document.createElement('div');
     this.content = document.createElement('div');
     if (header) {
@@ -121,6 +128,7 @@ export abstract class PanelPropertiesLightGroup {
    */
   protected rowAppend(labelText: string, field: PanelPropertiesRowField): HTMLElement {
     const row = panelPropertiesRowCreate(labelText, field);
+    panelPropertiesRowIndentWrite(row, this.hasHeader ? 1 : 0);
     this.content.appendChild(row);
     return row;
   }
@@ -258,6 +266,7 @@ export abstract class PanelPropertiesLightGroup {
     header.setAttribute('role', 'button');
     header.style.cssText = 'cursor:pointer;font:600 11px monospace;padding:4px 8px 6px;user-select:none;';
     header.style.color = Theme.buttonTextColor;
+    panelPropertiesGroupRowMark(header);
     panelPropertiesSectionHeaderIconWrite(header, groupHeader.iconName);
     header.addEventListener('click', () => this.contentToggle());
     return header;

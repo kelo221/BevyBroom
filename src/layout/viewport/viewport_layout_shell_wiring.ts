@@ -28,6 +28,10 @@ import { SelectionMode } from '@/types/selection_mode.js';
 import { HandlerSelectionVisibility } from '@/selection/visibility/handler_selection_visibility.js';
 import { LayoutClipboardSystem } from '@/layout/setup/layout_clipboard_setup.js';
 import { SystemSceneRecovery } from '@/scene_recovery/system_scene_recovery.js';
+import { DialogObjectProperties } from '@/ui/object_properties/dialog_object_properties.js';
+import { ObjectSelectDoubleClickProperties } from '@/tools/object_select/object_select_double_click_properties.js';
+import { ObjectSelectDoubleClickNativeListener } from '@/tools/object_select/object_select_double_click_native_listener.js';
+import { objectSelectDoubleClickToolReady } from '@/tools/object_select/object_select_double_click_tool_ready.js';
 
 /**
  * Viewport layout level that wires the main window shell: File menu actions,
@@ -37,6 +41,8 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
   protected readonly fileActions = new LayoutViewportFileActions(() => this.fileActionsContextRead());
   private solidBrushTools: HandlerSolidBrushTools | null = null;
   private selectionVisibility: HandlerSelectionVisibility | null = null;
+  private objectPropertiesDialog: DialogObjectProperties | null = null;
+  private objectSelectDoubleClickNativeListener: ObjectSelectDoubleClickNativeListener | null = null;
   protected sceneRecovery: SystemSceneRecovery | null = null;
 
   /**
@@ -136,8 +142,83 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
         clipboardEditCommandsRead: () => layout.clipboardSystem?.editCommands ?? null,
         solidBrushToolsRead: () => layout.solidBrushToolsEnsure(),
         selectionVisibilityRead: () => layout.selectionVisibilityEnsure(),
+        objectPropertiesOpen: () => layout.objectPropertiesOpen(),
       }),
     );
+  }
+
+  /** Opens the Object Properties dialog on the current selection. */
+  protected objectPropertiesOpen(): void {
+    this.objectPropertiesDialogEnsure().open();
+  }
+
+  /**
+   * Builds the object tool double-click handling that opens Object Properties
+   * on the object under the pointer, and forwards the window's browser
+   * double-clicks to it.
+   *
+   * @returns Double-click handling bound to this layout.
+   */
+  protected objectSelectDoubleClickCreate(): ObjectSelectDoubleClickProperties {
+    const objectSelectDoubleClick = new ObjectSelectDoubleClickProperties({
+      selectionManager: this.selectionManager,
+      pickObjectStackAtClientPoint: (clientX, clientY) =>
+        this.toolEditorSystem?.editorWindow.getServices()?.pickObjectStackAtClientPoint(clientX, clientY) ?? [],
+      objectPropertiesOpen: () => this.objectPropertiesOpen(),
+      isDoubleClickAllowed: () => this.objectSelectDoubleClickAllowed(),
+    });
+    this.objectSelectDoubleClickNativeListener?.dispose();
+    this.objectSelectDoubleClickNativeListener = new ObjectSelectDoubleClickNativeListener(
+      this.container.ownerDocument,
+      objectSelectDoubleClick,
+    );
+    return objectSelectDoubleClick;
+  }
+
+  /**
+   * Returns whether an idle object tool owns the viewport clicks outside edit
+   * mode.
+   *
+   * @returns True when object double-clicks may open Object Properties.
+   */
+  private objectSelectDoubleClickAllowed(): boolean {
+    return (
+      this.editModeCoordinator?.isActive() !== true &&
+      objectSelectDoubleClickToolReady(this.toolEditorSystem?.editorWindow.activeTool)
+    );
+  }
+
+  /** Stops forwarding the browser's double-clicks to the object tool. */
+  protected objectSelectDoubleClickDispose(): void {
+    this.objectSelectDoubleClickNativeListener?.dispose();
+    this.objectSelectDoubleClickNativeListener = null;
+  }
+
+  /**
+   * Returns the Object Properties dialog, creating it on first use.
+   *
+   * @returns Dialog bound to this layout.
+   */
+  protected objectPropertiesDialogEnsure(): DialogObjectProperties {
+    if (!this.objectPropertiesDialog) {
+      this.objectPropertiesDialog = new DialogObjectProperties(this.toolbarContainer, {
+        selectionManager: this.selectionManager,
+        commandStack: this.commandStack,
+        worldObject: this.worldObject,
+        afterWorldMutation: () => this.refreshAfterWorldMutation(),
+        afterTransformCommit: (objects) => this.refreshVisualsAfterTransformCommit(objects),
+        propertiesPanelRead: () => this.propertiesPanel,
+        selectionFrame: () => this.cameraFitCoordinator.onFitToSelection(),
+      });
+      this.objectPropertiesDialog.setDefaultAnchor(this.viewportArea);
+    }
+    return this.objectPropertiesDialog;
+  }
+
+  /** Cancels and removes the Object Properties dialog when it exists. */
+  protected objectPropertiesDialogDispose(): void {
+    this.objectPropertiesDialog?.dispose();
+    this.objectPropertiesDialog = null;
   }
 
   /**
@@ -258,7 +339,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
   }
 
   /**
-   * Reads the editor parts the Face tab services need.
+   * Reads the editor parts the face inspector services need.
    *
    * @returns Face inspector source parts.
    */
@@ -274,13 +355,18 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
       gridSnap: this.gridSnap,
       keyboardShortcutHandler: this.keyboardShortcutHandler,
       activeCameraRead: () => this.getActiveSpawnCamera(),
-      revealFaceInspector: () => this.faceInspectorReveal(),
+      revealFaceInspector: () => this.faceEditSheetReveal(),
       isFaceInspectorAutoRevealEnabled: () => this.settingsStore?.getViewSettings().faceInspectorAutoReveal !== false,
     };
   }
 
-  /** Shows the Face tab of the inspector. */
+  /** Opens the floating texture browser holding the face inspector. */
   protected faceInspectorReveal(): void {
     this.shellPanels?.faceInspectorReveal();
+  }
+
+  /** Opens the Face Edit Sheet. */
+  protected faceEditSheetReveal(): void {
+    this.shellPanels?.faceEditSheetReveal();
   }
 }

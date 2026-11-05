@@ -147,6 +147,20 @@ describe('ShellMenuEdit brush entries', () => {
   });
 });
 
+/** Object Properties row of the Edit menu. */
+describe('ShellMenuEdit object properties entry', () => {
+  it('opens Object Properties with its configured shortcut, only while objects are selected', () => {
+    const { entries, windowActions } = shellMenuEditTestRigCreate();
+    const entry = shellTestMenuActionFind(entries, 'Object Properties');
+    expect(shellTestMenuShortcutRead(entry)).toBe(shellTestShortcutLabelFormat('object_properties'));
+    expect(entry.isEnabled?.()).toBe(false);
+    windowActions.clipboardSelectionHasObjects = true;
+    expect(entry.isEnabled?.()).toBe(true);
+    entry.onClick();
+    expect(windowActions.objectPropertiesOpen).toHaveBeenCalledOnce();
+  });
+});
+
 /** Select submenu of selection queries. */
 describe('ShellMenuEdit select entries', () => {
   it('lists every selection query right after Select None and runs it by id', () => {

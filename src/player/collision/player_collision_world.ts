@@ -6,6 +6,7 @@ import type { TriangleBvh } from '@/selection/pick/triangle_bvh.js';
 import { SOLID_BRUSH_USERDATA_KEY } from '@/solid/model/solid_brush_visual.js';
 import { isResultMesh, SOLID_MODEL_USERDATA_KEY } from '@/solid/model/solid_model_keys.js';
 import { PlayerTriangleSoup } from './player_triangle_soup.js';
+import { displacementSurfaceMeshIs } from '@/displacement/mesh/displacement_surface_mesh_keys.js';
 
 /** One collidable mesh with a cached world AABB for raycasts. */
 interface PlayerCollisionMeshEntry {
@@ -155,9 +156,10 @@ export class PlayerCollisionWorld {
   /**
    * Returns whether an object should participate in player collision.
    *
-   * Solid CSG result meshes are included (final built geometry). Solid brush
-   * volume helpers are excluded so additive/subtractive previews never act as
-   * collision hulls. Other editor helpers stay excluded.
+   * Solid CSG result meshes and their displacement surfaces are included (final
+   * built geometry). Solid brush volume helpers are excluded so
+   * additive/subtractive previews never act as collision hulls. Other editor
+   * helpers stay excluded.
    *
    * @param object Scene object under test.
    * @returns True when the object is a visible collidable mesh.
@@ -175,7 +177,7 @@ export class PlayerCollisionWorld {
     if (object.userData[SOLID_BRUSH_USERDATA_KEY] === true) {
       return false;
     }
-    if (isResultMesh(object)) {
+    if (isResultMesh(object) || displacementSurfaceMeshIs(object)) {
       return this.hasUsableTriangleGeometry(object);
     }
     if (isEditorHelperObject(object)) {

@@ -128,8 +128,8 @@ function createDefaultFaceUvShortcuts(): Pick<
 /**
  * Default view, play, panel and selection shortcuts that follow map editor
  * conventions: Space cycles the hovered view, Ctrl+Space maximizes it, Ctrl+1
- * to Ctrl+3 show the Map, Entity and Face inspector tabs, Ctrl+4 and Ctrl+5
- * toggle the info panel and inspector.
+ * shows the Map inspector, Ctrl+4 and Ctrl+5 toggle the info panel and
+ * inspector, Alt+Enter opens Object Properties.
  *
  * @returns Partial keyboard shortcut settings.
  */
@@ -139,8 +139,6 @@ function createDefaultWindowShortcuts(): Pick<
   | 'view_maximize'
   | 'play_start'
   | 'inspector_map'
-  | 'inspector_entity'
-  | 'inspector_face'
   | 'info_panel_toggle'
   | 'inspector_toggle'
   | 'toolbar_toggle'
@@ -149,14 +147,13 @@ function createDefaultWindowShortcuts(): Pick<
   | 'visibility_hide'
   | 'visibility_isolate'
   | 'visibility_show_all'
+  | 'object_properties'
 > {
   return {
     view_cycle: createShortcut('Space'),
     view_maximize: createShortcut('Space', true),
     play_start: createShortcut('F5'),
     inspector_map: createShortcut('Digit1', true),
-    inspector_entity: createShortcut('Digit2', true),
-    inspector_face: createShortcut('Digit3', true),
     info_panel_toggle: createShortcut('Digit4', true),
     inspector_toggle: createShortcut('Digit5', true),
     toolbar_toggle: createShortcut('KeyT', true, false, true),
@@ -165,6 +162,7 @@ function createDefaultWindowShortcuts(): Pick<
     visibility_hide: createShortcut('KeyH', true),
     visibility_isolate: createShortcut('KeyI', true),
     visibility_show_all: createShortcut('KeyH', true, true),
+    object_properties: createShortcut('Enter', false, false, true),
   };
 }
 

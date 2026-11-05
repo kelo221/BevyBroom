@@ -10,6 +10,7 @@ import type { ManagerSelection } from '@/selection/object/manager_selection.js';
 import type { ViewportEditor } from '@/viewports/core/viewport_editor.js';
 import { getCadViewPlaneForKind } from '@/viewports/core/viewport_editor.js';
 import { EditorOverlayId } from '@/tools/overlay/editor_overlay_id.js';
+import { entityTransformScaleAllowedAll } from '@/entity/scale/entity_scale_allowed.js';
 import type { PolicyEditorOverlay } from '@/tools/overlay/policy_editor_overlay.js';
 
 /** Host surface for CAD ruler selection and transform feedback. */
@@ -76,7 +77,19 @@ export function refreshCadRulersFromSelection(host: LayoutCadRulerHost): void {
     return;
   }
   const selected = filterUnlockedObjects(host.selectionManager.getAllSelectedObjectsAsArray());
-  host.cadRulerSystem.setSelectionMeshes(selected);
+  host.cadRulerSystem.setSelectionMeshes(cadRulerSizedMeshesFilter(selected));
+}
+
+/**
+ * Returns the meshes whose size dimensions the rulers show: none when one of
+ * them may not be scaled, since a point has no size to edit.
+ *
+ * @param meshes Selected meshes.
+ * @returns The meshes, or an empty list for selections that only move and
+ *   rotate.
+ */
+export function cadRulerSizedMeshesFilter(meshes: THREE.Mesh[]): THREE.Mesh[] {
+  return entityTransformScaleAllowedAll(meshes) ? meshes : [];
 }
 
 /**
@@ -98,7 +111,7 @@ export function onCadRulerTransformFeedback(
   }
   if (phase === 'end') {
     host.cadRulerSystem.endDrag();
-    host.cadRulerSystem.setSelectionMeshes(meshes);
+    host.cadRulerSystem.setSelectionMeshes(cadRulerSizedMeshesFilter(meshes));
     return;
   }
   if (phase === 'begin') {
@@ -120,12 +133,12 @@ export function beginCadRulerDrag(host: LayoutCadRulerHost, meshes: THREE.Mesh[]
   const mode = resolveCadRulerDragMode(host);
   if (mode === 'idle') {
     host.cadRulerSystem.endDrag();
-    host.cadRulerSystem.updateLiveSelectionMeshes(meshes);
+    host.cadRulerSystem.updateLiveSelectionMeshes(cadRulerSizedMeshesFilter(meshes));
     return;
   }
   const startBounds = host.transformHandler.getDragStartBounds() ?? host.rulerBoundsBuilder.buildFromMeshes(meshes);
   host.cadRulerSystem.beginDrag(startBounds, mode);
-  host.cadRulerSystem.updateLiveSelectionMeshes(meshes);
+  host.cadRulerSystem.updateLiveSelectionMeshes(cadRulerSizedMeshesFilter(meshes));
 }
 
 /**
@@ -168,7 +181,7 @@ export function updateCadRulerDrag(host: LayoutCadRulerHost, meshes: THREE.Mesh[
     host.cadRulerSystem.updateTranslateDragFromLiveBounds(liveBounds);
     return;
   }
-  host.cadRulerSystem.updateLiveSelectionMeshes(meshes);
+  host.cadRulerSystem.updateLiveSelectionMeshes(cadRulerSizedMeshesFilter(meshes));
 }
 
 /**

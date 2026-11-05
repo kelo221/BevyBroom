@@ -44,6 +44,42 @@ export const MCP_GAME_ENTITY_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   ),
   tool(
+    'set_logic_outputs',
+    'Replace every entity I/O output connection of an object (undoable). Each row fires `output` at the objects named `target` (exact name, * and ? wildcards, or !self) through their `input`. Returns the stored rows with their target status.',
+    {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Object id (uuid) firing the outputs.' },
+        outputs: {
+          type: 'array',
+          description: 'The complete list of connections; an empty list removes them all.',
+          items: {
+            type: 'object',
+            properties: {
+              output: { type: 'string', description: 'Output name of one of the object classes.' },
+              target: { type: 'string', description: 'Target object name, wildcard pattern or !self.' },
+              input: { type: 'string', description: 'Input of the target classes, or Enable, Disable or Cancel.' },
+              parameter: { type: 'string', description: 'Parameter override sent with the input. Default empty.' },
+              delay: { type: 'number', description: 'Seconds before the input arrives. Default 0.' },
+              times_to_fire: { type: 'number', description: '1 to fire only once, -1 (default) to fire every time.' },
+            },
+            required: ['output', 'target', 'input'],
+          },
+        },
+      },
+      required: ['id', 'outputs'],
+    },
+  ),
+  tool(
+    'read_logic_outputs',
+    'The entity I/O of an object: its output rows, each with its target status (broken, valid_single, valid_multiple) and matched object ids, the outputs its classes declare, and the incoming connections other objects fire at it.',
+    {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Object id (uuid).' } },
+      required: ['id'],
+    },
+  ),
+  tool(
     'read_data_asset',
     'Read a data asset file of the running game: its type and the fields it overrides, with the type fields and defaults.',
     {

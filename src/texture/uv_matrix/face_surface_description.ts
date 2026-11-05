@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { DEFAULT_CHECKER_TEXTURE_ID } from '@/texture/library/texture_id.js';
 import { SurfaceUvMatrix, type SurfaceUvMatrixSerialized } from './surface_uv_matrix.js';
+import type { DisplacementFaceSurface } from '@/displacement/model/displacement_types.js';
+import { displacementSurfaceClone } from '@/displacement/model/displacement_face_surface.js';
 
 /**
  * Authored texture identity plus UV matrix for one surface (solid face or
@@ -11,6 +13,8 @@ export interface FaceSurfaceDescription {
   textureId: string;
   /** UV projection matrix for this surface. */
   uv: SurfaceUvMatrix;
+  /** Sculpted heightfield replacing the face's visible triangles, when present. */
+  displacement?: DisplacementFaceSurface;
 }
 
 /** JSON form of a face surface description. */
@@ -94,16 +98,20 @@ export function createFaceSurfaceFromTileSize(
 }
 
 /**
- * Deep-clones a face surface description.
+ * Deep-clones a face surface description, including its displacement.
  *
  * @param surface Source surface.
  * @returns Independent copy.
  */
 export function cloneFaceSurface(surface: FaceSurfaceDescription): FaceSurfaceDescription {
-  return {
+  const copy: FaceSurfaceDescription = {
     textureId: surface.textureId || DEFAULT_CHECKER_TEXTURE_ID,
     uv: surface.uv.clone(),
   };
+  if (surface.displacement) {
+    copy.displacement = displacementSurfaceClone(surface.displacement);
+  }
+  return copy;
 }
 
 /**
