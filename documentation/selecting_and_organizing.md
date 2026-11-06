@@ -23,8 +23,8 @@ Press `Tab` to return to Object Select from another selection tool. The status b
 
 Use Face Select for surface-level work such as extrusion and per-face textures.
 
-1. Press `Shift+Tab` or click the **Face Select** tool button in the toolbar,
-   or `Shift+click` a brush face while Object Select is active.
+1. Press `Shift+Tab` or click the **Face Select** tool button in the tools
+   palette, or `Shift+click` a brush face while Object Select is active.
 2. Click a visible face.
 3. Add more faces with `Shift+click`, remove faces with `Ctrl+click`, or drag
    across faces.

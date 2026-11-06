@@ -2,7 +2,7 @@
 
 Layers split a map into named sets of objects, like in TrenchBroom. Use them to hide parts of a level while you work, to protect finished areas from accidental edits, or to keep helper geometry out of the game.
 
-The layers list is at the top of the inspector's **Map** tab, above the scene hierarchy. Click the **Map** tab or press `Ctrl+1` to show it, and drag the splitter between the two lists to change their heights.
+The layers list is at the top of the Map section of the right dock, above the scene hierarchy. Press `Ctrl+1` or choose **View > Map Inspector** to show the dock, and drag the splitter between the two lists to change their heights.
 
 ## The default layer
 

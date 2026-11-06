@@ -84,8 +84,8 @@ Missing fields keep their Rust default, so an empty file is a valid asset with d
 Connect the game preview first (see [Game preview and lights](game_preview.md)). The editor asks the game for its classes and keeps a copy per project, so the components stay editable after the game is closed; a saved scene also keeps a copy of the classes it uses.
 
 - **Add > Game Entities > Empty Game Entity** adds a point object (a small translucent box with a puzzle piece icon inside, which you click to select it) with no components. The submenus below it list the point classes by category; picking one adds a Game Entity that already carries that component, tinted with the class's marker color.
-- The **Game Components** section of the Properties panel works on any selection. **Add** attaches a component, **×** removes it.
-- Fields start at the game's defaults. A changed field is highlighted orange and gets a **↺** button that resets it to the default. When several objects with different values are selected, the field is shown blank, and an edit sets all of them.
+- The **Class Info** tab of Object Properties (`Alt+Enter`) works on any selection. The **Class** combo converts the object in place. **Add** attaches a component, **×** removes it.
+- Fields start at the game's defaults. A changed field is highlighted and gets a **↺** button that resets it to the default. When several objects with different values are selected, the field is shown blank, and an edit sets all of them.
 - All edits, including adding and removing components, are part of undo and redo and go to the running game live.
 - A component the game does not know (renamed in Rust, or from another game) is listed as **(not in game)**. Its values are kept and saved but are read-only, and the game reports it as an error while the other components still apply.
 
@@ -93,7 +93,7 @@ Connect the game preview first (see [Game preview and lights](game_preview.md)).
 
 An asset field of an editable data asset type has two extra buttons:
 
-- **✎** opens the selected file in the data asset panel. Fields work as in the Properties panel; **↺** returns a field to the type's default.
+- **✎** opens the selected file in the data asset panel. Fields work as in Object Properties; **↺** returns a field to the type's default.
 - **+** creates a new file with default values, inside the assets folder and with the type's extension, and selects it.
 
 The game writes the file and reloads it, so every component that uses it updates at once. These edits change files on disk: they need a connected game and are not part of the editor's undo.

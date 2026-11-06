@@ -18,11 +18,11 @@ Use a solid model for architecture you expect to keep revising. Use mesh CSG for
 3. Open the Solid Model panel with **Tools > Solid Model…** if it is not already visible.
 4. Click **+ Box Brush** to add a brush.
 
-The panel identifies the active model and reports its number of brushes. Brush operation details are edited in the Properties panel.
+The panel identifies the active model and reports its number of brushes. Brush operation details are edited in Object Properties.
 
 ## Brush operations
 
-Select a brush inside the solid model. The Solid Model section in Properties offers:
+Select a brush inside the solid model. The Solid Model section in Object Properties offers:
 
 - **Additive**: contributes its volume to the result.
 - **Subtractive**: removes its volume from the result.

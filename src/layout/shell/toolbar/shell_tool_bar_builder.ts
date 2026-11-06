@@ -201,14 +201,14 @@ export class ShellToolBarBuilder {
   }
 
   /**
-   * Adds the MCP server button, highlighted orange while the server runs.
+   * Adds the MCP server button, highlighted while the server runs.
    *
    * @param toolbar Main toolbar.
    * @param actions Scene toolbar actions.
    */
   private mcpButtonAdd(toolbar: Toolbar, actions: EditorToolbarActions): void {
     toolbar.addIconButton('MCP', IconHammerCatalog.toolbarSvg('run_mcp'), () => actions.onOpenMcpDialog()).title =
-      'MCP server (orange when running)';
+      'MCP server (highlighted when running)';
     toolbar.setButtonActiveByLabel('MCP', false);
   }
 }

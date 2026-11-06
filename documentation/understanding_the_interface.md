@@ -66,10 +66,10 @@ From left to right the toolbar holds:
   size (for example **Grid 1.0**) and lists every preset size.
 - **Global** and **Local** gizmo axes.
 - **Pos Lock** and **Stretch Lock** texture behavior controls.
-- The **MCP** server button on the far right, highlighted orange while the
+- The **MCP** server button on the far right, highlighted while the
   server runs.
 
-Hover over an icon to display its name. An orange-highlighted control is active.
+Hover over an icon to display its name. A highlighted control is active.
 See the [Toolbar](toolbar.md) page for resizing and labels, and the
 [Glyph reference](glyph_reference.md) for numbered visual examples and a
 description of every icon.
@@ -87,9 +87,9 @@ From top to bottom:
 - **Entity Tool** (`Shift+E`) places the active entity class, chosen on the
   view bar or in the Entity Browser.
 - **Block Tool** (`Shift+B`) draws a new convex brush in the active shape:
-  Cuboid, Cylinder, Wedge, Stairs, Arch, or Spheroid.
+  Cuboid, Stairs, Arch, Cylinder, Cone, Spheroid (UV), or Spheroid (Icosahedron).
 - **Face Select** (`Shift+Tab`) selects faces for texturing and opens the Face
-  Edit Sheet from the view bar.
+  Edit Sheet. **Textures** on the view bar reopens it.
 - **Apply Current Texture** (`Shift+T`) paints the current texture onto the
   selection, then stamps it onto the faces you click.
 - **Clip Plane** (`Shift+X`) cuts brushes along a plane you place.
@@ -106,7 +106,7 @@ palette with **View > Show Tools Palette**.
 
 The view bar sits directly above the viewports. Its left side shows the options
 of the active tool, such as the Bounds, Move, Rotate, and Scale transform modes
-for Object Select, the **Face Edit Sheet** and **Extrude** actions for Face
+for Object Select, the **Textures** and **Extrude** actions for Face
 Select, the class picker and **Browse** button of the Entity Tool, or **Flip**,
 **Clip**, and **Split** for Clip Plane. Hover over an option to read what it
 does. Its right side holds the workspace tabs, which switch between saved
@@ -115,7 +115,7 @@ viewport arrangements such as **Quad View** and **Single Perspective**.
 ## The four viewports
 
 The default **Quad View** workspace divides the center into a 2 × 2 grid of
-views, in reading order: Top, Front, Side, and the 3D camera view. Each viewport
+views, in reading order: Perspective, Top, Front, and Side. Each viewport
 has a small header containing:
 
 - The view name, which opens a menu to switch the view to Top, Front, Side, or
@@ -181,7 +181,7 @@ selection is one undo step.
   plain world geometry by removing their game components and outputs.
 - **Categories:** and **Objects:** pick a saved prefab. Type a name into
   **Prefab name...** and choose **Create Prefab** to save the selection as a
-  prefab, or choose **Insert Prefab** to place the picked prefab.
+  prefab, or choose **Insert** to place the picked prefab.
 
 ### Map section
 

@@ -44,7 +44,7 @@ selection (drawn faintly through it) leave the press to the move.
 
 ## Transform modes
 
-Choose the Object Select tool button in the toolbar to see the four transform choices in the tool options on the left of the view bar.
+Choose the Object Select tool button in the tools palette to see the four transform choices in the tool options on the left of the view bar.
 
 ### Bounds
 
@@ -56,7 +56,7 @@ Move mode (`W`) changes position. Drag an axis for a single-axis move or an avai
 
 ### Rotate
 
-Rotate mode (`E`) turns the selection around an axis. Rotation values in the Properties panel are displayed in degrees.
+Rotate mode (`E`) turns the selection around an axis. Rotation values in Object Properties are displayed in degrees.
 
 ### Scale
 
@@ -73,7 +73,7 @@ Use Global for level layout and grid-aligned architecture. Use Local when moving
 
 ## Edit exact values
 
-Use Position, Rotation, and Scale in the Properties panel when exact values matter.
+Use Position, Rotation, and Scale in Object Properties when exact values matter.
 
 For multiple selected objects, a dash indicates mixed values. Replacing a mixed X value, for example, makes the X component common while leaving untouched Y and Z values as they were.
 

@@ -4,7 +4,7 @@ BevyBroom uses compact glyphs so the viewports have more room for the world you 
 
 ![Numbered visual reference showing every toolbar, viewport, tool, UV, and solid-brush glyph](images/editor_glyphs.svg)
 
-The orange number above each visual example matches the tables below. In the editor, hover over a glyph to see its current name. An orange-highlighted button represents an active mode or enabled option; a dim button is unavailable in the current context.
+The orange number above each visual example matches the tables below. In the editor, hover over a glyph to see its current name. A highlighted button represents an active mode or enabled option; a dim button is unavailable in the current context.
 
 ## Main toolbar glyphs
 
@@ -14,10 +14,10 @@ The orange number above each visual example matches the tables below. In the edi
 | 2   | Redo  | Reapplies the most recently undone edit. It is unavailable when there is no redo history.                                                                 |
 | 9   | Snap  | Turns grid snapping on or off. When highlighted, compatible transforms use the grid size shown in the **Grid** dropdown next to it and in the status bar. |
 
-The toolbar also holds the tool buttons described under
-[Tool glyphs](#tool-glyphs), the **Grid** size dropdown, the **Global** and
+The toolbar also holds the **Grid** size dropdown, the **Global** and
 **Local** gizmo axes, the **Pos Lock** and **Stretch Lock** toggles, and the
-**MCP** server button.
+**MCP** server button. The tools themselves live in the tools palette; see
+[Tool glyphs](#tool-glyphs).
 
 ### Glyphs that moved into the menus
 
@@ -26,9 +26,9 @@ have toolbar buttons:
 
 | No. | Former glyph    | Where the action lives now                                                                                                      |
 | --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| 10  | UV Editor       | The face attributes at the top of the inspector's **Face** tab (`Ctrl+3`). See [Face attribute glyphs](#face-attribute-glyphs). |
-| 11  | Texture Browser | The material browser at the bottom of the inspector's **Face** tab (`Ctrl+3`).                                                  |
-| 12  | Tools           | The tool buttons in the toolbar and the tool options in the view bar above the viewports. See [Tool glyphs](#tool-glyphs).      |
+| 10  | UV Editor       | The face attributes on the **Material** tab of the Face Edit Sheet. See [Face attribute glyphs](#face-attribute-glyphs). |
+| 11  | Texture Browser | The floating **Texture Browser** (**View > Texture Browser**, or **Browse** in the right dock).                          |
+| 12  | Tools           | The tools palette on the left and the tool options in the view bar above the viewports. See [Tool glyphs](#tool-glyphs). |
 | 13  | Settings        | **File > Preferences…** opens the Settings dialog for view, mouse, keyboard, game profile, and update preferences.              |
 | 14  | Documentation   | **Help > Documentation** opens the web-hosted user guide in a separate browser tab.                                             |
 | 15  | About           | **Help > About BevyBroom…** opens application information, version, license, and contributor details.                           |
@@ -54,7 +54,7 @@ Wireframe Overlay is available through the `4` shortcut but does not have a dedi
 
 ## Tool glyphs
 
-Glyphs 20 to 22 are tool buttons in the toolbar; they choose what kind of editing the pointer performs. The tool options on the left of the view bar above the viewports change to match the selected tool. With Object Select active they show glyphs 23 to 26.
+Glyphs 20 to 22 are tool buttons in the tools palette; they choose what kind of editing the pointer performs. The tool options on the left of the view bar above the viewports change to match the selected tool. With Object Select active they show glyphs 23 to 26.
 
 | No. | Glyph         | What it does                                                                                                                                    |
 | --- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -66,11 +66,11 @@ Glyphs 20 to 22 are tool buttons in the toolbar; they choose what kind of editin
 | 25  | Rotate        | Shows rotation handles for turning the selection around an axis; default shortcut `E`.                                                          |
 | 26  | Scale         | Shows scale handles for proportional or per-axis resizing; default shortcut `R`.                                                                |
 
-The toolbar also has a **Grid** tool button after Clip Plane; it is not part of the numbered plate. The Face Select options contain text actions for **Face Inspector**, which shows the inspector's Face tab, and **Extrude**, while Clip Plane uses text buttons for **Flip**, **Clip**, and **Split**. Their visible words are the glyphs' labels, so they are not repeated in the numbered visual plate.
+The tools palette also has a **Grid** tool button after Sprinkle Tool; it is not part of the numbered plate. The Face Select options contain text actions for **Textures**, which opens the Face Edit Sheet, and **Extrude**, while Clip Plane uses text buttons for **Flip**, **Clip**, and **Split**. Their visible words are the glyphs' labels, so they are not repeated in the numbered visual plate.
 
 ## Face attribute glyphs
 
-These buttons sit in the face attributes at the top of the inspector's **Face** tab. They establish a sensible surface orientation before you refine scale, offset, or rotation, and they affect the currently selected face regions. Their tooltips read **Align to Floor**, **Align to Wall**, **Align to Ceiling**, and **Reset UVs**.
+These buttons sit in the collapsed **More tools** section of the Face Edit Sheet **Material** tab. They establish a sensible surface orientation before you refine scale, offset, or rotation, and they affect the currently selected face regions. Their tooltips read **Align to Floor**, **Align to Wall**, **Align to Ceiling**, and **Reset UVs**.
 
 | No. | Glyph   | What it does                                                                                               |
 | --- | ------- | ---------------------------------------------------------------------------------------------------------- |
@@ -81,7 +81,7 @@ These buttons sit in the face attributes at the top of the inspector's **Face** 
 
 ## Solid-brush operation glyphs
 
-These glyphs appear in the Properties panel when an editable brush inside a solid model is selected. The highlighted glyph is the operation currently assigned to the selected brush; order still affects the final result.
+These glyphs appear in Object Properties when an editable brush inside a solid model is selected. The highlighted glyph is the operation currently assigned to the selected brush; order still affects the final result.
 
 | No. | Glyph        | What it does                                                                                                    |
 | --- | ------------ | --------------------------------------------------------------------------------------------------------------- |
@@ -128,7 +128,7 @@ Object-type glyphs identify what an item represents; selecting one selects the c
 
 Lights, rooms, portals and game entities share one icon set, taken from
 Material Design Icons. The same icon marks the object in the **Add** menu, its
-hierarchy row, the header of its Properties section and the 3D and 2D
+hierarchy row, the header of its Object Properties section and the 3D and 2D
 viewports.
 
 ![Entity icons for point lights, spot lights, rooms, open and closed portals, and game entities](images/entity_icons.svg)
@@ -146,7 +146,7 @@ In the viewports lights, rooms and game entities are drawn as a small
 translucent box in the icon's color, with the icon inside. The icon always faces
 the camera. Click the box to select the object; the icon itself is never
 picked. A disabled light draws its box and icon faded. A selected light also
-shows its range, cone and fog outline and orange balls for its radius and, on spot lights, its cone angle. The boxes, icons and balls draw in every view, including the wireframe top, front and side views.
+shows its range, cone and fog outline and red balls for its radius and, on spot lights, its cone angle. The boxes, icons and balls draw in every view, including the wireframe top, front and side views.
 
 ## Common non-icon controls
 

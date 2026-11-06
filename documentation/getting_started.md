@@ -10,10 +10,10 @@ When the editor opens, you will see four views:
 
 - **Perspective** at the top left is the free-moving 3D view.
 - **Top** at the top right looks down on the X–Z ground plane.
-- **Side** at the bottom left looks at the Y–Z plane.
-- **Front** at the bottom right looks at the X–Y plane.
+- **Front** at the bottom left looks at the X–Y plane.
+- **Side** at the bottom right looks at the Y–Z plane.
 
-The menu bar and the toolbar are at the top. The inspector on the right shows the scene hierarchy in its **Map** tab and the object properties in its **Entity** tab. The info panel below the views keeps a console of recent messages, and the status bar along the bottom reports the active mode, snapping, selection type, and recent actions.
+The menu bar and the toolbar are at the top. The tools palette is on the left. The right dock shows the selection filter, the current texture, VisGroups, prefabs, and the Map section with layers and the outliner. The info panel below the views starts collapsed to a Console / Issues strip. The status bar along the bottom reports the active mode, snapping, selection type, and recent actions.
 
 ## Add your first object
 
@@ -23,22 +23,22 @@ The menu bar and the toolbar are at the top. The inspector on the right shows th
 
 To draw a brush instead, click empty space so nothing is selected, then drag in a view. In the Top view the brush gets the visible rectangle you drag; in Perspective it starts on the surface under the mouse and is one grid step tall. See [Creating and transforming objects](creating_and_transforming.md).
 
-You can also drag a tile from the Entity Browser in the inspector's **Entity** tab onto a viewport to place an object where you drop it.
+You can also drag a tile from the **Entity Browser** onto a viewport to place an object where you drop it. Open it with **View > Entity Browser**, or **Browse** on the Entity Tool's view bar.
 
 New objects are placed using the editor's current placement context. If an object is outside the part of the scene you are viewing, select it in the hierarchy and press `F` to frame it.
 
 ## Select and inspect it
 
-Click the cube in any viewport, or click its name in the hierarchy. Selected geometry is shown with the editor's orange selection styling.
+Click the cube in any viewport, or click its name in the hierarchy. Selected geometry is shown with the editor's red selection styling.
 
-The Properties panel displays:
+Press `Alt+Enter`, choose **Edit > Object Properties**, or double-click the object to open **Object Properties**. The **Properties** tab displays:
 
 - **Position**, which controls location.
 - **Rotation**, shown in degrees.
 - **Scale**, which controls size relative to the original shape.
 - **Material**, which changes the object's tint.
 
-Click a section heading to collapse or reopen it. Change a numeric field and commit the value to apply it. If several selected objects have different values, the field displays a dash; entering a number applies that axis to all editable selected objects.
+Change a numeric field and commit the value to apply it. If several selected objects have different values, the field displays a dash; entering a number applies that axis to all editable selected objects. **Apply** keeps the edits as one undo step; **Cancel** discards them.
 
 ## Move and resize it
 
