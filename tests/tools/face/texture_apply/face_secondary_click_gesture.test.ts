@@ -36,6 +36,20 @@ describe('FaceSecondaryClickGesture', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
+  it('fires the drag handler once when travel exceeds the click threshold and skips the click', () => {
+    const clickHandler = vi.fn();
+    const dragHandler = vi.fn();
+    gesture.begin(window, PRESS_POINT.clientX, PRESS_POINT.clientY, clickHandler, dragHandler);
+    const dragPx = FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX + 1;
+    window.dispatchEvent(
+      new PointerEvent('pointermove', { clientX: PRESS_POINT.clientX + dragPx, clientY: 80, movementX: dragPx }),
+    );
+    expect(dragHandler).toHaveBeenCalledTimes(1);
+    expect(gesture.isArmed()).toBe(false);
+    window.dispatchEvent(new PointerEvent('pointerup', { ...PRESS_POINT, button: 2 }));
+    expect(clickHandler).not.toHaveBeenCalled();
+  });
+
   it('does not fire for another button, a blur or a cancel', () => {
     const handler = vi.fn();
     gesture.begin(window, PRESS_POINT.clientX, PRESS_POINT.clientY, handler);

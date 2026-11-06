@@ -5,6 +5,7 @@ import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { SelectionMode } from '@/types/selection_mode.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
+import { FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX } from '@/tools/face/texture_apply/face_secondary_click_gesture.js';
 
 /** Minimal viewport stand-in for face mode coordinator wiring. */
 class MockViewport {
@@ -13,6 +14,7 @@ class MockViewport {
   private scene: THREE.Scene;
   private contentElement: HTMLDivElement;
   cameraAccessCount = 0;
+  secondaryNavigationCount = 0;
 
   /** @param ownerDocument Document that owns the pick element (main or popup). */
   constructor(ownerDocument: Document = document) {
@@ -51,6 +53,76 @@ class MockViewport {
   getContentElement(): HTMLElement {
     return this.contentElement;
   }
+
+  /**
+   * Records delayed right-button look started from a Face Select apply drag.
+   *
+   * @param _event Move that crossed the click threshold.
+   */
+  beginSecondaryButtonNavigation(_event?: PointerEvent): void {
+    this.secondaryNavigationCount += 1;
+  }
+}
+
+/**
+ * Builds stand-in keyboard shortcuts for face mode coordinator tests.
+ *
+ * @returns Keyboard shortcut handler stub.
+ */
+function coordinatorTestKeyboardStubCreate(): {
+  setOnSelectionModeToggle: () => void;
+  setOnExtrudeFaces: () => void;
+  isKeyDown: () => boolean;
+  isAltDown: () => boolean;
+  modifiersStateRead: () => { ctrl: boolean; shift: boolean; alt: boolean };
+} {
+  return {
+    setOnSelectionModeToggle: () => undefined,
+    setOnExtrudeFaces: () => undefined,
+    isKeyDown: () => false,
+    isAltDown: () => false,
+    modifiersStateRead: () => ({ ctrl: false, shift: false, alt: false }),
+  };
+}
+
+/**
+ * Builds a face mode coordinator over one mock viewport.
+ *
+ * @param viewport Viewport the coordinator treats as its only pane.
+ * @param worldObject World group the coordinator scans for meshes.
+ * @param selectionManager Object selection the coordinator owns.
+ * @returns New coordinator.
+ */
+function coordinatorWithViewportCreate(
+  viewport: MockViewport,
+  worldObject: THREE.Group,
+  selectionManager: ManagerSelection,
+): CoordinatorFaceMode {
+  return new CoordinatorFaceMode({
+    getViewports: () => [viewport as never],
+    getPrimaryScene: () => viewport.getScene(),
+    commandStack: new CommandStack(16),
+    gridSnap: new GridSnap(false, 1),
+    worldObject,
+    selectionManager,
+    statusBar: { setSelectionModeInfo: () => undefined } as never,
+    keyboardShortcutHandler: coordinatorTestKeyboardStubCreate() as never,
+    showStatusMessage: vi.fn(),
+    syncPrimitivesToViewports: () => undefined,
+    updateShadingMeshes: () => undefined,
+    refreshOutliner: () => undefined,
+  });
+}
+
+/**
+ * Dispatches a window pointer move that exceeds the right-click drag threshold.
+ *
+ * @param clientX Press client X.
+ * @param clientY Press client Y.
+ */
+function secondaryDragPastClickThresholdDispatch(clientX: number, clientY: number): void {
+  const dragPx = FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX + 1;
+  window.dispatchEvent(new PointerEvent('pointermove', { clientX: clientX + dragPx, clientY, movementX: dragPx }));
 }
 
 describe('FaceModeCoordinator', () => {
@@ -66,27 +138,7 @@ describe('FaceModeCoordinator', () => {
     worldObject.add(mesh);
     selectionManager.selectObject(mesh);
     const viewport = new MockViewport();
-    coordinator = new CoordinatorFaceMode({
-      getViewports: () => [viewport as never],
-      getPrimaryScene: () => viewport.getScene(),
-      commandStack: new CommandStack(16),
-      gridSnap: new GridSnap(false, 1),
-      worldObject,
-      selectionManager,
-      statusBar: {
-        setSelectionModeInfo: () => undefined,
-      } as never,
-      keyboardShortcutHandler: {
-        setOnSelectionModeToggle: () => undefined,
-        setOnExtrudeFaces: () => undefined,
-        isKeyDown: () => false,
-        isAltDown: () => false,
-      } as never,
-      showStatusMessage: vi.fn(),
-      syncPrimitivesToViewports: () => undefined,
-      updateShadingMeshes: () => undefined,
-      refreshOutliner: () => undefined,
-    });
+    coordinator = coordinatorWithViewportCreate(viewport, worldObject, selectionManager);
   });
 
   it('should start in object selection mode', () => {
@@ -125,6 +177,7 @@ describe('FaceModeCoordinator', () => {
         setOnExtrudeFaces: () => undefined,
         isKeyDown: () => false,
         isAltDown: () => false,
+        modifiersStateRead: () => ({ ctrl: false, shift: false, alt: false }),
       } as never,
       showStatusMessage: vi.fn(),
       syncPrimitivesToViewports: () => undefined,
@@ -136,5 +189,32 @@ describe('FaceModeCoordinator', () => {
     expect(detachedViewport.cameraAccessCount).toBeGreaterThan(0);
     expect(mainViewport.cameraAccessCount).toBe(0);
     multiCoordinator.endFaceSelectPointerUp();
+  });
+
+  it('starts delayed look after a right-button apply drag', () => {
+    const viewport = new MockViewport();
+    const localCoordinator = coordinatorWithViewportCreate(viewport, worldObject, selectionManager);
+    localCoordinator.enterFaceSelectionModeFromTool();
+    expect(localCoordinator.beginFaceSelectSecondaryPress(40, 50)).toEqual({
+      viewportHit: true,
+      strokeStarted: false,
+    });
+    expect(localCoordinator.isFaceSelectSecondaryApplyArmed()).toBe(true);
+    secondaryDragPastClickThresholdDispatch(40, 50);
+    expect(viewport.secondaryNavigationCount).toBe(1);
+    expect(localCoordinator.isFaceSelectSecondaryApplyArmed()).toBe(false);
+    localCoordinator.dispose();
+  });
+
+  it('cancels an armed apply click when leaving face mode', () => {
+    const viewport = new MockViewport();
+    const localCoordinator = coordinatorWithViewportCreate(viewport, worldObject, selectionManager);
+    localCoordinator.enterFaceSelectionModeFromTool();
+    expect(localCoordinator.beginFaceSelectSecondaryPress(40, 50).strokeStarted).toBe(false);
+    localCoordinator.leaveFaceSelectionModeFromTool();
+    expect(localCoordinator.isFaceSelectSecondaryApplyArmed()).toBe(false);
+    secondaryDragPastClickThresholdDispatch(40, 50);
+    expect(viewport.secondaryNavigationCount).toBe(0);
+    localCoordinator.dispose();
   });
 });

@@ -348,6 +348,15 @@ export class Viewport2D extends ViewportBase {
   }
 
   /**
+   * Starts right-button pan after a Face Select apply click became a drag.
+   *
+   * @param event Move that crossed the click threshold.
+   */
+  beginSecondaryButtonNavigation(event?: PointerEvent): void {
+    this.panHandler?.beginSecondaryButtonPan(event);
+  }
+
+  /**
    * Reorients this Top / Front / Side camera and grid lattice to the working
    * grid frame while preserving the world point under the view center.
    *

@@ -161,6 +161,29 @@ describe('FaceSelectTool editor integration', () => {
     expect(beginFace).not.toHaveBeenCalled();
   });
 
+  it('claims a right-button apply click without becoming busy', () => {
+    let applyArmed = false;
+    const editor = new EditorWindow();
+    editor.setServices(
+      createStubServices({
+        beginFaceSelectSecondaryPress: () => {
+          applyArmed = true;
+          return { viewportHit: true, strokeStarted: false };
+        },
+        isFaceSelectSecondaryApplyArmed: () => applyArmed,
+      }),
+    );
+    editor.validateTools();
+    editor.userSwitchToFaceSelectTool();
+    const tool = editor.activeTool;
+    tool?.onMouseDown(2);
+    expect(tool?.claimsViewportNavigationPress(2)).toBe(true);
+    expect(tool?.isBusy()).toBe(false);
+    applyArmed = false;
+    tool?.onGlobalMouseUp(2);
+    expect(tool?.claimsViewportNavigationPress(2)).toBe(false);
+  });
+
   it('holds a right-button face stroke: claims the press, forwards right-button moves and ends on right release', () => {
     let strokeLive = false;
     const continueFace = vi.fn();
@@ -170,7 +193,10 @@ describe('FaceSelectTool editor integration', () => {
     const editor = new EditorWindow();
     editor.setServices(
       createStubServices({
-        beginFaceSelectSecondaryPress: () => (strokeLive = true),
+        beginFaceSelectSecondaryPress: () => {
+          strokeLive = true;
+          return { viewportHit: true, strokeStarted: true };
+        },
         continueFaceSelectPointerMove: continueFace,
         endFaceSelectPointerUp: endFace,
         isFaceSelectStrokeActive: () => strokeLive,
@@ -196,7 +222,10 @@ describe('FaceSelectTool editor integration', () => {
     const endFace = vi.fn();
     const editor = new EditorWindow();
     editor.setServices(
-      createStubServices({ beginFaceSelectSecondaryPress: () => false, endFaceSelectPointerUp: endFace }),
+      createStubServices({
+        beginFaceSelectSecondaryPress: () => ({ viewportHit: false, strokeStarted: false }),
+        endFaceSelectPointerUp: endFace,
+      }),
     );
     editor.validateTools();
     editor.userSwitchToFaceSelectTool();
@@ -207,11 +236,12 @@ describe('FaceSelectTool editor integration', () => {
   });
 
   it.each([
-    [true, 0],
-    [false, 1],
+    [{ viewportHit: true, strokeStarted: true }, 0],
+    [{ viewportHit: true, strokeStarted: false }, 0],
+    [{ viewportHit: false, strokeStarted: false }, 1],
   ] as const)(
-    'keeps a right press from the viewport navigation when it started a face stroke (%s)',
-    (strokeStarts, expectedArrivals) => {
+    'keeps a right press from the viewport navigation when Face Select claimed it (%j)',
+    (pressResult, expectedArrivals) => {
       const host = document.createElement('div');
       const viewportContent = document.createElement('div');
       document.body.append(host, viewportContent);
@@ -226,7 +256,12 @@ describe('FaceSelectTool editor integration', () => {
           height: contentSize,
         }) as DOMRect;
       const editor = new EditorWindow();
-      editor.setServices(createStubServices({ beginFaceSelectSecondaryPress: () => strokeStarts }));
+      editor.setServices(
+        createStubServices({
+          beginFaceSelectSecondaryPress: () => pressResult,
+          isFaceSelectSecondaryApplyArmed: () => pressResult.viewportHit && !pressResult.strokeStarted,
+        }),
+      );
       editor.validateTools();
       editor.userSwitchToFaceSelectTool();
       const bridge = new EditorInputBridge(editor);
@@ -244,12 +279,29 @@ describe('FaceSelectTool editor integration', () => {
       });
       viewportContent.dispatchEvent(press);
       expect(navigationArrivals).toBe(expectedArrivals);
-      expect(press.defaultPrevented).toBe(strokeStarts);
+      expect(press.defaultPrevented).toBe(pressResult.viewportHit);
       bridge.uninstall();
       host.remove();
       viewportContent.remove();
     },
   );
+
+  it('clears the apply-click claim when leaving Face Select', () => {
+    const editor = new EditorWindow();
+    editor.setServices(
+      createStubServices({
+        beginFaceSelectSecondaryPress: () => ({ viewportHit: true, strokeStarted: false }),
+        isFaceSelectSecondaryApplyArmed: () => true,
+      }),
+    );
+    editor.validateTools();
+    editor.userSwitchToFaceSelectTool();
+    const tool = editor.activeTool;
+    tool?.onMouseDown(2);
+    expect(tool?.claimsViewportNavigationPress(2)).toBe(true);
+    editor.userSwitchToBoxSelectTool();
+    expect(tool?.claimsViewportNavigationPress(2)).toBe(false);
+  });
 
   it('leaving face tool restores object mode services', () => {
     const leaveFace = vi.fn();

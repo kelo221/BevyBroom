@@ -55,6 +55,26 @@ describe('FlyingCamera', () => {
     });
   });
 
+  it('starts look from a delayed Face Select drag and stops on release', () => {
+    const mockInputManager = {
+      keyStates: new Map(),
+      setupKeyboardListeners: () => {},
+      isKeyDown: () => false,
+      isPhysicalKeyDown: () => false,
+      isShiftDown: () => false,
+      reset: () => {},
+    };
+    const canvas = document.createElement('canvas');
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+    const flyingCamera = new CameraFlying(canvas, camera, mockInputManager as any, 0, 0);
+    expect(flyingCamera.isNavigating()).toBe(false);
+    flyingCamera.beginSecondaryButtonLook(new PointerEvent('pointermove', { pointerId: 1, button: 2 }));
+    expect(flyingCamera.isNavigating()).toBe(true);
+    canvas.dispatchEvent(new PointerEvent('pointerup', { button: 2, pointerId: 1 }));
+    expect(flyingCamera.isNavigating()).toBe(false);
+    flyingCamera.dispose();
+  });
+
   it('should initialize with given yaw and pitch values', () => {
     const mockInputManager = {
       keyStates: new Map(),

@@ -14,6 +14,13 @@ const FACE_SECONDARY_CLICK_BUTTON = 2;
 export type FaceSecondaryClickHandler = (isAltHeld: boolean) => void;
 
 /**
+ * Receives the first move that exceeds the click travel threshold.
+ *
+ * @param event Move that crossed the threshold.
+ */
+export type FaceSecondaryDragHandler = (event: PointerEvent) => void;
+
+/**
  * Tells a right-button click from a right-button drag. A press arms the
  * gesture; the release fires the click handler only when the pointer travelled
  * less than {@link FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX}, counting both client
@@ -29,6 +36,7 @@ export class FaceSecondaryClickGesture {
   private relativeTravelPx: number;
   private furthestClientTravelPx: number;
   private clickHandler: FaceSecondaryClickHandler | null;
+  private dragHandler: FaceSecondaryDragHandler | null;
 
   /** Creates an idle gesture. */
   constructor() {
@@ -40,6 +48,7 @@ export class FaceSecondaryClickGesture {
     this.relativeTravelPx = 0;
     this.furthestClientTravelPx = 0;
     this.clickHandler = null;
+    this.dragHandler = null;
   }
 
   /**
@@ -49,11 +58,19 @@ export class FaceSecondaryClickGesture {
    * @param clientX Press client X.
    * @param clientY Press client Y.
    * @param clickHandler Runs when the release completes a click.
+   * @param dragHandler Runs once when travel first exceeds the click threshold.
    */
-  begin(ownerWindow: Window, clientX: number, clientY: number, clickHandler: FaceSecondaryClickHandler): void {
+  begin(
+    ownerWindow: Window,
+    clientX: number,
+    clientY: number,
+    clickHandler: FaceSecondaryClickHandler,
+    dragHandler: FaceSecondaryDragHandler | null = null,
+  ): void {
     this.cancel();
     this.travelReset(clientX, clientY);
     this.clickHandler = clickHandler;
+    this.dragHandler = dragHandler;
     this.contextMenuSuppressInstall(ownerWindow);
     this.dragSession.begin(
       (event) => this.travelRecord(event),
@@ -71,9 +88,10 @@ export class FaceSecondaryClickGesture {
     return this.dragSession.isActive();
   }
 
-  /** Disarms the gesture without firing the click handler. */
+  /** Disarms the gesture without firing the click or drag handler. */
   cancel(): void {
     this.clickHandler = null;
+    this.dragHandler = null;
     this.dragSession.end();
     this.contextMenuSuppressRemove();
   }
@@ -100,6 +118,24 @@ export class FaceSecondaryClickGesture {
     this.relativeTravelPx += Math.hypot(event.movementX || 0, event.movementY || 0);
     const clientTravel = Math.hypot(event.clientX - this.pressClientX, event.clientY - this.pressClientY);
     this.furthestClientTravelPx = Math.max(this.furthestClientTravelPx, clientTravel);
+    this.dragThresholdNotify(event);
+  }
+
+  /**
+   * Fires the drag handler once when travel first exceeds the click threshold.
+   *
+   * @param event Move that may have crossed the threshold.
+   */
+  private dragThresholdNotify(event: PointerEvent): void {
+    if (this.travelIsClick() || this.dragHandler === null) {
+      return;
+    }
+    const handler = this.dragHandler;
+    this.clickHandler = null;
+    this.dragHandler = null;
+    this.dragSession.end();
+    this.contextMenuSuppressRemove();
+    handler(event);
   }
 
   /**

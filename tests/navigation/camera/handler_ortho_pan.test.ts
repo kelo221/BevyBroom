@@ -49,6 +49,18 @@ describe('OrthoPanHandler', () => {
     });
   });
 
+  it('starts pan from a delayed Face Select drag and stops on release', () => {
+    const canvas = document.createElement('canvas');
+    const camera = new THREE.OrthographicCamera(-5, 5, 5, -5, 0.1, 1000);
+    const handler = new HandlerOrthoPan(canvas, camera, vi.fn());
+    expect(handler.isNavigating()).toBe(false);
+    handler.beginSecondaryButtonPan(new PointerEvent('pointermove', { pointerId: 1, button: 2 }));
+    expect(handler.isNavigating()).toBe(true);
+    canvas.dispatchEvent(new PointerEvent('pointerup', { button: 2, pointerId: 1 }));
+    expect(handler.isNavigating()).toBe(false);
+    handler.dispose();
+  });
+
   it('should set and clear pan state on right click', () => {
     const canvas = document.createElement('canvas');
     const camera = new THREE.OrthographicCamera(-5, 5, 5, -5, 0.1, 1000);

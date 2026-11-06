@@ -97,12 +97,19 @@ describe('CoordinatorFaceMode displacement tools', () => {
     coordinatorTestFaceSelect(coordinator, rig, target);
     const textureApplyArm = vi.spyOn(FaceTextureApplyCoordinator.prototype, 'secondaryPressBegin');
     const { clientX, clientY } = view.event;
-    expect(coordinator.beginFaceSelectSecondaryPress(clientX, clientY)).toBe(false);
+    expect(coordinator.beginFaceSelectSecondaryPress(clientX, clientY)).toEqual({
+      viewportHit: true,
+      strokeStarted: false,
+    });
     expect(textureApplyArm).toHaveBeenCalledTimes(1);
+    expect(coordinator.isFaceSelectSecondaryApplyArmed()).toBe(true);
     getStateFaceEditSession().sheetOpenWrite(true);
     getStateFaceEditSession().activeTabIdWrite('displacement');
     getStateDisplacementSculpt().settingsWrite({ activeTool: 'paint_geometry', raise: true, distance: 0.2 });
-    expect(coordinator.beginFaceSelectSecondaryPress(clientX, clientY)).toBe(true);
+    expect(coordinator.beginFaceSelectSecondaryPress(clientX, clientY)).toEqual({
+      viewportHit: true,
+      strokeStarted: true,
+    });
     expect(textureApplyArm).toHaveBeenCalledTimes(1);
     expect(coordinator.isFaceSelectStrokeActive()).toBe(true);
     coordinator.endFaceSelectPointerUp();

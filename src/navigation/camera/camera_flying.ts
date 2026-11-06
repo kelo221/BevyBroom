@@ -4,6 +4,7 @@ import { managerPointerLock } from '@/input/manager_pointer_lock.js';
 import { blurActiveFormField } from '@/utils/dom_focus.js';
 import { SelectionClickThrough } from '@/selection/object/selection_click_through.js';
 import { EditorOrientation } from '@/navigation/orientation/editor_orientation.js';
+import { pointerCaptureTry } from '@/utils/pointer_capture.js';
 
 /**
  * First-person flying camera for the 3D viewport. Look and WASD/QE movement
@@ -190,28 +191,47 @@ export class CameraFlying {
       return;
     }
     event.preventDefault();
-    if (typeof this.canvas.setPointerCapture === 'function') {
-      try {
-        this.canvas.setPointerCapture(event.pointerId);
-      } catch {
-        // Ignore capture failures in locked or cross-window edge cases.
-      }
-    }
+    pointerCaptureTry(this.canvas, event.pointerId);
     if (event.button === 1) {
-      blurActiveFormField();
-      this.beginPan();
-      this.activeButtons.add(event.button);
-      this.takePointerLock();
-      SelectionClickThrough.resetClickThrough();
+      this.beginMiddleButtonPan();
     }
     if (event.button === 2) {
-      blurActiveFormField();
-      this.syncOrientationFromCamera();
-      this.isRotating = true;
-      this.activeButtons.add(event.button);
-      this.takePointerLock();
-      SelectionClickThrough.resetClickThrough();
+      this.beginSecondaryButtonLook(event);
     }
+  }
+
+  /** Starts middle-button pan and pointer lock from a canvas press. */
+  private beginMiddleButtonPan(): void {
+    blurActiveFormField();
+    this.beginPan();
+    this.activeButtons.add(1);
+    this.takePointerLock();
+    SelectionClickThrough.resetClickThrough();
+  }
+
+  /**
+   * Starts right-button look and pointer lock without a pointerdown on the
+   * canvas, so a Face Select apply click can hand the press to the camera after
+   * a drag.
+   *
+   * @param event Move that crossed the click threshold, or the original press.
+   */
+  beginSecondaryButtonLook(event?: PointerEvent): void {
+    if (!this.isEnabled) {
+      return;
+    }
+    pointerCaptureTry(this.canvas, event?.pointerId);
+    this.beginSecondaryButtonLookStateWrite();
+  }
+
+  /** Writes the rotating state of a right-button look and takes pointer lock. */
+  private beginSecondaryButtonLookStateWrite(): void {
+    blurActiveFormField();
+    this.syncOrientationFromCamera();
+    this.isRotating = true;
+    this.activeButtons.add(2);
+    this.takePointerLock();
+    SelectionClickThrough.resetClickThrough();
   }
 
   /** Begins middle-mouse pan by capturing the look target distance. */

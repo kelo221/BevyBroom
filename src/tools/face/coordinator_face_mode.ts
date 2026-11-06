@@ -13,14 +13,22 @@ import { ControllerUvTransform } from '@/texture/interactive/controller_uv_trans
 import type { UvTransformMode } from '@/texture/interactive/uv_transform_mode.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
-import { findPickSurfaceAtClientPoint } from '@/utils/pointer_client_hit.js';
 import type { FacePickResult } from '@/selection/face/raycaster_face_selection.js';
 import { computeRegionWorldNormal } from '@/texture/uv/planar_uv_projector.js';
 import { resolveUvTransformPlaneNormal } from '@/texture/interactive/uv_transform_solid_face_plane.js';
 import { expandFaceSelectionIndices } from '@/selection/face/solid_result_face_indices.js';
 import { FaceTextureApplyCoordinator } from './texture_apply/face_texture_apply_coordinator.js';
 import { FaceRegionWorldGeometry } from '@/selection/face/face_region_world_geometry.js';
-import { faceModeStatusLabelSelectionMode, faceModeStatusLabelUvTransform } from './face_mode_status_labels.js';
+import { faceModeStatusLabelUvTransform } from './face_mode_status_labels.js';
+import { coordinatorFaceModeViewportAtClientPoint } from './coordinator_face_mode_viewport.js';
+import {
+  coordinatorFaceModeEnterGuidanceShow,
+  coordinatorFaceModeStatusWrite,
+} from './coordinator_face_mode_status.js';
+import {
+  coordinatorFaceModeDisplacementToolsCreate,
+  coordinatorFaceModeTextureApplyCreate,
+} from './coordinator_face_mode_tools.js';
 import {
   type CoordinatorFaceModeExtrudeHost,
   faceModeEnsureFaceSelectionActive,
@@ -29,6 +37,11 @@ import {
 } from './coordinator_face_mode_extrude.js';
 import { DisplacementFaceTools } from '@/displacement/controller/displacement_face_tools.js';
 import { createSyntheticPointerDown, createSyntheticPointerDragMove } from '@/utils/synthetic_pointer_event.js';
+import {
+  faceSelectSecondaryPressResultMiss,
+  type FaceSelectSecondaryPressResult,
+} from '@/editor/tools/face_select/face_select_secondary_press_result.js';
+import { CoordinatorFaceModeSecondaryPress } from './coordinator_face_mode_secondary_press.js';
 
 /** Keyboard code that enables continuous UV smear while held. */
 const UV_SMEAR_KEY_CODE = 'KeyM';
@@ -90,6 +103,7 @@ export class CoordinatorFaceMode {
   private uvTransformOwnedByDrag = false;
   private textureApplyCoordinator: FaceTextureApplyCoordinator;
   private displacementTools: DisplacementFaceTools;
+  private secondaryPress: CoordinatorFaceModeSecondaryPress;
 
   /**
    * Creates the coordinator, initializes controllers and drag state, and binds
@@ -104,8 +118,11 @@ export class CoordinatorFaceMode {
     this.uvSmearController = new ControllerUvSmear(deps.commandStack);
     this.uvTransformController = new ControllerUvTransform(deps.commandStack, deps.gridSnap);
     this.dragStateInitialize();
-    this.textureApplyCoordinator = this.textureApplyCoordinatorCreate();
-    this.displacementTools = this.displacementToolsCreate();
+    this.textureApplyCoordinator = coordinatorFaceModeTextureApplyCreate(deps, this.faceExtrusionController);
+    this.displacementTools = coordinatorFaceModeDisplacementToolsCreate(deps, this.faceExtrusionController, () =>
+      this.displacementDabRefresh(),
+    );
+    this.secondaryPress = this.secondaryPressCreate();
     this.bindFaceSelectionCallbacks();
     this.updateSelectionModeStatus();
   }
@@ -119,36 +136,14 @@ export class CoordinatorFaceMode {
   }
 
   /**
-   * Creates the texture application (Alt+click transfer, click modes,
-   * right-click apply, stamp tool) bound to this coordinator's services.
+   * Creates the right-button apply click and delayed-look helper.
    *
-   * @returns Wired texture application.
+   * @returns Secondary-press helper.
    */
-  private textureApplyCoordinatorCreate(): FaceTextureApplyCoordinator {
-    return new FaceTextureApplyCoordinator({
-      commandStack: this.deps.commandStack,
-      selectionManager: this.deps.selectionManager,
-      faceExtrusionController: this.faceExtrusionController,
-      isAltDown: () => this.deps.keyboardShortcutHandler.isAltDown(),
-      updateShadingMeshes: () => this.deps.updateShadingMeshes(),
-      syncPrimitivesToViewports: () => this.deps.syncPrimitivesToViewports(),
-      showStatusMessage: (message) => this.deps.showStatusMessage(message),
-    });
-  }
-
-  /**
-   * Creates the displacement tools bound to this coordinator's face selection.
-   *
-   * @returns Displacement tab actions and viewport sculpt router.
-   */
-  private displacementToolsCreate(): DisplacementFaceTools {
-    return new DisplacementFaceTools({
-      commandStack: this.deps.commandStack,
-      faceSelection: this.faceExtrusionController,
-      isCtrlDown: () => this.deps.keyboardShortcutHandler.modifiersStateRead().ctrl,
-      isShiftDown: () => this.deps.keyboardShortcutHandler.modifiersStateRead().shift,
-      afterDab: () => this.displacementDabRefresh(),
-    });
+  private secondaryPressCreate(): CoordinatorFaceModeSecondaryPress {
+    return new CoordinatorFaceModeSecondaryPress(this.textureApplyCoordinator, (viewport, clientX, clientY) =>
+      this.secondaryPaintStrokeTryBegin(viewport, clientX, clientY),
+    );
   }
 
   /**
@@ -167,7 +162,7 @@ export class CoordinatorFaceMode {
    */
   dispose(): void {
     this.onWindowPointerUp();
-    this.textureApplyCoordinator.dispose();
+    this.secondaryPress.dispose();
     this.displacementTools.dispose();
     this.faceExtrusionController.dispose();
   }
@@ -180,6 +175,7 @@ export class CoordinatorFaceMode {
   /** Leaves face selection mode and returns to object selection mode. */
   leaveFaceSelectionModeFromTool(): void {
     this.cancelUvTransformIfActive();
+    this.secondaryPress.applyClickCancel();
     this.faceExtrusionController.setSelectionMode(SelectionMode.OBJECT);
   }
 
@@ -200,7 +196,7 @@ export class CoordinatorFaceMode {
     isCtrlPressed: boolean,
     ownerDocument: Document | null = null,
   ): boolean {
-    const viewport = this.faceModeViewportAtClientPoint(clientX, clientY, ownerDocument);
+    const viewport = this.viewportAtClientPoint(clientX, clientY, ownerDocument);
     const event = createSyntheticPointerDown(clientX, clientY);
     return viewport !== null && this.onViewportFacePointerDown(event, viewport, isShiftPressed, isCtrlPressed);
   }
@@ -213,19 +209,47 @@ export class CoordinatorFaceMode {
    * @param clientX Pointer client X.
    * @param clientY Pointer client Y.
    * @param ownerDocument Document that owns the client coordinates, or null.
-   * @returns True when displacement painting took the press.
+   * @returns Whether the press hit a viewport and whether a paint stroke
+   *   started.
    */
-  beginFaceSelectSecondaryPress(clientX: number, clientY: number, ownerDocument: Document | null = null): boolean {
-    const viewport = this.faceModeViewportAtClientPoint(clientX, clientY, ownerDocument);
-    if (!viewport) return false;
+  beginFaceSelectSecondaryPress(
+    clientX: number,
+    clientY: number,
+    ownerDocument: Document | null = null,
+  ): FaceSelectSecondaryPressResult {
+    const viewport = this.viewportAtClientPoint(clientX, clientY, ownerDocument);
+    if (!viewport) {
+      return faceSelectSecondaryPressResultMiss();
+    }
+    return this.secondaryPress.pressBegin(viewport, clientX, clientY);
+  }
+
+  /**
+   * Returns whether a right-button texture apply click is armed.
+   *
+   * @returns True while waiting for a click or a drag.
+   */
+  isFaceSelectSecondaryApplyArmed(): boolean {
+    return this.secondaryPress.applyClickIsArmed();
+  }
+
+  /**
+   * Starts a displacement paint stroke on a right-button press when a paint
+   * tool is active over a selected displaced face.
+   *
+   * @param viewport Pressed viewport.
+   * @param clientX Pointer client X.
+   * @param clientY Pointer client Y.
+   * @returns True when the paint stroke owns the press.
+   */
+  private secondaryPaintStrokeTryBegin(viewport: Viewport3D | Viewport2D, clientX: number, clientY: number): boolean {
     const pressed = { camera: viewport.getCamera(), pickElement: viewport.getContentElement() };
     const event = createSyntheticPointerDown(clientX, clientY);
-    if (this.displacementTools.sculptRouter.strokeTryBegin(event, pressed.camera, pressed.pickElement, 'secondary')) {
-      this.beginWindowDragTracking(viewport, FACE_MODE_SECONDARY_BUTTON_MASK);
-      return true;
+    if (!this.displacementTools.sculptRouter.strokeTryBegin(event, pressed.camera, pressed.pickElement, 'secondary')) {
+      return false;
     }
-    this.textureApplyCoordinator.secondaryPressBegin(pressed, clientX, clientY);
-    return false;
+    this.beginWindowDragTracking(viewport, FACE_MODE_SECONDARY_BUTTON_MASK);
+    return true;
   }
 
   /**
@@ -236,13 +260,18 @@ export class CoordinatorFaceMode {
    * @param ownerDocument Document that owns the client coordinates, or null.
    * @returns Viewport, or null outside face mode or any viewport.
    */
-  private faceModeViewportAtClientPoint(
+  private viewportAtClientPoint(
     clientX: number,
     clientY: number,
     ownerDocument: Document | null,
   ): Viewport3D | Viewport2D | null {
-    const isFaceMode = this.faceExtrusionController.getSelectionMode() === SelectionMode.FACE;
-    return isFaceMode ? this.findViewportAtClientPoint(clientX, clientY, ownerDocument) : null;
+    return coordinatorFaceModeViewportAtClientPoint(
+      this.faceExtrusionController.getSelectionMode() === SelectionMode.FACE,
+      this.deps.getViewports(),
+      clientX,
+      clientY,
+      ownerDocument,
+    );
   }
 
   /** Paints the current texture onto the selected faces or objects. */
@@ -572,7 +601,7 @@ export class CoordinatorFaceMode {
     isShiftPressed: boolean,
     isCtrlPressed: boolean,
   ): boolean {
-    if (isShiftPressed || isCtrlPressed || this.isUvSmearKeyHeld()) {
+    if (isShiftPressed || isCtrlPressed || this.uvSmearKeyIsHeld()) {
       return false;
     }
     const pick = this.faceExtrusionController.pickFaceAtPointer(event, camera, pickElement);
@@ -610,7 +639,7 @@ export class CoordinatorFaceMode {
     isShiftPressed: boolean,
     isCtrlPressed: boolean,
   ): boolean {
-    const smearHeld = this.isUvSmearKeyHeld();
+    const smearHeld = this.uvSmearKeyIsHeld();
     const pick = this.faceExtrusionController.onPointerDown(event, camera, pickElement, isShiftPressed, isCtrlPressed);
     if (smearHeld && pick) {
       this.uvSmearController.beginStroke(pick.mesh, pick.faceIndex);
@@ -735,7 +764,7 @@ export class CoordinatorFaceMode {
     const camera = viewport.getCamera();
     const pickElement = viewport.getContentElement();
     const pick = this.faceExtrusionController.onPointerMove(event, camera, pickElement);
-    if (pick && (this.isSmearStrokeLive || this.isUvSmearKeyHeld())) {
+    if (pick && (this.isSmearStrokeLive || this.uvSmearKeyIsHeld())) {
       if (!this.isSmearStrokeLive) {
         this.uvSmearController.beginStroke(pick.mesh, pick.faceIndex);
         this.isSmearStrokeLive = true;
@@ -899,34 +928,11 @@ export class CoordinatorFaceMode {
   }
 
   /**
-   * Finds an interactive viewport under a client point. Client coordinates are
-   * window-local; when ownerDocument is set only panes in that document match.
-   *
-   * @param clientX Pointer client X.
-   * @param clientY Pointer client Y.
-   * @param ownerDocument Optional document that owns the client coordinates.
-   * @returns Viewport, or null.
-   */
-  private findViewportAtClientPoint(
-    clientX: number,
-    clientY: number,
-    ownerDocument: Document | null = null,
-  ): Viewport3D | Viewport2D | null {
-    return findPickSurfaceAtClientPoint(
-      this.deps.getViewports(),
-      (viewport) => viewport.getContentElement(),
-      clientX,
-      clientY,
-      ownerDocument,
-    );
-  }
-
-  /**
    * Returns whether the UV smear modifier key is currently held.
    *
    * @returns True while KeyM is down.
    */
-  private isUvSmearKeyHeld(): boolean {
+  private uvSmearKeyIsHeld(): boolean {
     return this.deps.keyboardShortcutHandler.isKeyDown(UV_SMEAR_KEY_CODE);
   }
 
@@ -948,25 +954,27 @@ export class CoordinatorFaceMode {
     this.selectionMode = mode;
     this.updateSelectionModeStatus();
     this.updateFaceSelectionMeshes();
-    if (mode === SelectionMode.FACE) {
-      this.enterFaceSelectionMode();
-    } else {
-      this.cancelUvTransformIfActive();
-      this.onWindowPointerUp();
-    }
+    this.selectionModeEnterOrLeave(mode);
     this.deps.onSelectionModeUiChanged?.(mode);
   }
 
   /**
-   * Clears object selection, refreshes face-pickable meshes, and shows
-   * face-mode guidance.
+   * Enters face-mode guidance or ends live face strokes when the mode changes.
+   *
+   * @param mode The new selection mode.
    */
-  private enterFaceSelectionMode(): void {
-    this.deps.selectionManager.clearSelection();
-    this.updateFaceSelectionMeshes();
-    this.deps.showStatusMessage(
-      'Face mode: drag to select · drag selected face to slide UVs · G/R/S UV transform · hold M to smear · Extrude / Shift+E',
-    );
+  private selectionModeEnterOrLeave(mode: SelectionMode): void {
+    if (mode === SelectionMode.FACE) {
+      coordinatorFaceModeEnterGuidanceShow(
+        this.deps.selectionManager,
+        () => this.updateFaceSelectionMeshes(),
+        (message) => this.deps.showStatusMessage(message),
+      );
+      return;
+    }
+    this.secondaryPress.applyClickCancel();
+    this.cancelUvTransformIfActive();
+    this.onWindowPointerUp();
   }
 
   /**
@@ -975,13 +983,12 @@ export class CoordinatorFaceMode {
    * @param force When true, writes even if the face count is unchanged.
    */
   private updateSelectionModeStatus(force: boolean = false): void {
-    if (!this.deps.statusBar) return;
-    const mode = this.faceExtrusionController.getSelectionMode();
-    const count = this.faceExtrusionController.getSelectedFaceCount();
-    if (!force && mode === SelectionMode.FACE && count === this.lastStatusFaceCount) {
-      return;
-    }
-    this.lastStatusFaceCount = count;
-    this.deps.statusBar.setSelectionModeInfo(faceModeStatusLabelSelectionMode(mode), count);
+    this.lastStatusFaceCount = coordinatorFaceModeStatusWrite(
+      this.deps.statusBar,
+      this.faceExtrusionController.getSelectionMode(),
+      this.faceExtrusionController.getSelectedFaceCount(),
+      this.lastStatusFaceCount,
+      force,
+    );
   }
 }

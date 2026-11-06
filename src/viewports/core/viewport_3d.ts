@@ -270,6 +270,15 @@ export class Viewport3D extends ViewportBase {
   }
 
   /**
+   * Starts right-button look after a Face Select apply click became a drag.
+   *
+   * @param event Move that crossed the click threshold.
+   */
+  beginSecondaryButtonNavigation(event?: PointerEvent): void {
+    this.flyingCamera.beginSecondaryButtonLook(event);
+  }
+
+  /**
    * Returns selectable meshes, falling back to world group traversal when
    * empty.
    *

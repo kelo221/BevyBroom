@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { managerPointerLock } from '@/input/manager_pointer_lock.js';
 import { blurActiveFormField } from '@/utils/dom_focus.js';
 import { SelectionClickThrough } from '@/selection/object/selection_click_through.js';
+import { pointerCaptureTry } from '@/utils/pointer_capture.js';
 
 /**
  * Invoked when the user scrolls to zoom an orthographic viewport toward the
@@ -130,6 +131,25 @@ export class HandlerOrthoPan {
     if (event.button === ORTHO_PAN_BUTTON_MIDDLE) event.preventDefault();
     blurActiveFormField();
     this.heldPanButtons.add(event.button);
+    this.panStateBegin();
+  }
+
+  /**
+   * Starts right-button pan and pointer lock without a pointerdown on the
+   * canvas, so a Face Select apply click can hand the press to the camera after
+   * a drag.
+   *
+   * @param event Move that crossed the click threshold, or the original press.
+   */
+  beginSecondaryButtonPan(event?: PointerEvent): void {
+    pointerCaptureTry(this.canvas, event?.pointerId);
+    this.heldPanButtons.add(ORTHO_PAN_BUTTON_SECONDARY);
+    this.panStateBegin();
+  }
+
+  /** Writes the panning state of a held pan button and takes pointer lock. */
+  private panStateBegin(): void {
+    blurActiveFormField();
     this.isPanning = true;
     SelectionClickThrough.resetClickThrough();
     this.takePointerLock();
