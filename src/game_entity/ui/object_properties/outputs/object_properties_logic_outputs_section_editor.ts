@@ -10,7 +10,7 @@ import type { InputSelectChoice } from '@/ui/input/input_select.js';
 import { InputText } from '@/ui/input/input_text.js';
 import { InputTextSuggest } from '@/ui/input/input_text_suggest.js';
 import { panelPropertiesRowCreate } from '@/ui/properties/panel_properties_row.js';
-import { ToolbarIconsHammer } from '@/ui/toolbar/toolbar_icons_hammer.js';
+import { IconHammerCatalog } from '@/ui/icons/hammer/icon_hammer_catalog.js';
 import type { ObjectPropertiesTabContext } from '@/ui/object_properties/registry/registry_object_properties_tab.js';
 import { ObjectPropertiesTabSection } from '@/ui/object_properties/tabs/object_properties_tab_section.js';
 import { objectPropertiesLogicButtonCreate } from '../table/object_properties_logic_button_bar.js';
@@ -113,7 +113,7 @@ export class ObjectPropertiesLogicOutputsSectionEditor extends ObjectPropertiesT
   private pickButtonCreate(): HTMLButtonElement {
     const button = buttonCompactCreate({
       title: 'Pick the target entity in the viewport',
-      svgIcon: ToolbarIconsHammer.eyedropper(),
+      svgIcon: IconHammerCatalog.svg('selection_eyedropper', 18),
       widthPx: 24,
       heightPx: 24,
       onClick: () => this.targetPickBegin(),

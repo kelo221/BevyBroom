@@ -325,12 +325,14 @@ These tools need the desktop app; the browser editor answers that it cannot star
 
 ## Main window
 
-| Tool              | What it does                                                                                                                                                                      |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_main_window` | `inspectorVisible`, `infoPanelVisible`, `infoPanelTab` (`console`, `issues`), `toolbarVisible`, the menu bar `menus`, and `floatingWindows` (`texture_browser`, `entity_browser`) |
-| `set_main_window` | Change any of those fields except `menus`; `floatingWindows` shows or hides each named window. Returns the arrangement afterwards                                                 |
+| Tool               | What it does                                                                                                                                                                                                                           |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_main_window`  | `inspectorVisible`, `infoPanelVisible`, `infoPanelCollapsed` (folded to its one-line strip), `infoPanelTab` (`console`, `issues`), `toolbarVisible`, the menu bar `menus`, and `floatingWindows` (`texture_browser`, `entity_browser`) |
+| `set_main_window`  | Change any of those fields except `menus`; `floatingWindows` shows or hides each named window. Returns the arrangement afterwards                                                                                                      |
+| `get_shell_layout` | Read-only `{x, y, width, height}` rectangles in CSS pixels of `views` (map views above the info panel), `infoPanel` and `inspector`; hidden areas are zero sized                                                                       |
 
 - Choosing a tab does not show a hidden dock; set `inspectorVisible` or `infoPanelVisible` too.
+- The info panel starts folded to its strip; `infoPanelCollapsed: false` unfolds it to its remembered height.
 - The arrangement is remembered between sessions, the same as when it is changed from the View menu.
 
 | Tool                           | What it does                                                                                                                                                       |

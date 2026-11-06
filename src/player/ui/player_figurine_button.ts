@@ -1,5 +1,6 @@
 import { Theme } from '@/theme.js';
-import { ToolbarIcons } from '@/ui/toolbar/toolbar_icons.js';
+import { buttonClassicPressedApply } from '@/ui/button/button_classic_style.js';
+import { IconHammerCatalog } from '@/ui/icons/hammer/icon_hammer_catalog.js';
 
 /**
  * Creates a compact figurine toolbar button for drag-and-drop placement.
@@ -18,7 +19,7 @@ export function playerFigurineCreateToolbarButton(
   button.type = 'button';
   button.title = 'Drag into the scene to place play spawn (click to clear)';
   button.setAttribute('aria-label', 'Place play-mode figurine');
-  button.innerHTML = ToolbarIcons.playerFigurine();
+  button.innerHTML = IconHammerCatalog.svg('run_player_spawn', 20);
   applyButtonStyles(button);
   wireButtonEvents(button, onPointerDown, onActivateClick);
   return button;
@@ -90,7 +91,7 @@ function wireButtonEvents(
   });
   button.addEventListener('mouseenter', () => {
     if (button.dataset['active'] !== 'true') {
-      button.style.background = Theme.viewportToolbarButtonHover;
+      button.style.background = Theme.hoverOverlay;
     }
   });
   button.addEventListener('mouseleave', () => {
@@ -110,26 +111,10 @@ export function playerFigurineSetButtonActive(button: HTMLButtonElement, active:
   button.dataset['active'] = active ? 'true' : 'false';
   button.setAttribute('aria-pressed', active ? 'true' : 'false');
   if (active) {
-    button.style.background = hexToRgba(Theme.selectionColor, 0.28);
-    button.style.borderColor = hexToRgba(Theme.selectionColor, 0.85);
-    button.style.color = '#ffffff';
+    buttonClassicPressedApply(button, true);
     return;
   }
   button.style.background = 'transparent';
   button.style.borderColor = 'transparent';
   button.style.color = Theme.buttonTextColor;
-}
-
-/**
- * Converts a hex color number to an rgba CSS string.
- *
- * @param hex Hex color value.
- * @param alpha Alpha channel from 0 to 1.
- * @returns CSS rgba color string.
- */
-function hexToRgba(hex: number, alpha: number): string {
-  const r = (hex >> 16) & 255;
-  const g = (hex >> 8) & 255;
-  const b = hex & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

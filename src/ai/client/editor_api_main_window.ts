@@ -9,7 +9,12 @@ import {
 import { SHELL_FLOATING_WINDOW_IDS, type ShellFloatingWindowId } from '@/layout/shell/actions/shell_floating_window.js';
 
 /** Fields of set_main_window that take true or false. */
-const EDITOR_API_MAIN_WINDOW_FLAG_FIELDS = ['inspectorVisible', 'infoPanelVisible', 'toolbarVisible'] as const;
+const EDITOR_API_MAIN_WINDOW_FLAG_FIELDS = [
+  'inspectorVisible',
+  'infoPanelVisible',
+  'infoPanelCollapsed',
+  'toolbarVisible',
+] as const;
 
 /**
  * Reads and changes which docks, tabs and bars of the editor's main window are
@@ -40,6 +45,8 @@ export class EditorApiMainWindow {
         return this.withControl((control) => okResult('Main window arrangement', { ...control.stateRead() }));
       case 'set_main_window':
         return this.withControl((control) => this.mainWindowSet(control, args));
+      case 'get_shell_layout':
+        return this.withControl((control) => okResult('Main window layout', { ...control.layoutRead() }));
       default:
         return null;
     }

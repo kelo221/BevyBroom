@@ -1,5 +1,6 @@
 import type { GameEntityField } from '@/game_entity/class/game_entity_class_schema.js';
 import { Theme } from '@/theme.js';
+import { hexToRgb } from '@/utils/utils_color.js';
 import {
   PANEL_PROPERTIES_ROW_INDENT_STEP_PX,
   panelPropertiesGroupRowMark,
@@ -8,8 +9,8 @@ import {
   panelPropertiesRowMark,
 } from '@/ui/properties/panel_properties_row.js';
 
-/** CSS color of overridden field captions: the selection orange. */
-const GAME_ENTITY_OVERRIDE_COLOR = `#${Theme.selectionColor.toString(16).padStart(6, '0')}`;
+/** CSS color of overridden field captions: the toggle accent blue. */
+const GAME_ENTITY_OVERRIDE_COLOR = hexToRgb(Theme.toggleAccentColor);
 
 /** Element factories that give the game component inspector its look. */
 export class GameEntityUiChrome {

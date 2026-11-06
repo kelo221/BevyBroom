@@ -61,7 +61,7 @@ function tabBookBaseCss(): string {
   return `
 .${TAB_BOOK_ROOT_CLASS} { display: flex; flex-direction: column; min-width: 0; min-height: 0; font-family: ${Theme.uiFontFamily}; color: ${Theme.buttonTextColor}; }
 .${TAB_BOOK_STRIP_CLASS} { display: flex; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
-.${TAB_BOOK_TAB_CLASS} { cursor: pointer; font-family: ${Theme.uiFontFamily}; font-size: 12px; font-weight: 500; color: ${Theme.buttonTextColor}; background: transparent; border: 1px solid transparent; letter-spacing: 0.01em; }
+.${TAB_BOOK_TAB_CLASS} { cursor: pointer; font-family: ${Theme.uiFontFamily}; font-size: ${Theme.uiFontSizePx}px; font-weight: 400; color: ${Theme.buttonTextColor}; background: transparent; border: 1px solid transparent; letter-spacing: 0.01em; }
 .${TAB_BOOK_CONTENT_CLASS} { position: relative; display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; min-height: 0; }
 .${TAB_BOOK_PAGE_CLASS} { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; min-height: 0; }
 .${TAB_BOOK_PAGE_CLASS}[hidden] { display: none; }
@@ -75,12 +75,10 @@ function tabBookBaseCss(): string {
  */
 function tabBookUnderlineCss(): string {
   const root = `.${tabBookVariantClass('underline')}`;
-  const selection = hexToRgb(Theme.selectionColor);
   return `
-${root} > .${TAB_BOOK_STRIP_CLASS} { gap: 2px; padding: 0 8px; background: ${hexToRgb(Theme.toolbarBackground)}; border-bottom: 1px solid ${hexToRgb(Theme.separatorColor)}; }
-${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS} { padding: 6px 10px 5px; border-width: 0 0 2px 0; border-radius: 0; font-weight: 600; color: #b0b0b0; }
-${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}:hover { color: #ffffff; }
-${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}[aria-selected="true"] { color: #ffffff; border-bottom-color: ${selection}; }
+${root} > .${TAB_BOOK_STRIP_CLASS} { gap: 2px; padding: 0 8px; background: ${hexToRgb(Theme.toolbarBackground)}; border-bottom: 1px solid ${Theme.chromeBorderColor}; }
+${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS} { padding: 4px 10px 3px; border-width: 0 0 2px 0; border-radius: 0; color: ${Theme.secondaryTextColor}; }
+${tabBookActiveTabCss(root)}
 `.trim();
 }
 
@@ -92,12 +90,10 @@ ${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}[aria-selected="true"
  */
 function tabBookCompactCss(): string {
   const root = `.${tabBookVariantClass('compact')}`;
-  const selection = hexToRgb(Theme.selectionColor);
   return `
-${root} > .${TAB_BOOK_STRIP_CLASS} { flex-wrap: nowrap; gap: 0; padding: 0 6px; overflow: hidden; background: ${hexToRgb(Theme.toolbarBackground)}; border-bottom: 1px solid ${hexToRgb(Theme.separatorColor)}; }
-${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS} { padding: 4px 8px 3px; font-size: 11px; white-space: nowrap; flex-shrink: 0; border-width: 0 0 2px 0; border-radius: 0; color: #b0b0b0; }
-${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}:hover { color: #ffffff; }
-${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}[aria-selected="true"] { color: #ffffff; border-bottom-color: ${selection}; }
+${root} > .${TAB_BOOK_STRIP_CLASS} { flex-wrap: nowrap; gap: 0; padding: 0 6px; overflow: hidden; background: ${hexToRgb(Theme.toolbarBackground)}; border-bottom: 1px solid ${Theme.chromeBorderColor}; }
+${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS} { padding: 3px 8px 2px; white-space: nowrap; flex-shrink: 0; border-width: 0 0 2px 0; border-radius: 0; color: ${Theme.secondaryTextColor}; }
+${tabBookActiveTabCss(root)}
 `.trim();
 }
 
@@ -108,11 +104,26 @@ ${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}[aria-selected="true"
  */
 function tabBookPillCss(): string {
   const root = `.${tabBookVariantClass('pill')}`;
-  const selection = hexToRgb(Theme.selectionColor);
   return `
-${root} > .${TAB_BOOK_STRIP_CLASS} { gap: 4px; padding: 8px 12px; background: ${hexToRgb(Theme.toolbarBackground)}; border-bottom: 1px solid ${hexToRgb(Theme.separatorColor)}; }
-${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS} { padding: 5px 10px; border-radius: 4px; transition: background 80ms ease, border-color 80ms ease; }
-${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}:hover { background: ${hexToRgb(Theme.buttonHoverColor)}; border-color: rgba(255,255,255,0.06); }
-${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}[aria-selected="true"] { color: #ffffff; background: rgba(232, 106, 23, 0.22); border-color: ${selection}; }
+${root} > .${TAB_BOOK_STRIP_CLASS} { gap: 4px; padding: 6px 10px; background: ${hexToRgb(Theme.toolbarBackground)}; border-bottom: 1px solid ${Theme.chromeBorderColor}; }
+${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS} { padding: 3px 10px; border-radius: 2px; }
+${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}:hover { background: ${hexToRgb(Theme.buttonHoverColor)}; border-color: ${Theme.chromeBorderColor}; }
+${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}[aria-selected="true"] { color: ${Theme.buttonTextColor}; background: ${Theme.buttonPressedBackground}; border-color: ${Theme.toggleActiveBorder}; }
+`.trim();
+}
+
+/**
+ * Builds the hover and selected rules of an underlined tab strip: hovered tabs
+ * get the hover overlay, the selected tab the active background and an accent
+ * underline.
+ *
+ * @param root Selector of the variant root.
+ * @returns CSS text.
+ */
+function tabBookActiveTabCss(root: string): string {
+  const tab = `${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}`;
+  return `
+${tab}:hover { color: ${Theme.buttonTextColor}; background: ${Theme.hoverOverlay}; }
+${tab}[aria-selected="true"] { color: ${Theme.buttonTextColor}; background: ${Theme.tabActiveBackground}; border-bottom-color: ${Theme.tabActiveAccent}; }
 `.trim();
 }

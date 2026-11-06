@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import { CsgPolygon } from './csg_polygon.js';
 import { BuilderCsgMesh } from './builder_csg_mesh.js';
 import { CsgClipper } from './csg_clipper.js';
@@ -160,7 +161,7 @@ export class CsgPlaneSplit {
       const color = (material as THREE.MeshStandardMaterial).color;
       if (color) return color.getHex();
     }
-    return 0xffffff;
+    return MaterialColorNeutral.white;
   }
 
   /**

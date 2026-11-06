@@ -1,105 +1,84 @@
-import { Theme } from '@/theme.js';
 import { ShadingMode } from '@/types/shading_mode.js';
-import { ToolbarIcons } from '@/ui/toolbar/toolbar_icons.js';
+import { IconHammerCatalog } from '@/ui/icons/hammer/icon_hammer_catalog.js';
 import { PanelMenu } from '@/ui/menu/panel_menu.js';
-import { appendMenuDropdownCaret } from '@/ui/menu/menu_dropdown_caret.js';
 import { MenuOutsidePointerClose } from '@/ui/menu/menu_outside_pointer_close.js';
 import { ViewportKind, getViewportKindDisplayLabel } from '@/viewports/core/viewport_kind.js';
-import { buildViewportTypeMenuEntries } from './viewport_type_menu.js';
-import { viewportAxisCaptionForKind, viewportAxisCaptionForTitle } from './viewport_axis_caption.js';
 import { UiStackLayers } from '@/ui/stack/ui_stack_layers.js';
+import { buildViewportViewMenuEntries, type ViewportViewMenuState } from './viewport_type_menu.js';
+import { viewportAxisCaptionForKind, viewportAxisCaptionForTitle } from './viewport_axis_caption.js';
+import { ViewportLabel } from './viewport_label.js';
+import { ViewportHoverButtonRow } from './viewport_hover_button_row.js';
+import { VIEWPORT_SHADING_CHOICES } from './viewport_shading_choices.js';
+
+/** CSS class of the top-left cluster holding the corner label. */
+export const VIEWPORT_CORNER_CLUSTER_CLASS = 'editor-viewport-corner';
+
+/** Handlers registered on a viewport chrome; each is optional until wired. */
+interface ViewportToolbarCallbacks {
+  shadingMode?: (mode: ShadingMode) => void;
+  contentWireframesToggle?: (visible: boolean) => void;
+  projectedGridToggle?: (visible: boolean) => void;
+  fit?: () => void;
+  maximizeToggle?: () => void;
+  kindChange?: (kind: ViewportKind) => void;
+}
 
 /**
- * Compact toolbar overlaid at the top of a single viewport. Provides
- * per-viewport shading modes, type menu, Fit, and maximize actions.
+ * Hammer-style chrome of one viewport: a corner label at the top-left that
+ * opens the view menu (view kind, shading, render toggles, fit, maximize), and
+ * a hover-only icon row at the top-right with the shading modes and maximize.
+ * The view starts at the top of the pane.
  */
 export class ViewportToolbar {
   private readonly ownerDocument: Document;
   private readonly ownerWindow: Window;
-  private container: HTMLElement;
-  private titleWrapper: HTMLElement;
-  private titleButton: HTMLButtonElement;
-  private titleLabel: HTMLElement;
-  private axisCaption: HTMLElement;
-  private typeMenuPanel: PanelMenu | null;
-  private readonly outsideCloser: MenuOutsidePointerClose;
-  private buttonRow: HTMLElement;
-  private contentWireframesButton: HTMLButtonElement;
-  private projectedGridButton: HTMLButtonElement;
-  private shadingButtons: Map<ShadingMode, HTMLButtonElement>;
-  private fitButton: HTMLButtonElement;
-  private maximizeButton: HTMLButtonElement;
-  private onShadingMode: ((mode: ShadingMode) => void) | null;
-  private onContentWireframesToggle: ((visible: boolean) => void) | null;
-  private onProjectedGridToggle: ((visible: boolean) => void) | null;
-  private onFit: (() => void) | null;
-  private onToggleMaximize: (() => void) | null;
-  private onViewportKindChange: ((kind: ViewportKind) => void) | null;
+  private readonly cornerCluster: HTMLElement;
+  private readonly label: ViewportLabel;
+  private readonly hoverRow: ViewportHoverButtonRow;
+  private readonly outsideCloser = new MenuOutsidePointerClose();
+  private readonly shadingButtons = new Map<ShadingMode, HTMLButtonElement>();
+  private readonly callbacks: ViewportToolbarCallbacks = {};
+  private readonly maximizeButton: HTMLButtonElement;
+  private viewMenuPanel: PanelMenu | null = null;
+  private titleText: string;
   private currentMode: ShadingMode;
-  private currentKind: ViewportKind;
-  private contentWireframesActive: boolean;
-  private projectedGridActive: boolean;
+  private currentKind: ViewportKind = ViewportKind.PERSPECTIVE;
+  private contentWireframesActive = true;
+  private projectedGridActive = true;
+  private maximized = false;
 
   /**
-   * Creates a viewport toolbar and appends it to the given parent.
+   * Creates the viewport chrome inside the pane element.
    *
-   * @param parentElement The viewport container element.
-   * @param titleText The viewport display name shown on the left.
+   * @param parentElement The viewport pane element.
+   * @param titleText The viewport display name.
    * @param initialMode The shading mode to highlight initially.
    */
   constructor(parentElement: HTMLElement, titleText: string, initialMode: ShadingMode = ShadingMode.SOLID) {
     this.ownerDocument = parentElement.ownerDocument;
     this.ownerWindow = parentElement.ownerDocument.defaultView ?? window;
-    this.container = this.ownerDocument.createElement('div');
-    this.titleWrapper = this.ownerDocument.createElement('div');
-    this.titleButton = this.ownerDocument.createElement('button');
-    this.titleLabel = this.ownerDocument.createElement('span');
-    this.axisCaption = this.ownerDocument.createElement('span');
-    this.typeMenuPanel = null;
-    this.outsideCloser = new MenuOutsidePointerClose();
-    this.buttonRow = this.ownerDocument.createElement('div');
-    this.shadingButtons = new Map();
-    this.onShadingMode = null;
-    this.onContentWireframesToggle = null;
-    this.onProjectedGridToggle = null;
-    this.onFit = null;
-    this.onToggleMaximize = null;
-    this.onViewportKindChange = null;
+    this.titleText = titleText;
     this.currentMode = initialMode;
-    this.currentKind = ViewportKind.PERSPECTIVE;
-    this.contentWireframesActive = true;
-    this.projectedGridActive = true;
-    this.applyContainerStyles();
-    this.buildTitle(titleText);
-    this.contentWireframesButton = this.createToggleButton(
-      'Content and brush wireframes',
-      ToolbarIcons.contentWireframes(),
-      () => this.toggleContentWireframes(),
+    this.cornerCluster = this.cornerClusterCreate(parentElement);
+    this.label = new ViewportLabel(this.cornerCluster, '', () => this.viewMenuToggle());
+    this.labelTextRefresh(viewportAxisCaptionForTitle(titleText));
+    this.hoverRow = new ViewportHoverButtonRow(parentElement);
+    this.shadingButtonsCreate();
+    this.maximizeButton = this.hoverRow.buttonAdd(
+      'Maximize viewport',
+      IconHammerCatalog.toolbarSvg('view_maximize'),
+      () => this.maximizeToggle(),
     );
-    this.projectedGridButton = this.createToggleButton('Projected surface grid', ToolbarIcons.projectedGrid(), () =>
-      this.toggleProjectedGrid(),
-    );
-    this.buildControls();
-    this.fitButton = this.createFitButton();
-    this.maximizeButton = this.createMaximizeButton();
-    this.buttonRow.appendChild(this.createSeparator());
-    this.buttonRow.appendChild(this.fitButton);
-    this.buttonRow.appendChild(this.maximizeButton);
-    this.container.appendChild(this.titleWrapper);
-    this.container.appendChild(this.buttonRow);
-    parentElement.appendChild(this.container);
     this.setActiveShadingMode(initialMode);
-    this.setContentWireframesActive(true);
-    this.setProjectedGridActive(true);
   }
 
   /**
-   * Registers the callback invoked when a shading mode button is pressed.
+   * Registers the callback invoked when a shading mode is chosen.
    *
    * @param callback The shading mode change handler.
    */
   setOnShadingMode(callback: (mode: ShadingMode) => void): void {
-    this.onShadingMode = callback;
+    this.callbacks.shadingMode = callback;
   }
 
   /**
@@ -108,7 +87,7 @@ export class ViewportToolbar {
    * @param callback Toggle handler receiving the new visibility.
    */
   setOnContentWireframesToggle(callback: (visible: boolean) => void): void {
-    this.onContentWireframesToggle = callback;
+    this.callbacks.contentWireframesToggle = callback;
   }
 
   /**
@@ -117,25 +96,25 @@ export class ViewportToolbar {
    * @param callback Toggle handler receiving the new visibility.
    */
   setOnProjectedGridToggle(callback: (visible: boolean) => void): void {
-    this.onProjectedGridToggle = callback;
+    this.callbacks.projectedGridToggle = callback;
   }
 
   /**
-   * Registers the callback invoked when the Fit button is pressed.
+   * Registers the callback invoked by Fit to Selection.
    *
    * @param callback The fit action handler.
    */
   setOnFit(callback: () => void): void {
-    this.onFit = callback;
+    this.callbacks.fit = callback;
   }
 
   /**
-   * Registers the callback invoked by the maximize/restore button.
+   * Registers the callback invoked by maximize/restore.
    *
    * @param callback Viewport layout toggle handler.
    */
   setOnToggleMaximize(callback: () => void): void {
-    this.onToggleMaximize = callback;
+    this.callbacks.maximizeToggle = callback;
   }
 
   /**
@@ -144,42 +123,52 @@ export class ViewportToolbar {
    * @param callback Kind change handler.
    */
   setOnViewportKindChange(callback: (kind: ViewportKind) => void): void {
-    this.onViewportKindChange = callback;
+    this.callbacks.kindChange = callback;
   }
 
   /**
-   * Updates the type menu selection and title label for a viewport kind.
+   * Shows the axis caption of a viewport kind in the corner label and checks
+   * that kind in the view menu.
    *
    * @param kind Active viewport kind.
    */
   setViewportKind(kind: ViewportKind): void {
     this.currentKind = kind;
-    this.setTitle(getViewportKindDisplayLabel(kind));
-    this.axisCaption.textContent = viewportAxisCaptionForKind(kind);
-    this.rebuildTypeMenu();
+    this.titleText = getViewportKindDisplayLabel(kind);
+    this.labelTextRefresh(viewportAxisCaptionForKind(kind));
   }
 
   /**
-   * Updates the maximize button label and selected appearance.
+   * Updates the maximize button tooltip and selected appearance.
    *
    * @param maximized Whether this viewport currently fills the workspace.
    */
   setMaximized(maximized: boolean): void {
+    this.maximized = maximized;
     const label = maximized ? 'Restore viewport layout' : 'Maximize viewport';
     this.maximizeButton.title = label;
     this.maximizeButton.setAttribute('aria-label', label);
-    this.applyActiveState(this.maximizeButton, maximized);
+    this.hoverRow.buttonActiveSet(this.maximizeButton, maximized);
   }
 
   /**
-   * Updates which shading mode button appears selected.
+   * Returns whether the viewport is shown as maximized.
+   *
+   * @returns True while maximized.
+   */
+  isMaximized(): boolean {
+    return this.maximized;
+  }
+
+  /**
+   * Updates which shading mode appears selected.
    *
    * @param mode The mode to mark as active.
    */
   setActiveShadingMode(mode: ShadingMode): void {
     this.currentMode = mode;
     this.shadingButtons.forEach((button, buttonMode) => {
-      this.applyActiveState(button, buttonMode === mode);
+      this.hoverRow.buttonActiveSet(button, buttonMode === mode);
     });
   }
 
@@ -193,84 +182,72 @@ export class ViewportToolbar {
   }
 
   /**
-   * Updates the title text shown on the left side of the toolbar.
+   * Updates the view name; the corner label shows its axis caption when the
+   * name is a view kind, else the name itself.
    *
    * @param titleText New display title.
    */
   setTitle(titleText: string): void {
-    this.titleLabel.textContent = titleText;
+    this.titleText = titleText;
+    this.labelTextRefresh(viewportAxisCaptionForTitle(titleText));
   }
 
   /**
-   * Returns the title button used for type menus and tests.
+   * Returns the corner label that opens the view menu.
    *
-   * @returns Title HTML button element.
+   * @returns Corner label button.
    */
   getTitleElement(): HTMLElement {
-    return this.titleButton;
+    return this.label.getLabelElement();
   }
 
   /**
-   * Returns the axis caption element shown beside the title.
+   * Returns the view menu panel while it exists.
    *
-   * @returns Caption HTML element.
+   * @returns Menu panel, or null before the menu was first opened.
    */
-  getAxisCaptionElement(): HTMLElement {
-    return this.axisCaption;
+  getViewMenuPanel(): PanelMenu | null {
+    return this.viewMenuPanel;
   }
 
   /**
-   * Returns the type dropdown menu panel for tests.
+   * Returns the top-left cluster that holds the corner label.
    *
-   * @returns Menu panel or null before first open rebuild.
-   */
-  getTypeMenuPanel(): PanelMenu | null {
-    return this.typeMenuPanel;
-  }
-
-  /**
-   * Returns the root toolbar element.
-   *
-   * @returns The toolbar container element.
+   * @returns Corner cluster element.
    */
   getElement(): HTMLElement {
-    return this.container;
+    return this.cornerCluster;
   }
 
   /**
-   * Inserts a control immediately after the viewport type title control.
+   * Returns the hover-only icon row at the top-right.
    *
-   * @param element Control element to insert after the title.
+   * @returns Hover row.
+   */
+  getHoverRow(): ViewportHoverButtonRow {
+    return this.hoverRow;
+  }
+
+  /**
+   * Inserts a control right after the corner label.
+   *
+   * @param element Control element to insert after the label.
    */
   insertControlAfterTitle(element: HTMLElement): void {
-    const nextSibling = this.titleWrapper.nextSibling;
-    if (nextSibling) {
-      this.container.insertBefore(element, nextSibling);
-      return;
-    }
-    this.container.appendChild(element);
+    this.label.getLabelElement().after(element);
   }
 
   /**
-   * Returns the Fit button element for tests and focus management.
+   * Returns the maximize button of the hover row.
    *
-   * @returns The Fit toolbar button.
-   */
-  getFitButton(): HTMLButtonElement {
-    return this.fitButton;
-  }
-
-  /**
-   * Returns the maximize button element for tests and focus management.
-   *
-   * @returns The maximize toolbar button.
+   * @returns The maximize button.
    */
   getMaximizeButton(): HTMLButtonElement {
     return this.maximizeButton;
   }
 
   /**
-   * Returns the shading mode button for the given mode.
+   * Returns the hover row button of a shading mode.
    *
    * @param mode The shading mode whose button is requested.
    * @returns The button element, or undefined if missing.
@@ -280,412 +257,186 @@ export class ViewportToolbar {
   }
 
   /**
-   * Returns the content wireframes toggle button.
-   *
-   * @returns The toggle button element.
-   */
-  getContentWireframesButton(): HTMLButtonElement {
-    return this.contentWireframesButton;
-  }
-
-  /**
-   * Returns the projected grid toggle button.
-   *
-   * @returns The toggle button element.
-   */
-  getProjectedGridButton(): HTMLButtonElement {
-    return this.projectedGridButton;
-  }
-
-  /**
-   * Updates the active appearance of the content wireframes toggle.
+   * Records whether content wireframes are shown.
    *
    * @param active Whether wireframes are enabled.
    */
   setContentWireframesActive(active: boolean): void {
     this.contentWireframesActive = active;
-    this.applyActiveState(this.contentWireframesButton, active);
   }
 
   /**
-   * Returns whether the content wireframes toggle appears active.
+   * Returns whether content wireframes are shown.
    *
-   * @returns True when the button is selected.
+   * @returns True when enabled.
    */
   isContentWireframesActive(): boolean {
     return this.contentWireframesActive;
   }
 
   /**
-   * Updates the active appearance of the projected grid toggle.
+   * Records whether the projected grid is shown.
    *
    * @param active Whether the projected grid is enabled.
    */
   setProjectedGridActive(active: boolean): void {
     this.projectedGridActive = active;
-    this.applyActiveState(this.projectedGridButton, active);
   }
 
   /**
-   * Returns whether the projected grid toggle appears active.
+   * Returns whether the projected grid is shown.
    *
-   * @returns True when the button is selected.
+   * @returns True when enabled.
    */
   isProjectedGridActive(): boolean {
     return this.projectedGridActive;
   }
 
-  /** Removes the toolbar from the DOM and closes the type menu. */
+  /** Closes the view menu and removes the chrome from the DOM. */
   dispose(): void {
-    this.closeTypeMenu();
-    if (this.container.parentNode) {
-      this.container.parentNode.removeChild(this.container);
-    }
+    this.viewMenuClose();
+    this.viewMenuPanel?.dispose();
+    this.viewMenuPanel = null;
+    this.hoverRow.dispose();
+    this.cornerCluster.remove();
     this.shadingButtons.clear();
   }
 
   /**
-   * Builds the viewport title control with a dropdown caret.
+   * Creates the top-left cluster that holds the corner label and inserted
+   * controls.
    *
-   * @param titleText The text to display.
+   * @param parentElement Viewport pane element.
+   * @returns Cluster element appended to the pane.
    */
-  private buildTitle(titleText: string): void {
-    this.titleWrapper.style.position = 'relative';
-    this.titleWrapper.style.display = 'inline-flex';
-    this.titleWrapper.style.alignItems = 'center';
-    this.titleButton.type = 'button';
-    this.titleButton.classList.add('editor-viewport-title');
-    this.titleButton.setAttribute('aria-haspopup', 'menu');
-    this.titleButton.setAttribute('aria-expanded', 'false');
-    this.titleButton.title = 'Change viewport type';
-    this.styleTitleButton();
-    this.styleTitleLabel(titleText);
-    this.titleButton.appendChild(this.titleLabel);
-    this.appendDropdownCaret(this.titleButton);
-    this.titleButton.addEventListener('click', (event) => {
-      event.stopPropagation();
-      this.toggleTypeMenu();
+  private cornerClusterCreate(parentElement: HTMLElement): HTMLElement {
+    const cluster = this.ownerDocument.createElement('div');
+    cluster.classList.add(VIEWPORT_CORNER_CLUSTER_CLASS);
+    cluster.style.position = 'absolute';
+    cluster.style.top = '0';
+    cluster.style.left = '0';
+    cluster.style.display = 'flex';
+    cluster.style.alignItems = 'center';
+    cluster.style.gap = '2px';
+    cluster.style.zIndex = String(UiStackLayers.viewportChrome);
+    parentElement.appendChild(cluster);
+    return cluster;
+  }
+
+  /**
+   * Shows a caption in the corner label, or the view name when there is none.
+   *
+   * @param caption Axis caption, or an empty string.
+   */
+  private labelTextRefresh(caption: string): void {
+    this.label.textSet(caption === '' ? this.titleText : caption, this.titleText);
+  }
+
+  /** Adds one hover row button per shading mode. */
+  private shadingButtonsCreate(): void {
+    VIEWPORT_SHADING_CHOICES.forEach((choice) => {
+      const button = this.hoverRow.buttonAdd(choice.label, choice.iconSvgRead(), () => this.shadingSelect(choice.mode));
+      this.shadingButtons.set(choice.mode, button);
     });
-    this.titleWrapper.appendChild(this.titleButton);
-    this.buildAxisCaption(titleText);
-    this.rebuildTypeMenu();
   }
 
   /**
-   * Builds the muted axis caption placed after the title button.
+   * Applies a chosen shading mode and notifies the registered handler.
    *
-   * @param titleText Viewport title used to pick the initial caption.
+   * @param mode Chosen shading mode.
    */
-  private buildAxisCaption(titleText: string): void {
-    this.axisCaption.classList.add('viewport-toolbar-hammer-caption');
-    this.axisCaption.textContent = viewportAxisCaptionForTitle(titleText);
-    this.axisCaption.style.fontFamily = Theme.uiFontFamily;
-    this.axisCaption.style.fontSize = '10px';
-    this.axisCaption.style.lineHeight = '1';
-    this.axisCaption.style.color = Theme.viewportLabelTextColor;
-    this.axisCaption.style.opacity = '0.6';
-    this.axisCaption.style.marginLeft = '4px';
-    this.axisCaption.style.whiteSpace = 'nowrap';
-    this.axisCaption.style.pointerEvents = 'none';
-    this.titleWrapper.appendChild(this.axisCaption);
-  }
-
-  /** Applies layout styles to the type menu header button chrome. */
-  private styleTitleButton(): void {
-    this.titleButton.style.display = 'inline-flex';
-    this.titleButton.style.alignItems = 'center';
-    this.titleButton.style.gap = '4px';
-    this.titleButton.style.margin = '0';
-    this.titleButton.style.padding = '0';
-    this.titleButton.style.border = '1px solid transparent';
-    this.titleButton.style.borderRadius = '4px';
-    this.titleButton.style.background = 'transparent';
-    this.titleButton.style.cursor = 'pointer';
-    this.titleButton.style.font = 'inherit';
-    this.titleButton.style.lineHeight = '1';
-    this.titleButton.style.color = Theme.viewportLabelTextColor;
-    this.titleButton.style.userSelect = 'none';
-  }
-
-  /**
-   * Restores the compact title label look (pre-type-menu span styling).
-   * Horizontal inset matches the original label padding so titles sit slightly
-   * in from the toolbar edge without the oversized type-menu button padding.
-   *
-   * @param titleText Viewport display name.
-   */
-  private styleTitleLabel(titleText: string): void {
-    this.titleLabel.textContent = titleText;
-    this.titleLabel.style.fontFamily = Theme.uiFontFamily;
-    this.titleLabel.style.fontSize = '11px';
-    this.titleLabel.style.fontWeight = '600';
-    this.titleLabel.style.letterSpacing = '0.04em';
-    this.titleLabel.style.textTransform = 'uppercase';
-    this.titleLabel.style.color = Theme.viewportLabelTextColor;
-    this.titleLabel.style.lineHeight = '1';
-    this.titleLabel.style.userSelect = 'none';
-    this.titleLabel.style.padding = '0 4px 0 3px';
-    this.titleLabel.style.margin = '0';
-  }
-
-  /**
-   * Appends a subtle dropdown caret matching the main toolbar menus.
-   *
-   * @param button Header button receiving the caret.
-   */
-  private appendDropdownCaret(button: HTMLButtonElement): void {
-    appendMenuDropdownCaret(button, this.ownerDocument, '2px');
-  }
-
-  /** Rebuilds the type menu panel from the current kind. */
-  private rebuildTypeMenu(): void {
-    if (this.typeMenuPanel) {
-      this.typeMenuPanel.getElement().remove();
-      this.typeMenuPanel = null;
-    }
-    const entries = buildViewportTypeMenuEntries(this.currentKind, (kind) => {
-      this.closeTypeMenu();
-      this.onViewportKindChange?.(kind);
-    });
-    this.typeMenuPanel = new PanelMenu(entries, () => this.closeTypeMenu());
-    this.titleWrapper.appendChild(this.typeMenuPanel.getElement());
-  }
-
-  /** Opens or closes the type menu panel. */
-  private toggleTypeMenu(): void {
-    if (!this.typeMenuPanel) return;
-    if (this.typeMenuPanel.isOpen()) {
-      this.closeTypeMenu();
-      return;
-    }
-    this.openTypeMenu();
-  }
-
-  /** Shows the type menu and listens for outside pointer presses. */
-  private openTypeMenu(): void {
-    if (!this.typeMenuPanel) return;
-    this.rebuildTypeMenu();
-    this.typeMenuPanel.open(this.titleButton);
-    this.titleButton.setAttribute('aria-expanded', 'true');
-    this.outsideCloser.begin(
-      this.ownerWindow,
-      (target) =>
-        MenuOutsidePointerClose.isTargetInsideSurfaces([this.titleWrapper, this.typeMenuPanel?.getElement()], target),
-      () => this.closeTypeMenu(),
-    );
-  }
-
-  /** Hides the type menu and removes the outside-click listener. */
-  private closeTypeMenu(): void {
-    this.typeMenuPanel?.close();
-    this.titleButton.setAttribute('aria-expanded', 'false');
-    this.outsideCloser.end();
-  }
-
-  /** Creates the overlay toggles, separator, and shading mode button group. */
-  private buildControls(): void {
-    this.buttonRow.style.display = 'flex';
-    this.buttonRow.style.alignItems = 'center';
-    this.buttonRow.style.gap = '2px';
-    this.buttonRow.style.marginLeft = 'auto';
-    this.buttonRow.appendChild(this.contentWireframesButton);
-    this.buttonRow.appendChild(this.projectedGridButton);
-    this.buttonRow.appendChild(this.createSeparator());
-    this.addShadingButton(ShadingMode.SOLID, 'Solid', ToolbarIcons.solid());
-    this.addShadingButton(ShadingMode.WIREFRAME, 'Wireframe', ToolbarIcons.wireframe());
-    this.addShadingButton(ShadingMode.FLAT, 'Flat', ToolbarIcons.flat());
-  }
-
-  /**
-   * Creates a compact toggle icon button.
-   *
-   * @param tooltip Title and aria label.
-   * @param iconSvg SVG markup for the button face.
-   * @param onClick Click handler.
-   * @returns The styled button element.
-   */
-  private createToggleButton(tooltip: string, iconSvg: string, onClick: () => void): HTMLButtonElement {
-    const button = this.createIconButton(tooltip, iconSvg);
-    button.addEventListener('click', (event) => {
-      event.stopPropagation();
-      onClick();
-    });
-    return button;
+  private shadingSelect(mode: ShadingMode): void {
+    this.setActiveShadingMode(mode);
+    this.callbacks.shadingMode?.(mode);
   }
 
   /** Toggles content wireframes and notifies the registered handler. */
-  private toggleContentWireframes(): void {
+  private contentWireframesToggle(): void {
     const next = !this.contentWireframesActive;
     this.setContentWireframesActive(next);
-    this.onContentWireframesToggle?.(next);
+    this.callbacks.contentWireframesToggle?.(next);
   }
 
   /** Toggles the projected grid and notifies the registered handler. */
-  private toggleProjectedGrid(): void {
+  private projectedGridToggle(): void {
     const next = !this.projectedGridActive;
     this.setProjectedGridActive(next);
-    this.onProjectedGridToggle?.(next);
+    this.callbacks.projectedGridToggle?.(next);
+  }
+
+  /** Runs the registered maximize/restore handler. */
+  private maximizeToggle(): void {
+    this.callbacks.maximizeToggle?.();
   }
 
   /**
-   * Adds one shading mode toggle button.
+   * Switches to a chosen view kind through the registered handler.
    *
-   * @param mode The shading mode this button activates.
-   * @param tooltip Accessible label and tooltip text.
-   * @param iconSvg SVG markup for the button face.
+   * @param kind Chosen view kind.
    */
-  private addShadingButton(mode: ShadingMode, tooltip: string, iconSvg: string): void {
-    const button = this.createIconButton(tooltip, iconSvg);
-    button.addEventListener('click', (event) => {
-      event.stopPropagation();
-      this.setActiveShadingMode(mode);
-      if (this.onShadingMode) this.onShadingMode(mode);
+  private kindSelect(kind: ViewportKind): void {
+    this.callbacks.kindChange?.(kind);
+  }
+
+  /**
+   * Returns the live state shown by the view menu checks.
+   *
+   * @returns View menu state.
+   */
+  private viewMenuStateRead(): ViewportViewMenuState {
+    return {
+      kind: this.currentKind,
+      shadingMode: this.currentMode,
+      contentWireframesActive: this.contentWireframesActive,
+      projectedGridActive: this.projectedGridActive,
+      maximized: this.maximized,
+    };
+  }
+
+  /** Rebuilds the view menu panel bound to the shared action handlers. */
+  private viewMenuRebuild(): void {
+    this.viewMenuPanel?.dispose();
+    const entries = buildViewportViewMenuEntries(() => this.viewMenuStateRead(), {
+      onKindSelect: (kind) => this.kindSelect(kind),
+      onShadingSelect: (mode) => this.shadingSelect(mode),
+      onContentWireframesToggle: () => this.contentWireframesToggle(),
+      onProjectedGridToggle: () => this.projectedGridToggle(),
+      onFit: () => this.callbacks.fit?.(),
+      onMaximizeToggle: () => this.maximizeToggle(),
     });
-    this.shadingButtons.set(mode, button);
-    this.buttonRow.appendChild(button);
+    this.viewMenuPanel = new PanelMenu(entries, () => this.viewMenuClose(), false, this.ownerDocument);
+    this.cornerCluster.appendChild(this.viewMenuPanel.getElement());
   }
 
-  /**
-   * Creates the Fit action button.
-   *
-   * @returns The configured Fit button.
-   */
-  private createFitButton(): HTMLButtonElement {
-    const button = this.createIconButton('Fit to selection (F)', ToolbarIcons.fit());
-    button.addEventListener('click', (event) => {
-      event.stopPropagation();
-      if (this.onFit) this.onFit();
-    });
-    return button;
-  }
-
-  /**
-   * Creates the maximize/restore action button.
-   *
-   * @returns The configured maximize button.
-   */
-  private createMaximizeButton(): HTMLButtonElement {
-    const button = this.createIconButton('Maximize viewport', ToolbarIcons.maximize());
-    button.addEventListener('click', (event) => {
-      event.stopPropagation();
-      this.onToggleMaximize?.();
-    });
-    return button;
-  }
-
-  /**
-   * Creates a compact square icon button.
-   *
-   * @param tooltip The title/aria label for the button.
-   * @param iconSvg SVG icon markup.
-   * @returns The styled button element.
-   */
-  private createIconButton(tooltip: string, iconSvg: string): HTMLButtonElement {
-    const button = this.ownerDocument.createElement('button');
-    button.type = 'button';
-    button.title = tooltip;
-    button.setAttribute('aria-label', tooltip);
-    button.innerHTML = iconSvg;
-    this.applyButtonBaseStyles(button);
-    button.addEventListener('mouseenter', () => {
-      if (button.dataset['active'] !== 'true') {
-        button.style.background = Theme.viewportToolbarButtonHover;
-      }
-    });
-    button.addEventListener('mouseleave', () => {
-      if (button.dataset['active'] !== 'true') {
-        button.style.background = 'transparent';
-      }
-    });
-    return button;
-  }
-
-  /**
-   * Applies shared visual styles to an icon button.
-   *
-   * @param button The button to style.
-   */
-  private applyButtonBaseStyles(button: HTMLButtonElement): void {
-    button.style.display = 'inline-flex';
-    button.style.alignItems = 'center';
-    button.style.justifyContent = 'center';
-    button.style.width = '24px';
-    button.style.height = '24px';
-    button.style.padding = '0';
-    button.style.border = '1px solid transparent';
-    button.style.borderRadius = '4px';
-    button.style.background = 'transparent';
-    button.style.color = Theme.buttonTextColor;
-    button.style.cursor = 'pointer';
-    button.style.lineHeight = '0';
-  }
-
-  /**
-   * Toggles the active visual state of a shading button.
-   *
-   * @param button The button to update.
-   * @param active Whether the button should appear selected.
-   */
-  private applyActiveState(button: HTMLButtonElement, active: boolean): void {
-    button.dataset['active'] = active ? 'true' : 'false';
-    button.setAttribute('aria-pressed', active ? 'true' : 'false');
-    if (active) {
-      button.style.background = this.hexToRgba(Theme.selectionColor, 0.28);
-      button.style.borderColor = this.hexToRgba(Theme.selectionColor, 0.85);
-      button.style.color = '#ffffff';
-    } else {
-      button.style.background = 'transparent';
-      button.style.borderColor = 'transparent';
-      button.style.color = Theme.buttonTextColor;
+  /** Opens or closes the view menu. */
+  private viewMenuToggle(): void {
+    if (this.viewMenuPanel?.isOpen()) {
+      this.viewMenuClose();
+      return;
     }
+    this.viewMenuOpen();
   }
 
-  /**
-   * Creates a thin vertical separator between control groups.
-   *
-   * @returns The separator element.
-   */
-  private createSeparator(): HTMLElement {
-    const separator = this.ownerDocument.createElement('div');
-    separator.style.width = '1px';
-    separator.style.height = '16px';
-    separator.style.margin = '0 4px';
-    separator.style.background = Theme.viewportToolbarSeparator;
-    separator.style.flexShrink = '0';
-    return separator;
+  /** Shows the view menu under the corner label and listens for outside presses. */
+  private viewMenuOpen(): void {
+    this.viewMenuRebuild();
+    const panel = this.viewMenuPanel;
+    if (!panel) {
+      return;
+    }
+    panel.open(this.label.getLabelElement());
+    this.label.expandedSet(true);
+    this.outsideCloser.begin(
+      this.ownerWindow,
+      (target) => MenuOutsidePointerClose.isTargetInsideSurfaces([this.cornerCluster, panel.getElement()], target),
+      () => this.viewMenuClose(),
+    );
   }
 
-  /** Applies layout styles for the toolbar strip. */
-  private applyContainerStyles(): void {
-    this.container.classList.add('editor-viewport-toolbar');
-    this.container.style.position = 'absolute';
-    this.container.style.top = '0';
-    this.container.style.left = '0';
-    this.container.style.right = '0';
-    this.container.style.height = `${Theme.viewportToolbarHeightPx}px`;
-    this.container.style.display = 'flex';
-    this.container.style.alignItems = 'center';
-    this.container.style.gap = '8px';
-    this.container.style.padding = '0 8px';
-    this.container.style.boxSizing = 'border-box';
-    this.container.style.background = Theme.viewportToolbarBackground;
-    this.container.style.borderBottom = `1px solid ${Theme.viewportToolbarBorder}`;
-    this.container.style.zIndex = String(UiStackLayers.viewportChrome);
-    this.container.style.userSelect = 'none';
-    this.container.style.backdropFilter = 'blur(8px)';
-  }
-
-  /**
-   * Converts a hex color number to an rgba CSS string.
-   *
-   * @param hex The hex color value.
-   * @param alpha Optional alpha channel from 0 to 1.
-   * @returns An rgba CSS color string.
-   */
-  private hexToRgba(hex: number, alpha: number = 1): string {
-    const r = (hex >> 16) & 255;
-    const g = (hex >> 8) & 255;
-    const b = hex & 255;
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  /** Hides the view menu and removes the outside-press listener. */
+  private viewMenuClose(): void {
+    this.viewMenuPanel?.close();
+    this.label.expandedSet(false);
+    this.outsideCloser.end();
   }
 }

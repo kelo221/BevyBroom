@@ -43,14 +43,17 @@ describe('buttonCompactCreate', () => {
     expect(onClick).toHaveBeenCalledOnce();
   });
 
-  it('restores the active tint, not the idle background, when the pointer leaves', () => {
+  it('keeps the pressed face under the pointer and after it leaves, unlike the idle hover', () => {
     const activeButton = buttonCompactCreate({ title: 'Hide mask', widthPx: null, heightPx: 22, onClick: vi.fn() });
     const idleButton = buttonCompactCreate({ title: 'Mark', widthPx: null, heightPx: 22, onClick: vi.fn() });
     buttonCompactActiveWrite(activeButton, true);
     const activeBackground = activeButton.style.background;
-    expect(activeBackground).not.toBe(idleButton.style.background);
+    const idleBackground = idleButton.style.background;
+    expect(activeBackground).not.toBe(idleBackground);
+    idleButton.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(idleButton.style.background).not.toBe(idleBackground);
     activeButton.dispatchEvent(new MouseEvent('mouseenter'));
-    expect(activeButton.style.background).not.toBe(activeBackground);
+    expect(activeButton.style.background).toBe(activeBackground);
     activeButton.dispatchEvent(new MouseEvent('mouseleave'));
     expect(activeButton.style.background).toBe(activeBackground);
     expect(buttonCompactActiveRead(activeButton)).toBe(true);

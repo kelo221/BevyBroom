@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Theme } from '@/theme.js';
+import { hexToRgb } from '@/utils/utils_color.js';
 import { ManagerInput } from '@/input/manager_input.js';
 import { createViewportForKind } from '@/viewports/core/factory_viewport.js';
 import { ViewportKind, getViewportKindDisplayLabel } from '@/viewports/core/viewport_kind.js';
@@ -319,7 +320,7 @@ export class DetachedViewportSession {
     host.style.width = '100%';
     host.style.height = '100%';
     host.style.overflow = 'hidden';
-    host.style.background = `#${Theme.viewportBackground.toString(16).padStart(6, '0')}`;
+    host.style.background = hexToRgb(Theme.viewportBackground);
     doc.body.appendChild(host);
     return host;
   }
@@ -343,7 +344,7 @@ export class DetachedViewportSession {
    * @returns Complete HTML source for about:blank replacement.
    */
   private buildDetachedDocumentHtml(): string {
-    const background = `#${Theme.viewportBackground.toString(16).padStart(6, '0')}`;
+    const background = hexToRgb(Theme.viewportBackground);
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -463,8 +464,7 @@ export class DetachedViewportSession {
     this.surface.resize(width, height);
     const contentRect = this.viewport.getContentElement().getBoundingClientRect();
     const contentWidth = contentRect.width > 0 ? contentRect.width : width;
-    const contentHeight =
-      contentRect.height > 0 ? contentRect.height : Math.max(1, height - Theme.viewportToolbarHeightPx);
+    const contentHeight = contentRect.height > 0 ? contentRect.height : height;
     this.viewport.resize(contentWidth, contentHeight);
   }
 
@@ -560,6 +560,7 @@ export class DetachedViewportSession {
       {
         camera: liveViewport.getCamera(),
         contentElement: liveViewport.getContentElement(),
+        clearColor: liveViewport.getBackgroundColor(),
         syncCameraSize: (width, height) => liveViewport.resize(width, height),
         prepare: () => this.prepareDetachedViewportPass(liveViewport),
         finalize: () => this.finalizeDetachedViewportPass(liveViewport),

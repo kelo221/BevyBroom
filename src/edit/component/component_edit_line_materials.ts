@@ -1,14 +1,14 @@
 import * as THREE from 'three';
 import { Theme } from '@/theme.js';
 
-/** Selection orange for edit lines (same accent as object-mode selection). */
+/** Selection color of edit lines (same accent as object-mode selection). */
 export const EDIT_LINE_SELECTED_COLOR = Theme.selectionColor;
 
 /** Unselected cage wire in perspective (3D). */
-export const EDIT_LINE_CAGE_COLOR_3D = 0x000000;
+export const EDIT_LINE_CAGE_COLOR_3D = Theme.editCageLineColor3d;
 
 /** Unselected cage wire in orthographic (2D). */
-export const EDIT_LINE_CAGE_COLOR_2D = 0xffffff;
+export const EDIT_LINE_CAGE_COLOR_2D = Theme.editCageLineColor2d;
 
 /** Shared material flag so dispose paths can skip global instances. */
 export const EDIT_LINE_SHARED_MATERIAL_KEY = 'isEditLineSharedMaterial';

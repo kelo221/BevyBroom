@@ -24,23 +24,20 @@ export interface ComponentCageMeshSource {
   document: MeshDocument;
 }
 
-/** Blender-like selected vertex color (bright white). */
-export const EDIT_SELECTED_VERTEX_COLOR = 0xffffff;
+/** Selected cage vertex color. */
+export const EDIT_SELECTED_VERTEX_COLOR = Theme.editSelectedVertexColor;
 
-/** Selected face fill accent (theme orange). */
+/** Selected face fill accent (theme selection color). */
 export const EDIT_SELECTED_EDGE_COLOR = Theme.selectionColor;
 
-/**
- * Unselected cage vertex color. Always black so dots stay readable on light 2D
- * grids and dark 3D backgrounds.
- */
-export const EDIT_CAGE_COLOR = 0x000000;
+/** Unselected cage vertex color, readable on the black 2D and grey 3D views. */
+export const EDIT_CAGE_COLOR = Theme.editCageVertexColor;
 
 /**
  * Non-domain content/brush wire color in orthographic 2D viewports while Edit
  * Mode is active.
  */
-export const EDIT_MODE_REST_WIRE_COLOR_2D = 0x000000;
+export const EDIT_MODE_REST_WIRE_COLOR_2D = Theme.editRestWireColor2d;
 
 /**
  * Packed cage draw buffers. Vertices always include every domain corner; color

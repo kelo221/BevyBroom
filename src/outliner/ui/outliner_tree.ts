@@ -477,13 +477,14 @@ export class OutlinerTree {
     this.searchElement.style.display = 'block';
     this.searchElement.style.width = '100%';
     this.searchElement.style.boxSizing = 'border-box';
-    this.searchElement.style.padding = '4px 8px';
+    this.searchElement.style.height = `${Theme.dockControlHeightPx}px`;
+    this.searchElement.style.padding = '0 4px';
     this.searchElement.style.border = 'none';
     this.searchElement.style.borderBottom = `1px solid ${hexToRgb(Theme.separatorColor)}`;
     this.searchElement.style.background = hexToRgb(Theme.outlinerBackground);
     this.searchElement.style.color = Theme.buttonTextColor;
     this.searchElement.style.fontFamily = 'monospace';
-    this.searchElement.style.fontSize = '12px';
+    this.searchElement.style.fontSize = `${Theme.uiFontSizePx}px`;
     this.searchElement.style.outline = 'none';
     this.searchElement.addEventListener('input', () => {
       this.onSearchInputChanged();

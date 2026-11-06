@@ -81,9 +81,10 @@ describe('StatusBar cursor and selection segments', () => {
     statusBar.setUndoRedoCounts(2, 1);
     statusBar.setCursorWorldPosition({ x: 1, y: 2, z: 3 });
     statusBar.setObjectSelectionCount(3);
-    const text = statusBar.getRootElement().textContent ?? '';
-    expect(text).toContain('Undo: 2 | Redo: 1');
-    expect(text).toContain('Selection: Object');
+    expect(segmentOf(statusBar, '.status-bar-help').title).toContain('Undo: 2 | Redo: 1');
+    expect(segmentOf(statusBar, '.status-bar-hammer-selection').title).toContain('Selection: Object');
+    expect(segmentOf(statusBar, '.status-bar-cursor-coords').textContent).not.toBe(STATUS_CURSOR_COORDS_EMPTY_TEXT);
+    expect(segmentOf(statusBar, '.status-bar-hammer-selection').textContent).not.toBe(STATUS_SELECTION_EMPTY_TEXT);
   });
 
   it('ignores updates after dispose', () => {

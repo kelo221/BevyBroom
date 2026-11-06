@@ -1,8 +1,10 @@
+import { Theme } from '@/theme.js';
+
 /**
  * Inline SVG icons for solid CSG operation buttons in the inspector. Top-down
  * two-square layout: back square (X) upper-left, front square (Y) offset
- * down-right. Additive lights both; subtractive darkens Y; intersecting lights
- * only the overlap (I) and darkens the exclusive regions.
+ * down-right. Additive fills both; subtractive empties Y; intersecting fills
+ * only the overlap (I) and empties the exclusive regions.
  */
 export class SolidCsgOperationIcons {
   private static readonly viewSize = 18;
@@ -11,7 +13,7 @@ export class SolidCsgOperationIcons {
   private static readonly squareSize = 10;
   private static readonly frontOffset = 5;
   private static readonly lightFill = 'currentColor';
-  private static readonly darkFill = '#1a1a1a';
+  private static readonly emptyFill = Theme.panelSunkenBackground;
   private static readonly outlineStroke = 'currentColor';
   private static readonly outlineOpacity = 0.35;
   private static readonly cornerRadius = 1.2;
@@ -81,7 +83,7 @@ export class SolidCsgOperationIcons {
       this.backY + this.frontOffset,
       this.squareSize,
       this.squareSize,
-      this.darkFill,
+      this.emptyFill,
       1,
     );
   }
@@ -105,7 +107,7 @@ export class SolidCsgOperationIcons {
       `H${this.fmt(x0)}`,
       'Z',
     ].join('');
-    return `<path fill="${this.darkFill}" d="${d}"/>`;
+    return `<path fill="${this.emptyFill}" d="${d}"/>`;
   }
 
   /**
@@ -128,7 +130,7 @@ export class SolidCsgOperationIcons {
       `V${this.fmt(y0)}`,
       'Z',
     ].join('');
-    return `<path fill="${this.darkFill}" d="${d}"/>`;
+    return `<path fill="${this.emptyFill}" d="${d}"/>`;
   }
 
   /**

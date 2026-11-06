@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { Theme } from '@/theme.js';
 import { createEditorWebGLCanvas, getEditorWebGLRendererOptions } from '@/viewports/webgl/webgl_renderer_options.js';
 import { markWebGLContextLossAsIntentional } from '@/viewports/webgl/webgl_context_diagnostics.js';
 import { isDrawableRect } from '@/viewports/pane/pane_content_rect.js';
@@ -135,7 +134,8 @@ export class SharedWebGLSurface implements RenderSurface {
   }
 
   /**
-   * Clears the full canvas then scissor-renders each pane.
+   * Clears the full canvas then scissor-renders each pane over its own clear
+   * color.
    *
    * @param scene Shared editor scene.
    * @param panes Active pane passes.
@@ -144,25 +144,44 @@ export class SharedWebGLSurface implements RenderSurface {
   renderPanes(scene: THREE.Scene, panes: readonly SurfaceRenderPane[], clearColor: number): void {
     if (this.isDisposed) return;
     this.syncSizeFromWorkspace();
+    this.canvasClear(clearColor);
+    this.renderer.setScissorTest(true);
+    for (const pane of panes) {
+      if (!isDrawableRect(pane.viewportRect)) continue;
+      this.paneRender(scene, pane);
+    }
+  }
+
+  /**
+   * Clears the whole canvas to one color without scissoring.
+   *
+   * @param clearColor Hex clear color.
+   */
+  private canvasClear(clearColor: number): void {
     const logicalWidth = Math.max(1, this.logicalSize.x);
     const logicalHeight = Math.max(1, this.logicalSize.y);
     this.renderer.setScissorTest(false);
     this.renderer.setViewport(0, 0, logicalWidth, logicalHeight);
     this.renderer.setClearColor(clearColor, 1);
     this.renderer.clear(true, true, true);
-    this.renderer.setScissorTest(true);
-    const viewportBackground = Theme.viewportBackground;
-    for (const pane of panes) {
-      if (!isDrawableRect(pane.viewportRect)) continue;
-      const { x, y, width, height } = pane.viewportRect;
-      this.renderer.setViewport(x, y, width, height);
-      this.renderer.setScissor(x, y, width, height);
-      this.renderer.setClearColor(viewportBackground, 1);
-      this.renderer.clear(true, true, true);
-      pane.prepare?.();
-      this.renderer.render(scene, pane.camera);
-      pane.finalize?.();
-    }
+  }
+
+  /**
+   * Clears one pane rect to the pane's clear color and draws the scene through
+   * the pane camera.
+   *
+   * @param scene Shared editor scene.
+   * @param pane Drawable pane pass.
+   */
+  private paneRender(scene: THREE.Scene, pane: SurfaceRenderPane): void {
+    const { x, y, width, height } = pane.viewportRect;
+    this.renderer.setViewport(x, y, width, height);
+    this.renderer.setScissor(x, y, width, height);
+    this.renderer.setClearColor(pane.clearColor, 1);
+    this.renderer.clear(true, true, true);
+    pane.prepare?.();
+    this.renderer.render(scene, pane.camera);
+    pane.finalize?.();
   }
 
   /** Disposes the renderer and removes the canvas. */

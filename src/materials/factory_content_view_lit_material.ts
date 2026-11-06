@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MaterialColorNeutral } from './material_color_neutral.js';
 import { SHADER_CHUNK_PROJECTED_GRID } from './shader/chunk/shader_chunk_projected_grid.js';
 import { ShaderProgramGenerator } from './shader/generator/shader_program_generator.js';
 import { ShaderProgramContentViewLit } from './shader/program/shader_program_content_view_lit.js';
@@ -39,7 +40,7 @@ export class ContentViewLitMaterial extends THREE.ShaderMaterial {
    * @param options Side only.
    */
   constructor(
-    color: THREE.ColorRepresentation = 0xffffff,
+    color: THREE.ColorRepresentation = MaterialColorNeutral.white,
     map: THREE.Texture | null = null,
     options: { side?: THREE.Side } = {},
   ) {

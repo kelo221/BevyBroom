@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 
 /** Material slot used when writing usemtl / newmtl entries. */
 export interface ObjMaterialSlot {
@@ -90,7 +91,7 @@ export class ObjMaterialCollector {
     if ('color' in material && material.color instanceof THREE.Color) {
       return material.color;
     }
-    return new THREE.Color(0xffffff);
+    return new THREE.Color(MaterialColorNeutral.white);
   }
 
   /**

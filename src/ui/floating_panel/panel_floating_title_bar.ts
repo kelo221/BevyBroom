@@ -1,5 +1,5 @@
 import { Theme } from '@/theme.js';
-import { hexToRgb } from '@/utils/utils_color.js';
+import { buttonClassicStyleApply } from '@/ui/button/button_classic_style.js';
 
 /** Options for building a standard floating tool-window title bar. */
 export interface FloatingPanelTitleBarOptions {
@@ -64,7 +64,8 @@ export function styleFloatingPanelTitleBarRoot(
   bar.style.gap = '6px';
   bar.style.padding = padding;
   bar.style.cursor = 'move';
-  bar.style.borderBottom = `1px solid ${hexToRgb(Theme.separatorColor)}`;
+  bar.style.background = Theme.windowTitleBackground;
+  bar.style.borderBottom = `1px solid ${Theme.chromeBorderColor}`;
   if (flexShrinkZero) {
     bar.style.flexShrink = '0';
   }
@@ -81,10 +82,10 @@ export function styleFloatingPanelTitleLabel(title: HTMLElement, titleText: stri
   title.textContent = titleText;
   title.style.flex = '1';
   title.style.color = Theme.buttonTextColor;
-  title.style.fontSize = '12px';
+  title.style.fontSize = `${Theme.uiFontSizePx}px`;
   title.style.fontWeight = '600';
   if (monospace) {
-    title.style.fontFamily = 'monospace';
+    title.style.fontFamily = Theme.monospaceFontFamily;
   }
 }
 
@@ -114,12 +115,6 @@ export function createFloatingPanelCloseButton(ownerDocument: Document, onClose:
  * @param button Button to style.
  */
 export function styleFloatingPanelChromeButton(button: HTMLButtonElement): void {
-  button.style.border = `1px solid ${Theme.inputBorderColor}`;
-  button.style.borderRadius = '3px';
-  button.style.background = hexToRgb(Theme.buttonBackground);
-  button.style.color = Theme.buttonTextColor;
-  button.style.fontSize = '11px';
+  buttonClassicStyleApply(button);
   button.style.padding = '2px 6px';
-  button.style.cursor = 'pointer';
-  button.style.fontFamily = Theme.uiFontFamily;
 }

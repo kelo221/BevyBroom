@@ -33,10 +33,12 @@ import { disposeLayoutOwnedResources } from '@/layout/setup/helpers_layout_dispo
 import { buildLayoutTestComponents } from '@/layout/setup/layout_testing_accessors.js';
 import { filterUnlockedObjects } from '@/utils/object_lock.js';
 import { EditorOverlayId } from '@/tools/overlay/editor_overlay_id.js';
+import { StatusBarZoomFeed } from '@/ui/status/status_bar_zoom_feed.js';
 
 /** Builds the UI shell and dynamic viewports and wires their layout systems. */
 export class ManagerViewportLayout extends ViewportLayoutShellWiring {
   private transformModeSwitcher: LayoutTransformModeSwitcher | null = null;
+  private statusBarZoomFeed: StatusBarZoomFeed | null = null;
 
   /**
    * Builds outliner action callbacks for the shell builder.
@@ -716,8 +718,19 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
     this.selectionVisualController?.reapplyAfterViewportSync();
   }
 
+  /** Shows the zoom of the 2D view under the pointer in the status bar. */
+  private statusBarZoomRefresh(): void {
+    const coordinator = this.shadingModeCoordinator;
+    if (!coordinator || !this.statusBarZoomFeed) {
+      return;
+    }
+    const hoveredViewport = coordinator.getOrderedViewports()[coordinator.getActiveViewportIndex()];
+    this.statusBarZoomFeed.cameraRead(hoveredViewport?.getCamera() ?? null);
+  }
+
   /** Binds the shared render loop to live viewports and coordinators. */
   protected bindRenderLoop(): void {
+    this.statusBarZoomFeed = this.statusBar ? new StatusBarZoomFeed(this.statusBar) : null;
     this.renderLoop.bind({
       getActiveViewports: () => this.getActiveViewports(),
       cameraFitCoordinator: this.cameraFitCoordinator,
@@ -731,6 +744,7 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
         this.cadRulerSystem.refreshLabelProjection();
         this.displacementOverlaySystem?.frameUpdate();
         this.toolEditorSystem?.editorWindow.onRepaint();
+        this.statusBarZoomRefresh();
       },
       multiViewComposer: this.multiViewComposer,
       sharedScene: this.sharedWorldScene,

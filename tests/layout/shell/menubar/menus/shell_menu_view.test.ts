@@ -231,6 +231,19 @@ describe('ShellMenuView', () => {
     });
   });
 
+  it('collapses and expands the info panel from Collapse Info Panel and checks it while collapsed', () => {
+    const { entries, docks } = shellMenuViewTestRigCreate();
+    const row = shellTestMenuActionFind(entries, 'Collapse Info Panel');
+    const collapsedBefore = docks.frame.isInfoPanelCollapsed();
+    expect(row.isChecked?.()).toBe(collapsedBefore);
+    row.onClick();
+    expect(docks.frame.isInfoPanelCollapsed()).toBe(!collapsedBefore);
+    expect(row.isChecked?.()).toBe(!collapsedBefore);
+    row.onClick();
+    expect(docks.frame.isInfoPanelCollapsed()).toBe(collapsedBefore);
+    expect(shellTestMenuShortcutRead(row)).toBe(shellTestShortcutLabelFormat('info_panel_collapse_toggle'));
+  });
+
   it('opens a detached viewport', () => {
     const { entries, toolbarActions } = shellMenuViewTestRigCreate();
     shellTestMenuActionFind(entries, 'Detached Viewport…').onClick();

@@ -1,20 +1,36 @@
 import type { Toolbar } from '@/ui/toolbar/toolbar.js';
-import { ToolbarIcons } from '@/ui/toolbar/toolbar_icons.js';
-import { ToolbarIconsHammer } from '@/ui/toolbar/toolbar_icons_hammer.js';
+import { IconHammerCatalog } from '@/ui/icons/hammer/icon_hammer_catalog.js';
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import { SNAP_PRESETS } from '@/types/snap_presets.js';
 import type { EditorToolbarActions } from '@/layout/shell/builder_editor_shell.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
 import { formatGridIntervalLabel } from '@/layout/shell/toolbar/shell_grid_interval_label.js';
 import { getStateSelectionFilter } from '@/selection/filter/state_selection_filter.js';
+import { TOOLBAR_OVERFLOW_PRIORITY_TRAILING } from '@/ui/toolbar/overflow/toolbar_overflow_item.js';
+import type { ToolbarOverflowController } from '@/ui/toolbar/overflow/toolbar_overflow_controller.js';
+import type { ToolbarOverflowMeasure } from '@/ui/toolbar/overflow/toolbar_overflow_measure.js';
 
-/** CSS class of the toolbar slot that receives the docked tool buttons. */
-export const SHELL_TOOL_BAR_TOOL_SLOT_CLASS = 'shell-toolbar-tool-slot';
+/** CSS class of the toolbar slot that receives the active tool options. */
+export const SHELL_TOOL_BAR_TOOL_OPTIONS_SLOT_CLASS = 'shell-toolbar-tool-options-slot';
+
+/** CSS class of the toolbar slot that receives the layout chooser. */
+export const SHELL_TOOL_BAR_LAYOUT_SLOT_CLASS = 'shell-toolbar-layout-slot';
+
+/** Slots and overflow control of the single main toolbar row. */
+export interface ShellToolBarParts {
+  /** Slot after the global actions that receives the active tool options. */
+  readonly toolOptionsSlot: HTMLElement;
+  /** Slot on the right that receives the layout chooser. */
+  readonly layoutSlot: HTMLElement;
+  /** Moves the items that do not fit into the overflow menu. */
+  readonly overflow: ToolbarOverflowController;
+}
 
 /**
- * Fills the main icon toolbar: history, the tool buttons slot, snapping and the
- * grid size, gizmo axes, texture locks, and the MCP server status on the
- * right.
+ * Fills the single main toolbar row: history, object edits, snapping and the
+ * grid size, gizmo axes and texture locks, then the active tool options, the
+ * overflow menu, and on the right the layout chooser and the MCP server
+ * status.
  */
 export class ShellToolBarBuilder {
   /**
@@ -23,12 +39,37 @@ export class ShellToolBarBuilder {
    * @param toolbar Main toolbar.
    * @param actions Scene toolbar actions.
    * @param windowActions Window actions for the grid size.
-   * @returns Slot that receives the docked tool buttons.
+   * @param overflowMeasure Optional width check of the row for the overflow
+   *   menu.
+   * @returns Slots for the tool options and the layout chooser, and the
+   *   overflow control.
    */
-  build(toolbar: Toolbar, actions: EditorToolbarActions, windowActions: ShellWindowActions): HTMLElement {
-    this.historyGroupAdd(toolbar, actions);
+  build(
+    toolbar: Toolbar,
+    actions: EditorToolbarActions,
+    windowActions: ShellWindowActions,
+    overflowMeasure?: ToolbarOverflowMeasure,
+  ): ShellToolBarParts {
+    this.globalActionsAdd(toolbar, actions, windowActions);
     toolbar.addSeparator();
-    const toolSlot = toolbar.addSlot(SHELL_TOOL_BAR_TOOL_SLOT_CLASS);
+    const toolOptionsSlot = toolbar.addSlot(SHELL_TOOL_BAR_TOOL_OPTIONS_SLOT_CLASS);
+    const overflow = toolbar.addOverflowMenu(overflowMeasure);
+    toolbar.addTrailingSpacer();
+    const layoutSlot = toolbar.addSlot(SHELL_TOOL_BAR_LAYOUT_SLOT_CLASS);
+    toolbar.overflowPrioritySet(TOOLBAR_OVERFLOW_PRIORITY_TRAILING);
+    this.mcpButtonAdd(toolbar, actions);
+    return { toolOptionsSlot, layoutSlot, overflow };
+  }
+
+  /**
+   * Adds the global action groups separated from each other.
+   *
+   * @param toolbar Main toolbar.
+   * @param actions Scene toolbar actions.
+   * @param windowActions Window actions for the grid size and brush tools.
+   */
+  private globalActionsAdd(toolbar: Toolbar, actions: EditorToolbarActions, windowActions: ShellWindowActions): void {
+    this.historyGroupAdd(toolbar, actions);
     toolbar.addSeparator();
     this.objectEditGroupAdd(toolbar, actions, windowActions);
     toolbar.addSeparator();
@@ -37,9 +78,6 @@ export class ShellToolBarBuilder {
     this.gizmoAxesGroupAdd(toolbar, actions);
     toolbar.addSeparator();
     this.textureLockGroupAdd(toolbar, actions);
-    toolbar.addTrailingSpacer();
-    this.mcpButtonAdd(toolbar, actions);
-    return toolSlot;
   }
 
   /**
@@ -49,8 +87,8 @@ export class ShellToolBarBuilder {
    * @param actions Scene toolbar actions.
    */
   private historyGroupAdd(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addIconButton('Undo', ToolbarIcons.undo(), () => actions.onUndo());
-    toolbar.addIconButton('Redo', ToolbarIcons.redo(), () => actions.onRedo());
+    toolbar.addIconButton('Undo', IconHammerCatalog.toolbarSvg('edit_undo'), () => actions.onUndo());
+    toolbar.addIconButton('Redo', IconHammerCatalog.toolbarSvg('edit_redo'), () => actions.onRedo());
   }
 
   /**
@@ -62,11 +100,13 @@ export class ShellToolBarBuilder {
    * @param windowActions Window actions holding the brush tools.
    */
   private objectEditGroupAdd(toolbar: Toolbar, actions: EditorToolbarActions, windowActions: ShellWindowActions): void {
-    toolbar.addIconButton('Duplicate', ToolbarIcons.duplicate(), () => actions.onDuplicateSelected());
-    toolbar.addIconButton('Flip Horizontally', ToolbarIcons.flipHorizontal(), () =>
+    toolbar.addIconButton('Duplicate', IconHammerCatalog.toolbarSvg('edit_duplicate'), () =>
+      actions.onDuplicateSelected(),
+    );
+    toolbar.addIconButton('Flip Horizontally', IconHammerCatalog.toolbarSvg('csg_flip_horizontal'), () =>
       windowActions.solidBrushToolsRead()?.flip('horizontal'),
     );
-    toolbar.addIconButton('Flip Vertically', ToolbarIcons.flipVertical(), () =>
+    toolbar.addIconButton('Flip Vertically', IconHammerCatalog.toolbarSvg('csg_flip_vertical'), () =>
       windowActions.solidBrushToolsRead()?.flip('vertical'),
     );
     this.hammerGroupButtonsAdd(toolbar, actions);
@@ -79,10 +119,10 @@ export class ShellToolBarBuilder {
    * @param actions Scene toolbar actions.
    */
   private hammerGroupButtonsAdd(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addIconButton('Group', ToolbarIconsHammer.group(), () => actions.onGroupSelected());
-    toolbar.addIconButton('Ungroup', ToolbarIconsHammer.ungroup(), () => actions.onUngroupSelected());
+    toolbar.addIconButton('Group', IconHammerCatalog.toolbarSvg('csg_group'), () => actions.onGroupSelected());
+    toolbar.addIconButton('Ungroup', IconHammerCatalog.toolbarSvg('csg_ungroup'), () => actions.onUngroupSelected());
     const filterState = getStateSelectionFilter();
-    toolbar.addIconButton('Ignore Groups', ToolbarIconsHammer.ignoreGroups(), () => {
+    toolbar.addIconButton('Ignore Groups', IconHammerCatalog.toolbarSvg('selection_ignore_groups'), () => {
       filterState.ignoreGroupsWrite(!filterState.ignoreGroupsRead());
     });
     toolbar.setButtonActiveByLabel('Ignore Groups', filterState.ignoreGroupsRead());
@@ -100,7 +140,7 @@ export class ShellToolBarBuilder {
    * @param windowActions Window actions for the grid size.
    */
   private gridGroupAdd(toolbar: Toolbar, actions: EditorToolbarActions, windowActions: ShellWindowActions): void {
-    toolbar.addIconButton('Snap', ToolbarIcons.snap(), () => actions.onToggleSnap());
+    toolbar.addIconButton('Snap', IconHammerCatalog.toolbarSvg('grid_snap'), () => actions.onToggleSnap());
     toolbar.setButtonActiveByLabel('Snap', actions.isUserSnapEnabled());
     const gridLabel = formatGridIntervalLabel(windowActions.gridIntervalRead());
     const gridButton = toolbar.addDropdown(gridLabel, this.gridEntriesBuild(windowActions));
@@ -125,32 +165,38 @@ export class ShellToolBarBuilder {
   }
 
   /**
-   * Adds the Global and Local gizmo axes buttons with the current choice
+   * Adds the Global and Local gizmo axes icon toggles with the current choice
    * highlighted.
    *
    * @param toolbar Main toolbar.
    * @param actions Scene toolbar actions.
    */
   private gizmoAxesGroupAdd(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addButton('Global', () => actions.onSetTransformSpaceGlobal()).title = 'Gizmo axes: world (global)';
-    toolbar.addButton('Local', () => actions.onSetTransformSpaceLocal()).title = 'Gizmo axes: object local';
+    toolbar.addIconButton('Global', IconHammerCatalog.toolbarSvg('transform_space_global'), () =>
+      actions.onSetTransformSpaceGlobal(),
+    ).title = 'Gizmo axes: world (global)';
+    toolbar.addIconButton('Local', IconHammerCatalog.toolbarSvg('transform_space_local'), () =>
+      actions.onSetTransformSpaceLocal(),
+    ).title = 'Gizmo axes: object local';
     const isLocal = actions.isTransformSpaceLocal();
     toolbar.setButtonActiveByLabel('Global', !isLocal);
     toolbar.setButtonActiveByLabel('Local', isLocal);
   }
 
   /**
-   * Adds the position lock and stretch lock toggles.
+   * Adds the position lock and stretch lock icon toggles.
    *
    * @param toolbar Main toolbar.
    * @param actions Scene toolbar actions.
    */
   private textureLockGroupAdd(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addButton('Pos Lock', () => actions.onTogglePositionLock()).title =
-      'Position lock: UVs stick when moving/rotating (off = world slide)';
+    toolbar.addIconButton('Pos Lock', IconHammerCatalog.toolbarSvg('texture_lock_position'), () =>
+      actions.onTogglePositionLock(),
+    ).title = 'Position lock: UVs stick when moving/rotating (off = world slide)';
     toolbar.setButtonActiveByLabel('Pos Lock', actions.isPositionLockEnabled());
-    toolbar.addButton('Stretch Lock', () => actions.onToggleStretchLock()).title =
-      'Stretch lock: UVs stretch when scaling (off = tile density)';
+    toolbar.addIconButton('Stretch Lock', IconHammerCatalog.toolbarSvg('texture_lock_stretch'), () =>
+      actions.onToggleStretchLock(),
+    ).title = 'Stretch lock: UVs stretch when scaling (off = tile density)';
     toolbar.setButtonActiveByLabel('Stretch Lock', actions.isStretchLockEnabled());
   }
 
@@ -161,7 +207,7 @@ export class ShellToolBarBuilder {
    * @param actions Scene toolbar actions.
    */
   private mcpButtonAdd(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addIconButton('MCP', ToolbarIcons.mcp(), () => actions.onOpenMcpDialog()).title =
+    toolbar.addIconButton('MCP', IconHammerCatalog.toolbarSvg('run_mcp'), () => actions.onOpenMcpDialog()).title =
       'MCP server (orange when running)';
     toolbar.setButtonActiveByLabel('MCP', false);
   }

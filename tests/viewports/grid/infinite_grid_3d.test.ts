@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as THREE from 'three';
 import { GRID_3D_RENDER_ORDER, InfiniteGrid3D } from '@/viewports/grid/infinite_grid_3d.js';
+import { Theme } from '@/theme.js';
 
 describe('InfiniteGrid3D', () => {
   let grid: InfiniteGrid3D;
@@ -171,7 +172,7 @@ describe('InfiniteGrid3D fade', () => {
     const colors = (grid.getObject().children[0] as THREE.LineSegments).geometry.getAttribute(
       'color',
     ) as THREE.BufferAttribute;
-    const bg = new THREE.Color(0x232323);
+    const bg = new THREE.Color(Theme.viewportBackground);
     let matchedBackground = false;
     for (let i = 0; i < colors.count; i++) {
       const dr = colors.getX(i) - bg.r;

@@ -19,22 +19,25 @@ describe('ViewportToolbar axis caption', () => {
     parent.remove();
   });
 
-  it('shows the caption for the initial title in a dedicated span', () => {
-    const caption = toolbar.getElement().querySelector('.viewport-toolbar-hammer-caption');
-    expect(caption).toBe(toolbar.getAxisCaptionElement());
-    expect(caption?.textContent).toBe(viewportAxisCaptionForKind(ViewportKind.TOP));
+  it('shows the caption of the initial title in the corner label', () => {
+    expect(toolbar.getTitleElement().textContent).toBe(viewportAxisCaptionForKind(ViewportKind.TOP));
   });
 
-  it('keeps the caption outside the title button so the title text stays the kind label', () => {
-    const titleLabel = toolbar.getTitleElement().querySelector('span');
-    expect(titleLabel?.textContent).toBe(getViewportKindDisplayLabel(ViewportKind.TOP));
-    expect(toolbar.getTitleElement().contains(toolbar.getAxisCaptionElement())).toBe(false);
+  it('names the view kind in the corner label tooltip', () => {
+    expect(toolbar.getTitleElement().title).toContain(getViewportKindDisplayLabel(ViewportKind.TOP));
   });
 
-  it('updates the caption whenever the viewport kind changes', () => {
+  it('updates the corner label whenever the viewport kind changes', () => {
     for (const kind of VIEWPORT_KIND_MENU_ORDER) {
       toolbar.setViewportKind(kind);
-      expect(toolbar.getAxisCaptionElement().textContent).toBe(viewportAxisCaptionForKind(kind));
+      const caption = viewportAxisCaptionForKind(kind);
+      const expected = caption === '' ? getViewportKindDisplayLabel(kind) : caption;
+      expect(toolbar.getTitleElement().textContent).toBe(expected);
     }
+  });
+
+  it('shows a custom title as is when it names no view kind', () => {
+    toolbar.setTitle('Player Camera');
+    expect(toolbar.getTitleElement().textContent).toBe('Player Camera');
   });
 });

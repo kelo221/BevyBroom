@@ -68,6 +68,15 @@ export class ShellDockTabbed extends ShellDock {
   }
 
   /**
+   * Returns the row that holds the tab buttons.
+   *
+   * @returns Tab strip element.
+   */
+  stripElementRead(): HTMLElement {
+    return this.tabBook.getStripElement();
+  }
+
+  /**
    * Registers a listener told the id of each newly shown tab.
    *
    * @param listener Called with the shown tab id.

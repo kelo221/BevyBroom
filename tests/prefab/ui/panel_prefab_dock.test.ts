@@ -77,11 +77,15 @@ describe('PanelPrefabDock', () => {
     );
   });
 
-  it('keeps every action button label on one line and lets the name field shrink instead', () => {
+  it('keeps every action button label on one line, ellipsized with a tooltip, and lets the name field shrink', () => {
     const { host } = prefabDockTestRigCreate();
-    host.querySelectorAll<HTMLButtonElement>('.panel-prefab-dock button').forEach((button) => {
+    const buttons = [...host.querySelectorAll<HTMLButtonElement>('.panel-prefab-dock button')];
+    expect(buttons.length).toBeGreaterThan(0);
+    buttons.forEach((button) => {
       expect(getComputedStyle(button).whiteSpace).toBe('nowrap');
-      expect(getComputedStyle(button).flexShrink).toBe('0');
+      expect(button.style.textOverflow).toBe('ellipsis');
+      expect(button.style.minWidth).toMatch(/^0(px)?$/);
+      expect(button.title.length).toBeGreaterThan(0);
     });
     const nameInput = host.querySelector<HTMLInputElement>('.panel-prefab-name-input');
     expect(nameInput?.style.minWidth).toMatch(/^0(px)?$/);

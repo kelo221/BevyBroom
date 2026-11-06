@@ -52,9 +52,9 @@ export class ModifierVolumeBlacklistList {
     this.element.style.minWidth = '0';
     this.element.style.maxHeight = '160px';
     this.element.style.overflow = 'auto';
-    this.element.style.background = '#141414';
-    this.element.style.border = '1px solid #2a2a2a';
-    this.element.style.borderRadius = '4px';
+    this.element.style.background = Theme.panelSunkenBackground;
+    this.element.style.border = `1px solid ${Theme.inputBorderColor}`;
+    this.element.style.borderRadius = '0';
     this.element.style.padding = '4px 0';
   }
 

@@ -134,6 +134,8 @@ export interface EditorShellElements {
   dockCommands: ShellDockCommands;
   /** Parents of the docked tool buttons and tool options. */
   toolChromeDocking: ViewportToolChromeDocking;
+  /** Main toolbar slot that receives the layout chooser. */
+  layoutChooserSlot: HTMLElement;
 }
 
 /** Scene services the shell panels bind to. */
@@ -162,9 +164,10 @@ interface EditorShellSkeleton {
 }
 
 /**
- * Builds the main window in the map editor arrangement: a menu bar, an icon
- * toolbar, the map views with a view bar above and the info panel below, the
- * inspector on the right, and the status bar.
+ * Builds the main window in the map editor arrangement: a menu bar, a single
+ * toolbar row holding the global actions, the tool options and the layout
+ * chooser, the map views with the info panel below, the inspector on the right,
+ * and the status bar.
  */
 export class BuilderEditorShell {
   /**
@@ -183,7 +186,7 @@ export class BuilderEditorShell {
     const skeleton = this.skeletonCreate(editorContainer);
     const menuBar = this.menuBarCreate(skeleton, bundles);
     const toolbar = new Toolbar(skeleton.frame.toolbarHostRead());
-    new ShellToolBarBuilder().build(toolbar, bundles.toolbarActions, bundles.windowActions);
+    const toolbarParts = new ShellToolBarBuilder().build(toolbar, bundles.toolbarActions, bundles.windowActions);
     const railParent = skeleton.frame.toolsPaletteHostRead();
     const viewportShell = this.createViewportShell(skeleton.frame.viewColumnRead());
     return {
@@ -206,7 +209,8 @@ export class BuilderEditorShell {
         services.selectionManager,
       ),
       ...skeleton,
-      toolChromeDocking: { railParent, optionsParent: skeleton.frame.viewBarToolSlotRead() },
+      toolChromeDocking: { railParent, optionsParent: toolbarParts.toolOptionsSlot },
+      layoutChooserSlot: toolbarParts.layoutSlot,
     };
   }
 
@@ -247,7 +251,7 @@ export class BuilderEditorShell {
    * Creates the viewport workspace host and appends the absolute pane grid
    * overlay under the view column.
    *
-   * @param viewColumn Column below the view bar that receives the host.
+   * @param viewColumn Column that receives the host.
    * @returns Host element and nested pane grid layer.
    */
   private createViewportShell(viewColumn: HTMLElement): { host: HTMLElement; paneGrid: HTMLElement } {

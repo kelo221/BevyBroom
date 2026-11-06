@@ -9,6 +9,8 @@ export interface SurfaceRenderPane {
    * Origin is canvas lower-left.
    */
   viewportRect: PaneLogicalRect;
+  /** Hex color the pane rect is cleared to before it is drawn. */
+  clearColor: number;
   /** Optional work run immediately before this pane's render. */
   prepare?: () => void;
   /** Optional work run immediately after this pane's render. */

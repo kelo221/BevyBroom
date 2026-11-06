@@ -80,6 +80,25 @@ describe('ShellDockCommands', () => {
     expect(infoPanel.activeTabIdRead()).toBe('issues');
   });
 
+  it('unfolds a folded info panel when revealing a tab', () => {
+    const { frame, infoPanel, dockCommands } = shellDockCommandsTestDocksCreate();
+    frame.infoPanelCollapsedSet(true);
+    dockCommands.infoPanelTabReveal('console');
+    expect(frame.isInfoPanelCollapsed()).toBe(false);
+    expect(infoPanel.isCollapsedShown()).toBe(false);
+    expect(infoPanel.activeTabIdRead()).toBe('console');
+  });
+
+  it('folds and unfolds the info panel and reports the folded state', () => {
+    const { frame, infoPanel, dockCommands } = shellDockCommandsTestDocksCreate();
+    const collapsedBefore = dockCommands.isInfoPanelCollapsed();
+    dockCommands.infoPanelCollapsedToggle();
+    expect(frame.isInfoPanelCollapsed()).toBe(!collapsedBefore);
+    expect(infoPanel.isCollapsedShown()).toBe(!collapsedBefore);
+    dockCommands.infoPanelCollapsedToggle();
+    expect(dockCommands.isInfoPanelCollapsed()).toBe(collapsedBefore);
+  });
+
   it('toggles the inspector, the info panel and the toolbar and reports their visibility', () => {
     const { frame, dockCommands } = shellDockCommandsTestDocksCreate();
     const toggles: ReadonlyArray<readonly [() => void, () => boolean, () => boolean]> = [

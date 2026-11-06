@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import { OutlinerItem } from '@/outliner/ui/outliner_item.js';
+import { OUTLINER_ROW_HEIGHT_PX } from '@/outliner/ui/outliner_drop_placement.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { markAsSolidCsgGroup, setSolidGroupOperation } from '@/solid/model/solid_group.js';
+import { Theme } from '@/theme.js';
+import { uiTestCssColorNormalize } from '../../ui/ui_test_css_color.js';
 
 describe('OutlinerItem', () => {
   let container: HTMLElement;
@@ -72,7 +75,7 @@ describe('OutlinerItem', () => {
     const id = nameSpan.children[1] as HTMLSpanElement;
     expect(base.textContent).toBe('Brush');
     expect(id.textContent).toBe('.00A');
-    expect(id.style.color).toBe('rgb(106, 106, 106)');
+    expect(id.style.color).toBe(uiTestCssColorNormalize(Theme.outlinerNameIdColor));
     expect(nameSpan.textContent).toBe('Brush.00A');
   });
 
@@ -90,7 +93,7 @@ describe('OutlinerItem', () => {
   it('should apply selection highlight', () => {
     item.setSelectionState(true);
     const element = item.getElement();
-    expect(element.style.background).toBe('rgba(232, 106, 23, 0.3)');
+    expect(element.style.background).toBe(uiTestCssColorNormalize(Theme.outlinerSelectedColor));
   });
 
   it('should remove selection highlight', () => {
@@ -143,7 +146,7 @@ describe('OutlinerItem', () => {
     const svg = visSpan.querySelector('svg');
     expect(svg).not.toBeNull();
     expect(visSpan.innerHTML).toContain('stroke="currentColor"');
-    expect(visSpan.innerHTML).not.toContain('#e74c3c');
+    expect(visSpan.innerHTML).not.toContain(Theme.iconOffSlashColor);
     expect(visSpan.title).toBe('Hide');
   });
 
@@ -152,7 +155,7 @@ describe('OutlinerItem', () => {
     const element = item.getElement();
     const visSpan = element.querySelector('span:nth-child(4)') as HTMLElement;
     expect(visSpan.querySelector('svg')).not.toBeNull();
-    expect(visSpan.innerHTML).toContain('#e74c3c');
+    expect(visSpan.innerHTML).toContain(Theme.iconOffSlashColor);
     expect(visSpan.innerHTML).toContain('M4 4l16 16');
     expect(visSpan.title).toBe('Show');
   });
@@ -262,11 +265,11 @@ describe('OutlinerItem', () => {
     const brushItem = new OutlinerItem(brush, 0, false);
     const row = brushItem.getElement();
     expect(row.style.alignItems).toBe('center');
-    expect(row.style.height).toBe('22px');
+    expect(row.style.height).toBe(`${OUTLINER_ROW_HEIGHT_PX}px`);
     const iconRoot = row.children[1] as HTMLElement;
     const glyph = iconRoot.children[0] as HTMLElement;
     expect(glyph.textContent).toBe('');
-    expect(glyph.style.backgroundColor).toBe('rgb(192, 57, 43)');
+    expect(glyph.style.backgroundColor).toBe(uiTestCssColorNormalize(Theme.outlinerIconColors.solidSubtractive));
     expect(glyph.style.borderRadius).toBe('50%');
     expect(glyph.style.width).toBe('8px');
     expect(glyph.style.height).toBe('8px');
@@ -274,7 +277,7 @@ describe('OutlinerItem', () => {
     expect(glyph.style.left).toBe('50%');
     expect(glyph.style.top).toBe('calc(50% + 1px)');
     expect(glyph.style.transform).toBe('translate(-50%, -50%)');
-    expect(glyph.style.boxShadow).toBe('0 0 0 1px rgba(0, 0, 0, 0.35)');
+    expect(glyph.style.boxShadow).toBe(Theme.outlinerIconDotShadow);
     brushItem.dispose();
   });
 
@@ -301,7 +304,7 @@ describe('OutlinerItem', () => {
       margin: '0px',
       fontSize: '0px',
       lineHeight: '0',
-      boxShadow: '0 0 0 1px rgba(0, 0, 0, 0.35)',
+      boxShadow: Theme.outlinerIconDotShadow,
     };
     for (const glyph of glyphs) {
       expect(glyph.style.position).toBe(shared.position);
@@ -329,9 +332,9 @@ describe('OutlinerItem', () => {
     const badge = iconRoot.children[1] as HTMLElement;
     expect(iconRoot.style.position).toBe('relative');
     expect(glyph.textContent).toBe('📁');
-    expect(glyph.style.color).toBe('rgb(230, 126, 34)');
+    expect(glyph.style.color).toBe(uiTestCssColorNormalize(Theme.outlinerIconColors.folder));
     expect(badge.style.position).toBe('absolute');
-    expect(badge.style.backgroundColor).toBe('rgb(41, 128, 185)');
+    expect(badge.style.backgroundColor).toBe(uiTestCssColorNormalize(Theme.outlinerIconColors.solidIntersecting));
     expect(badge.style.borderRadius).toBe('50%');
     expect(badge.style.display).toBe('block');
     setSolidGroupOperation(group, SolidOperation.Additive);

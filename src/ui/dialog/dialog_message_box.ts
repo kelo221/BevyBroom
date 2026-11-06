@@ -1,5 +1,9 @@
-import { Theme } from '@/theme.js';
-import { hexToRgb } from '@/utils/utils_color.js';
+import {
+  dialogChromeActionButtonApply,
+  dialogChromeBodyTextApply,
+  dialogChromePanelApply,
+  dialogChromeTitleApply,
+} from './dialog_chrome_styles.js';
 import { PanelFloating } from '@/ui/floating_panel/panel_floating.js';
 
 /**
@@ -156,18 +160,9 @@ class DialogMessageBox extends PanelFloating {
     this.settle(confirmed);
   }
 
-  /** Applies Blender-inspired dark chrome to the dialog panel. */
+  /** Applies classic Windows dialog chrome to the dialog panel. */
   private applyPanelChrome(): void {
-    this.root.style.minWidth = '360px';
-    this.root.style.maxWidth = '440px';
-    this.root.style.padding = '18px 20px 16px';
-    this.root.style.borderRadius = '10px';
-    this.root.style.background = `linear-gradient(180deg, ${hexToRgb(Theme.toolbarBackground)} 0%, ${hexToRgb(Theme.toolbarBackgroundEnd)} 100%)`;
-    this.root.style.border = '1px solid rgba(255,255,255,0.1)';
-    this.root.style.boxShadow = '0 18px 48px rgba(0,0,0,0.65)';
-    this.root.style.color = Theme.buttonTextColor;
-    this.root.style.boxSizing = 'border-box';
-    this.root.style.fontFamily = Theme.uiFontFamily;
+    dialogChromePanelApply(this.root, 360, 440);
   }
 
   /**
@@ -179,11 +174,7 @@ class DialogMessageBox extends PanelFloating {
     const title = document.createElement('h2');
     title.id = 'editor-message-box-title';
     title.textContent = this.options.title;
-    title.style.margin = '0 0 10px';
-    title.style.fontSize = '15px';
-    title.style.fontWeight = '600';
-    title.style.letterSpacing = '0.01em';
-    title.style.color = '#f0f0f0';
+    dialogChromeTitleApply(title);
     return title;
   }
 
@@ -213,10 +204,7 @@ class DialogMessageBox extends PanelFloating {
     const message = document.createElement('p');
     message.textContent = text;
     message.style.margin = bold ? '12px 0 0' : '0';
-    message.style.fontSize = '13px';
-    message.style.lineHeight = '1.45';
-    message.style.color = bold ? '#f0f0f0' : '#c8c8c8';
-    message.style.fontWeight = bold ? '700' : '400';
+    dialogChromeBodyTextApply(message, bold);
     message.style.whiteSpace = 'pre-wrap';
     return message;
   }
@@ -268,17 +256,6 @@ class DialogMessageBox extends PanelFloating {
    * @param isPrimary Whether the button is the affirmative action.
    */
   private styleActionButton(button: HTMLButtonElement, isPrimary: boolean): void {
-    button.style.minWidth = '72px';
-    button.style.padding = '7px 14px';
-    button.style.borderRadius = '6px';
-    button.style.border = isPrimary
-      ? `1px solid ${hexToRgb(Theme.selectionColor)}`
-      : '1px solid rgba(255,255,255,0.12)';
-    button.style.background = isPrimary ? 'rgba(232, 106, 23, 0.28)' : 'rgba(255,255,255,0.06)';
-    button.style.color = '#f2f2f2';
-    button.style.cursor = 'pointer';
-    button.style.fontFamily = Theme.uiFontFamily;
-    button.style.fontSize = '12px';
-    button.style.fontWeight = '600';
+    dialogChromeActionButtonApply(button, isPrimary);
   }
 }

@@ -262,9 +262,15 @@ exports convert on a root node through the game profile. Keep this in mind.
 
 ## Theme
 
-Use a similar dark mode theme that Blender uses. Orange selection, black
-backgrounds, maybe a subtle gradient here and there to give the editor a very
-dark blue vibe. But keep it modern and clean.
+Use the classic Hammer++ look: light grey Windows chrome with black text, white
+sunken inputs, thin grey borders and Windows-blue toggle, tab and menu
+highlights. 2D views are black with dark grey minor and lighter major grid
+lines; the 3D view is mid grey. Selection is red (red wires in 2D, red tint in
+3D). Unselected objects in 2D views draw in a stable per-object wire colour
+from `Theme.objectWirePalette`. Icons are full-colour and Hammer-like
+(`src/ui/icons/hammer/`). Keep the layout compact like Hammer: one toolbar
+row, small corner labels on viewports, a collapsed Console / Issues strip.
+All colours come from `src/theme.ts`; never hard-code colour literals.
 
 ## Geometry
 

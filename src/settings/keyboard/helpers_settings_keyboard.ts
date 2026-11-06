@@ -45,6 +45,7 @@ const KEYBOARD_SHORTCUT_ACTIONS = [
   'play_start',
   'inspector_map',
   'info_panel_toggle',
+  'info_panel_collapse_toggle',
   'inspector_toggle',
   'toolbar_toggle',
   'select_all',

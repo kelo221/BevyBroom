@@ -1,7 +1,15 @@
 /**
- * Style injection and visual helpers for the fancy About dialog. Dark blue
- * Blender-inspired chrome with orange selection accents.
+ * Style injection and visual helpers for the About dialog: classic Windows
+ * dialog chrome around a decorative animated header band.
  */
+import { Theme } from '@/theme.js';
+import { hexToRgb } from '@/utils/utils_color.js';
+import {
+  buttonClassicHoverBind,
+  buttonClassicPrimaryApply,
+  buttonClassicStyleApply,
+} from '@/ui/button/button_classic_style.js';
+import { AboutArtPalette } from './about_art_palette.js';
 
 const STYLE_ELEMENT_ID = 'bevybroom-about-dialog-styles';
 
@@ -75,8 +83,8 @@ function buildTitleKeyframes(): string {
  */
 function buildGlowKeyframes(): string {
   return `@keyframes aboutGlowPulse {
-    0%, 100% { box-shadow: 0 0 18px rgba(232,106,23,0.25), 0 0 48px rgba(40,80,180,0.2); }
-    50% { box-shadow: 0 0 28px rgba(232,106,23,0.45), 0 0 64px rgba(60,120,255,0.35); }
+    0%, 100% { box-shadow: ${Theme.dialogShadow}, ${AboutArtPalette.glowRest}; }
+    50% { box-shadow: ${Theme.dialogShadow}, ${AboutArtPalette.glowPeak}; }
   }`;
 }
 
@@ -121,7 +129,7 @@ function buildClassRules(): string {
              aboutGlowPulse 3.2s ease-in-out infinite 360ms;
 }
 .about-dialog-title {
-  background: linear-gradient(90deg, #ff9a3c, #e86a17, #6eb6ff, #e86a17, #ff9a3c);
+  background: ${AboutArtPalette.titleGradient};
   background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -147,11 +155,11 @@ export function styleAboutPanel(panel: HTMLElement): void {
   panel.style.overflow = 'hidden';
   panel.style.display = 'flex';
   panel.style.flexDirection = 'column';
-  panel.style.borderRadius = '14px';
-  panel.style.border = '1px solid rgba(232, 106, 23, 0.45)';
-  panel.style.background = 'linear-gradient(165deg, #1a2238 0%, #12141c 42%, #0e1018 100%)';
-  panel.style.fontFamily = 'Segoe UI, system-ui, -apple-system, sans-serif';
-  panel.style.color = '#e0e0e0';
+  panel.style.borderRadius = '2px';
+  panel.style.border = `1px solid ${Theme.chromeBorderColor}`;
+  panel.style.background = hexToRgb(Theme.propertiesPanelBackground);
+  panel.style.fontFamily = Theme.uiFontFamily;
+  panel.style.color = Theme.buttonTextColor;
   panel.style.overflowY = 'auto';
   panel.style.boxSizing = 'border-box';
 }
@@ -165,9 +173,8 @@ export function styleAboutHeader(header: HTMLElement): void {
   header.style.position = 'relative';
   header.style.overflow = 'hidden';
   header.style.padding = '22px 22px 16px';
-  header.style.background =
-    'linear-gradient(135deg, rgba(40,70,140,0.45) 0%, rgba(20,24,40,0.9) 55%, rgba(232,106,23,0.18) 100%)';
-  header.style.borderBottom = '1px solid rgba(255,255,255,0.08)';
+  header.style.background = AboutArtPalette.headerBand;
+  header.style.borderBottom = `1px solid ${Theme.chromeBorderColor}`;
 }
 
 /**
@@ -206,7 +213,7 @@ export function styleAboutSubtitle(subtitle: HTMLElement): void {
   subtitle.style.fontSize = '12px';
   subtitle.style.letterSpacing = '0.12em';
   subtitle.style.textTransform = 'uppercase';
-  subtitle.style.color = 'rgba(180, 200, 255, 0.75)';
+  subtitle.style.color = AboutArtPalette.headerSubtitle;
 }
 
 /**
@@ -216,9 +223,9 @@ export function styleAboutSubtitle(subtitle: HTMLElement): void {
  */
 export function styleAboutCreditLine(paragraph: HTMLElement): void {
   paragraph.style.margin = '0';
-  paragraph.style.fontSize = '13px';
+  paragraph.style.fontSize = `${Theme.uiFontSizePx + 1}px`;
   paragraph.style.lineHeight = '1.55';
-  paragraph.style.color = '#c8cdd8';
+  paragraph.style.color = Theme.buttonTextColor;
 }
 
 /**
@@ -228,14 +235,14 @@ export function styleAboutCreditLine(paragraph: HTMLElement): void {
  */
 export function styleAboutProclamation(proclamation: HTMLElement): void {
   proclamation.style.margin = '0';
-  proclamation.style.padding = '10px 12px';
-  proclamation.style.borderRadius = '8px';
-  proclamation.style.fontSize = '12px';
+  proclamation.style.padding = '8px 10px';
+  proclamation.style.borderRadius = '2px';
+  proclamation.style.fontSize = `${Theme.uiFontSizePx}px`;
   proclamation.style.lineHeight = '1.5';
   proclamation.style.fontStyle = 'italic';
-  proclamation.style.color = '#f0d0b0';
-  proclamation.style.background = 'linear-gradient(90deg, rgba(232,106,23,0.16), rgba(40,80,180,0.18))';
-  proclamation.style.border = '1px solid rgba(232,106,23,0.28)';
+  proclamation.style.color = Theme.secondaryTextColor;
+  proclamation.style.background = Theme.hoverOverlay;
+  proclamation.style.border = `1px solid ${Theme.chromeBorderColor}`;
 }
 
 /**
@@ -248,69 +255,32 @@ export function styleAboutLicenseBox(textArea: HTMLTextAreaElement): void {
   textArea.style.minHeight = '140px';
   textArea.style.resize = 'vertical';
   textArea.style.boxSizing = 'border-box';
-  textArea.style.padding = '10px';
-  textArea.style.borderRadius = '8px';
-  textArea.style.border = '1px solid rgba(255,255,255,0.12)';
-  textArea.style.background = 'linear-gradient(180deg, #0c0e14 0%, #141820 100%)';
-  textArea.style.color = '#9aa3b5';
-  textArea.style.fontFamily = 'Consolas, ui-monospace, monospace';
-  textArea.style.fontSize = '11px';
+  textArea.style.padding = '6px';
+  textArea.style.borderRadius = '0';
+  textArea.style.border = `1px solid ${Theme.inputBorderColor}`;
+  textArea.style.background = Theme.panelSunkenBackground;
+  textArea.style.color = Theme.inputTextColor;
+  textArea.style.fontFamily = Theme.monospaceFontFamily;
+  textArea.style.fontSize = `${Theme.uiFontSizePx}px`;
   textArea.style.lineHeight = '1.4';
   textArea.style.outline = 'none';
 }
 
 /**
- * Applies layout, type, palette, and hover styles to an action button.
+ * Applies classic push-button chrome and hover feedback to an action button.
  *
  * @param button Button element.
- * @param primary Whether this is the accent primary action.
+ * @param primary Whether this is the default action.
  */
 export function styleAboutActionButton(button: HTMLButtonElement, primary: boolean): void {
   button.type = 'button';
-  button.style.cursor = 'pointer';
-  button.style.border = '1px solid transparent';
-  button.style.borderRadius = '8px';
-  button.style.padding = '8px 14px';
-  button.style.fontSize = '12px';
-  button.style.fontWeight = '600';
-  button.style.fontFamily = 'inherit';
-  button.style.transition = 'transform 120ms ease, filter 120ms ease';
-  applyAboutButtonPalette(button, primary);
-  bindAboutButtonHover(button);
-}
-
-/**
- * Sets fill and border colors for an About action button.
- *
- * @param button Button element.
- * @param primary Whether the orange primary palette is used.
- */
-function applyAboutButtonPalette(button: HTMLButtonElement, primary: boolean): void {
+  buttonClassicStyleApply(button);
+  button.style.padding = '4px 12px';
+  button.style.minWidth = '75px';
   if (primary) {
-    button.style.background = 'linear-gradient(180deg, #f08a3a 0%, #e86a17 100%)';
-    button.style.color = '#1a1208';
-    button.style.borderColor = 'rgba(255,200,140,0.35)';
-    return;
+    buttonClassicPrimaryApply(button);
   }
-  button.style.background = 'rgba(255,255,255,0.06)';
-  button.style.color = '#e0e0e0';
-  button.style.borderColor = 'rgba(255,255,255,0.12)';
-}
-
-/**
- * Binds subtle hover lift feedback to an About action button.
- *
- * @param button Button element.
- */
-function bindAboutButtonHover(button: HTMLButtonElement): void {
-  button.addEventListener('mouseenter', () => {
-    button.style.transform = 'translateY(-1px)';
-    button.style.filter = 'brightness(1.08)';
-  });
-  button.addEventListener('mouseleave', () => {
-    button.style.transform = 'translateY(0)';
-    button.style.filter = 'none';
-  });
+  buttonClassicHoverBind(button, () => false);
 }
 
 /**
@@ -336,18 +306,16 @@ export function styleAboutCloseButton(closeButton: HTMLButtonElement): void {
   closeButton.textContent = '×';
   closeButton.title = 'Close';
   closeButton.setAttribute('aria-label', 'Close');
+  buttonClassicStyleApply(closeButton);
   closeButton.style.position = 'absolute';
   closeButton.style.top = '10px';
   closeButton.style.right = '12px';
-  closeButton.style.width = '28px';
-  closeButton.style.height = '28px';
-  closeButton.style.border = '1px solid rgba(255,255,255,0.1)';
-  closeButton.style.borderRadius = '6px';
-  closeButton.style.background = 'rgba(0,0,0,0.25)';
-  closeButton.style.color = '#e0e0e0';
-  closeButton.style.cursor = 'pointer';
-  closeButton.style.fontSize = '18px';
+  closeButton.style.width = '24px';
+  closeButton.style.height = '24px';
+  closeButton.style.padding = '0';
+  closeButton.style.fontSize = '16px';
   closeButton.style.lineHeight = '1';
+  buttonClassicHoverBind(closeButton, () => false);
 }
 
 /**
@@ -364,6 +332,6 @@ export function createAboutShimmer(): HTMLElement {
   shimmer.style.width = '45%';
   shimmer.style.height = '100%';
   shimmer.style.pointerEvents = 'none';
-  shimmer.style.background = 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)';
+  shimmer.style.background = AboutArtPalette.headerShimmer;
   return shimmer;
 }

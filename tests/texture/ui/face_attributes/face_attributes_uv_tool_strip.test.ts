@@ -77,7 +77,7 @@ describe('FaceAttributesUvToolStrip', () => {
     left.dispatchEvent(new MouseEvent('mouseenter'));
     left.dispatchEvent(new MouseEvent('mouseleave'));
     expect(left.style.background).toBe(highlightedBackground);
-    expect(left.style.borderColor).toBe(buttonByName('Justify →').style.borderColor);
+    expect(left.style.borderColor).not.toBe(buttonByName('Justify →').style.borderColor);
   });
 
   it('highlights the justify button of the satisfied side', () => {

@@ -8,6 +8,8 @@ import { visGroupSharedServicesCreate } from '@/visgroup/visgroup_shared_service
 import { PrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { setStateTexturePaintForTests, StateTexturePaint } from '@/texture/paint/state_texture_paint.js';
+import { Theme } from '@/theme.js';
+import { SHELL_DOCK_COMPACT_CONTROL_CLASS } from '@/layout/shell/dock/shell_dock_compact.js';
 
 /** Hammer bar slots the mount fills, top to bottom. */
 const SHELL_HAMMER_BAR_MOUNT_TEST_SLOTS: readonly ShellInspectorSlot[] = [
@@ -64,6 +66,25 @@ function shellHammerBarMountTestRigCreate(): ShellHammerBarMountTestRig {
  */
 function slotTextRead(inspector: ShellInspector, slot: ShellInspectorSlot): string {
   return inspector.slotRead(slot).textContent ?? '';
+}
+
+/**
+ * Returns the widest fixed pixel width an element asks for through its inline
+ * width, minimum width, flex basis or grid columns.
+ *
+ * @param element Element to inspect.
+ * @returns Widest fixed width in CSS pixels, or zero when none is fixed.
+ */
+function shellHammerBarMountTestFixedWidthPxRead(element: HTMLElement): number {
+  const style = element.style;
+  const singleWidths = [style.width, style.minWidth, style.flexBasis, style.flex].map((value) =>
+    Math.max(0, ...[...value.matchAll(/(\d+(?:\.\d+)?)px/g)].map((match) => Number(match[1]))),
+  );
+  const gridColumnsPx = [...style.gridTemplateColumns.matchAll(/(\d+(?:\.\d+)?)px/g)].reduce(
+    (sum, match) => sum + Number(match[1]),
+    0,
+  );
+  return Math.max(gridColumnsPx, ...singleWidths);
 }
 
 beforeEach(() => {
@@ -129,6 +150,36 @@ describe('ShellHammerBarMount', () => {
     [...footerButtons].find((button) => button.textContent === 'Edit')?.click();
     expect(commandStack.getUndoCount()).toBe(1);
     expect(afterWorldMutation).toHaveBeenCalledOnce();
+  });
+
+  it('fits every Hammer bar section into a dock of the default right dock width', () => {
+    const { inspector } = shellHammerBarMountTestRigCreate();
+    inspector.getElement().style.width = `${Theme.rightDockWidthPx}px`;
+    SHELL_HAMMER_BAR_MOUNT_TEST_SLOTS.forEach((slot) => {
+      const elements = [...inspector.slotRead(slot).querySelectorAll<HTMLElement>('*')];
+      elements.forEach((element) => {
+        expect(shellHammerBarMountTestFixedWidthPxRead(element)).toBeLessThanOrEqual(Theme.rightDockWidthPx);
+      });
+    });
+  });
+
+  it('gives every Hammer bar button and field the compact dock height and lets labels ellipsize', () => {
+    const { inspector } = shellHammerBarMountTestRigCreate();
+    const controls = SHELL_HAMMER_BAR_MOUNT_TEST_SLOTS.flatMap((slot) => [
+      ...inspector.slotRead(slot).querySelectorAll<HTMLElement>('button:not([role="tab"]), select, input[type="text"]'),
+    ]);
+    expect(controls.length).toBeGreaterThan(0);
+    controls.forEach((control) => {
+      expect(control.classList.contains(SHELL_DOCK_COMPACT_CONTROL_CLASS)).toBe(true);
+      expect(control.style.height).toBe(`${Theme.dockControlHeightPx}px`);
+      expect(control.style.minWidth).toMatch(/^0(px)?$/);
+    });
+    controls
+      .filter((control) => control instanceof HTMLButtonElement)
+      .forEach((button) => {
+        expect(button.style.textOverflow).toBe('ellipsis');
+        expect(button.title.length).toBeGreaterThan(0);
+      });
   });
 
   it('empties every Hammer bar slot on dispose', () => {

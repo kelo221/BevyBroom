@@ -138,13 +138,25 @@ export class ShellMenuView extends ShellMenu {
   }
 
   /**
-   * Builds the rows that show or hide the inspector, the info panel and the
-   * toolbar.
+   * Builds the rows that show or hide the inspector, the info panel, the
+   * toolbar and the tools palette, and the row that collapses the info panel to
+   * its strip.
    *
    * @param context Actions and docks the entries run.
    * @returns Menu action entries.
    */
   private dockToggleEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    return [...this.dockPanelEntriesBuild(context), ...this.barToggleEntriesBuild(context)];
+  }
+
+  /**
+   * Builds the rows that show or hide the inspector and the info panel, and the
+   * row that collapses the info panel to its strip.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Menu action entries.
+   */
+  private dockPanelEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
     const docks = context.dockCommands;
     return [
       this.actionEntry(context, 'Show Inspector', () => docks.inspectorToggle(), {
@@ -155,6 +167,22 @@ export class ShellMenuView extends ShellMenu {
         shortcutAction: 'info_panel_toggle',
         isChecked: () => docks.isInfoPanelVisible(),
       }),
+      this.actionEntry(context, 'Collapse Info Panel', () => docks.infoPanelCollapsedToggle(), {
+        shortcutAction: 'info_panel_collapse_toggle',
+        isChecked: () => docks.isInfoPanelCollapsed(),
+      }),
+    ];
+  }
+
+  /**
+   * Builds the rows that show or hide the toolbar and the tools palette.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Menu action entries.
+   */
+  private barToggleEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    const docks = context.dockCommands;
+    return [
       this.actionEntry(context, 'Show Toolbar', () => docks.toolbarToggle(), {
         shortcutAction: 'toolbar_toggle',
         isChecked: () => docks.isToolbarVisible(),

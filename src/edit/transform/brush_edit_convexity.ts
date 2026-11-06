@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
 import type { SolidBrush } from '@/solid/brush/solid_brush.js';
 import { SolidBrushValidator } from '@/solid/brush/solid_brush_validator.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
@@ -7,7 +8,7 @@ import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 export const SOLID_BRUSH_NON_CONVEX_USERDATA_KEY = 'solidBrushNonConvex';
 
 /** Warning tint for non-convex brush previews (muted violet). */
-const NON_CONVEX_BRUSH_TINT = 0x9b59b6;
+const NON_CONVEX_BRUSH_TINT = Theme.solidNonConvexTintColor;
 
 /**
  * Marks a brush preview mesh as convex or non-convex and updates its tint.

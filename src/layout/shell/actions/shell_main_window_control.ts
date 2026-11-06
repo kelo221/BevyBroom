@@ -1,11 +1,16 @@
 import type { ShellFrame } from '@/layout/shell/frame/shell_frame.js';
-import type { ShellInfoPanel, ShellInfoPanelTabId } from '@/layout/shell/info_panel/shell_info_panel.js';
+import {
+  SHELL_INFO_PANEL_TAB_IDS,
+  type ShellInfoPanel,
+  type ShellInfoPanelTabId,
+} from '@/layout/shell/info_panel/shell_info_panel.js';
 import type { Toolbar } from '@/ui/toolbar/toolbar.js';
 import type { ShellDockCommands } from './shell_dock_commands.js';
 import { SHELL_FLOATING_WINDOW_IDS, type ShellFloatingWindowId } from './shell_floating_window.js';
+import { shellMainWindowLayoutRead, type ShellMainWindowLayout } from './shell_main_window_layout.js';
 
 /** Info panel tabs in display order. */
-export const SHELL_MAIN_WINDOW_INFO_PANEL_TABS: readonly ShellInfoPanelTabId[] = ['console', 'issues'];
+export const SHELL_MAIN_WINDOW_INFO_PANEL_TABS: readonly ShellInfoPanelTabId[] = SHELL_INFO_PANEL_TAB_IDS;
 
 /** Arrangement of the main window docks and bars. */
 export interface ShellMainWindowState {
@@ -13,6 +18,8 @@ export interface ShellMainWindowState {
   inspectorVisible: boolean;
   /** True while the info panel is shown. */
   infoPanelVisible: boolean;
+  /** True while the info panel is folded to its one-line strip. */
+  infoPanelCollapsed: boolean;
   /** Shown info panel tab. */
   infoPanelTab: ShellInfoPanelTabId;
   /** True while the icon toolbar is shown. */
@@ -54,6 +61,7 @@ export class ShellMainWindowControl {
     return {
       inspectorVisible: this.parts.frame.isInspectorVisible(),
       infoPanelVisible: this.parts.frame.isInfoPanelVisible(),
+      infoPanelCollapsed: this.parts.frame.isInfoPanelCollapsed(),
       infoPanelTab: this.infoPanelTabRead(),
       toolbarVisible: this.parts.frame.isToolbarVisible(),
       menus: this.menuTitlesRead(),
@@ -71,9 +79,20 @@ export class ShellMainWindowControl {
     if (changes.infoPanelTab !== undefined) this.parts.infoPanel.tabShow(changes.infoPanelTab);
     if (changes.inspectorVisible !== undefined) this.parts.frame.inspectorVisibleSet(changes.inspectorVisible);
     if (changes.infoPanelVisible !== undefined) this.parts.frame.infoPanelVisibleSet(changes.infoPanelVisible);
+    if (changes.infoPanelCollapsed !== undefined) this.parts.frame.infoPanelCollapsedSet(changes.infoPanelCollapsed);
     if (changes.toolbarVisible !== undefined) this.parts.frame.toolbarVisibleSet(changes.toolbarVisible);
     this.floatingWindowsApply(changes.floatingWindows);
     return this.stateRead();
+  }
+
+  /**
+   * Returns where the map views, the info panel and the inspector sit on
+   * screen.
+   *
+   * @returns Bounds of the main window areas.
+   */
+  layoutRead(): ShellMainWindowLayout {
+    return shellMainWindowLayoutRead(this.parts.frame);
   }
 
   /**

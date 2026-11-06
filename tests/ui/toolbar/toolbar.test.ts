@@ -71,12 +71,27 @@ describe('Toolbar', () => {
     window.dispatchEvent(new PointerEvent('pointerup'));
   });
 
-  it('should size top toolbar icons to 25 by 25 pixels', () => {
+  it('should size toolbar icons and buttons from the theme toolbar metrics', () => {
     const button = toolbar.addIconButton('Undo', '<svg width="16" height="16"></svg>', () => {});
     const icon = button.querySelector('svg');
+    expect(icon?.getAttribute('width')).toBe(String(Theme.toolbarIconPx));
+    expect(icon?.getAttribute('height')).toBe(String(Theme.toolbarIconPx));
+    expect(button.style.height).toBe(`${Theme.toolbarButtonPx}px`);
+    expect(button.style.width).toBe(`${Theme.toolbarButtonPx}px`);
+  });
 
-    expect(icon?.getAttribute('width')).toBe('25');
-    expect(icon?.getAttribute('height')).toBe('25');
+  it('should leave room for the icon inside the one pixel button border', () => {
+    expect(Theme.toolbarButtonPx - 2).toBeGreaterThanOrEqual(Theme.toolbarIconPx);
+  });
+
+  it('should shrink icons and buttons together in the small size', () => {
+    const button = toolbar.addIconButton('Undo', '<svg></svg>', () => {});
+    toolbar.setSize('small');
+    const iconSize = Number(button.querySelector('svg')?.getAttribute('width'));
+    const buttonSize = parseFloat(button.style.height);
+    expect(iconSize).toBeLessThan(Theme.toolbarIconPx);
+    expect(buttonSize).toBeLessThan(Theme.toolbarButtonPx);
+    expect(buttonSize - 2).toBeGreaterThanOrEqual(iconSize);
   });
 
   it('should fire click callback when button is clicked', () => {
@@ -115,15 +130,16 @@ describe('Toolbar', () => {
     expect(toolbarElement.style.display).toBe('flex');
   });
 
-  it('should vertically center toolbar controls with equal padding', () => {
+  it('should vertically center toolbar controls in a row at least the theme toolbar height', () => {
     const toolbarElement = container.children[0] as HTMLElement;
     expect(toolbarElement.style.alignItems).toBe('center');
-    expect(toolbarElement.style.padding).toBe('6px 8px');
+    expect(toolbarElement.style.minHeight).toBe(`${Theme.toolbarHeightPx}px`);
   });
 
-  it('should wrap toolbar rows to avoid off-screen overflow', () => {
+  it('should keep a single row that never wraps, leaving overflow to the overflow menu', () => {
     const toolbarElement = container.children[0] as HTMLElement;
-    expect(toolbarElement.style.flexWrap).toBe('wrap');
+    expect(toolbarElement.style.flexWrap).toBe('nowrap');
+    expect(toolbarElement.style.overflow).toBe('hidden');
   });
 
   it('should support dropdown menus with nested actions', () => {
@@ -259,7 +275,14 @@ describe('Toolbar', () => {
     toolbar.addButton('Rotate', () => {});
     toolbar.setButtonActiveByLabel('Rotate', true);
     const rotateButton = container.querySelectorAll('button')[1] as HTMLButtonElement;
-    expect(rotateButton.style.color).toBe('rgb(255, 255, 255)');
+    const moveButton = container.querySelectorAll('button')[0] as HTMLButtonElement;
+    const probe = document.createElement('span');
+    probe.style.background = Theme.buttonPressedBackground;
+    probe.style.borderColor = Theme.toggleActiveBorder;
+    expect(rotateButton.dataset['active']).toBe('true');
+    expect(rotateButton.style.background).toBe(probe.style.background);
+    expect(rotateButton.style.borderColor).toBe(probe.style.borderColor);
+    expect(moveButton.dataset['active']).not.toBe('true');
   });
 
   it('should apply correct button text color', () => {

@@ -80,11 +80,7 @@ export class SolidModelPanel extends PanelFloating {
    * @param root Panel root.
    */
   private styleRoot(root: HTMLElement): void {
-    applyFloatingPanelToolChrome(root, {
-      width: '240px',
-      borderRadiusPx: 8,
-      boxShadow: '0 10px 28px rgba(0,0,0,0.55)',
-    });
+    applyFloatingPanelToolChrome(root, { width: '240px' });
   }
 
   /**

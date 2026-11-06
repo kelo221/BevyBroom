@@ -1,6 +1,7 @@
 import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
 import { UiStackLayers } from '@/ui/stack/ui_stack_layers.js';
+import { buttonClassicPressedApply } from '@/ui/button/button_classic_style.js';
 
 /** Edge length of a tile thumbnail in CSS pixels. */
 export const ENTITY_BROWSER_TILE_THUMBNAIL_PX = 56;
@@ -8,8 +9,8 @@ export const ENTITY_BROWSER_TILE_THUMBNAIL_PX = 56;
 /** Icon size drawn inside a tile thumbnail in CSS pixels. */
 export const ENTITY_BROWSER_TILE_ICON_PX = 28;
 
-/** Selection color of tiles: the editor's orange. */
-const ENTITY_BROWSER_SELECTION_COLOR = hexToRgb(Theme.selectionColor);
+/** Border color of selected tiles and active toggles. */
+const ENTITY_BROWSER_SELECTION_COLOR = Theme.listSelectedBorder;
 
 /**
  * Styles the browser root: a column with the tile grid above the controls.
@@ -22,10 +23,10 @@ export function entityBrowserStyleRoot(root: HTMLElement): void {
   root.style.minHeight = '0';
   root.style.height = '100%';
   root.style.boxSizing = 'border-box';
-  root.style.background = `linear-gradient(180deg, ${hexToRgb(Theme.propertiesPanelBackground)} 0%, #15171c 100%)`;
+  root.style.background = hexToRgb(Theme.propertiesPanelBackground);
   root.style.color = Theme.buttonTextColor;
   root.style.fontFamily = Theme.uiFontFamily;
-  root.style.fontSize = '12px';
+  root.style.fontSize = `${Theme.uiFontSizePx}px`;
 }
 
 /**
@@ -92,7 +93,7 @@ export function entityBrowserStyleTile(tile: HTMLElement): void {
  */
 export function entityBrowserStyleTileSelected(tile: HTMLElement, isSelected: boolean): void {
   tile.style.border = `1px solid ${isSelected ? ENTITY_BROWSER_SELECTION_COLOR : 'transparent'}`;
-  tile.style.background = isSelected ? Theme.outlinerSelectedColor : 'transparent';
+  tile.style.background = isSelected ? Theme.listSelectedBackground : 'transparent';
 }
 
 /**
@@ -108,8 +109,8 @@ export function entityBrowserStyleThumbnail(thumbnail: HTMLElement, backgroundCo
   thumbnail.style.alignItems = 'center';
   thumbnail.style.justifyContent = 'center';
   thumbnail.style.borderRadius = '4px';
-  thumbnail.style.background = `linear-gradient(160deg, ${backgroundColor} 0%, #121318 100%)`;
-  thumbnail.style.boxShadow = 'inset 0 0 0 1px rgba(255, 255, 255, 0.06)';
+  thumbnail.style.background = backgroundColor;
+  thumbnail.style.boxShadow = `inset 0 0 0 1px ${Theme.chromeBorderColor}`;
   thumbnail.style.fontSize = `${ENTITY_BROWSER_TILE_ICON_PX}px`;
 }
 
@@ -138,8 +139,8 @@ export function entityBrowserStyleUsageBadge(badge: HTMLElement): void {
   badge.style.right = '5px';
   badge.style.padding = '0 4px';
   badge.style.borderRadius = '6px';
-  badge.style.background = 'rgba(0, 0, 0, 0.6)';
-  badge.style.color = Theme.statusBarTextColor;
+  badge.style.background = Theme.toggleActiveBorder;
+  badge.style.color = Theme.inverseTextColor;
   badge.style.fontSize = '10px';
 }
 
@@ -159,15 +160,14 @@ export function entityBrowserStyleControlsRow(row: HTMLElement): void {
 }
 
 /**
- * Shows whether a toggle button is switched on with an orange outline.
+ * Shows whether a toggle button is switched on with the pressed face.
  *
  * @param button Toggle button.
  * @param isActive True when the toggle is on.
  */
 export function entityBrowserStyleToggleActive(button: HTMLButtonElement, isActive: boolean): void {
   button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-  button.style.borderColor = isActive ? ENTITY_BROWSER_SELECTION_COLOR : Theme.inputBorderColor;
-  button.style.color = isActive ? ENTITY_BROWSER_SELECTION_COLOR : Theme.buttonTextColor;
+  buttonClassicPressedApply(button, isActive);
 }
 
 /**
@@ -184,7 +184,7 @@ export function entityBrowserStyleDragGhost(ghost: HTMLElement): void {
   ghost.style.opacity = '0.85';
   ghost.style.borderRadius = '4px';
   ghost.style.background = hexToRgb(Theme.toolbarBackground);
-  ghost.style.boxShadow = '0 6px 18px rgba(0, 0, 0, 0.55)';
+  ghost.style.boxShadow = Theme.windowShadow;
   ghost.style.color = Theme.buttonTextColor;
   ghost.style.fontFamily = Theme.uiFontFamily;
 }
@@ -196,6 +196,6 @@ export function entityBrowserStyleDragGhost(ghost: HTMLElement): void {
  * @param isOverTarget True over a drop target.
  */
 export function entityBrowserStyleDragGhostTarget(ghost: HTMLElement, isOverTarget: boolean): void {
-  ghost.style.outline = `1px solid ${isOverTarget ? ENTITY_BROWSER_SELECTION_COLOR : 'rgba(255, 255, 255, 0.15)'}`;
+  ghost.style.outline = `1px solid ${isOverTarget ? ENTITY_BROWSER_SELECTION_COLOR : Theme.chromeBorderColor}`;
   ghost.style.cursor = isOverTarget ? 'copy' : 'no-drop';
 }

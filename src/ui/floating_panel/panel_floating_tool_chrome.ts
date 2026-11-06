@@ -13,9 +13,9 @@ export interface FloatingPanelToolChromeOptions {
   minHeight?: string;
   /** Maximum outer height CSS value. */
   maxHeight?: string;
-  /** Border radius in CSS pixels (default 6). */
+  /** Border radius in CSS pixels (default 2). */
   borderRadiusPx?: number;
-  /** Box-shadow CSS value. */
+  /** Box-shadow CSS value (default the theme window shadow). */
   boxShadow?: string;
   /** When true, clips overflowing children. */
   overflowHidden?: boolean;
@@ -26,17 +26,19 @@ export interface FloatingPanelToolChromeOptions {
 }
 
 /**
- * Applies shared Blender-dark tool-window chrome to a floating panel root.
+ * Applies shared classic Windows tool-window chrome to a floating panel root.
  *
  * @param root Panel root element.
  * @param options Optional size and layout overrides.
  */
 export function applyFloatingPanelToolChrome(root: HTMLElement, options: FloatingPanelToolChromeOptions = {}): void {
   root.style.background = hexToRgb(Theme.propertiesPanelBackground);
-  root.style.border = `1px solid ${hexToRgb(Theme.separatorColor)}`;
-  root.style.borderRadius = `${options.borderRadiusPx ?? 6}px`;
-  root.style.boxShadow = options.boxShadow ?? '0 8px 24px rgba(0,0,0,0.55)';
+  root.style.border = `1px solid ${Theme.chromeBorderColor}`;
+  root.style.borderRadius = `${options.borderRadiusPx ?? 2}px`;
+  root.style.boxShadow = options.boxShadow ?? Theme.windowShadow;
+  root.style.color = Theme.buttonTextColor;
   root.style.fontFamily = Theme.uiFontFamily;
+  root.style.fontSize = `${Theme.uiFontSizePx}px`;
   applyFloatingPanelToolChromeSizes(root, options);
 }
 

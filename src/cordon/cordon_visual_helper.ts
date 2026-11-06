@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
 import { EDITOR_HELPER_USERDATA_KEY } from '@/visgroup/visgroup_object_collector.js';
 import type { StateCordon } from './state_cordon.js';
 
@@ -19,7 +20,7 @@ export class CordonVisualHelper {
    */
   constructor(state: StateCordon) {
     this.state = state;
-    this.helper = new THREE.Box3Helper(state.boundsRead(), 0xff5533);
+    this.helper = new THREE.Box3Helper(state.boundsRead(), Theme.cordonColor);
     this.helper.name = '__cordon_bounds_helper__';
     this.helper.userData[EDITOR_HELPER_USERDATA_KEY] = true;
     this.helper.userData['exportable'] = false;

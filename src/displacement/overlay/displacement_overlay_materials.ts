@@ -1,7 +1,8 @@
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
 
 /** Color of the displacement grid wireframe. */
-const DISPLACEMENT_OVERLAY_GRID_COLOR = 0xffffff;
+const DISPLACEMENT_OVERLAY_GRID_COLOR = Theme.displacementOverlayGridColor;
 
 /** Dash length of a cell diagonal, as a share of the diagonal's length. */
 export const DISPLACEMENT_OVERLAY_DIAGONAL_DASH_SHARE = 0.125;

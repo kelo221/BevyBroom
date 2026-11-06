@@ -16,6 +16,7 @@ import {
   styleAboutTitle,
 } from './dialog_about_styles.js';
 import { PanelFloating } from '@/ui/floating_panel/panel_floating.js';
+import { Theme } from '@/theme.js';
 
 /**
  * Modal About dialog for BevyBroom credits and licenses. Windowing comes from
@@ -41,7 +42,7 @@ export class DialogAbout extends PanelFloating {
       closeOnBackdropClick: true,
       stackLayer: 'modal',
       backdropClassName: 'about-dialog-backdrop',
-      backdropBackground: 'radial-gradient(ellipse at center, rgba(20,28,55,0.82) 0%, rgba(6,8,14,0.94) 70%)',
+      backdropBackground: Theme.modalBackdropColor,
     });
     this.isDisposed = false;
     this.contributorRoll = null;
@@ -322,11 +323,11 @@ export class DialogAbout extends PanelFloating {
   private createSectionLabel(text: string): HTMLElement {
     const label = document.createElement('div');
     label.textContent = text;
-    label.style.fontSize = '11px';
+    label.style.fontSize = `${Theme.uiFontSizePx}px`;
     label.style.fontWeight = '700';
     label.style.letterSpacing = '0.1em';
     label.style.textTransform = 'uppercase';
-    label.style.color = 'rgba(232, 106, 23, 0.9)';
+    label.style.color = Theme.secondaryTextColor;
     return label;
   }
 

@@ -270,6 +270,7 @@ export class LayoutRenderLoop {
     pass.viewport = null as unknown as ViewportEditor;
     pass.camera = null as unknown as THREE.Camera;
     pass.contentElement = null as unknown as HTMLElement;
+    pass.clearColor = Theme.viewportBackground;
     pass.syncCameraSize = (width: number, height: number) => {
       pass.viewport.resize(width, height);
     };
@@ -283,7 +284,8 @@ export class LayoutRenderLoop {
   }
 
   /**
-   * Updates camera and DOM fields for a pass slot from the live viewport.
+   * Updates camera, DOM and clear color fields for a pass slot from the live
+   * viewport.
    *
    * @param pass Reusable pass slot.
    * @param viewport Source viewport for this pane.
@@ -292,6 +294,7 @@ export class LayoutRenderLoop {
     pass.viewport = viewport;
     pass.camera = viewport.getCamera();
     pass.contentElement = viewport.getContentElement();
+    pass.clearColor = viewport.getBackgroundColor();
   }
 
   /**

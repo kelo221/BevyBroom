@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import {
   ENTITY_PICK_MESH_USERDATA_KEY,
   ENTITY_VISUAL_PART_USERDATA_KEY,
@@ -55,7 +56,7 @@ export class EntityVisualBuilder {
       existing.name = name;
       return existing;
     }
-    const marker = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    const marker = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: MaterialColorNeutral.white }));
     marker.name = name;
     EntityVisualBuilder.partFlag(marker);
     marker.userData[ENTITY_PICK_MESH_USERDATA_KEY] = true;
@@ -133,7 +134,7 @@ export class EntityVisualBuilder {
     EntityVisualBuilder.partFlag(marker);
     marker.userData[ENTITY_PICK_MESH_USERDATA_KEY] = true;
     EntityVisualBuilder.partMaterialsDispose(marker);
-    marker.material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    marker.material = new THREE.MeshBasicMaterial({ color: MaterialColorNeutral.white });
   }
 
   /**

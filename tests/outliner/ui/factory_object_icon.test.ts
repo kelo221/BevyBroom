@@ -16,13 +16,17 @@ import { outlinerItemApplyIconFromObject } from '@/outliner/ui/outliner_item_ico
 import type { IconName } from '@/ui/icons/icon_name.js';
 import { IconRegistry } from '@/ui/icons/icon_registry.js';
 import { hexToRgb } from '@/utils/utils_color.js';
+import { Theme } from '@/theme.js';
+
+/** Outliner object type glyph colors from the theme. */
+const FACTORY_OBJECT_ICON_TEST_COLORS = Theme.outlinerIconColors;
 
 describe('ObjectIconFactory.getIcon', () => {
   it('should return group icon for THREE.Group', () => {
     const group = new THREE.Group();
     const icon = FactoryObjectIcon.getIcon(group);
     expect(icon.character).toBe('📁');
-    expect(icon.color).toBe('#e67e22');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.folder);
     expect(icon.badgeCharacter).toBeUndefined();
   });
 
@@ -32,19 +36,19 @@ describe('ObjectIconFactory.getIcon', () => {
     const intersecting = SolidBrushVisual.createBoxPreview('Int', 2, SolidOperation.Intersecting);
     expect(FactoryObjectIcon.getIcon(additive)).toEqual({
       character: '',
-      color: '#27ae60',
+      color: FACTORY_OBJECT_ICON_TEST_COLORS.solidAdditive,
       cssDot: true,
       cssDotNudgeYPx: 0,
     });
     expect(FactoryObjectIcon.getIcon(subtractive)).toEqual({
       character: '',
-      color: '#c0392b',
+      color: FACTORY_OBJECT_ICON_TEST_COLORS.solidSubtractive,
       cssDot: true,
       cssDotNudgeYPx: 1,
     });
     expect(FactoryObjectIcon.getIcon(intersecting)).toEqual({
       character: '',
-      color: '#2980b9',
+      color: FACTORY_OBJECT_ICON_TEST_COLORS.solidIntersecting,
       cssDot: true,
       cssDotNudgeYPx: 0,
     });
@@ -55,7 +59,7 @@ describe('ObjectIconFactory.getIcon', () => {
     markAsSolidCsgGroup(group, SolidOperation.Additive);
     const icon = FactoryObjectIcon.getIcon(group);
     expect(icon.character).toBe('📁');
-    expect(icon.color).toBe('#e67e22');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.folder);
     expect(icon.badgeCharacter).toBeUndefined();
   });
 
@@ -66,15 +70,15 @@ describe('ObjectIconFactory.getIcon', () => {
     markAsSolidCsgGroup(intersecting, SolidOperation.Intersecting);
     expect(FactoryObjectIcon.getIcon(subtractive)).toEqual({
       character: '📁',
-      color: '#e67e22',
+      color: FACTORY_OBJECT_ICON_TEST_COLORS.folder,
       badgeCssDot: true,
-      badgeColor: '#c0392b',
+      badgeColor: FACTORY_OBJECT_ICON_TEST_COLORS.solidSubtractive,
     });
     expect(FactoryObjectIcon.getIcon(intersecting)).toEqual({
       character: '📁',
-      color: '#e67e22',
+      color: FACTORY_OBJECT_ICON_TEST_COLORS.folder,
       badgeCssDot: true,
-      badgeColor: '#2980b9',
+      badgeColor: FACTORY_OBJECT_ICON_TEST_COLORS.solidIntersecting,
     });
     setSolidGroupOperation(subtractive, SolidOperation.Additive);
     expect(FactoryObjectIcon.getIcon(subtractive).badgeCssDot).toBeUndefined();
@@ -84,77 +88,77 @@ describe('ObjectIconFactory.getIcon', () => {
     const model = new SolidModel('IconSolid');
     const icon = FactoryObjectIcon.getIcon(model.root);
     expect(icon.character).toBe('▣');
-    expect(icon.color).toBe('#e86a17');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.solidModel);
   });
 
   it('should return box icon for BoxGeometry mesh', () => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial());
     const icon = FactoryObjectIcon.getIcon(mesh);
     expect(icon.character).toBe('◼');
-    expect(icon.color).toBe('#3498db');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.box);
   });
 
   it('should return sphere icon for SphereGeometry mesh', () => {
     const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 8), new THREE.MeshBasicMaterial());
     const icon = FactoryObjectIcon.getIcon(mesh);
     expect(icon.character).toBe('●');
-    expect(icon.color).toBe('#2ecc71');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.sphere);
   });
 
   it('should return plane icon for PlaneGeometry mesh', () => {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial());
     const icon = FactoryObjectIcon.getIcon(mesh);
     expect(icon.character).toBe('▭');
-    expect(icon.color).toBe('#9b59b6');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.plane);
   });
 
   it('should return cylinder icon for CylinderGeometry mesh', () => {
     const mesh = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 8), new THREE.MeshBasicMaterial());
     const icon = FactoryObjectIcon.getIcon(mesh);
     expect(icon.character).toBe('⬡');
-    expect(icon.color).toBe('#1abc9c');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.cylinder);
   });
 
   it('should return generic mesh icon for unknown geometry', () => {
     const mesh = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial());
     const icon = FactoryObjectIcon.getIcon(mesh);
     expect(icon.character).toBe('◇');
-    expect(icon.color).toBe('#95a5a6');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.genericMesh);
   });
 
   it('should return directional light icon', () => {
     const light = new THREE.DirectionalLight(0xffffff);
     const icon = FactoryObjectIcon.getIcon(light);
     expect(icon.character).toBe('☀');
-    expect(icon.color).toBe('#f39c12');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.directionalLight);
   });
 
   it('should return point light icon', () => {
     const light = new THREE.PointLight(0xffffff);
     const icon = FactoryObjectIcon.getIcon(light);
     expect(icon.character).toBe('✦');
-    expect(icon.color).toBe('#f1c40f');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.pointLight);
   });
 
   it('should return spot light icon', () => {
     const light = new THREE.SpotLight(0xffffff);
     const icon = FactoryObjectIcon.getIcon(light);
     expect(icon.character).toBe('◎');
-    expect(icon.color).toBe('#e74c3c');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.spotLight);
   });
 
   it('should return camera icon for camera object', () => {
     const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
     const icon = FactoryObjectIcon.getIcon(camera);
     expect(icon.character).toBe('📷');
-    expect(icon.color).toBe('#e74c3c');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.camera);
   });
 
   it('should return generic icon for Object3D', () => {
     const obj = new THREE.Object3D();
     const icon = FactoryObjectIcon.getIcon(obj);
     expect(icon.character).toBe('○');
-    expect(icon.color).toBe('#7f8c8d');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.generic);
   });
 
   it('takes the icon and color of every authored entity kind from its definition', () => {
@@ -194,6 +198,6 @@ describe('ObjectIconFactory.getIcon', () => {
     const light = new THREE.AmbientLight(0xffffff);
     const icon = FactoryObjectIcon.getIcon(light);
     expect(icon.character).toBe('✧');
-    expect(icon.color).toBe('#f1c40f');
+    expect(icon.color).toBe(FACTORY_OBJECT_ICON_TEST_COLORS.genericLight);
   });
 });

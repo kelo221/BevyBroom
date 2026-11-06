@@ -3,7 +3,12 @@ import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
 import type { UndoCommand } from '@/commands/command_undo.js';
 import { CommandPrimitiveCreate } from '@/tools/creation/commands/command_primitive_create.js';
-import { buttonCompactCreate } from '@/ui/button/button_compact.js';
+import {
+  SHELL_DOCK_COMPACT_GAP_PX,
+  shellDockCompactButtonCreate,
+  shellDockCompactFieldStyle,
+  shellDockCompactRowStyle,
+} from '@/layout/shell/dock/shell_dock_compact.js';
 import { getPrefabCatalogStore, type PrefabCatalogStore } from '../prefab_catalog_store.js';
 import { CommandPrefabTemplateAdd } from '../commands/command_prefab_template_add.js';
 import { CommandPrefabEntityTie } from '../commands/command_prefab_entity_tie.js';
@@ -85,8 +90,8 @@ export class PanelPrefabDock {
     this.root.className = 'panel-prefab-dock';
     this.root.style.display = 'flex';
     this.root.style.flexDirection = 'column';
-    this.root.style.gap = '4px';
-    this.root.style.padding = '6px 8px';
+    this.root.style.gap = `${SHELL_DOCK_COMPACT_GAP_PX}px`;
+    this.root.style.padding = `${SHELL_DOCK_COMPACT_GAP_PX}px`;
     this.root.style.background = hexToRgb(Theme.propertiesPanelBackground);
     this.root.style.borderBottom = `1px solid ${hexToRgb(Theme.separatorColor)}`;
     this.categorySelect.className = 'panel-prefab-category-select';
@@ -110,11 +115,27 @@ export class PanelPrefabDock {
   private buildRowCaption(doc: Document, labelText: string): HTMLElement {
     const label = doc.createElement('span');
     label.textContent = labelText;
-    label.style.fontSize = '11px';
+    label.style.fontSize = `${Theme.uiFontSizePx}px`;
     label.style.fontFamily = Theme.uiFontFamily;
     label.style.color = Theme.statusBarTextColor;
     label.style.whiteSpace = 'nowrap';
+    label.style.flex = `0 0 ${PANEL_PREFAB_DOCK_CAPTION_WIDTH_PX}px`;
+    label.style.overflow = 'hidden';
+    label.style.textOverflow = 'ellipsis';
+    label.title = labelText;
     return label;
+  }
+
+  /**
+   * Creates a wrapping row of compact controls.
+   *
+   * @param doc Owner document.
+   * @returns Row element.
+   */
+  private buildRow(doc: Document): HTMLElement {
+    const row = doc.createElement('div');
+    shellDockCompactRowStyle(row);
+    return row;
   }
 
   /**
@@ -126,21 +147,13 @@ export class PanelPrefabDock {
    * @returns Row element.
    */
   private buildSelectorRow(doc: Document, labelText: string, select: HTMLSelectElement): HTMLElement {
-    const row = doc.createElement('div');
-    row.style.display = 'grid';
-    row.style.gridTemplateColumns = `${PANEL_PREFAB_DOCK_CAPTION_WIDTH_PX}px minmax(0, 1fr)`;
-    row.style.alignItems = 'center';
-    row.style.gap = '4px';
+    const row = this.buildRow(doc);
     const label = this.buildRowCaption(doc, labelText);
-    select.style.boxSizing = 'border-box';
-    select.style.minWidth = '0';
-    select.style.height = '22px';
+    shellDockCompactFieldStyle(select);
     select.style.background = Theme.inputBackgroundColor;
     select.style.color = Theme.inputTextColor;
     select.style.border = `1px solid ${Theme.inputBorderColor}`;
     select.style.borderRadius = '2px';
-    select.style.fontSize = '11px';
-    select.style.fontFamily = Theme.uiFontFamily;
     row.append(label, select);
     return row;
   }
@@ -152,11 +165,7 @@ export class PanelPrefabDock {
    * @returns Row element.
    */
   private buildPrefabActionRow(doc: Document): HTMLElement {
-    const row = doc.createElement('div');
-    row.style.display = 'grid';
-    row.style.gridTemplateColumns = 'minmax(0, 1fr) auto auto';
-    row.style.alignItems = 'center';
-    row.style.gap = '4px';
+    const row = this.buildRow(doc);
     this.nameInputStyle();
     const insertBtn = this.createButton('Insert', 'panel-prefab-insert', () => this.onInsertPrefab());
     insertBtn.title = 'Insert the chosen prefab';
@@ -165,22 +174,21 @@ export class PanelPrefabDock {
     return row;
   }
 
-  /** Styles the prefab name field as a compact text input that may shrink. */
+  /**
+   * Styles the prefab name field as a compact text input on its own line above
+   * the prefab buttons.
+   */
   private nameInputStyle(): void {
     const input = this.nameInput;
     input.type = 'text';
     input.placeholder = 'Prefab name…';
     input.className = 'panel-prefab-name-input';
-    input.style.boxSizing = 'border-box';
-    input.style.width = '100%';
-    input.style.minWidth = '0';
-    input.style.height = '22px';
+    shellDockCompactFieldStyle(input);
+    input.style.flex = '1 1 100%';
     input.style.background = Theme.inputBackgroundColor;
     input.style.color = Theme.inputTextColor;
     input.style.border = `1px solid ${Theme.inputBorderColor}`;
     input.style.borderRadius = '2px';
-    input.style.fontSize = '11px';
-    input.style.fontFamily = Theme.uiFontFamily;
     input.style.padding = '0 4px';
   }
 
@@ -191,12 +199,8 @@ export class PanelPrefabDock {
    * @returns Row element.
    */
   private buildEntityConvertRow(doc: Document): HTMLElement {
-    const row = doc.createElement('div');
+    const row = this.buildRow(doc);
     row.className = 'panel-prefab-move-selected';
-    row.style.display = 'grid';
-    row.style.gridTemplateColumns = `${PANEL_PREFAB_DOCK_CAPTION_WIDTH_PX}px minmax(0, 1fr) minmax(0, 1fr)`;
-    row.style.alignItems = 'center';
-    row.style.gap = '4px';
     row.append(
       this.buildRowCaption(doc, 'Move selected:'),
       this.createButton('toWorld', 'panel-prefab-to-world', () => this.onMoveToWorld()),
@@ -214,7 +218,7 @@ export class PanelPrefabDock {
    * @returns Button element.
    */
   private createButton(label: string, className: string, onClick: () => void): HTMLButtonElement {
-    const button = buttonCompactCreate({ title: label, widthPx: null, heightPx: 22, onClick });
+    const button = shellDockCompactButtonCreate(label, onClick);
     button.classList.add(className);
     return button;
   }

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
 import { selectionMeshesFromHierarchyCollect } from '@/selection/object/selection_hierarchy_meshes.js';
 import { VisibilityHideLedger } from './visibility/visibility_hide_ledger.js';
 import { VisGroupClassifierAuto } from './visgroup_classifier_auto.js';
@@ -46,7 +47,7 @@ export class VisGroupStore {
    * @param color Optional 24-bit hex swatch color.
    * @returns Created UserVisGroup.
    */
-  userGroupCreate(name: string, color = 0x5c9aff): UserVisGroup {
+  userGroupCreate(name: string, color: number = Theme.visgroupDefaultColor): UserVisGroup {
     const group = this.userGroupDescribe(name, color);
     this.userGroupInsert(group);
     return { ...group };
@@ -59,7 +60,7 @@ export class VisGroupStore {
    * @param color Optional 24-bit hex swatch color.
    * @returns New UserVisGroup description.
    */
-  userGroupDescribe(name: string, color = 0x5c9aff): UserVisGroup {
+  userGroupDescribe(name: string, color: number = Theme.visgroupDefaultColor): UserVisGroup {
     return {
       id: `user_visgroup_${this.nextIdCounter++}`,
       name: name.trim() || `VisGroup ${this.userGroups.size + 1}`,

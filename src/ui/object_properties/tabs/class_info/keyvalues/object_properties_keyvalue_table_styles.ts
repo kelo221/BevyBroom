@@ -39,13 +39,13 @@ export const KEYVALUE_TABLE_NAME_COLUMN_WIDTH = '42%';
 const KEYVALUE_TABLE_INDENTED_PADDING = `calc(6px + var(${PANEL_PROPERTIES_ROW_INDENT_PROPERTY}, 0px))`;
 
 /** Background of the table body. */
-const KEYVALUE_TABLE_BACKGROUND = '#1e1e1e';
+const KEYVALUE_TABLE_BACKGROUND = Theme.panelSunkenBackground;
 
 /** Color of the row separators and the column divider. */
-const KEYVALUE_TABLE_GRID_LINE_COLOR = '#2e2e2e';
+const KEYVALUE_TABLE_GRID_LINE_COLOR = Theme.tableGridLineColor;
 
-/** Background of the selected row: a dim selection orange. */
-const KEYVALUE_TABLE_SELECTED_BACKGROUND = 'rgba(232, 106, 23, 0.2)';
+/** Background of the selected row. */
+const KEYVALUE_TABLE_SELECTED_BACKGROUND = Theme.listSelectedBackground;
 
 /**
  * Injects the keyvalue table CSS into the document once.
@@ -92,7 +92,7 @@ function keyvalueTableRowCss(): string {
   const row = `.${KEYVALUE_TABLE_FRAME_CLASS} .${KEYVALUE_TABLE_ROW_CLASS}`;
   return `
 ${row} { display: flex !important; align-items: center !important; gap: 0 !important; min-height: ${KEYVALUE_TABLE_ROW_HEIGHT_PX}px; padding: 0 2px 0 0 !important; box-sizing: border-box; border-bottom: 1px solid ${KEYVALUE_TABLE_GRID_LINE_COLOR}; }
-${row}:hover { background: rgba(255, 255, 255, 0.03); }
+${row}:hover { background: ${Theme.hoverOverlay}; }
 ${row}[data-keyvalue-row-selected="true"] { background: ${KEYVALUE_TABLE_SELECTED_BACKGROUND}; }
 ${row} > .${KEYVALUE_TABLE_NAME_CELL_CLASS} { flex: 0 0 ${KEYVALUE_TABLE_NAME_COLUMN_WIDTH} !important; width: auto !important; align-self: stretch; display: flex; align-items: center; min-height: ${KEYVALUE_TABLE_ROW_HEIGHT_PX - 1}px; padding: 0 6px 0 ${KEYVALUE_TABLE_INDENTED_PADDING}; margin-right: 2px; box-sizing: border-box; border-right: 1px solid ${KEYVALUE_TABLE_GRID_LINE_COLOR}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ${Theme.uiFontFamily} !important; font-size: 11px !important; }
 `.trim();
@@ -125,7 +125,7 @@ ${row} select option { background: ${Theme.inputBackgroundColor}; }
 function keyvalueTableGroupRowCss(): string {
   const group = `.${KEYVALUE_TABLE_FRAME_CLASS} .${KEYVALUE_TABLE_GROUP_ROW_CLASS}`;
   return `
-${group} { display: flex !important; align-items: center !important; gap: 4px; min-height: ${KEYVALUE_TABLE_ROW_HEIGHT_PX}px; padding-left: ${KEYVALUE_TABLE_INDENTED_PADDING} !important; padding-top: 0 !important; padding-bottom: 0 !important; padding-right: 2px !important; box-sizing: border-box; background: rgba(255, 255, 255, 0.035); border-top: none !important; border-bottom: 1px solid ${KEYVALUE_TABLE_GRID_LINE_COLOR}; font-family: ${Theme.uiFontFamily} !important; font-size: 11px !important; font-weight: 600 !important; font-style: normal !important; color: ${Theme.statusBarTextColor}; }
+${group} { display: flex !important; align-items: center !important; gap: 4px; min-height: ${KEYVALUE_TABLE_ROW_HEIGHT_PX}px; padding-left: ${KEYVALUE_TABLE_INDENTED_PADDING} !important; padding-top: 0 !important; padding-bottom: 0 !important; padding-right: 2px !important; box-sizing: border-box; background: ${Theme.tableGroupRowBackground}; border-top: none !important; border-bottom: 1px solid ${KEYVALUE_TABLE_GRID_LINE_COLOR}; font-family: ${Theme.uiFontFamily} !important; font-size: 11px !important; font-weight: 600 !important; font-style: normal !important; color: ${Theme.statusBarTextColor}; }
 ${group} * { font-family: ${Theme.uiFontFamily} !important; font-size: 11px !important; }
 `.trim();
 }

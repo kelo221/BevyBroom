@@ -1,5 +1,6 @@
 import type { ShellFrame } from '@/layout/shell/frame/shell_frame.js';
 import type { ShellInfoPanel, ShellInfoPanelTabId } from '@/layout/shell/info_panel/shell_info_panel.js';
+import { ShellInfoPanelCollapseBinding } from '@/layout/shell/info_panel/shell_info_panel_collapse_binding.js';
 import type { ShellFloatingWindow, ShellFloatingWindowId } from './shell_floating_window.js';
 
 /**
@@ -10,9 +11,11 @@ export class ShellDockCommands {
   private readonly frame: ShellFrame;
   private readonly infoPanel: ShellInfoPanel;
   private readonly floatingWindows: Map<ShellFloatingWindowId, ShellFloatingWindow>;
+  private readonly infoPanelCollapseBinding: ShellInfoPanelCollapseBinding;
 
   /**
-   * Creates dock commands over the main window docks.
+   * Creates dock commands over the main window docks and lets clicks on the
+   * info panel strip fold and unfold the panel.
    *
    * @param frame Main window skeleton that shows and hides the docks.
    * @param infoPanel Bottom info panel.
@@ -21,6 +24,13 @@ export class ShellDockCommands {
     this.frame = frame;
     this.infoPanel = infoPanel;
     this.floatingWindows = new Map();
+    this.infoPanelCollapseBinding = new ShellInfoPanelCollapseBinding(frame, infoPanel);
+  }
+
+  /** Stops folding the info panel from strip clicks. */
+  dispose(): void {
+    this.infoPanelCollapseBinding.dispose();
+    this.floatingWindows.clear();
   }
 
   /**
@@ -72,7 +82,7 @@ export class ShellDockCommands {
   }
 
   /**
-   * Shows the info panel with one tab in front.
+   * Shows and unfolds the info panel with one tab in front.
    *
    * @param tabId Info panel tab to show.
    */
@@ -80,7 +90,24 @@ export class ShellDockCommands {
     if (!this.frame.isInfoPanelVisible()) {
       this.frame.infoPanelVisibleSet(true);
     }
+    if (this.frame.isInfoPanelCollapsed()) {
+      this.frame.infoPanelCollapsedSet(false);
+    }
     this.infoPanel.tabShow(tabId);
+  }
+
+  /** Unfolds the info panel when folded to its strip and folds it when unfolded. */
+  infoPanelCollapsedToggle(): void {
+    this.frame.infoPanelCollapsedSet(!this.frame.isInfoPanelCollapsed());
+  }
+
+  /**
+   * Returns whether the info panel is folded to its strip.
+   *
+   * @returns True while folded.
+   */
+  isInfoPanelCollapsed(): boolean {
+    return this.frame.isInfoPanelCollapsed();
   }
 
   /** Shows the inspector when hidden and hides it when shown. */

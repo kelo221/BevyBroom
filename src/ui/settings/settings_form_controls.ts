@@ -244,7 +244,7 @@ function styleSettingsSelect(select: HTMLSelectElement): void {
 function styleSettingsSlider(slider: HTMLInputElement): void {
   slider.style.flex = '1 1 auto';
   slider.style.width = '100%';
-  slider.style.accentColor = hexToRgb(Theme.selectionColor);
+  slider.style.accentColor = hexToRgb(Theme.toggleAccentColor);
   slider.style.cursor = 'pointer';
 }
 

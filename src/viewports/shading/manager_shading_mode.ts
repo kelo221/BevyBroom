@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import { ShadingMode } from '@/types/shading_mode.js';
 import { SELECTION_HIGHLIGHT_USERDATA_KEY } from '@/selection/object/selection_highlight.js';
 import { BOUNDS_FACE_USERDATA_KEY } from '@/types/bounds_face.js';
@@ -183,7 +184,7 @@ export class ManagerShadingMode {
   private createOutlineOnlySurfaceMaterial(source: THREE.Material): THREE.MeshBasicMaterial {
     const side = 'side' in source ? (source as THREE.MeshStandardMaterial).side : THREE.FrontSide;
     const material = new THREE.MeshBasicMaterial({
-      color: 0x000000,
+      color: MaterialColorNeutral.black,
       side,
       toneMapped: false,
     });
@@ -263,9 +264,9 @@ function pickMaterialOrArray(materials: THREE.MeshBasicMaterial[]): THREE.Materi
  * @returns Color hex, default white.
  */
 function readMaterialColorHex(material: THREE.Material): number {
-  if (!('color' in material)) return 0xffffff;
+  if (!('color' in material)) return MaterialColorNeutral.white;
   const color = (material as THREE.MeshStandardMaterial).color;
-  if (!(color instanceof THREE.Color)) return 0xffffff;
+  if (!(color instanceof THREE.Color)) return MaterialColorNeutral.white;
   return color.getHex();
 }
 

@@ -3,6 +3,7 @@ import { EditorApi } from '@/ai/client/editor_api.js';
 import { findMcpTool } from '@/ai/server/registry_mcp_tool.js';
 import { Toolbar } from '@/ui/toolbar/toolbar.js';
 import { ShellMainWindowControl, type ShellMainWindowState } from '@/layout/shell/actions/shell_main_window_control.js';
+import type { ShellMainWindowLayout } from '@/layout/shell/actions/shell_main_window_layout.js';
 import { editorApiTestHostCreate } from './editor_api_test_host.js';
 import {
   shellTestDocksCreate,
@@ -73,6 +74,28 @@ describe('EditorApi main window tools', () => {
     expect(state.infoPanelVisible).toBe(false);
     expect(docks.infoPanel.activeTabIdRead()).toBe('issues');
     expect(docks.frame.isInfoPanelVisible()).toBe(false);
+  });
+
+  it('folds and unfolds the info panel and reports it', () => {
+    expect((api.invokeTool('get_main_window').data as ShellMainWindowState).infoPanelCollapsed).toBe(true);
+    const unfolded = api.invokeTool('set_main_window', { infoPanelCollapsed: false });
+    expect(unfolded.ok).toBe(true);
+    expect((unfolded.data as ShellMainWindowState).infoPanelCollapsed).toBe(false);
+    expect(docks.frame.isInfoPanelCollapsed()).toBe(false);
+    expect(docks.infoPanel.isCollapsedShown()).toBe(false);
+    expect(api.invokeTool('set_main_window', { infoPanelCollapsed: 'yes' }).ok).toBe(false);
+    expect(docks.frame.isInfoPanelCollapsed()).toBe(false);
+  });
+
+  it('reads the bounds of the views, the info panel and the inspector', () => {
+    expect(findMcpTool('get_shell_layout')).toBeDefined();
+    const result = api.invokeTool('get_shell_layout');
+    expect(result.ok).toBe(true);
+    const layout = result.data as unknown as ShellMainWindowLayout;
+    (['views', 'infoPanel', 'inspector'] as const).forEach((area) => {
+      expect(Object.keys(layout[area]).sort()).toEqual(['height', 'width', 'x', 'y']);
+      Object.values(layout[area]).forEach((value) => expect(Number.isFinite(value)).toBe(true));
+    });
   });
 
   it('rejects unknown info panel tabs and non boolean flags without changing anything', () => {

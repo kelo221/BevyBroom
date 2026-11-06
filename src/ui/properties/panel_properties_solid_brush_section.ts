@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Theme } from '@/theme.js';
+import { buttonClassicPressedApply } from '@/ui/button/button_classic_style.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { getSolidGroupOperation, isSolidCsgGroup } from '@/solid/model/solid_group.js';
@@ -444,10 +445,19 @@ export class PanelPropertiesSolidBrushSection {
   private highlightSharedGroupOperation(groups: THREE.Group[]): void {
     const operations = groups.map((group) => getSolidGroupOperation(group));
     const shared = operations.every((operation) => operation === operations[0]);
+    this.operationButtonsPressedApply(shared ? operations[0] : undefined);
+  }
+
+  /**
+   * Shows the button of one CSG operation as pressed and the others as
+   * released.
+   *
+   * @param pressedOperation Operation whose button is pressed, or undefined for
+   *   none.
+   */
+  private operationButtonsPressedApply(pressedOperation: SolidOperation | undefined): void {
     this.operationButtons.forEach((button, operation) => {
-      const active = shared && operation === operations[0];
-      button.style.outline = active ? `1px solid ${this.hexToRgb(Theme.selectionColor)}` : 'none';
-      button.style.background = active ? this.hexToRgb(Theme.buttonHoverColor) : this.hexToRgb(Theme.buttonBackground);
+      buttonClassicPressedApply(button, operation === pressedOperation);
       button.style.opacity = '1';
     });
   }
@@ -497,7 +507,7 @@ export class PanelPropertiesSolidBrushSection {
   /** Dims operation buttons when no brush is selected. */
   private dimOperationButtons(): void {
     this.operationButtons.forEach((button) => {
-      button.style.outline = 'none';
+      buttonClassicPressedApply(button, false);
       button.style.opacity = '0.55';
     });
   }
@@ -513,11 +523,6 @@ export class PanelPropertiesSolidBrushSection {
       return model?.findBrushByMesh(mesh)?.operation ?? SolidOperation.Additive;
     });
     const shared = operations.every((operation) => operation === operations[0]);
-    this.operationButtons.forEach((button, operation) => {
-      const active = shared && operation === operations[0];
-      button.style.outline = active ? `1px solid ${this.hexToRgb(Theme.selectionColor)}` : 'none';
-      button.style.background = active ? this.hexToRgb(Theme.buttonHoverColor) : this.hexToRgb(Theme.buttonBackground);
-      button.style.opacity = '1';
-    });
+    this.operationButtonsPressedApply(shared ? operations[0] : undefined);
   }
 }

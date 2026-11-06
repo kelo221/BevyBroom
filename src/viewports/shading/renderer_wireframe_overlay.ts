@@ -26,7 +26,7 @@ export class RendererWireframeOverlay {
     this.overlaySourceGeometry = new Map();
     this.overlaysVisible = true;
     this.lineMaterial = new THREE.LineBasicMaterial({
-      color: Theme.selectionColor,
+      color: Theme.wireframeOverlayColor,
       transparent: true,
       opacity: 0.85,
     });
@@ -89,7 +89,7 @@ export class RendererWireframeOverlay {
   }
 
   /**
-   * Returns whether a mesh may receive an orange wireframe overlay.
+   * Returns whether a mesh may receive a wireframe overlay.
    *
    * @param mesh Candidate mesh.
    * @returns True when overlay geometry can be built.

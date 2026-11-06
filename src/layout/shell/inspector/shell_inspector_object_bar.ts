@@ -12,7 +12,12 @@ import {
   faceInspectorPreviewImageWrite,
   faceInspectorPreviewThumbnailCreate,
 } from '@/texture/ui/face_inspector/face_inspector_controls.js';
-import { buttonCompactCreate } from '@/ui/button/button_compact.js';
+import {
+  SHELL_DOCK_COMPACT_GAP_PX,
+  shellDockCompactButtonCreate,
+  shellDockCompactButtonStyle,
+  shellDockCompactRowStyle,
+} from '@/layout/shell/dock/shell_dock_compact.js';
 
 /** Filter button definitions in Hammer++ Object Bar order. */
 const OBJECT_BAR_FILTER_MODES: ReadonlyArray<{ readonly mode: SelectionFilterMode; readonly label: string }> = [
@@ -122,8 +127,8 @@ export class ShellInspectorObjectBar {
     root.classList.add('shell-inspector-object-bar');
     root.style.display = 'flex';
     root.style.flexDirection = 'column';
-    root.style.gap = '6px';
-    root.style.padding = '6px 8px';
+    root.style.gap = `${SHELL_DOCK_COMPACT_GAP_PX}px`;
+    root.style.padding = `${SHELL_DOCK_COMPACT_GAP_PX}px`;
     root.style.flex = '0 0 auto';
     root.style.background = hexToRgb(Theme.toolbarBackground);
     root.style.borderBottom = `1px solid ${hexToRgb(Theme.separatorColor)}`;
@@ -151,10 +156,7 @@ export class ShellInspectorObjectBar {
   private rowCreate(className: string): HTMLElement {
     const row = document.createElement('div');
     row.classList.add(className);
-    row.style.display = 'flex';
-    row.style.alignItems = 'center';
-    row.style.gap = '4px';
-    row.style.minWidth = '0';
+    shellDockCompactRowStyle(row);
     return row;
   }
 
@@ -170,10 +172,7 @@ export class ShellInspectorObjectBar {
     button.type = 'button';
     button.textContent = label;
     button.dataset['selectFilterMode'] = mode;
-    button.style.flex = '1 1 0';
-    button.style.padding = '3px 6px';
-    button.style.fontSize = '11px';
-    button.style.fontFamily = Theme.uiFontFamily;
+    shellDockCompactButtonStyle(button);
     button.style.color = Theme.buttonTextColor;
     button.style.cursor = 'pointer';
     button.style.borderRadius = '3px';
@@ -211,7 +210,7 @@ export class ShellInspectorObjectBar {
   private textureRowCreate(parts: ShellInspectorObjectBarTextureParts): HTMLElement {
     const row = this.rowCreate('shell-inspector-current-texture-row');
     row.style.alignItems = 'stretch';
-    row.style.gap = '6px';
+    row.style.flexWrap = 'nowrap';
     const column = document.createElement('div');
     column.style.display = 'flex';
     column.style.flexDirection = 'column';
@@ -247,7 +246,7 @@ export class ShellInspectorObjectBar {
     name.style.overflow = 'hidden';
     name.style.textOverflow = 'ellipsis';
     name.style.whiteSpace = 'nowrap';
-    name.style.fontSize = '11px';
+    name.style.fontSize = `${Theme.uiFontSizePx}px`;
     name.style.fontFamily = Theme.uiFontFamily;
     name.style.color = Theme.buttonTextColor;
     return name;
@@ -271,27 +270,14 @@ export class ShellInspectorObjectBar {
    */
   private textureButtonsRowCreate(): HTMLElement {
     const row = this.rowCreate('shell-inspector-current-texture-actions');
-    const browse = this.textureButtonCreate('Browse…', () => this.handlers.textureBrowse());
+    const browse = shellDockCompactButtonCreate('Browse…', () => this.handlers.textureBrowse());
     browse.classList.add('shell-inspector-texture-browse');
-    const replace = this.textureButtonCreate('Replace…', () =>
+    const replace = shellDockCompactButtonCreate('Replace…', () =>
       this.handlers.textureReplace(this.paintState.getLastTextureId()),
     );
     replace.classList.add('shell-inspector-texture-replace');
     row.append(browse, replace);
     return row;
-  }
-
-  /**
-   * Creates one compact text button of the Current texture row.
-   *
-   * @param label Button text.
-   * @param onClick Click handler.
-   * @returns Button element.
-   */
-  private textureButtonCreate(label: string, onClick: () => void): HTMLButtonElement {
-    const button = buttonCompactCreate({ title: label, widthPx: null, heightPx: 20, onClick });
-    button.style.flex = '1 1 0';
-    return button;
   }
 
   /** Updates active styling on the Groups / Objects / Solids buttons. */
@@ -300,8 +286,8 @@ export class ShellInspectorObjectBar {
     this.filterButtons.forEach((button, mode) => {
       const isActive = mode === activeMode;
       button.dataset['active'] = String(isActive);
-      button.style.background = hexToRgb(isActive ? Theme.selectionColor : Theme.buttonBackground);
-      button.style.border = `1px solid ${isActive ? hexToRgb(Theme.selectionColor) : Theme.inputBorderColor}`;
+      button.style.background = isActive ? Theme.buttonPressedBackground : hexToRgb(Theme.buttonBackground);
+      button.style.border = `1px solid ${isActive ? Theme.toggleActiveBorder : Theme.inputBorderColor}`;
     });
   }
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { IconOutlinerVisibility } from '@/outliner/ui/icon_outliner_visibility.js';
+import { Theme } from '@/theme.js';
 
 describe('IconOutlinerVisibility', () => {
   it('should return an SVG open eye that uses currentColor stroke', () => {
@@ -8,14 +9,14 @@ describe('IconOutlinerVisibility', () => {
     expect(markup).toContain('viewBox="0 0 24 24"');
     expect(markup).toContain('stroke="currentColor"');
     expect(markup).toContain('<circle');
-    expect(markup).not.toContain('#e74c3c');
+    expect(markup).not.toContain(Theme.iconOffSlashColor);
   });
 
   it('should return a hidden eye SVG with a red slash over the eye', () => {
     const markup = IconOutlinerVisibility.hiddenEye();
     expect(markup).toContain('<svg');
     expect(markup).toContain('stroke="currentColor"');
-    expect(markup).toContain('stroke="#e74c3c"');
+    expect(markup).toContain(`stroke="${Theme.iconOffSlashColor}"`);
     expect(markup).toContain('M4 4l16 16');
     expect(markup).toContain('<circle');
   });

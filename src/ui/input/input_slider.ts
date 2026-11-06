@@ -155,7 +155,7 @@ export class InputSlider {
     range.style.flex = '1 1 auto';
     range.style.minWidth = '0';
     range.style.margin = '0';
-    range.style.accentColor = hexToRgb(Theme.selectionColor);
+    range.style.accentColor = hexToRgb(Theme.toggleAccentColor);
     range.style.cursor = 'pointer';
     return range;
   }

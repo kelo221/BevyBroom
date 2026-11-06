@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 
 /**
@@ -15,6 +16,12 @@ export const SOLID_BRUSH_EDGE_USERDATA_KEY = 'isSolidBrushEdge';
 
 /** UserData flag marking materials that support distance fade uniforms. */
 export const BRUSH_EDGE_DISTANCE_FADE_KEY = 'brushEdgeDistanceFade';
+
+/** UserData key storing the 2D wire color a shared edge material draws. */
+export const BRUSH_EDGE_ORTHO_COLOR_KEY = 'brushEdgeOrthoColorHex';
+
+/** UserData key storing the CSG operation a shared edge material tints for. */
+const BRUSH_EDGE_OPERATION_KEY = 'brushEdgeOperation';
 
 /** Distance where brush edges begin fading out in the perspective viewport. */
 export const BRUSH_EDGE_FADE_NEAR = 28;
@@ -35,8 +42,8 @@ const FADE_DISABLED_NEAR = 1e7;
 const FADE_DISABLED_FAR = 1e8;
 
 /**
- * Vertex shader: projects line verts and computes distance fade for perspective
- * only. Orthographic multi-view panes share these materials; Three.js sets
+ * Vertex shader: projects line verts, computes distance fade for perspective
+ * only and tells the fragment stage which projection is drawing. Three.js sets
  * projectionMatrix[2][3] to 0 for ortho and non-zero for perspective, so 2D
  * panes stay fully opaque while 3D still distance-fades.
  */
@@ -44,6 +51,7 @@ const EDGE_VERTEX_SHADER = `
   uniform float fadeNear;
   uniform float fadeFar;
   varying float vFade;
+  varying float vPerspective;
 
   void main() {
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
@@ -51,49 +59,61 @@ const EDGE_VERTEX_SHADER = `
     if (isPerspective) {
       float distanceFromCamera = length(mvPosition.xyz);
       vFade = 1.0 - smoothstep(fadeNear, fadeFar, distanceFromCamera);
+      vPerspective = 1.0;
     } else {
       vFade = 1.0;
+      vPerspective = 0.0;
     }
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
 
 /**
- * Fragment shader: multiplies operation color by distance fade and base
+ * Fragment shader: draws the operation color in perspective and the per-object
+ * wire color in orthographic panes, multiplied by distance fade and base
  * opacity.
  */
 const EDGE_FRAGMENT_SHADER = `
   uniform vec3 diffuse;
+  uniform vec3 orthoDiffuse;
   uniform float opacity;
   varying float vFade;
+  varying float vPerspective;
 
   void main() {
     float alpha = opacity * vFade;
     if (alpha < 0.012) discard;
-    gl_FragColor = vec4(diffuse, alpha);
+    gl_FragColor = vec4(mix(orthoDiffuse, diffuse, vPerspective), alpha);
   }
 `;
 
 /**
- * Shared brush edge materials with distance fade for the 3D viewport. One
- * material exists per CSG operation color. Perspective uses depth testing so
- * edges behind solid geometry are not drawn; orthographic multi-view panes
- * disable depth so full wireframes remain readable.
+ * Shared brush edge materials. One material exists per CSG operation and 2D
+ * wire color: perspective panes draw the operation color, orthographic panes
+ * the stable per-object wire color. Perspective uses depth testing so edges
+ * behind solid geometry are not drawn; orthographic multi-view panes disable
+ * depth so full wireframes remain readable.
  */
 export class SolidBrushEdgeMaterials {
-  private static frontByOperation = new Map<SolidOperation, THREE.ShaderMaterial>();
+  private static materialsByKey = new Map<string, THREE.ShaderMaterial>();
   private static depthOcclusionEnabled = true;
   /** When set, all shared edge materials use this diffuse for one pane pass. */
   private static diffuseOverrideHex: number | null = null;
 
   /**
-   * Returns the shared edge material for a CSG operation.
+   * Returns the shared edge material for a CSG operation and 2D wire color.
    *
-   * @param operation Brush CSG operation.
+   * @param operation Brush CSG operation (3D edge color).
+   * @param orthoColorHex Wire color the edges draw in orthographic panes.
    * @returns Shared edge material.
    */
-  static getFrontMaterial(operation: SolidOperation): THREE.ShaderMaterial {
-    return this.getOrCreate(operation);
+  static getFrontMaterial(operation: SolidOperation, orthoColorHex: number): THREE.ShaderMaterial {
+    const key = `${operation}|${orthoColorHex}`;
+    const existing = this.materialsByKey.get(key);
+    if (existing) return existing;
+    const material = this.createMaterial(operation, orthoColorHex);
+    this.materialsByKey.set(key, material);
+    return material;
   }
 
   /**
@@ -106,14 +126,14 @@ export class SolidBrushEdgeMaterials {
   static setDepthOcclusionEnabled(enabled: boolean): void {
     if (this.depthOcclusionEnabled === enabled) return;
     this.depthOcclusionEnabled = enabled;
-    this.frontByOperation.forEach((material) => {
+    this.materialsByKey.forEach((material) => {
       this.applyDepthMode(material, enabled);
     });
   }
 
   /**
-   * Forces every shared brush edge material to one diffuse color for a 2D Edit
-   * Mode pane pass so non-domain brushes read as black wires.
+   * Forces every shared brush edge material to one diffuse color, in both
+   * projections, for one pane pass.
    *
    * @param color Hex color.
    */
@@ -123,8 +143,8 @@ export class SolidBrushEdgeMaterials {
   }
 
   /**
-   * Restores per-operation edge colors after a pane that used a diffuse
-   * override.
+   * Restores per-operation and per-object edge colors after a pane that used a
+   * diffuse override.
    */
   static clearDiffuseColorOverrideForRenderPass(): void {
     if (this.diffuseOverrideHex === null) {
@@ -184,47 +204,27 @@ export class SolidBrushEdgeMaterials {
   }
 
   /**
-   * Preview edge color for a CSG operation.
+   * 3D edge color for a CSG operation.
    *
    * @param operation Solid operation.
    * @returns Hex color.
    */
   static edgeColorForOperation(operation: SolidOperation): number {
-    if (operation === SolidOperation.Subtractive) return 0xff6b5a;
-    if (operation === SolidOperation.Intersecting) return 0x5dade2;
-    return 0x58d68d;
-  }
-
-  /**
-   * Gets or creates a shared edge material for an operation.
-   *
-   * @param operation CSG operation.
-   * @returns Shared shader material.
-   */
-  private static getOrCreate(operation: SolidOperation): THREE.ShaderMaterial {
-    const existing = this.frontByOperation.get(operation);
-    if (existing) return existing;
-    const material = this.createMaterial(operation);
-    this.frontByOperation.set(operation, material);
-    return material;
+    if (operation === SolidOperation.Subtractive) return Theme.solidEdgeSubtractiveColor;
+    if (operation === SolidOperation.Intersecting) return Theme.solidEdgeIntersectingColor;
+    return Theme.solidEdgeAdditiveColor;
   }
 
   /**
    * Builds one shared distance-faded edge material.
    *
-   * @param operation CSG operation for tint.
+   * @param operation CSG operation for the 3D tint.
+   * @param orthoColorHex Wire color of orthographic panes.
    * @returns Configured shader material.
    */
-  private static createMaterial(operation: SolidOperation): THREE.ShaderMaterial {
-    const hex = this.diffuseOverrideHex ?? this.edgeColorForOperation(operation);
-    const color = new THREE.Color(hex);
+  private static createMaterial(operation: SolidOperation, orthoColorHex: number): THREE.ShaderMaterial {
     const material = new THREE.ShaderMaterial({
-      uniforms: {
-        diffuse: { value: color },
-        opacity: { value: BRUSH_EDGE_FRONT_OPACITY },
-        fadeNear: { value: BRUSH_EDGE_FADE_NEAR },
-        fadeFar: { value: BRUSH_EDGE_FADE_FAR },
-      },
+      uniforms: this.createUniforms(operation, orthoColorHex),
       vertexShader: EDGE_VERTEX_SHADER,
       fragmentShader: EDGE_FRAGMENT_SHADER,
       transparent: true,
@@ -235,7 +235,27 @@ export class SolidBrushEdgeMaterials {
     });
     material.userData[BRUSH_EDGE_SHARED_MATERIAL_KEY] = true;
     material.userData[BRUSH_EDGE_DISTANCE_FADE_KEY] = true;
+    material.userData[BRUSH_EDGE_ORTHO_COLOR_KEY] = orthoColorHex;
+    material.userData[BRUSH_EDGE_OPERATION_KEY] = operation;
     return material;
+  }
+
+  /**
+   * Builds the uniform set of a shared edge material, honouring an active
+   * diffuse override.
+   *
+   * @param operation CSG operation for the 3D tint.
+   * @param orthoColorHex Wire color of orthographic panes.
+   * @returns Uniform dictionary.
+   */
+  private static createUniforms(operation: SolidOperation, orthoColorHex: number): Record<string, THREE.IUniform> {
+    return {
+      diffuse: { value: new THREE.Color(this.diffuseOverrideHex ?? this.edgeColorForOperation(operation)) },
+      orthoDiffuse: { value: new THREE.Color(this.diffuseOverrideHex ?? orthoColorHex) },
+      opacity: { value: BRUSH_EDGE_FRONT_OPACITY },
+      fadeNear: { value: BRUSH_EDGE_FADE_NEAR },
+      fadeFar: { value: BRUSH_EDGE_FADE_FAR },
+    };
   }
 
   /**
@@ -251,14 +271,42 @@ export class SolidBrushEdgeMaterials {
     material.needsUpdate = true;
   }
 
-  /** Writes override or per-operation diffuse onto every shared edge material. */
+  /** Writes the override or the own colors onto every shared edge material. */
   private static applyDiffuseToAllMaterials(): void {
-    this.frontByOperation.forEach((material, operation) => {
-      const hex = this.diffuseOverrideHex ?? this.edgeColorForOperation(operation);
-      const diffuse = material.uniforms['diffuse'];
-      if (diffuse && diffuse.value instanceof THREE.Color) {
-        diffuse.value.setHex(hex);
+    this.materialsByKey.forEach((material) => {
+      const operation = this.operationOfMaterial(material);
+      const orthoColorHex = material.userData[BRUSH_EDGE_ORTHO_COLOR_KEY];
+      this.uniformColorWrite(material, 'diffuse', this.diffuseOverrideHex ?? this.edgeColorForOperation(operation));
+      if (typeof orthoColorHex === 'number') {
+        this.uniformColorWrite(material, 'orthoDiffuse', this.diffuseOverrideHex ?? orthoColorHex);
       }
     });
+  }
+
+  /**
+   * Reads the CSG operation a shared edge material was created for.
+   *
+   * @param material Shared edge material.
+   * @returns Solid operation.
+   */
+  private static operationOfMaterial(material: THREE.ShaderMaterial): SolidOperation {
+    const value = material.userData[BRUSH_EDGE_OPERATION_KEY];
+    if (value === SolidOperation.Subtractive) return SolidOperation.Subtractive;
+    if (value === SolidOperation.Intersecting) return SolidOperation.Intersecting;
+    return SolidOperation.Additive;
+  }
+
+  /**
+   * Writes a hex color into a color uniform of a material.
+   *
+   * @param material Shader material.
+   * @param uniformName Name of the color uniform.
+   * @param hex Hex color.
+   */
+  private static uniformColorWrite(material: THREE.ShaderMaterial, uniformName: string, hex: number): void {
+    const uniform = material.uniforms[uniformName];
+    if (uniform && uniform.value instanceof THREE.Color) {
+      uniform.value.setHex(hex);
+    }
   }
 }

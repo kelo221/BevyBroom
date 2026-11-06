@@ -50,7 +50,7 @@ export function faceInspectorPreviewThumbnailCreate(sizePx: number, className: s
   thumbnail.style.flex = `0 0 ${size}`;
   thumbnail.style.border = `1px solid ${Theme.inputBorderColor}`;
   thumbnail.style.borderRadius = '2px';
-  thumbnail.style.backgroundColor = '#111';
+  thumbnail.style.backgroundColor = Theme.textureThumbnailBackground;
   thumbnail.style.backgroundSize = 'cover';
   thumbnail.style.backgroundPosition = 'center';
   return thumbnail;

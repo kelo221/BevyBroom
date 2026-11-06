@@ -75,10 +75,10 @@ describe('SolidBrushEdgeFader', () => {
     SolidBrushEdgeFader.prepareForOrthographicPass(root);
     expect(SolidBrushEdgeMaterials.isDepthOcclusionEnabled()).toBe(false);
     expect(findFrontEdge(brush).visible).toBe(true);
-    expect(SolidBrushEdgeMaterials.getFrontMaterial(SolidOperation.Additive).depthTest).toBe(false);
+    expect((findFrontEdge(brush).material as THREE.Material).depthTest).toBe(false);
     SolidBrushEdgeFader.prepareForPerspectivePass(root);
     expect(SolidBrushEdgeMaterials.isDepthOcclusionEnabled()).toBe(true);
-    expect(SolidBrushEdgeMaterials.getFrontMaterial(SolidOperation.Additive).depthTest).toBe(true);
+    expect((findFrontEdge(brush).material as THREE.Material).depthTest).toBe(true);
   });
 
   it('skips redundant full brush walks for consecutive orthographic multi-view panes', () => {

@@ -1,8 +1,61 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ViewportToolbar } from '@/ui/viewport_chrome/viewport_toolbar.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { VIEWPORT_CORNER_CLUSTER_CLASS, ViewportToolbar } from '@/ui/viewport_chrome/viewport_toolbar.js';
+import {
+  VIEWPORT_VIEW_MENU_FIT_LABEL,
+  VIEWPORT_VIEW_MENU_MAXIMIZE_LABEL,
+  VIEWPORT_VIEW_MENU_PROJECTED_GRID_LABEL,
+  VIEWPORT_VIEW_MENU_WIREFRAMES_LABEL,
+} from '@/ui/viewport_chrome/viewport_type_menu.js';
+import { VIEWPORT_SHADING_CHOICES } from '@/ui/viewport_chrome/viewport_shading_choices.js';
 import { ShadingMode } from '@/types/shading_mode.js';
-import { Theme } from '@/theme.js';
-import { ViewportKind } from '@/viewports/core/viewport_kind.js';
+import { ViewportKind, getViewportKindDisplayLabel } from '@/viewports/core/viewport_kind.js';
+
+/**
+ * Opens the view menu from the corner label and returns its panel element.
+ *
+ * @param toolbar Viewport chrome under test.
+ * @returns Open menu panel element.
+ */
+function viewportToolbarTestMenuOpen(toolbar: ViewportToolbar): HTMLElement {
+  toolbar.getTitleElement().click();
+  const panel = toolbar.getViewMenuPanel();
+  if (!panel || !panel.isOpen()) {
+    throw new Error('View menu did not open');
+  }
+  return panel.getElement();
+}
+
+/**
+ * Clicks the view menu row whose text contains a label.
+ *
+ * @param toolbar Viewport chrome under test.
+ * @param label Row label.
+ */
+function viewportToolbarTestMenuRowClick(toolbar: ViewportToolbar, label: string): void {
+  const panelElement = viewportToolbarTestMenuOpen(toolbar);
+  const row = Array.from(panelElement.querySelectorAll('button')).find((button) =>
+    (button.textContent ?? '').includes(label),
+  );
+  if (!row) {
+    throw new Error(`View menu row ${label} not found`);
+  }
+  row.click();
+}
+
+/**
+ * Returns a shading button that must exist.
+ *
+ * @param toolbar Viewport chrome under test.
+ * @param mode Shading mode of the button.
+ * @returns Hover row button.
+ */
+function viewportToolbarTestShadingButtonRead(toolbar: ViewportToolbar, mode: ShadingMode): HTMLButtonElement {
+  const button = toolbar.getShadingButton(mode);
+  if (!button) {
+    throw new Error(`No shading button for ${mode}`);
+  }
+  return button;
+}
 
 describe('ViewportToolbar', () => {
   let parent: HTMLElement;
@@ -11,168 +64,114 @@ describe('ViewportToolbar', () => {
   beforeEach(() => {
     parent = document.createElement('div');
     document.body.appendChild(parent);
-    toolbar = new ViewportToolbar(parent, 'Top', ShadingMode.WIREFRAME);
+    toolbar = new ViewportToolbar(parent, getViewportKindDisplayLabel(ViewportKind.TOP), ShadingMode.WIREFRAME);
   });
 
   afterEach(() => {
     toolbar.dispose();
-    if (parent.parentNode) {
-      parent.parentNode.removeChild(parent);
-    }
+    parent.remove();
+    document.body.replaceChildren();
   });
 
-  it('should append a toolbar strip to the parent', () => {
-    expect(parent.children.length).toBe(1);
-    expect(toolbar.getElement().parentNode).toBe(parent);
+  it('adds only a corner cluster and a hover row to the pane, with no header strip', () => {
+    expect(toolbar.getElement().parentElement).toBe(parent);
+    expect(toolbar.getElement().classList.contains(VIEWPORT_CORNER_CLUSTER_CLASS)).toBe(true);
+    expect(toolbar.getHoverRow().getElement().parentElement).toBe(parent);
+    expect(parent.children.length).toBe(2);
+    expect(parent.querySelector('.editor-viewport-toolbar')).toBeNull();
   });
 
-  it('should insert a control after the title wrapper', () => {
+  it('places the corner cluster at the top-left over the view', () => {
+    const cluster = toolbar.getElement();
+    expect(cluster.style.position).toBe('absolute');
+    expect(cluster.style.top).toBe('0px');
+    expect(cluster.style.left).toBe('0px');
+  });
+
+  it('inserts a control right after the corner label', () => {
     const control = document.createElement('button');
-    control.textContent = 'figurine';
     toolbar.insertControlAfterTitle(control);
-    const children = Array.from(toolbar.getElement().children);
-    expect(children.indexOf(control)).toBe(1);
+    expect(toolbar.getTitleElement().nextElementSibling).toBe(control);
   });
 
-  it('should display the viewport title', () => {
-    expect(toolbar.getElement().textContent).toContain('Top');
+  it('opens the view menu from the corner label and closes it on an outside press', () => {
+    viewportToolbarTestMenuOpen(toolbar);
+    expect(toolbar.getTitleElement().getAttribute('aria-expanded')).toBe('true');
+    const outside = document.createElement('div');
+    document.body.appendChild(outside);
+    outside.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 2 }));
+    expect(toolbar.getViewMenuPanel()?.isOpen()).toBe(false);
+    expect(toolbar.getTitleElement().getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('should use the compact 11px uppercase title label font', () => {
-    const title = toolbar.getTitleElement();
-    const label = title.querySelector('span');
-    expect(label).not.toBeNull();
-    expect(label!.style.fontSize).toBe('11px');
-    expect(label!.style.fontWeight).toBe('600');
-    expect(label!.style.textTransform).toBe('uppercase');
-    expect(label!.style.fontFamily).toContain('Segoe UI');
-    expect(label!.style.padding).toBe('0px 4px 0px 3px');
-  });
-
-  it('should expose a type menu caret control on the title button', () => {
-    const title = toolbar.getTitleElement();
-    expect(title.getAttribute('aria-haspopup')).toBe('menu');
-    expect(title.textContent).toContain('▾');
-  });
-
-  it('should invoke kind change callback from the type menu', () => {
+  it('switches the view kind from the view menu', () => {
     const onKind = vi.fn();
     toolbar.setOnViewportKindChange(onKind);
     toolbar.setViewportKind(ViewportKind.TOP);
-    toolbar.getTitleElement().click();
-    const panel = toolbar.getTypeMenuPanel();
-    expect(panel?.isOpen()).toBe(true);
-    const perspectiveRow = Array.from(panel!.getElement().querySelectorAll('button')).find((button) =>
-      (button.textContent ?? '').includes('Perspective'),
-    );
-    expect(perspectiveRow).toBeDefined();
-    perspectiveRow!.click();
+    viewportToolbarTestMenuRowClick(toolbar, getViewportKindDisplayLabel(ViewportKind.PERSPECTIVE));
     expect(onKind).toHaveBeenCalledWith(ViewportKind.PERSPECTIVE);
   });
 
-  it('should close the type menu on outside pointerdown without needing mousedown', () => {
-    // Perspective content preventDefault()s pointerdown (FlyingCamera), which
-    // suppresses mousedown — outside close must use pointerdown capture.
-    toolbar.setViewportKind(ViewportKind.PERSPECTIVE);
-    toolbar.getTitleElement().click();
-    const panel = toolbar.getTypeMenuPanel();
-    expect(panel?.isOpen()).toBe(true);
-    const content = document.createElement('div');
-    document.body.appendChild(content);
-    content.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
-    expect(panel?.isOpen()).toBe(false);
-    content.remove();
-  });
-
-  it('should close the type menu on outside right-button pointerdown', () => {
-    toolbar.setViewportKind(ViewportKind.PERSPECTIVE);
-    toolbar.getTitleElement().click();
-    const panel = toolbar.getTypeMenuPanel();
-    expect(panel?.isOpen()).toBe(true);
-    const content = document.createElement('div');
-    document.body.appendChild(content);
-    content.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 2 }));
-    expect(panel?.isOpen()).toBe(false);
-    content.remove();
-  });
-
-  it('should use the configured viewport toolbar height', () => {
-    expect(toolbar.getElement().style.height).toBe(`${Theme.viewportToolbarHeightPx}px`);
-  });
-
-  it('should highlight the initial shading mode', () => {
-    expect(toolbar.getActiveShadingMode()).toBe(ShadingMode.WIREFRAME);
-    const wireButton = toolbar.getShadingButton(ShadingMode.WIREFRAME);
-    expect(wireButton?.dataset['active']).toBe('true');
-  });
-
-  it('should expose solid, wireframe, and flat buttons', () => {
-    expect(toolbar.getShadingButton(ShadingMode.SOLID)).toBeDefined();
-    expect(toolbar.getShadingButton(ShadingMode.WIREFRAME)).toBeDefined();
-    expect(toolbar.getShadingButton(ShadingMode.FLAT)).toBeDefined();
-  });
-
-  it('should place wireframe and projected-grid toggles left of shading with a separator', () => {
-    const row = toolbar.getContentWireframesButton().parentElement;
-    expect(row).not.toBeNull();
-    const children = Array.from(row!.children);
-    const wireIndex = children.indexOf(toolbar.getContentWireframesButton());
-    const gridIndex = children.indexOf(toolbar.getProjectedGridButton());
-    const solidIndex = children.indexOf(toolbar.getShadingButton(ShadingMode.SOLID)!);
-    expect(wireIndex).toBeLessThan(gridIndex);
-    expect(gridIndex).toBeLessThan(solidIndex);
-    const separator = children[gridIndex + 1] as HTMLElement;
-    expect(separator.style.width).toBe('1px');
-    expect(toolbar.isContentWireframesActive()).toBe(true);
-    expect(toolbar.isProjectedGridActive()).toBe(true);
-  });
-
-  it('should toggle content wireframes and notify the callback', () => {
-    const onToggle = vi.fn();
-    toolbar.setOnContentWireframesToggle(onToggle);
-    toolbar.getContentWireframesButton().click();
-    expect(toolbar.isContentWireframesActive()).toBe(false);
-    expect(onToggle).toHaveBeenCalledWith(false);
-    toolbar.getContentWireframesButton().click();
-    expect(toolbar.isContentWireframesActive()).toBe(true);
-    expect(onToggle).toHaveBeenCalledWith(true);
-  });
-
-  it('should toggle projected grid and notify the callback', () => {
-    const onToggle = vi.fn();
-    toolbar.setOnProjectedGridToggle(onToggle);
-    toolbar.getProjectedGridButton().click();
-    expect(toolbar.isProjectedGridActive()).toBe(false);
-    expect(onToggle).toHaveBeenCalledWith(false);
-  });
-
-  it('should invoke shading callback and update active mode', () => {
+  it('applies the same shading handler from the menu and from the hover buttons', () => {
     const onMode = vi.fn();
     toolbar.setOnShadingMode(onMode);
-    toolbar.getShadingButton(ShadingMode.SOLID)?.click();
-    expect(onMode).toHaveBeenCalledWith(ShadingMode.SOLID);
+    viewportToolbarTestMenuRowClick(toolbar, 'Solid');
+    expect(onMode).toHaveBeenLastCalledWith(ShadingMode.SOLID);
     expect(toolbar.getActiveShadingMode()).toBe(ShadingMode.SOLID);
+    viewportToolbarTestShadingButtonRead(toolbar, ShadingMode.FLAT).click();
+    expect(onMode).toHaveBeenLastCalledWith(ShadingMode.FLAT);
+    expect(toolbar.getActiveShadingMode()).toBe(ShadingMode.FLAT);
+    expect(viewportToolbarTestShadingButtonRead(toolbar, ShadingMode.FLAT).dataset['active']).toBe('true');
+    expect(viewportToolbarTestShadingButtonRead(toolbar, ShadingMode.SOLID).dataset['active']).toBe('false');
   });
 
-  it('should invoke fit callback when Fit is clicked', () => {
-    const onFit = vi.fn();
-    toolbar.setOnFit(onFit);
-    toolbar.getFitButton().click();
-    expect(onFit).toHaveBeenCalledTimes(1);
-  });
-
-  it('should invoke maximize callback and expose restore state', () => {
+  it('runs the same maximize handler from the menu and from the hover button', () => {
     const onToggleMaximize = vi.fn();
     toolbar.setOnToggleMaximize(onToggleMaximize);
+    viewportToolbarTestMenuRowClick(toolbar, VIEWPORT_VIEW_MENU_MAXIMIZE_LABEL);
     toolbar.getMaximizeButton().click();
-    expect(onToggleMaximize).toHaveBeenCalledTimes(1);
-
-    toolbar.setMaximized(true);
-    expect(toolbar.getMaximizeButton().dataset['active']).toBe('true');
-    expect(toolbar.getMaximizeButton().title).toBe('Restore viewport layout');
+    expect(onToggleMaximize).toHaveBeenCalledTimes(2);
   });
 
-  it('should remove itself on dispose', () => {
+  it('shows the maximized state on the hover button', () => {
+    toolbar.setMaximized(true);
+    expect(toolbar.isMaximized()).toBe(true);
+    expect(toolbar.getMaximizeButton().dataset['active']).toBe('true');
+    expect(toolbar.getMaximizeButton().title).toBe('Restore viewport layout');
+    toolbar.setMaximized(false);
+    expect(toolbar.getMaximizeButton().dataset['active']).toBe('false');
+  });
+
+  it('runs the fit handler from Fit to Selection', () => {
+    const onFit = vi.fn();
+    toolbar.setOnFit(onFit);
+    viewportToolbarTestMenuRowClick(toolbar, VIEWPORT_VIEW_MENU_FIT_LABEL);
+    expect(onFit).toHaveBeenCalledOnce();
+  });
+
+  it('toggles content wireframes and the projected grid from the menu', () => {
+    const onWireframes = vi.fn();
+    const onGrid = vi.fn();
+    toolbar.setOnContentWireframesToggle(onWireframes);
+    toolbar.setOnProjectedGridToggle(onGrid);
+    const wireframesBefore = toolbar.isContentWireframesActive();
+    const gridBefore = toolbar.isProjectedGridActive();
+    viewportToolbarTestMenuRowClick(toolbar, VIEWPORT_VIEW_MENU_WIREFRAMES_LABEL);
+    viewportToolbarTestMenuRowClick(toolbar, VIEWPORT_VIEW_MENU_PROJECTED_GRID_LABEL);
+    expect(onWireframes).toHaveBeenCalledWith(!wireframesBefore);
+    expect(onGrid).toHaveBeenCalledWith(!gridBefore);
+    expect(toolbar.isContentWireframesActive()).toBe(!wireframesBefore);
+    expect(toolbar.isProjectedGridActive()).toBe(!gridBefore);
+  });
+
+  it('offers one hover button per shading choice and highlights the initial mode', () => {
+    VIEWPORT_SHADING_CHOICES.forEach((choice) => {
+      const button = viewportToolbarTestShadingButtonRead(toolbar, choice.mode);
+      expect(button.dataset['active']).toBe(choice.mode === ShadingMode.WIREFRAME ? 'true' : 'false');
+    });
+  });
+
+  it('removes the corner cluster and the hover row on dispose', () => {
     toolbar.dispose();
     expect(parent.children.length).toBe(0);
   });

@@ -2,11 +2,14 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   SHELL_INFO_PANEL_TABS,
   ShellInfoPanel,
+  type ShellInfoPanelStripClick,
   type ShellInfoPanelTabId,
 } from '@/layout/shell/info_panel/shell_info_panel.js';
+import { SHELL_INFO_PANEL_COLLAPSED_CLASS } from '@/layout/shell/info_panel/shell_info_panel_styles.js';
+import { infoPanelStripRevealTabWrite } from '@/info_panel/strip/info_panel_strip_reveal.js';
 import { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
 import { shellStateDefaultCreate } from '@/layout/shell/state/shell_state.js';
-import { shellTestStorageCreate } from '../shell_test_support.js';
+import { shellTestInfoPanelTabButtonRead, shellTestStorageCreate } from '../shell_test_support.js';
 
 /** Every info panel tab id. */
 const SHELL_INFO_PANEL_TEST_TAB_IDS: readonly ShellInfoPanelTabId[] = ['console', 'issues'];
@@ -58,6 +61,35 @@ describe('ShellInfoPanel', () => {
     const second = shellInfoPanelTestCreate(storage);
     expect(second.infoPanel.activeTabIdRead()).toBe('issues');
     expect(second.infoPanel.slotRead('issues').isConnected).toBe(true);
+  });
+
+  it('puts the strip summary slot after the tab buttons and hides the pages while folded', () => {
+    const { infoPanel } = shellInfoPanelTestCreate(shellTestStorageCreate());
+    const strip = infoPanel.stripElementRead();
+    expect(strip.lastElementChild).toBe(infoPanel.stripSummarySlotRead());
+    infoPanel.collapsedApply(true);
+    expect(infoPanel.isCollapsedShown()).toBe(true);
+    expect(infoPanel.getElement().classList.contains(SHELL_INFO_PANEL_COLLAPSED_CLASS)).toBe(true);
+    infoPanel.collapsedApply(false);
+    expect(infoPanel.isCollapsedShown()).toBe(false);
+  });
+
+  it('reports tab and reveal element clicks with the tab shown before the click', () => {
+    const { infoPanel } = shellInfoPanelTestCreate(shellTestStorageCreate());
+    const clicks: ShellInfoPanelStripClick[] = [];
+    infoPanel.stripClickListenerAdd((click) => clicks.push(click));
+    const activeTabId = infoPanel.activeTabIdRead();
+    const otherTabId = SHELL_INFO_PANEL_TEST_TAB_IDS.find((tabId) => tabId !== activeTabId) ?? 'issues';
+    shellTestInfoPanelTabButtonRead(infoPanel, otherTabId).click();
+    const revealElement = document.createElement('span');
+    infoPanelStripRevealTabWrite(revealElement, 'console');
+    infoPanel.stripSummarySlotRead().appendChild(revealElement);
+    revealElement.click();
+    infoPanel.stripSummarySlotRead().click();
+    expect(clicks).toEqual([
+      { tabId: otherTabId, isTabButton: true, wasActiveTab: false },
+      { tabId: 'console', isTabButton: false, wasActiveTab: otherTabId === 'console' },
+    ]);
   });
 
   it('throws for slots after dispose', () => {

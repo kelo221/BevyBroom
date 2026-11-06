@@ -192,7 +192,7 @@ export class ObjectPropertiesLogicTable {
     badge.style.marginRight = '4px';
     badge.style.borderRadius = '2px';
     badge.style.background = Theme.logicTargetBrokenColor;
-    badge.style.color = '#ffffff';
+    badge.style.color = Theme.inverseTextColor;
     badge.style.textAlign = 'center';
     badge.style.fontWeight = '700';
     return badge;

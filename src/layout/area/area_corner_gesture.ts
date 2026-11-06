@@ -1,4 +1,5 @@
 import { Theme } from '@/theme.js';
+import { hexToRgb } from '@/utils/utils_color.js';
 import { WindowPointerDragSession } from '@/utils/session_window_pointer_drag.js';
 import type { ControllerAreaLayout } from './controller_area_layout.js';
 import type { AreaLeafPlacement } from './area_leaf_placement.js';
@@ -148,7 +149,7 @@ export class AreaCornerGesture {
     const line = document.createElement('div');
     line.classList.add('editor-area-split-preview-line');
     line.style.position = 'absolute';
-    line.style.background = `#${Theme.selectionColor.toString(16).padStart(6, '0')}`;
+    line.style.background = Theme.focusOutline;
     line.style.pointerEvents = 'none';
     line.style.opacity = '0.9';
     line.style.display = 'none';
@@ -372,8 +373,8 @@ export class AreaCornerGesture {
     this.previewHighlight.style.top = `${target.rect.y * 100}%`;
     this.previewHighlight.style.width = `${target.rect.width * 100}%`;
     this.previewHighlight.style.height = `${target.rect.height * 100}%`;
-    this.previewHighlight.style.background = 'rgba(232, 106, 23, 0.18)';
-    this.previewHighlight.style.border = `1px solid #${Theme.selectionColor.toString(16).padStart(6, '0')}`;
+    this.previewHighlight.style.background = Theme.areaJoinPreviewOverlay;
+    this.previewHighlight.style.border = `1px solid ${Theme.focusOutline}`;
   }
 
   /**
@@ -388,8 +389,8 @@ export class AreaCornerGesture {
     this.previewHighlight.style.top = `${placement.rect.y * 100}%`;
     this.previewHighlight.style.width = `${placement.rect.width * 100}%`;
     this.previewHighlight.style.height = `${placement.rect.height * 100}%`;
-    this.previewHighlight.style.background = 'rgba(61, 184, 201, 0.16)';
-    this.previewHighlight.style.border = `1px dashed #${Theme.clipPoint2Color.toString(16).padStart(6, '0')}`;
+    this.previewHighlight.style.background = Theme.areaDetachPreviewOverlay;
+    this.previewHighlight.style.border = `1px dashed ${hexToRgb(Theme.clipPoint2Color)}`;
   }
 
   /** Hides all preview visuals. */

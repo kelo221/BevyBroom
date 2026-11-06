@@ -24,10 +24,10 @@ export const SHELL_FRAME_TOOLS_PALETTE_CLASS = 'shell-tools-palette-host';
 export type ShellFrameVisibilityListener = () => void;
 
 /**
- * Main window skeleton: a menu bar row, a toolbar row, the vertical tools
- * palette on the left, the map views with a view bar above them and the info
- * panel below them, and the inspector on the right. Dock sizes and visibility
- * are kept in the shell state store.
+ * Main window skeleton: a menu bar row, a single toolbar row, the vertical
+ * tools palette on the left, the map views with the info panel below them, and
+ * the inspector on the right. Dock sizes and visibility are kept in the shell
+ * state store.
  */
 export class ShellFrame {
   private readonly root: HTMLElement;
@@ -37,9 +37,6 @@ export class ShellFrame {
   private readonly inspectorSplitter: SplitterBox;
   private readonly infoPanelSplitter: SplitterBox;
   private readonly viewColumn: HTMLElement;
-  private readonly viewBar: HTMLElement;
-  private readonly viewBarToolSlot: HTMLElement;
-  private readonly viewBarWorkspaceSlot: HTMLElement;
   private readonly toolsPaletteHost: HTMLElement;
   private readonly visibilityListeners: Set<ShellFrameVisibilityListener>;
 
@@ -58,9 +55,6 @@ export class ShellFrame {
     this.toolbarHost = this.rowCreate('shell-toolbar-host');
     this.inspectorSplitter = this.inspectorSplitterCreate(stateStore.getState());
     this.infoPanelSplitter = this.infoPanelSplitterCreate(stateStore.getState());
-    this.viewBar = this.viewBarCreate();
-    this.viewBarToolSlot = this.viewBarSlotCreate('shell-view-bar-tool-slot', '1 1 auto');
-    this.viewBarWorkspaceSlot = this.viewBarSlotCreate('shell-view-bar-workspace-slot', '0 0 auto');
     this.viewColumn = this.viewColumnCreate();
     this.toolsPaletteHost = this.toolsPaletteHostCreate();
     this.splittersMount();
@@ -95,30 +89,12 @@ export class ShellFrame {
   }
 
   /**
-   * Returns the column that holds the view bar and the map views.
+   * Returns the column that holds the map views.
    *
    * @returns View column.
    */
   viewColumnRead(): HTMLElement {
     return this.viewColumn;
-  }
-
-  /**
-   * Returns the part of the view bar that holds the tool options.
-   *
-   * @returns Tool options slot.
-   */
-  viewBarToolSlotRead(): HTMLElement {
-    return this.viewBarToolSlot;
-  }
-
-  /**
-   * Returns the part of the view bar that holds the workspace tabs.
-   *
-   * @returns Workspace tabs slot.
-   */
-  viewBarWorkspaceSlotRead(): HTMLElement {
-    return this.viewBarWorkspaceSlot;
   }
 
   /**
@@ -186,6 +162,45 @@ export class ShellFrame {
     this.infoPanelSplitter.setSizedPaneCollapsed(!visible);
     this.stateStore.update({ infoPanelVisible: visible });
     this.visibilityListenersNotify();
+  }
+
+  /**
+   * Returns whether the info panel is folded to its one-line strip.
+   *
+   * @returns True while folded.
+   */
+  isInfoPanelCollapsed(): boolean {
+    return this.infoPanelSplitter.getSizedPanePinnedPx() !== null;
+  }
+
+  /**
+   * Folds the info panel to its one-line strip, giving the map views the freed
+   * space, or unfolds it to its remembered height, and remembers the choice.
+   *
+   * @param collapsed True to fold it.
+   */
+  infoPanelCollapsedSet(collapsed: boolean): void {
+    this.infoPanelSplitter.setSizedPanePinnedPx(collapsed ? Theme.infoStripHeightPx : null);
+    this.stateStore.update({ infoPanelCollapsed: collapsed });
+    this.visibilityListenersNotify();
+  }
+
+  /**
+   * Returns the height the info panel unfolds to.
+   *
+   * @returns Remembered expanded height in CSS pixels.
+   */
+  infoPanelExpandedHeightPxRead(): number {
+    return this.infoPanelSplitter.getSizedPaneSizePx();
+  }
+
+  /**
+   * Returns the column that holds the map views above the info panel.
+   *
+   * @returns Map views pane.
+   */
+  viewsPaneRead(): HTMLElement {
+    return this.infoPanelSplitter.getFirstPane();
   }
 
   /**
@@ -321,44 +336,7 @@ export class ShellFrame {
   }
 
   /**
-   * Creates the view bar row above the map views.
-   *
-   * @returns View bar element.
-   */
-  private viewBarCreate(): HTMLElement {
-    const bar = document.createElement('div');
-    bar.classList.add('shell-view-bar');
-    bar.style.display = 'flex';
-    bar.style.alignItems = 'center';
-    bar.style.flex = '0 0 auto';
-    bar.style.minHeight = '30px';
-    bar.style.gap = '6px';
-    bar.style.padding = '0 4px';
-    bar.style.background = hexToRgb(Theme.toolbarBackground);
-    bar.style.borderBottom = `1px solid ${hexToRgb(Theme.separatorColor)}`;
-    return bar;
-  }
-
-  /**
-   * Creates one part of the view bar.
-   *
-   * @param className CSS class of the part.
-   * @param flex CSS flex value of the part.
-   * @returns Slot element appended to the view bar.
-   */
-  private viewBarSlotCreate(className: string, flex: string): HTMLElement {
-    const slot = document.createElement('div');
-    slot.classList.add(className);
-    slot.style.display = 'flex';
-    slot.style.alignItems = 'center';
-    slot.style.flex = flex;
-    slot.style.minWidth = '0';
-    this.viewBar.appendChild(slot);
-    return slot;
-  }
-
-  /**
-   * Creates the column that stacks the view bar over the map views.
+   * Creates the column that holds the map views.
    *
    * @returns View column.
    */
@@ -370,7 +348,6 @@ export class ShellFrame {
     column.style.flex = '1 1 auto';
     column.style.minWidth = '0';
     column.style.minHeight = '0';
-    column.appendChild(this.viewBar);
     return column;
   }
 
@@ -416,6 +393,7 @@ export class ShellFrame {
   private visibilityRestore(state: ShellState): void {
     this.inspectorSplitter.setSizedPaneCollapsed(!state.inspectorVisible);
     this.infoPanelSplitter.setSizedPaneCollapsed(!state.infoPanelVisible);
+    this.infoPanelSplitter.setSizedPanePinnedPx(state.infoPanelCollapsed ? Theme.infoStripHeightPx : null);
     this.toolbarHost.style.display = state.toolbarVisible ? 'flex' : 'none';
     this.toolsPaletteHost.style.display = state.toolsPaletteVisible ? 'flex' : 'none';
   }

@@ -1,5 +1,11 @@
-import { Theme } from '@/theme.js';
-import { hexToRgb } from '@/utils/utils_color.js';
+import {
+  dialogChromeActionButtonApply,
+  dialogChromeBodyTextApply,
+  dialogChromeCaptionApply,
+  dialogChromePanelApply,
+  dialogChromeReadonlyFieldApply,
+  dialogChromeTitleApply,
+} from '@/ui/dialog/dialog_chrome_styles.js';
 import type { BridgeMcpDesktop } from './bridge_mcp_desktop.js';
 import type { McpHostStatus } from '@/ai/shared/mcp_protocol_types.js';
 import { PanelFloating } from '@/ui/floating_panel/panel_floating.js';
@@ -102,18 +108,9 @@ class DialogMcp extends PanelFloating {
     this.root.addEventListener('mousedown', (event) => event.stopPropagation());
   }
 
-  /** Applies dark gradient panel styles to the dialog root. */
+  /** Applies classic Windows dialog chrome to the dialog root. */
   private applyPanelChrome(): void {
-    this.root.style.minWidth = '420px';
-    this.root.style.maxWidth = '520px';
-    this.root.style.padding = '18px 20px 16px';
-    this.root.style.borderRadius = '10px';
-    this.root.style.background = `linear-gradient(180deg, ${hexToRgb(Theme.toolbarBackground)} 0%, ${hexToRgb(Theme.toolbarBackgroundEnd)} 100%)`;
-    this.root.style.border = '1px solid rgba(255,255,255,0.1)';
-    this.root.style.boxShadow = '0 18px 48px rgba(0,0,0,0.65)';
-    this.root.style.color = Theme.buttonTextColor;
-    this.root.style.boxSizing = 'border-box';
-    this.root.style.fontFamily = Theme.uiFontFamily;
+    dialogChromePanelApply(this.root, 420, 520);
   }
 
   /**
@@ -125,11 +122,7 @@ class DialogMcp extends PanelFloating {
     const title = document.createElement('h2');
     title.id = 'editor-mcp-dialog-title';
     title.textContent = 'MCP Server';
-    title.style.margin = '0 0 10px';
-    title.style.fontSize = '15px';
-    title.style.fontWeight = '600';
-    title.style.letterSpacing = '0.01em';
-    title.style.color = '#f0f0f0';
+    dialogChromeTitleApply(title);
     return title;
   }
 
@@ -140,9 +133,7 @@ class DialogMcp extends PanelFloating {
    */
   private createStatusLine(): HTMLElement {
     this.statusLine.style.margin = '0 0 12px';
-    this.statusLine.style.fontSize = '13px';
-    this.statusLine.style.lineHeight = '1.45';
-    this.statusLine.style.color = '#c8c8c8';
+    dialogChromeBodyTextApply(this.statusLine, false);
     this.statusLine.textContent = 'Status: checking…';
     return this.statusLine;
   }
@@ -155,9 +146,7 @@ class DialogMcp extends PanelFloating {
   private createInstructions(): HTMLElement {
     const body = document.createElement('p');
     body.style.margin = '0 0 14px';
-    body.style.fontSize = '13px';
-    body.style.lineHeight = '1.45';
-    body.style.color = '#c8c8c8';
+    dialogChromeBodyTextApply(body, false);
     body.style.whiteSpace = 'pre-wrap';
     body.textContent = [
       'Lets AI tools (such as Grok Build) edit this map while the desktop app is open.',
@@ -181,12 +170,7 @@ class DialogMcp extends PanelFloating {
     block.style.margin = '0 0 16px';
     const caption = document.createElement('div');
     caption.textContent = label;
-    caption.style.fontSize = '11px';
-    caption.style.fontWeight = '600';
-    caption.style.color = '#a0a0a0';
-    caption.style.marginBottom = '4px';
-    caption.style.textTransform = 'uppercase';
-    caption.style.letterSpacing = '0.04em';
+    dialogChromeCaptionApply(caption);
     block.appendChild(caption);
     block.appendChild(field);
     return block;
@@ -204,15 +188,7 @@ class DialogMcp extends PanelFloating {
     field.readOnly = true;
     field.dataset['mcpField'] = testId;
     field.value = '—';
-    field.style.width = '100%';
-    field.style.boxSizing = 'border-box';
-    field.style.padding = '8px 10px';
-    field.style.borderRadius = '6px';
-    field.style.border = '1px solid rgba(255,255,255,0.12)';
-    field.style.background = 'rgba(0,0,0,0.35)';
-    field.style.color = '#e8e8e8';
-    field.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
-    field.style.fontSize = '12px';
+    dialogChromeReadonlyFieldApply(field);
     field.addEventListener('focus', () => field.select());
     return field;
   }
@@ -279,14 +255,7 @@ class DialogMcp extends PanelFloating {
    * @param isPrimary Whether the button is the primary action.
    */
   private styleActionButton(button: HTMLButtonElement, isPrimary: boolean): void {
-    button.style.padding = '7px 14px';
-    button.style.borderRadius = '6px';
-    button.style.fontSize = '13px';
-    button.style.fontWeight = '600';
-    button.style.cursor = 'pointer';
-    button.style.border = isPrimary ? '1px solid rgba(232,106,23,0.65)' : '1px solid rgba(255,255,255,0.12)';
-    button.style.background = isPrimary ? 'rgba(232,106,23,0.22)' : 'rgba(255,255,255,0.06)';
-    button.style.color = isPrimary ? '#f0a060' : '#e0e0e0';
+    dialogChromeActionButtonApply(button, isPrimary);
   }
 
   /** Loads host status into the dialog fields. */

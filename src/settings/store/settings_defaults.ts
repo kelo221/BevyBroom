@@ -129,7 +129,8 @@ function createDefaultFaceUvShortcuts(): Pick<
  * Default view, play, panel and selection shortcuts that follow map editor
  * conventions: Space cycles the hovered view, Ctrl+Space maximizes it, Ctrl+1
  * shows the Map inspector, Ctrl+4 and Ctrl+5 toggle the info panel and
- * inspector, Alt+Enter opens Object Properties.
+ * inspector, Ctrl+` collapses the info panel to its strip, Alt+Enter opens
+ * Object Properties.
  *
  * @returns Partial keyboard shortcut settings.
  */
@@ -140,6 +141,7 @@ function createDefaultWindowShortcuts(): Pick<
   | 'play_start'
   | 'inspector_map'
   | 'info_panel_toggle'
+  | 'info_panel_collapse_toggle'
   | 'inspector_toggle'
   | 'toolbar_toggle'
   | 'select_all'
@@ -155,6 +157,7 @@ function createDefaultWindowShortcuts(): Pick<
     play_start: createShortcut('F5'),
     inspector_map: createShortcut('Digit1', true),
     info_panel_toggle: createShortcut('Digit4', true),
+    info_panel_collapse_toggle: createShortcut('Backquote', true),
     inspector_toggle: createShortcut('Digit5', true),
     toolbar_toggle: createShortcut('KeyT', true, false, true),
     select_all: createShortcut('KeyA', true),

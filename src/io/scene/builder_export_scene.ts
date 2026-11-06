@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { DECORATIVE_EDGE_USERDATA_KEY, isSolidBrushEdge } from '@/utils/mesh_edge_sync.js';
@@ -336,7 +337,7 @@ function createStandardMaterialFromContent(
 ): THREE.MeshStandardMaterial {
   const map = isEditorOnlySurfaceMap(material.map ?? null) ? null : (material.map ?? null);
   return new THREE.MeshStandardMaterial({
-    color: material.color?.clone() ?? new THREE.Color(0xffffff),
+    color: material.color?.clone() ?? new THREE.Color(MaterialColorNeutral.white),
     map,
     metalness: CONTENT_METALNESS,
     roughness: CONTENT_ROUGHNESS,

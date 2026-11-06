@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
 import { TransformModalAxis } from './transform_modal_axis.js';
 import { TransformProjectionMath } from '@/transform/core/transform_projection_math.js';
 import { transformModalAxisToGizmoAxis } from './transform_modal_effective_axis.js';
@@ -28,8 +29,8 @@ export function transformModalAxisWorldVector(
  * @returns Hex color matching gizmo axes, or white when unlocked.
  */
 export function transformModalAxisColorHex(axis: TransformModalAxis): number {
-  if (axis === TransformModalAxis.X) return 0xff3333;
-  if (axis === TransformModalAxis.Y) return 0x33ff33;
-  if (axis === TransformModalAxis.Z) return 0x3333ff;
-  return 0xffffff;
+  if (axis === TransformModalAxis.X) return Theme.gizmoXAxisColor;
+  if (axis === TransformModalAxis.Y) return Theme.gizmoYAxisColor;
+  if (axis === TransformModalAxis.Z) return Theme.gizmoZAxisColor;
+  return Theme.gizmoHoverColor;
 }

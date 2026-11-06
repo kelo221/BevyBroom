@@ -7,18 +7,23 @@ import { emptySchema, tool, type McpToolDefinition } from './registry_mcp_tool_h
 export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(
     'get_main_window',
-    'The main window arrangement: inspectorVisible, infoPanelVisible and infoPanelTab (console or issues), toolbarVisible, the menu bar titles in order, and floatingWindows (texture_browser, entity_browser) as true while shown.',
+    'The main window arrangement: inspectorVisible, infoPanelVisible, infoPanelCollapsed (folded to its one-line strip) and infoPanelTab (console or issues), toolbarVisible, the menu bar titles in order, and floatingWindows (texture_browser, entity_browser) as true while shown.',
     emptySchema(),
   ),
   tool(
     'set_main_window',
-    'Show or hide the inspector, info panel and toolbar, switch the info panel tab, and show or hide floating windows. Omitted fields stay as they are. Returns the new arrangement like get_main_window.',
+    'Show or hide the inspector, info panel and toolbar, fold or unfold the info panel, switch the info panel tab, and show or hide floating windows. Omitted fields stay as they are. Returns the new arrangement like get_main_window.',
     {
       type: 'object',
       properties: {
         inspectorVisible: { type: 'boolean', description: 'Show or hide the inspector on the right.' },
         infoPanelTab: { type: 'string', enum: ['console', 'issues'], description: 'Info panel tab to show.' },
         infoPanelVisible: { type: 'boolean', description: 'Show or hide the info panel below the views.' },
+        infoPanelCollapsed: {
+          type: 'boolean',
+          description:
+            'Fold the info panel to its one-line strip (true) or unfold it to its remembered height (false).',
+        },
         toolbarVisible: { type: 'boolean', description: 'Show or hide the icon toolbar.' },
         floatingWindows: {
           type: 'object',
@@ -31,6 +36,11 @@ export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
         },
       },
     },
+  ),
+  tool(
+    'get_shell_layout',
+    'Read-only screen rectangles ({x, y, width, height} in CSS pixels) of the main window areas: views (map views above the info panel), infoPanel (Console / Issues panel) and inspector (right dock). Hidden areas are zero sized.',
+    emptySchema(),
   ),
   tool(
     'get_object_properties_dialog',

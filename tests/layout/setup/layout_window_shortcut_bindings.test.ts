@@ -102,7 +102,13 @@ function windowActionsEditSpyCreate(): Pick<
  * @returns Spy dock commands.
  */
 function dockCommandsSpyCreate(): LayoutWindowShortcutDockCommands {
-  return { inspectorReveal: vi.fn(), inspectorToggle: vi.fn(), infoPanelToggle: vi.fn(), toolbarToggle: vi.fn() };
+  return {
+    inspectorReveal: vi.fn(),
+    inspectorToggle: vi.fn(),
+    infoPanelToggle: vi.fn(),
+    infoPanelCollapsedToggle: vi.fn(),
+    toolbarToggle: vi.fn(),
+  };
 }
 
 /**
@@ -176,6 +182,26 @@ describe('layout window shortcut bindings', () => {
     expect(dockCommands.infoPanelToggle).toHaveBeenCalledOnce();
     expect(dockCommands.toolbarToggle).toHaveBeenCalledOnce();
     handler.unregister();
+  });
+
+  it('collapses and expands the info panel from its own shortcut without hiding it', () => {
+    const dockCommands = dockCommandsSpyCreate();
+    const handler = handlerWithWindowShortcutsCreate(windowActionsSpyCreate(), dockCommands);
+    defaultShortcutPress('info_panel_collapse_toggle');
+    expect(dockCommands.infoPanelCollapsedToggle).toHaveBeenCalledOnce();
+    expect(dockCommands.infoPanelToggle).not.toHaveBeenCalled();
+    handler.unregister();
+  });
+
+  it('binds the info panel collapse shortcut to a key no other default shortcut uses', () => {
+    const defaults = createDefaultKeyboardShortcutSettings();
+    const collapseShortcut = defaults.info_panel_collapse_toggle;
+    const clashingActions = (Object.keys(defaults) as KeyboardShortcutAction[]).filter(
+      (action) =>
+        action !== 'info_panel_collapse_toggle' &&
+        JSON.stringify(defaults[action]) === JSON.stringify(collapseShortcut),
+    );
+    expect(clashingActions).toEqual([]);
   });
 
   it('opens Object Properties from Alt+Enter', () => {

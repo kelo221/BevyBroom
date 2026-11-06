@@ -1,3 +1,6 @@
+import { Theme } from '@/theme.js';
+import { hexToRgb } from '@/utils/utils_color.js';
+
 /** Identifier used to keep the view settings stylesheet singular. */
 const VIEW_SETTINGS_STYLE_ID = 'bevybroom-view-settings-styles';
 
@@ -97,25 +100,26 @@ function buildLightThemeCss(): string {
 function buildLightThemeDropdownCss(): string {
   return `html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-menu,
 html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-submenu {
-  background: #ffffff !important;
-  border-color: #767676 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
+  background: ${Theme.panelSunkenBackground} !important;
+  border-color: ${Theme.inputBorderColor} !important;
+  box-shadow: ${Theme.menuShadow} !important;
 }
 html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-item {
   background: transparent !important;
-  color: #0a0a0a !important;
+  color: ${Theme.buttonTextColor} !important;
   border-color: transparent !important;
 }
 html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-item:hover:not(:disabled) {
-  background: #e5f3ff !important;
-  border-color: #0078d4 !important;
+  background: ${Theme.menuHighlightBackground} !important;
+  color: ${Theme.menuHighlightTextColor} !important;
+  border-color: ${Theme.focusOutline} !important;
 }
 html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-shortcut,
 html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-submenu-caret {
-  color: #5a5a5a !important;
+  color: ${Theme.secondaryTextColor} !important;
 }
 html[data-bevybroom-theme='light'] .editor-toolbar-dropdown-separator {
-  background: #d0d0d0 !important;
+  background: ${Theme.menuSeparatorColor} !important;
 }`;
 }
 
@@ -128,8 +132,8 @@ function buildLightThemeFrameCss(): string {
   return `html[data-bevybroom-theme='light'],
 html[data-bevybroom-theme='light'] body,
 html[data-bevybroom-theme='light'] #editor-container {
-  background: #ffffff !important;
-  color: #0a0a0a !important;
+  background: ${Theme.panelSunkenBackground} !important;
+  color: ${Theme.buttonTextColor} !important;
 }`;
 }
 
@@ -140,25 +144,20 @@ html[data-bevybroom-theme='light'] #editor-container {
  */
 function buildLightThemeChromeCss(): string {
   return `html[data-bevybroom-theme='light'] .editor-toolbar,
-html[data-bevybroom-theme='light'] .editor-status-bar,
-html[data-bevybroom-theme='light'] .editor-viewport-toolbar {
-  background: #e5e5e5 !important;
-  border-color: #c6c6c6 !important;
-  color: #0a0a0a !important;
+html[data-bevybroom-theme='light'] .editor-status-bar {
+  background: ${hexToRgb(Theme.toolbarBackgroundEnd)} !important;
+  border-color: ${Theme.chromeBorderColor} !important;
+  color: ${Theme.buttonTextColor} !important;
   box-shadow: none !important;
 }
 
-html[data-bevybroom-theme='light'] .editor-toolbar button,
-html[data-bevybroom-theme='light'] .editor-viewport-toolbar button {
+html[data-bevybroom-theme='light'] .editor-toolbar button {
   background: transparent !important;
-  color: #0a0a0a !important;
+  color: ${Theme.buttonTextColor} !important;
   border-color: transparent !important;
 }
-html[data-bevybroom-theme='light'] .editor-viewport-title {
-  color: #0a0a0a !important;
-}
 html[data-bevybroom-theme='light'] .editor-status-bar * {
-  color: #0a0a0a !important;
+  color: ${Theme.buttonTextColor} !important;
 }`;
 }
 
@@ -169,18 +168,19 @@ html[data-bevybroom-theme='light'] .editor-status-bar * {
  */
 function buildLightThemeContextMenuCss(): string {
   return `html[data-bevybroom-theme='light'] .editor-context-menu {
-  background: #ffffff !important;
-  border-color: #767676 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
+  background: ${Theme.panelSunkenBackground} !important;
+  border-color: ${Theme.inputBorderColor} !important;
+  box-shadow: ${Theme.menuShadow} !important;
 }
 html[data-bevybroom-theme='light'] .editor-context-menu-item {
-  color: #0a0a0a !important;
+  color: ${Theme.buttonTextColor} !important;
 }
 html[data-bevybroom-theme='light'] .editor-context-menu-item:hover {
-  background: #e5f3ff !important;
+  background: ${Theme.menuHighlightBackground} !important;
+  color: ${Theme.menuHighlightTextColor} !important;
 }
 html[data-bevybroom-theme='light'] .editor-context-menu-item-disabled {
-  color: #767676 !important;
+  color: ${Theme.disabledTextColor} !important;
 }`;
 }
 
@@ -194,9 +194,9 @@ function buildLightThemePanelCss(): string {
 html[data-bevybroom-theme='light'] .editor-outliner-panel,
 html[data-bevybroom-theme='light'] .editor-properties-panel,
 html[data-bevybroom-theme='light'] .editor-tools-palette {
-  background: #f3f3f3 !important;
-  color: #0a0a0a !important;
-  border-color: #8c8c8c !important;
+  background: ${Theme.panelBackground} !important;
+  color: ${Theme.buttonTextColor} !important;
+  border-color: ${Theme.chromeBevelDark} !important;
 }`;
 }
 
@@ -210,11 +210,11 @@ function buildLightThemePanelContentCss(): string {
   return `html[data-bevybroom-theme='light'] .editor-outliner-panel *,
 html[data-bevybroom-theme='light'] .editor-properties-panel *,
 html[data-bevybroom-theme='light'] .editor-tools-palette * {
-  color: #0a0a0a !important;
-  border-color: #c6c6c6 !important;
+  color: ${Theme.buttonTextColor} !important;
+  border-color: ${Theme.chromeBorderColor} !important;
 }
 html[data-bevybroom-theme='light'] .editor-tools-palette {
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18) !important;
+  box-shadow: ${Theme.windowShadow} !important;
 }`;
 }
 
@@ -225,14 +225,14 @@ html[data-bevybroom-theme='light'] .editor-tools-palette {
  */
 function buildLightThemeSettingsDialogCss(): string {
   return `html[data-bevybroom-theme='light'] .settings-dialog-panel {
-  background: #ffffff !important;
-  color: #0a0a0a !important;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18) !important;
+  background: ${Theme.panelSunkenBackground} !important;
+  color: ${Theme.buttonTextColor} !important;
+  box-shadow: ${Theme.dialogShadow} !important;
 }
 html[data-bevybroom-theme='light'] .settings-dialog-header,
 html[data-bevybroom-theme='light'] .settings-dialog-tab-bar {
-  background: #e5e5e5 !important;
-  border-color: #c6c6c6 !important;
+  background: ${hexToRgb(Theme.toolbarBackgroundEnd)} !important;
+  border-color: ${Theme.chromeBorderColor} !important;
 }`;
 }
 
@@ -243,9 +243,9 @@ html[data-bevybroom-theme='light'] .settings-dialog-tab-bar {
  */
 function buildLightThemeViewportLabelCss(): string {
   return `html[data-bevybroom-theme='light'] .editor-viewport-label {
-  background: #f3f3f3 !important;
-  color: #0a0a0a !important;
-  border: 1px solid #c6c6c6;
+  background: ${Theme.panelBackground} !important;
+  color: ${Theme.buttonTextColor} !important;
+  border: 1px solid ${Theme.chromeBorderColor};
 }`;
 }
 
@@ -256,8 +256,8 @@ function buildLightThemeViewportLabelCss(): string {
  */
 function buildLightThemeSelectionCss(): string {
   return `html[data-bevybroom-theme='light'] .tb-browser-tile[aria-selected='true'] {
-  background: #cce8ff !important;
-  border-color: #0078d4 !important;
+  background: ${Theme.listSelectedBackground} !important;
+  border-color: ${Theme.focusOutline} !important;
 }`;
 }
 
@@ -271,9 +271,9 @@ function buildLightThemeControlCss(): string {
 html[data-bevybroom-theme='light'] input,
 html[data-bevybroom-theme='light'] select,
 html[data-bevybroom-theme='light'] textarea {
-  background: #ffffff !important;
-  color: #0a0a0a !important;
-  border-color: #767676 !important;
+  background: ${Theme.panelSunkenBackground} !important;
+  color: ${Theme.buttonTextColor} !important;
+  border-color: ${Theme.inputBorderColor} !important;
 }`;
 }
 
@@ -285,18 +285,18 @@ html[data-bevybroom-theme='light'] textarea {
  */
 function buildLightThemeSettingsContentCss(): string {
   return `html[data-bevybroom-theme='light'] .settings-dialog-content {
-  background: #ffffff !important;
+  background: ${Theme.panelSunkenBackground} !important;
 }
 html[data-bevybroom-theme='light'] .settings-dialog-category {
-  border-color: #c6c6c6 !important;
+  border-color: ${Theme.chromeBorderColor} !important;
 }
 html[data-bevybroom-theme='light'] .settings-dialog-category-title,
 html[data-bevybroom-theme='light'] .settings-dialog-control-label,
 html[data-bevybroom-theme='light'] .settings-dialog-title {
-  color: #0a0a0a !important;
+  color: ${Theme.buttonTextColor} !important;
 }
 html[data-bevybroom-theme='light'] [data-settings-field='coordinate-space-summary'] {
-  color: #424242 !important;
+  color: ${Theme.secondaryTextColor} !important;
 }`;
 }
 
@@ -307,11 +307,11 @@ html[data-bevybroom-theme='light'] [data-settings-field='coordinate-space-summar
  */
 function buildLightThemeInteractionCss(): string {
   return `html[data-bevybroom-theme='light'] button:hover {
-  background: #e5f3ff !important;
-  border-color: #0078d4 !important;
+  background: ${hexToRgb(Theme.buttonHoverColor)} !important;
+  border-color: ${Theme.focusOutline} !important;
 }
 html[data-bevybroom-theme='light'] input[type='range'] {
-  accent-color: #0078d4;
+  accent-color: ${Theme.focusOutline};
 }`;
 }
 
@@ -325,7 +325,7 @@ function buildLightThemeFocusCss(): string {
 html[data-bevybroom-theme='light'] input:focus-visible,
 html[data-bevybroom-theme='light'] select:focus-visible,
 html[data-bevybroom-theme='light'] textarea:focus-visible {
-  outline: 2px solid #0078d4 !important;
+  outline: 2px solid ${Theme.focusOutline} !important;
   outline-offset: -1px;
 }`;
 }
@@ -337,8 +337,8 @@ html[data-bevybroom-theme='light'] textarea:focus-visible {
  */
 function buildLightThemeActiveTabCss(): string {
   return `html[data-bevybroom-theme='light'] .settings-dialog-panel [role='tab'][aria-selected='true'] {
-  background: #cce8ff !important;
-  border-color: #0078d4 !important;
-  color: #0a0a0a !important;
+  background: ${Theme.listSelectedBackground} !important;
+  border-color: ${Theme.focusOutline} !important;
+  color: ${Theme.buttonTextColor} !important;
 }`;
 }

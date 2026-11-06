@@ -18,7 +18,7 @@ import { PanelPropertiesChrome } from './panel_properties_chrome.js';
 import { PanelPropertiesMaterialSection } from './panel_properties_material_section.js';
 import type { PanelPropertiesHostOptions } from './host/panel_properties_host_options.js';
 import { InputNumeric } from '@/ui/input/input_numeric.js';
-import { hexToRgb } from '@/utils/utils_color.js';
+import { hexToCssHex, hexToRgb } from '@/utils/utils_color.js';
 import { entityScaleAbsorbCommandWrap } from '@/entity/commands/command_entity_scale_absorb.js';
 import { entityScaleAbsorbsAll } from '@/entity/scale/entity_scale_absorb.js';
 import { entityTransformScaleAllowedAll } from '@/entity/scale/entity_scale_allowed.js';
@@ -707,9 +707,9 @@ export class PanelProperties {
     const section = this.createSection(
       'Position',
       [
-        { label: 'x', axis: 'x', color: this.axisColor(Theme.gizmoXAxisColor) },
-        { label: 'y', axis: 'y', color: this.axisColor(Theme.gizmoYAxisColor) },
-        { label: 'z', axis: 'z', color: this.axisColor(Theme.gizmoZAxisColor) },
+        { label: 'x', axis: 'x', color: hexToCssHex(Theme.gizmoXAxisColor) },
+        { label: 'y', axis: 'y', color: hexToCssHex(Theme.gizmoYAxisColor) },
+        { label: 'z', axis: 'z', color: hexToCssHex(Theme.gizmoZAxisColor) },
       ],
       this.positionInputs,
     );
@@ -722,9 +722,9 @@ export class PanelProperties {
     const section = this.createSection(
       'Rotation',
       [
-        { label: 'x', axis: 'x', color: this.axisColor(Theme.gizmoXAxisColor) },
-        { label: 'y', axis: 'y', color: this.axisColor(Theme.gizmoYAxisColor) },
-        { label: 'z', axis: 'z', color: this.axisColor(Theme.gizmoZAxisColor) },
+        { label: 'x', axis: 'x', color: hexToCssHex(Theme.gizmoXAxisColor) },
+        { label: 'y', axis: 'y', color: hexToCssHex(Theme.gizmoYAxisColor) },
+        { label: 'z', axis: 'z', color: hexToCssHex(Theme.gizmoZAxisColor) },
       ],
       this.rotationInputs,
     );
@@ -737,25 +737,15 @@ export class PanelProperties {
     const section = this.createSection(
       'Scale',
       [
-        { label: 'x', axis: 'x', color: this.axisColor(Theme.gizmoXAxisColor) },
-        { label: 'y', axis: 'y', color: this.axisColor(Theme.gizmoYAxisColor) },
-        { label: 'z', axis: 'z', color: this.axisColor(Theme.gizmoZAxisColor) },
+        { label: 'x', axis: 'x', color: hexToCssHex(Theme.gizmoXAxisColor) },
+        { label: 'y', axis: 'y', color: hexToCssHex(Theme.gizmoYAxisColor) },
+        { label: 'z', axis: 'z', color: hexToCssHex(Theme.gizmoZAxisColor) },
       ],
       this.scaleInputs,
     );
     this.scaleSection = section;
     this.sections.push(section);
     this.container.appendChild(section);
-  }
-
-  /**
-   * Formats a theme hex color as a CSS #rrggbb string.
-   *
-   * @param hex Theme color number.
-   * @returns CSS color string.
-   */
-  private axisColor(hex: number): string {
-    return '#' + hex.toString(16).padStart(6, '0');
   }
 
   /** Mounts the Material color section for mesh color editing. */

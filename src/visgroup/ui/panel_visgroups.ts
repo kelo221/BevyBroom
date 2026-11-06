@@ -2,7 +2,12 @@ import type * as THREE from 'three';
 import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
 import { TabBook } from '@/ui/tabs/tab_book.js';
-import { buttonCompactCreate, buttonCompactEnabledWrite } from '@/ui/button/button_compact.js';
+import { buttonCompactEnabledWrite } from '@/ui/button/button_compact.js';
+import {
+  SHELL_DOCK_COMPACT_GAP_PX,
+  shellDockCompactButtonCreate,
+  shellDockCompactRowStyle,
+} from '@/layout/shell/dock/shell_dock_compact.js';
 import type { UndoCommand } from '@/commands/command_undo.js';
 import { CommandUndoBatch } from '@/commands/command_undo_batch.js';
 import type { StateCordon } from '@/cordon/state_cordon.js';
@@ -76,8 +81,8 @@ export class PanelVisGroups {
     this.autoListHost = this.listContainerCreate();
     this.tabBook = this.tabBookBuild();
     this.root.appendChild(this.tabBook.getElement());
-    this.showButton = this.footerButtonCreate('Show', () => this.showSelectedGroup());
-    this.markButton = this.footerButtonCreate('Mark', () => this.markSelectedGroup());
+    this.showButton = shellDockCompactButtonCreate('Show', () => this.showSelectedGroup());
+    this.markButton = shellDockCompactButtonCreate('Mark', () => this.markSelectedGroup());
     this.actionFooterMount();
     this.refreshLists();
     this.unsubscribeStore = services.store.changeListenerAdd(() => this.refreshLists());
@@ -114,7 +119,7 @@ export class PanelVisGroups {
    * @returns Configured TabBook instance.
    */
   private tabBookBuild(): TabBook {
-    const book = new TabBook({ ariaLabel: 'VisGroups' });
+    const book = new TabBook({ ariaLabel: 'VisGroups', variant: 'compact' });
     book.tabAdd({ id: 'user', label: 'User', pageResolve: () => this.userListHost });
     book.tabAdd({ id: 'auto', label: 'Auto', pageResolve: () => this.autoListHost });
     book.tabAdd({ id: 'cordon', label: 'Cordon', pageResolve: () => this.cordonPageCreate() });
@@ -148,10 +153,10 @@ export class PanelVisGroups {
     const caption = document.createElement('div');
     caption.classList.add('panel-visgroups-caption');
     caption.textContent = 'VisGroups:';
-    caption.style.fontSize = '11px';
+    caption.style.fontSize = `${Theme.uiFontSizePx}px`;
     caption.style.fontFamily = Theme.uiFontFamily;
     caption.style.color = Theme.statusBarTextColor;
-    caption.style.padding = '6px 8px 2px';
+    caption.style.padding = `${SHELL_DOCK_COMPACT_GAP_PX}px ${SHELL_DOCK_COMPACT_GAP_PX}px 2px`;
     return caption;
   }
 
@@ -184,7 +189,7 @@ export class PanelVisGroups {
     list.style.flexDirection = 'column';
     list.style.gap = '1px';
     list.style.padding = '2px';
-    list.style.margin = '4px 8px';
+    list.style.margin = `${SHELL_DOCK_COMPACT_GAP_PX}px`;
     list.style.minHeight = `${PANEL_VISGROUPS_LIST_MIN_HEIGHT_PX}px`;
     list.style.maxHeight = '180px';
     list.style.overflowY = 'auto';
@@ -205,8 +210,8 @@ export class PanelVisGroups {
     const hint = document.createElement('div');
     hint.classList.add(PANEL_VISGROUPS_EMPTY_HINT_CLASS);
     hint.textContent = text;
-    hint.style.padding = '8px 6px';
-    hint.style.fontSize = '11px';
+    hint.style.padding = `${SHELL_DOCK_COMPACT_GAP_PX}px`;
+    hint.style.fontSize = `${Theme.uiFontSizePx}px`;
     hint.style.fontFamily = Theme.uiFontFamily;
     hint.style.color = Theme.statusBarTextColor;
     hint.style.whiteSpace = 'normal';
@@ -285,8 +290,9 @@ export class PanelVisGroups {
     row.dataset['visgroupId'] = groupId;
     row.style.display = 'flex';
     row.style.alignItems = 'center';
-    row.style.gap = '6px';
-    row.style.padding = `2px 4px 2px ${4 + depth * 12}px`;
+    row.style.gap = `${SHELL_DOCK_COMPACT_GAP_PX}px`;
+    row.style.minWidth = '0';
+    row.style.padding = `1px 4px 1px ${4 + depth * 12}px`;
     row.style.borderLeft = '2px solid transparent';
     row.style.cursor = 'pointer';
     return row;
@@ -301,7 +307,12 @@ export class PanelVisGroups {
   private groupRowLabelCreate(label: string): HTMLElement {
     const text = document.createElement('span');
     text.textContent = label;
-    text.style.fontSize = '11px';
+    text.title = label;
+    text.style.minWidth = '0';
+    text.style.overflow = 'hidden';
+    text.style.textOverflow = 'ellipsis';
+    text.style.whiteSpace = 'nowrap';
+    text.style.fontSize = `${Theme.uiFontSizePx}px`;
     text.style.fontFamily = Theme.uiFontFamily;
     text.style.color = Theme.buttonTextColor;
     return text;
@@ -336,7 +347,7 @@ export class PanelVisGroups {
   private groupRowSelectedPaint(row: HTMLElement, isSelected: boolean): void {
     row.classList.toggle(PANEL_VISGROUPS_ROW_SELECTED_CLASS, isSelected);
     row.style.background = isSelected ? Theme.outlinerSelectedColor : 'transparent';
-    row.style.borderLeftColor = isSelected ? hexToRgb(Theme.selectionColor) : 'transparent';
+    row.style.borderLeftColor = isSelected ? Theme.listSelectedBorder : 'transparent';
   }
 
   /**
@@ -365,12 +376,15 @@ export class PanelVisGroups {
     const wrap = document.createElement('div');
     wrap.style.display = 'flex';
     wrap.style.flexDirection = 'column';
-    wrap.style.gap = '6px';
-    wrap.style.padding = '6px';
-    const toggleBtn = this.footerButtonCreate('Toggle Cordon Active', () => this.cordonActiveToggle());
+    wrap.style.gap = `${SHELL_DOCK_COMPACT_GAP_PX}px`;
+    wrap.style.padding = `${SHELL_DOCK_COMPACT_GAP_PX}px`;
+    const toggleBtn = shellDockCompactButtonCreate('Toggle Cordon Active', () => this.cordonActiveToggle());
     toggleBtn.classList.add('visgroup-cordon-toggle');
-    const fitBtn = this.footerButtonCreate('Fit Cordon to Selection', () => this.cordonFitToSelection());
+    const fitBtn = shellDockCompactButtonCreate('Fit Cordon to Selection', () => this.cordonFitToSelection());
     fitBtn.classList.add('visgroup-cordon-fit');
+    [toggleBtn, fitBtn].forEach((button) => {
+      button.style.flex = '0 0 auto';
+    });
     wrap.append(toggleBtn, fitBtn);
     return wrap;
   }
@@ -391,11 +405,10 @@ export class PanelVisGroups {
   private actionFooterMount(): void {
     const footer = document.createElement('div');
     footer.classList.add('panel-visgroups-footer');
-    footer.style.display = 'flex';
-    footer.style.gap = '4px';
-    footer.style.padding = '4px 6px';
+    shellDockCompactRowStyle(footer);
+    footer.style.padding = `${SHELL_DOCK_COMPACT_GAP_PX}px`;
     footer.style.borderTop = `1px solid ${hexToRgb(Theme.separatorColor)}`;
-    const editBtn = this.footerButtonCreate('Edit', () => this.createAndAssignGroup());
+    const editBtn = shellDockCompactButtonCreate('Edit', () => this.createAndAssignGroup());
     footer.append(this.showButton, editBtn, this.markButton);
     this.root.appendChild(footer);
   }
@@ -428,18 +441,5 @@ export class PanelVisGroups {
   private markSelectedGroup(): void {
     if (!this.selectedGroupId) return;
     this.services.store.groupMembersMark(this.selectedGroupId, this.services.worldRoot, this.services.selectionTarget);
-  }
-
-  /**
-   * Creates a compact button that shares the footer row width evenly.
-   *
-   * @param label Button text.
-   * @param onClick Click handler.
-   * @returns Button element.
-   */
-  private footerButtonCreate(label: string, onClick: () => void): HTMLButtonElement {
-    const button = buttonCompactCreate({ title: label, widthPx: null, heightPx: 22, onClick });
-    button.style.flex = '1 1 0';
-    return button;
   }
 }

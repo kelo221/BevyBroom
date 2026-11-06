@@ -90,7 +90,7 @@ describe('FaceEditSheetSectionJustify', () => {
     expect(buttonCompactActiveRead(left)).toBe(true);
     expect(buttonCompactActiveRead(right)).toBe(false);
     expect(left.style.background).not.toBe(right.style.background);
-    expect(left.style.borderColor).toBe(right.style.borderColor);
+    expect(left.style.borderColor).not.toBe(right.style.borderColor);
     section.selectionWrite(faceEditSheetTestSelectionCreate({}, null));
     expect(buttonCompactActiveRead(left)).toBe(false);
     expect(left.style.background).toBe(right.style.background);

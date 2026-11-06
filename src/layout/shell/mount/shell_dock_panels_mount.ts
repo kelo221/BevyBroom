@@ -3,6 +3,7 @@ import type { CommandStack } from '@/commands/command_stack.js';
 import { PanelLayers, type PanelLayersDependencies } from '@/layer/ui/panel_layers.js';
 import { InfoPanelSources } from '@/info_panel/info_panel_sources.js';
 import type { InfoPanelView } from '@/info_panel/info_panel_view.js';
+import type { InfoPanelStripSummary } from '@/info_panel/strip/info_panel_strip_summary.js';
 import type { Issue } from '@/info_panel/issues/issue.js';
 import type { ShellInspector } from '@/layout/shell/inspector/shell_inspector.js';
 import type { ShellInfoPanel } from '@/layout/shell/info_panel/shell_info_panel.js';
@@ -24,13 +25,15 @@ export interface ShellDockPanelsMountOptions {
 }
 
 /**
- * Mounts the layers panel into the inspector's Map tab and the console and
- * issues views into the info panel, and disposes them together.
+ * Mounts the layers panel into the inspector's Map tab, the console and issues
+ * views into the info panel and the summary into its strip, and disposes them
+ * together.
  */
 export class ShellDockPanelsMount {
   private readonly layersPanel: PanelLayers;
   private readonly infoPanelSources: InfoPanelSources;
   private readonly infoPanelViews: InfoPanelView[];
+  private readonly stripSummary: InfoPanelStripSummary;
 
   /**
    * Creates and mounts the docked panels.
@@ -50,6 +53,7 @@ export class ShellDockPanelsMount {
         this.infoPanelSources.issuesViewCreate((issue) => options.onIssueActivate(issue)),
       ),
     ];
+    this.stripSummary = this.stripSummaryMount(options.infoPanel);
   }
 
   /**
@@ -70,13 +74,30 @@ export class ShellDockPanelsMount {
     return this.infoPanelSources.issuesScheduler.validationRunNow();
   }
 
-  /** Disposes the layers panel, the info panel views and the issues validation. */
+  /**
+   * Disposes the layers panel, the info panel views and strip summary, and the
+   * issues validation.
+   */
   dispose(): void {
     this.layersPanel.dispose();
+    this.stripSummary.dispose();
     for (const infoPanelView of this.infoPanelViews) {
       infoPanelView.dispose();
     }
     this.infoPanelSources.dispose();
+  }
+
+  /**
+   * Creates the strip summary and appends it to the info panel strip.
+   *
+   * @param infoPanel Info panel whose strip receives the summary.
+   * @returns The mounted summary.
+   */
+  private stripSummaryMount(infoPanel: ShellInfoPanel): InfoPanelStripSummary {
+    const slot = infoPanel.stripSummarySlotRead();
+    const stripSummary = this.infoPanelSources.stripSummaryCreate(slot.ownerDocument);
+    slot.appendChild(stripSummary.getElement());
+    return stripSummary;
   }
 
   /**

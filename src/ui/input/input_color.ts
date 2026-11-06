@@ -1,4 +1,6 @@
 import { Theme } from '@/theme.js';
+import { hexToCssHex } from '@/utils/utils_color.js';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 
 /** Themed color swatch used by inspector rows. */
 export class InputColor {
@@ -35,9 +37,9 @@ export class InputColor {
    * @param colorHexValues Per-object colors as 0xRRGGBB numbers.
    */
   setSharedValues(colorHexValues: readonly number[]): void {
-    const first = colorHexValues[0] ?? 0xffffff;
+    const first = colorHexValues[0] ?? MaterialColorNeutral.white;
     const mixed = colorHexValues.some((value) => value !== first);
-    this.element.value = inputColorHexToCss(first);
+    this.element.value = hexToCssHex(first);
     this.element.title = mixed ? 'Mixed colors' : this.element.value;
   }
 
@@ -68,15 +70,4 @@ export class InputColor {
     this.element.style.background = Theme.inputBackgroundColor;
     this.element.style.cursor = 'pointer';
   }
-}
-
-/**
- * Formats a 0xRRGGBB number as a CSS #rrggbb string.
- *
- * @param colorHex Color number.
- * @returns Lowercase CSS hex color.
- */
-export function inputColorHexToCss(colorHex: number): string {
-  const clamped = Math.max(0, Math.min(0xffffff, Math.round(colorHex)));
-  return `#${clamped.toString(16).padStart(6, '0')}`;
 }

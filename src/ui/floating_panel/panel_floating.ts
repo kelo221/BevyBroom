@@ -23,7 +23,7 @@ export interface FloatingPanelOptions {
    */
   corner?: FloatingPanelCorner;
   /**
-   * When true, top-left placement sits below the viewport title bar strip. Only
+   * When true, top-left placement sits below the viewport corner label. Only
    * applies to top-left corners.
    */
   insetBelowViewportToolbar?: boolean;
@@ -489,7 +489,7 @@ export abstract class PanelFloating {
     backdrop.style.alignItems = 'center';
     backdrop.style.justifyContent = 'center';
     backdrop.style.padding = '24px';
-    backdrop.style.background = options.backdropBackground ?? 'rgba(0, 0, 0, 0.55)';
+    backdrop.style.background = options.backdropBackground ?? Theme.modalBackdropColor;
     backdrop.style.boxSizing = 'border-box';
     if (this.closeOnBackdropClick) {
       backdrop.addEventListener('pointerdown', (event) => this.onBackdropPointerDown(event));
@@ -666,7 +666,7 @@ export abstract class PanelFloating {
   ): { left: number; top: number } {
     const pad = this.paddingPx;
     if (this.corner === 'top-left') {
-      const topInset = this.insetBelowViewportToolbar ? Theme.viewportToolbarHeightPx + pad : pad;
+      const topInset = this.insetBelowViewportToolbar ? Theme.viewportLabelHeightPx + pad : pad;
       return { left: anchorRect.left + pad, top: anchorRect.top + topInset };
     }
     if (this.corner === 'bottom-left') {

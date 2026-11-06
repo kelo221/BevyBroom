@@ -66,6 +66,7 @@ const WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, stri
   ['play_start', 'Play'],
   ['inspector_map', 'Show Map Inspector'],
   ['info_panel_toggle', 'Toggle Info Panel'],
+  ['info_panel_collapse_toggle', 'Collapse / Expand Info Panel'],
   ['inspector_toggle', 'Toggle Inspector'],
   ['toolbar_toggle', 'Toggle Toolbar'],
   ['select_all', 'Select All'],

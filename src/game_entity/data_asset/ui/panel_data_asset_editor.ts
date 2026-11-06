@@ -215,12 +215,12 @@ export class PanelDataAssetEditor extends PanelFloating {
   private statusShow(text: string, isError: boolean): void {
     this.statusLine.textContent = text;
     this.statusLine.dataset['error'] = isError ? 'true' : 'false';
-    this.statusLine.style.color = isError ? '#ff7a6a' : Theme.inputTextColor;
+    this.statusLine.style.color = isError ? Theme.severityErrorColor : Theme.inputTextColor;
   }
 
   /** Fills the panel with its title bar, rows, fields, note and status. */
   private rootPopulate(): void {
-    applyFloatingPanelToolChrome(this.root, { width: '320px', borderRadiusPx: 8 });
+    applyFloatingPanelToolChrome(this.root, { width: '320px' });
     this.root.setAttribute('aria-label', 'Data Asset');
     this.root.appendChild(this.createStandardTitleBar({ titleText: 'Data Asset' }).bar);
     this.blockHost.style.padding = '0 10px';

@@ -3,9 +3,10 @@ import type { EntityClassPointVariant } from '@/entity/class/entity_class_point_
 import type { EntityHandle } from '@/entity/handles/entity_handle.js';
 import type { EntityKind } from '@/entity/model/entity_owner_keys.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
+import { Theme } from '@/theme.js';
 
 /** Icon color of entity kinds that do not choose their own. */
-export const ENTITY_ICON_DEFAULT_COLOR = 0xb0b0b0;
+export const ENTITY_ICON_DEFAULT_COLOR = Theme.entityIconDefaultColor;
 
 /**
  * Rules of one entity kind: default, valid and parsed settings, and how its

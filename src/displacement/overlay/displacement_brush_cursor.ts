@@ -1,14 +1,15 @@
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
 import type { DisplacementSculptSettings } from '@/displacement/state/state_displacement_sculpt.js';
 import { displacementSculptAxisVectorRead } from '@/displacement/sculpt/displacement_sculpt_stroke_settings.js';
 import type { DisplacementSurfaceHit } from '@/displacement/sculpt/displacement_surface_raycaster.js';
 import { displacementOverlayHelperMark } from './displacement_overlay_helper_flags.js';
 
 /** Color of the paint radius sphere. */
-const DISPLACEMENT_BRUSH_CURSOR_SPHERE_COLOR = 0x33ff4d;
+const DISPLACEMENT_BRUSH_CURSOR_SPHERE_COLOR = Theme.displacementCursorSphereColor;
 
 /** Color of the paint direction arrow. */
-const DISPLACEMENT_BRUSH_CURSOR_ARROW_COLOR = 0xffd21f;
+const DISPLACEMENT_BRUSH_CURSOR_ARROW_COLOR = Theme.displacementCursorArrowColor;
 
 /** Longitude segments of the unit paint radius sphere. */
 const DISPLACEMENT_BRUSH_CURSOR_SPHERE_WIDTH_SEGMENTS = 12;

@@ -617,7 +617,7 @@ export abstract class ViewportLayoutCore {
    */
   private toLayoutCoreHostSource(): LayoutCoreHostSource {
     return {
-      workspaceSwitcherSlot: this.shellElements.frame.viewBarWorkspaceSlotRead(),
+      workspaceSwitcherSlot: this.shellElements.layoutChooserSlot,
       viewportArea: this.viewportArea,
       viewportPaneGrid: this.viewportPaneGrid,
       workspaceStore: this.workspaceStore,

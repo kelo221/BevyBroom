@@ -7,9 +7,14 @@ import {
   BRUSH_EDGE_FADE_NEAR,
   BRUSH_EDGE_FADE_FAR,
   SOLID_BRUSH_EDGE_USERDATA_KEY,
+  BRUSH_EDGE_ORTHO_COLOR_KEY,
 } from '@/solid/model/solid_brush_edge_materials.js';
+import { SOLID_MODEL_USERDATA_KEY } from '@/solid/model/solid_model_keys.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { rebuildDecorativeEdges, usesContentDecorativeEdges } from '@/utils/mesh_edge_sync.js';
+import { ViewportObjectWireColor } from '@/viewports/shading/viewport_object_wire_color.js';
+import { solidBrushWireOwnerIdRead } from '@/solid/model/solid_model_root_find.js';
+import { Theme } from '@/theme.js';
 
 /** Unit tests for solid brush preview visuals (outline-only vs selected fill). */
 describe('SolidBrushVisual', () => {
@@ -35,7 +40,7 @@ describe('SolidBrushVisual', () => {
     expect(edges).toHaveLength(1);
     const front = edges[0]!;
     expect(front.userData[SOLID_BRUSH_OCCLUDED_EDGE_USERDATA_KEY]).not.toBe(true);
-    expect(front.material).toBe(SolidBrushEdgeMaterials.getFrontMaterial(SolidOperation.Subtractive));
+    expect(front.material).toBe(expectedFrontMaterial(mesh, SolidOperation.Subtractive));
     const frontMaterial = front.material as THREE.ShaderMaterial;
     expect(frontMaterial.depthFunc).toBe(THREE.LessEqualDepth);
     expect(frontMaterial.depthTest).toBe(true);
@@ -56,7 +61,7 @@ describe('SolidBrushVisual', () => {
     const edges = collectDecorativeEdges(mesh);
     expect(edges).toHaveLength(1);
     expect(edges[0]!.userData[SOLID_BRUSH_OCCLUDED_EDGE_USERDATA_KEY]).not.toBe(true);
-    expect(edges[0]!.material).toBe(SolidBrushEdgeMaterials.getFrontMaterial(SolidOperation.Subtractive));
+    expect(edges[0]!.material).toBe(expectedFrontMaterial(mesh, SolidOperation.Subtractive));
     disposeBrushPreview(mesh);
   });
 
@@ -69,7 +74,7 @@ describe('SolidBrushVisual', () => {
     expect(material.colorWrite).toBe(true);
     expect(material.transparent).toBe(true);
     expect(material.opacity).toBeCloseTo(0.22, 5);
-    expect(material.color.getHex()).toBe(0xc0392b);
+    expect(material.color.getHex()).toBe(Theme.solidFillSubtractiveColor);
     expect(material.side).toBe(THREE.DoubleSide);
     expect(material.depthTest).toBe(true);
     expect(material.polygonOffset).toBe(true);
@@ -158,10 +163,10 @@ describe('SolidBrushVisual', () => {
     expect(SolidBrushVisual.isHullFillVisible(mesh)).toBe(true);
     const material = mesh.material as THREE.MeshBasicMaterial;
     expect(material.colorWrite).toBe(true);
-    expect(material.color.getHex()).toBe(0x2980b9);
+    expect(material.color.getHex()).toBe(Theme.solidFillIntersectingColor);
     const edges = collectDecorativeEdges(mesh);
     expect(edges).toHaveLength(1);
-    expect(edges[0]!.material).toBe(SolidBrushEdgeMaterials.getFrontMaterial(SolidOperation.Intersecting));
+    expect(edges[0]!.material).toBe(expectedFrontMaterial(mesh, SolidOperation.Intersecting));
     disposeBrushPreview(mesh);
   });
 
@@ -169,8 +174,26 @@ describe('SolidBrushVisual', () => {
     const mesh = SolidBrushVisual.createBoxPreview('Add', 1, SolidOperation.Additive);
     const edges = collectDecorativeEdges(mesh);
     expect(edges).toHaveLength(1);
-    expect(edges[0]!.material).toBe(SolidBrushEdgeMaterials.getFrontMaterial(SolidOperation.Additive));
+    expect(edges[0]!.material).toBe(expectedFrontMaterial(mesh, SolidOperation.Additive));
     disposeBrushPreview(mesh);
+  });
+
+  it('draws every brush of one solid model in the model wire color and selected brushes in red', () => {
+    const root = new THREE.Group();
+    root.userData[SOLID_MODEL_USERDATA_KEY] = true;
+    const first = SolidBrushVisual.createBoxPreview('First', 1, SolidOperation.Additive);
+    const second = SolidBrushVisual.createBoxPreview('Second', 1, SolidOperation.Subtractive);
+    root.add(first, second);
+    SolidBrushVisual.applyOperationStyle(first, SolidOperation.Additive);
+    SolidBrushVisual.applyOperationStyle(second, SolidOperation.Subtractive);
+    const modelWireColor = ViewportObjectWireColor.colorFromId(root.uuid);
+    expect(edgeOrthoColorRead(first)).toBe(modelWireColor);
+    expect(edgeOrthoColorRead(second)).toBe(modelWireColor);
+    SolidBrushVisual.setHullFillVisible(second, true);
+    expect(edgeOrthoColorRead(second)).toBe(Theme.selectionColor);
+    expect(edgeOrthoColorRead(first)).toBe(modelWireColor);
+    disposeBrushPreview(first);
+    disposeBrushPreview(second);
   });
 
   it('never accepts white content decorative edges on brush previews', () => {
@@ -198,6 +221,36 @@ function collectDecorativeEdges(mesh: THREE.Mesh): THREE.LineSegments[] {
     (child): child is THREE.LineSegments =>
       child instanceof THREE.LineSegments && child.userData[SOLID_BRUSH_EDGE_USERDATA_KEY] === true,
   );
+}
+
+/**
+ * Returns the shared edge material a brush preview should use: the operation
+ * tint in 3D and the brush's stable (or selected) wire color in 2D.
+ *
+ * @param mesh Brush preview mesh.
+ * @param operation Brush CSG operation.
+ * @returns Expected shared edge material.
+ */
+function expectedFrontMaterial(mesh: THREE.Mesh, operation: SolidOperation): THREE.ShaderMaterial {
+  const wireColor = ViewportObjectWireColor.colorResolve(
+    solidBrushWireOwnerIdRead(mesh),
+    SolidBrushVisual.isHullFillVisible(mesh),
+  );
+  return SolidBrushEdgeMaterials.getFrontMaterial(operation, wireColor);
+}
+
+/**
+ * Reads the 2D wire color of the shared edge material of a brush preview.
+ *
+ * @param mesh Brush preview mesh.
+ * @returns Wire color hex, or -1 when the brush has no shared edge material.
+ */
+function edgeOrthoColorRead(mesh: THREE.Mesh): number {
+  const edge = collectDecorativeEdges(mesh)[0];
+  const material = edge?.material;
+  if (!(material instanceof THREE.ShaderMaterial)) return -1;
+  const color: unknown = material.userData[BRUSH_EDGE_ORTHO_COLOR_KEY];
+  return typeof color === 'number' ? color : -1;
 }
 
 /**

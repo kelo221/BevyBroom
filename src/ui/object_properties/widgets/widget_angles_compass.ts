@@ -1,4 +1,5 @@
 import { Theme } from '@/theme.js';
+import { hexToRgb } from '@/utils/utils_color.js';
 import { InputTextSuggest } from '@/ui/input/input_text_suggest.js';
 import {
   AnglesPitchYawRollConversion,
@@ -190,7 +191,7 @@ export class WidgetAnglesCompass {
     const center = String(WIDGET_ANGLES_COMPASS_VIEW_SIZE / 2);
     this.needle.setAttribute('x1', center);
     this.needle.setAttribute('y1', center);
-    this.needle.setAttribute('stroke', `#${Theme.selectionColor.toString(16).padStart(6, '0')}`);
+    this.needle.setAttribute('stroke', hexToRgb(Theme.selectionColor));
     this.needle.setAttribute('stroke-width', '2.5');
     this.needle.setAttribute('stroke-linecap', 'round');
     this.needleWrite(0);

@@ -1,10 +1,8 @@
 import type * as THREE from 'three';
-import { Theme } from '@/theme.js';
 import { styleFloatingPanelChromeButton } from '@/ui/floating_panel/panel_floating_title_bar.js';
 import type { ObjectPropertiesTabContext } from '@/ui/object_properties/registry/registry_object_properties_tab.js';
 import { ObjectPropertiesTabSection } from '@/ui/object_properties/tabs/object_properties_tab_section.js';
-import { hexToRgb } from '@/utils/utils_color.js';
-import { BUTTON_COMPACT_ACTIVE_BACKGROUND } from '@/ui/button/button_compact.js';
+import { buttonClassicPressedApply } from '@/ui/button/button_classic_style.js';
 import { ObjectPropertiesClassInfoChromePart } from './chrome/object_properties_class_info_chrome_part.js';
 
 /** What the toggle buttons switch. */
@@ -76,7 +74,6 @@ export class ObjectPropertiesClassInfoSectionToggles extends ObjectPropertiesTab
    */
   private static pressedWrite(button: HTMLButtonElement, isPressed: boolean): void {
     button.setAttribute('aria-pressed', String(isPressed));
-    button.style.background = isPressed ? BUTTON_COMPACT_ACTIVE_BACKGROUND : hexToRgb(Theme.buttonBackground);
-    button.style.borderColor = isPressed ? hexToRgb(Theme.selectionColor) : Theme.inputBorderColor;
+    buttonClassicPressedApply(button, isPressed);
   }
 }

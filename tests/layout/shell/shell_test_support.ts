@@ -8,7 +8,7 @@ import type { ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 import { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
 import { ShellFrame } from '@/layout/shell/frame/shell_frame.js';
 import { ShellInspector } from '@/layout/shell/inspector/shell_inspector.js';
-import { ShellInfoPanel } from '@/layout/shell/info_panel/shell_info_panel.js';
+import { ShellInfoPanel, type ShellInfoPanelTabId } from '@/layout/shell/info_panel/shell_info_panel.js';
 import { ShellDockCommands } from '@/layout/shell/actions/shell_dock_commands.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
 import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
@@ -241,10 +241,26 @@ export function shellTestDocksCreate(storage: Storage = shellTestStorageCreate()
  * @param docks Docks to remove.
  */
 export function shellTestDocksDispose(docks: ShellTestDocks): void {
+  docks.dockCommands.dispose();
   docks.inspector.dispose();
   docks.infoPanel.dispose();
   docks.frame.dispose();
   docks.container.remove();
+}
+
+/**
+ * Returns the tab button of one info panel tab.
+ *
+ * @param infoPanel Info panel holding the button.
+ * @param tabId Tab id.
+ * @returns Tab button.
+ */
+export function shellTestInfoPanelTabButtonRead(infoPanel: ShellInfoPanel, tabId: ShellInfoPanelTabId): HTMLElement {
+  const button = infoPanel.stripElementRead().querySelector<HTMLElement>(`[role="tab"][data-tab-id="${tabId}"]`);
+  if (!button) {
+    throw new Error(`Missing info panel tab button ${tabId}`);
+  }
+  return button;
 }
 
 /**

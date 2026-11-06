@@ -128,7 +128,7 @@ export class InputRadioGroup<Value extends string> {
     radio.name = groupName;
     radio.value = choice.value;
     radio.setAttribute('aria-label', choice.label);
-    radio.style.accentColor = hexToRgb(Theme.selectionColor);
+    radio.style.accentColor = hexToRgb(Theme.toggleAccentColor);
     radio.style.margin = '0';
     radio.style.cursor = 'pointer';
     radio.addEventListener('click', this.clickListener);

@@ -7,6 +7,7 @@ import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { entityIconOf } from '@/entity/icon/entity_icon.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 import { hexToRgb } from '@/utils/utils_color.js';
+import { Theme } from '@/theme.js';
 
 /** Icon configuration for different object types in the outliner. */
 export interface ObjectIcon {
@@ -48,16 +49,16 @@ export interface ObjectIcon {
 }
 
 /** Outliner green for additive solid brushes. */
-const SOLID_ADDITIVE_COLOR = '#27ae60';
+const SOLID_ADDITIVE_COLOR = Theme.outlinerIconColors.solidAdditive;
 
 /** Outliner red for subtractive solid brushes / groups. */
-const SOLID_SUBTRACTIVE_COLOR = '#c0392b';
+const SOLID_SUBTRACTIVE_COLOR = Theme.outlinerIconColors.solidSubtractive;
 
 /** Outliner blue for intersecting solid brushes / groups. */
-const SOLID_INTERSECTING_COLOR = '#2980b9';
+const SOLID_INTERSECTING_COLOR = Theme.outlinerIconColors.solidIntersecting;
 
 /** Yellow folder color for ordinary and additive CSG groups. */
-const FOLDER_COLOR = '#e67e22';
+const FOLDER_COLOR = Theme.outlinerIconColors.folder;
 
 /**
  * Maps Three.js object types to their corresponding icons for the outliner.
@@ -86,7 +87,8 @@ export class FactoryObjectIcon {
       return this.getGroupIcon();
     }
     if (obj instanceof THREE.Mesh) {
-      if (obj.userData['isModifierVolume'] === true) return { character: '▣', color: '#e67e22' };
+      if (obj.userData['isModifierVolume'] === true)
+        return { character: '▣', color: Theme.outlinerIconColors.modifierVolume };
       return this.getMeshIcon(obj);
     }
     if (obj instanceof THREE.Light) {
@@ -214,7 +216,7 @@ export class FactoryObjectIcon {
    * @returns The solid model icon configuration.
    */
   private static getSolidModelIcon(): ObjectIcon {
-    return { character: '▣', color: '#e86a17' };
+    return { character: '▣', color: Theme.outlinerIconColors.solidModel };
   }
 
   /**
@@ -251,7 +253,7 @@ export class FactoryObjectIcon {
    * @returns The solid result icon configuration.
    */
   private static getSolidResultIcon(): ObjectIcon {
-    return { character: '▦', color: '#f5b041' };
+    return { character: '▦', color: Theme.outlinerIconColors.solidResult };
   }
 
   /**
@@ -260,7 +262,7 @@ export class FactoryObjectIcon {
    * @returns The box icon configuration.
    */
   private static getBoxIcon(): ObjectIcon {
-    return { character: '◼', color: '#3498db' };
+    return { character: '◼', color: Theme.outlinerIconColors.box };
   }
 
   /**
@@ -269,7 +271,7 @@ export class FactoryObjectIcon {
    * @returns The sphere icon configuration.
    */
   private static getSphereIcon(): ObjectIcon {
-    return { character: '●', color: '#2ecc71' };
+    return { character: '●', color: Theme.outlinerIconColors.sphere };
   }
 
   /**
@@ -278,7 +280,7 @@ export class FactoryObjectIcon {
    * @returns The plane icon configuration.
    */
   private static getPlaneIcon(): ObjectIcon {
-    return { character: '▭', color: '#9b59b6' };
+    return { character: '▭', color: Theme.outlinerIconColors.plane };
   }
 
   /**
@@ -287,7 +289,7 @@ export class FactoryObjectIcon {
    * @returns The cylinder icon configuration.
    */
   private static getCylinderIcon(): ObjectIcon {
-    return { character: '⬡', color: '#1abc9c' };
+    return { character: '⬡', color: Theme.outlinerIconColors.cylinder };
   }
 
   /**
@@ -296,7 +298,7 @@ export class FactoryObjectIcon {
    * @returns The generic mesh icon configuration.
    */
   private static getGenericMeshIcon(): ObjectIcon {
-    return { character: '◇', color: '#95a5a6' };
+    return { character: '◇', color: Theme.outlinerIconColors.genericMesh };
   }
 
   /**
@@ -305,7 +307,7 @@ export class FactoryObjectIcon {
    * @returns The directional light icon configuration.
    */
   private static getDirectionalLightIcon(): ObjectIcon {
-    return { character: '☀', color: '#f39c12' };
+    return { character: '☀', color: Theme.outlinerIconColors.directionalLight };
   }
 
   /**
@@ -314,7 +316,7 @@ export class FactoryObjectIcon {
    * @returns The point light icon configuration.
    */
   private static getPointLightIcon(): ObjectIcon {
-    return { character: '✦', color: '#f1c40f' };
+    return { character: '✦', color: Theme.outlinerIconColors.pointLight };
   }
 
   /**
@@ -323,7 +325,7 @@ export class FactoryObjectIcon {
    * @returns The spot light icon configuration.
    */
   private static getSpotLightIcon(): ObjectIcon {
-    return { character: '◎', color: '#e74c3c' };
+    return { character: '◎', color: Theme.outlinerIconColors.spotLight };
   }
 
   /**
@@ -332,7 +334,7 @@ export class FactoryObjectIcon {
    * @returns The generic light icon configuration.
    */
   private static getGenericLightIcon(): ObjectIcon {
-    return { character: '✧', color: '#f1c40f' };
+    return { character: '✧', color: Theme.outlinerIconColors.genericLight };
   }
 
   /**
@@ -341,7 +343,7 @@ export class FactoryObjectIcon {
    * @returns The camera icon configuration.
    */
   private static getCameraIcon(): ObjectIcon {
-    return { character: '📷', color: '#e74c3c' };
+    return { character: '📷', color: Theme.outlinerIconColors.camera };
   }
 
   /**
@@ -350,6 +352,6 @@ export class FactoryObjectIcon {
    * @returns The generic icon configuration.
    */
   private static getGenericIcon(): ObjectIcon {
-    return { character: '○', color: '#7f8c8d' };
+    return { character: '○', color: Theme.outlinerIconColors.generic };
   }
 }

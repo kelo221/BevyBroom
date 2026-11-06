@@ -353,6 +353,14 @@ and provides a quick **+ Box Brush** action.
 The info panel is docked below the viewports. Hide or show it with **View >
 Show Info Panel** or `Ctrl+4`.
 
+It starts folded to a one-line strip that shows the **Console** and **Issues**
+tabs, the newest console line in its severity color, and count badges for
+issues, console errors, and console warnings. A new error line or a new issue
+briefly pulses its badge without unfolding the panel. Click a tab, a badge, or
+the newest line to unfold the panel to its last height; click the shown tab of
+an unfolded panel to fold it again. The viewports take the space the folded
+panel frees.
+
 - **Console** lists status messages, errors, and game preview connection
   changes as they happen. Right-click it and choose **Clear** to empty it.
 - **Issues** lists problems found in the map, such as invalid solid brushes,
@@ -366,7 +374,8 @@ Drag the splitter at the inner edge of the right dock or the info panel to
 resize it. The editor remembers which docks, the tools palette, and the toolbar
 are shown, their sizes, and their selected tabs between sessions. AI assistants
 connected through MCP can read and change this arrangement with the
-`get_main_window` and `set_main_window` tools, and open, apply, or cancel the
+`get_main_window` and `set_main_window` tools, measure the views, the info
+panel, and the right dock with `get_shell_layout`, and open, apply, or cancel the
 Object Properties dialog with `get_object_properties_dialog` and
 `set_object_properties_dialog`; see the [AI tools reference](../src/ai/README.md).
 

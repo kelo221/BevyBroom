@@ -8,8 +8,8 @@ import {
   MATERIAL_BROWSER_TILE_CLASS,
 } from './material_browser_styles.js';
 
-/** Background of a selected tile (selection orange, translucent). */
-const MATERIAL_BROWSER_TILE_SELECTED_BACKGROUND = 'rgba(232, 106, 23, 0.22)';
+/** Background of a selected tile. */
+const MATERIAL_BROWSER_TILE_SELECTED_BACKGROUND = Theme.listSelectedBackground;
 
 /**
  * Creates a material tile with a square preview and the name below it.
@@ -37,13 +37,13 @@ export function materialBrowserTileCreate(
 }
 
 /**
- * Paints a tile as selected (orange) or idle.
+ * Paints a tile as selected (list selection blue) or idle.
  *
  * @param tile Tile element.
  * @param selected Whether the tile is selected.
  */
 export function materialBrowserTileSelectionPaint(tile: HTMLElement, selected: boolean): void {
-  tile.style.border = selected ? `1px solid ${hexToRgb(Theme.selectionColor)}` : `1px solid ${Theme.inputBorderColor}`;
+  tile.style.border = selected ? `1px solid ${Theme.listSelectedBorder}` : `1px solid ${Theme.chromeBorderColor}`;
   tile.style.background = selected ? MATERIAL_BROWSER_TILE_SELECTED_BACKGROUND : hexToRgb(Theme.buttonBackground);
   tile.setAttribute('aria-selected', selected ? 'true' : 'false');
 }

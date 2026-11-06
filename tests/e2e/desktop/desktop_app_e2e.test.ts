@@ -29,6 +29,8 @@ import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
 import { desktopE2eBoundsTopFaceGripPoint } from './desktop_e2e_bounds.js';
 import { shellMenusBuiltinCreate } from '@/layout/shell/menubar/shell_menu_bar.js';
 import type { ShellMainWindowState } from '@/layout/shell/actions/shell_main_window_control.js';
+import type { ShellMainWindowLayout } from '@/layout/shell/actions/shell_main_window_layout.js';
+import { Theme } from '@/theme.js';
 
 /**
  * End-to-end acceptance of the built desktop app, driven through its MCP server
@@ -214,6 +216,15 @@ describe.skipIf(desktopExecutable === '')('desktop app end to end', () => {
   }
 
   /**
+   * Reads where the views, the info panel and the inspector sit on screen.
+   *
+   * @returns Main window layout reported by the editor.
+   */
+  async function shellLayoutRead(): Promise<ShellMainWindowLayout> {
+    return toolDataRead<ShellMainWindowLayout>(await client.toolCallExpectOk('get_shell_layout'));
+  }
+
+  /**
    * Validates the map and reads its issues.
    *
    * @returns Issues of the open map.
@@ -272,6 +283,36 @@ describe.skipIf(desktopExecutable === '')('desktop app end to end', () => {
         toolbarVisible: initial.toolbarVisible,
       });
       expect(restored).toEqual(initial);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'starts with the info panel folded to its strip and gives the views the space it frees',
+    async () => {
+      const initial = toolDataRead<ShellMainWindowState>(await client.toolCallExpectOk('get_main_window'));
+      expect(initial.infoPanelCollapsed).toBe(true);
+      const folded = await shellLayoutRead();
+      expect(Math.abs(folded.infoPanel.height - Theme.infoStripHeightPx)).toBeLessThanOrEqual(2);
+      await mainWindowChange({ infoPanelCollapsed: false });
+      const unfolded = await desktopE2eWaitUntil(
+        'the info panel to unfold',
+        async () => {
+          const layout = await shellLayoutRead();
+          return layout.infoPanel.height > folded.infoPanel.height ? layout : null;
+        },
+        STEP_TIMEOUT_MILLISECONDS,
+      );
+      expect(unfolded.views.height).toBeLessThan(folded.views.height);
+      expect(folded.views.height - unfolded.views.height).toBeGreaterThanOrEqual(
+        unfolded.infoPanel.height - folded.infoPanel.height,
+      );
+      await mainWindowChange({ infoPanelCollapsed: true });
+      await desktopE2eWaitUntil(
+        'the info panel to fold again',
+        async () => ((await shellLayoutRead()).views.height === folded.views.height ? true : null),
+        STEP_TIMEOUT_MILLISECONDS,
+      );
     },
     STEP_TIMEOUT_MILLISECONDS,
   );

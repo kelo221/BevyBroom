@@ -1,3 +1,5 @@
+import { Theme } from '@/theme.js';
+
 /** CSS class name for the material browser root element. */
 export const MATERIAL_BROWSER_ROOT_CLASS = 'tb-browser-root';
 
@@ -105,7 +107,7 @@ function buildThumbCss(): string {
   padding: 0;
   border: none;
   border-radius: 2px;
-  background-color: #111;
+  background-color: ${Theme.textureThumbnailBackground};
   background-position: center center;
   background-repeat: no-repeat;
   background-size: cover;

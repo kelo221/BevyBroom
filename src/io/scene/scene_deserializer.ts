@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import { SceneJSON, ObjectEntry, GeometryType, BufferGeometryData } from './io_types.js';
 import { BufferGeometryCodec } from '@/io/geometry/buffer_geometry_codec.js';
 import { rebuildDecorativeEdges } from '@/utils/mesh_edge_sync.js';
@@ -463,7 +464,7 @@ export class SceneDeserializer {
    * @returns A configured mesh material.
    */
   private reconstructMaterial(entry: ObjectEntry): THREE.Material {
-    const color = entry.materialColor || 0xffffff;
+    const color = entry.materialColor || MaterialColorNeutral.white;
     return createContentMaterial(color, {
       flatShading: true,
       side: THREE.FrontSide,
