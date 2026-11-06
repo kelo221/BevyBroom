@@ -46,7 +46,7 @@ Alignment restrictions refer to the current alignment behavior and status, while
 
 ## Exact numeric edits
 
-The Properties panel is the most direct way to enter exact Position, Rotation, and Scale values.
+Object Properties is the most direct way to enter exact Position, Rotation, and Scale values.
 
 - Position uses the editor's current units.
 - Rotation uses degrees.

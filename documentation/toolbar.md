@@ -24,7 +24,7 @@ From left to right:
 - **Global** and **Local** choose the gizmo axes.
 - **Pos Lock** and **Stretch Lock** keep textures in place while brushes move or
   stretch.
-- The **MCP** server button on the far right, highlighted orange while the
+- The **MCP** server button on the far right, highlighted while the
   server runs.
 
 ## Tools palette

@@ -24,7 +24,7 @@ If you are compiling or packaging BevyBroom from its source code, use [Building 
 
 - Release the right mouse button after fly navigation.
 - Unfocus any text or number field.
-- Check the active tool: its button is highlighted in the toolbar.
+- Check the active tool: its button is highlighted in the tools palette.
 - Review customized bindings in Settings.
 - Remember that `Space` cycles the view under the pointer and `F5` starts play mode.
 - Remember that Clip Plane reuses `F`, `Enter`, and `X`.
@@ -32,7 +32,7 @@ If you are compiling or packaging BevyBroom from its source code, use [Building 
 
 ## A panel or the toolbar is missing
 
-The inspector, the info panel, and the toolbar can be hidden, and the editor remembers that between sessions. Turn them back on in the **View** menu with **Show Inspector** (`Ctrl+5`), **Show Info Panel** (`Ctrl+4`), and **Show Toolbar** (`Ctrl+Alt+T`). The former UV Editor and Texture Browser windows are now the inspector's **Face** tab (`Ctrl+3`).
+The inspector, the info panel, and the toolbar can be hidden, and the editor remembers that between sessions. Turn them back on in the **View** menu with **Show Inspector** (`Ctrl+5`), **Show Info Panel** (`Ctrl+4`), and **Show Toolbar** (`Ctrl+Alt+T`). Face attributes live in the **Face Edit Sheet**, and the **Texture Browser** is a floating window (**View > Texture Browser**).
 
 ## A brush or component does not behave as expected
 
@@ -40,7 +40,7 @@ Open the **Issues** tab of the info panel. It lists invalid solid brushes, solid
 
 ## Transforming affects only some selected objects
 
-Some selected objects may be locked. The Properties panel and transform systems edit only eligible unlocked objects.
+Some selected objects may be locked. Object Properties and transform systems edit only eligible unlocked objects.
 
 ## An object moves along unexpected axes
 
@@ -67,7 +67,7 @@ For alignment, also check the status bar's Axis value. Press `A` until the inten
 
 ## CSG menu items are disabled
 
-The current selection is not compatible with direct mesh boolean operations. Return to Object Select and choose the required mesh operands. Solid-model brush operations are edited in the Solid Model section of Properties instead.
+The current selection is not compatible with direct mesh boolean operations. Return to Object Select and choose the required mesh operands. Solid-model brush operations are edited in the Solid Model section of Object Properties instead.
 
 ## Extrude is unavailable
 
@@ -82,7 +82,7 @@ The clip plane is not ready. Select a target, activate Clip Plane, and place thr
 
 ## Textures are missing
 
-- Reopen the folder with **Open Folder…** in the material browser of the inspector's **Face** tab.
+- Reopen the folder with **Open Folder…** in the **Texture Browser**.
 - Grant folder permission.
 - Confirm the image files are supported.
 - Check whether the scene refers to textures from a folder that moved or was renamed.

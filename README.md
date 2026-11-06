@@ -57,14 +57,14 @@ Switch to face mode to select individual faces on any mesh, then extrude them in
 - Coplanar face region grouping for multi-face extrusion
 - Extruded geometry is created as a new mesh (source stays intact)
 
-### Texturing & Face Inspector
+### Texturing & Face Edit Sheet
 
-Full texture workflow with per-face control in the inspector's Face tab:
+Full texture workflow with per-face control in the floating Face Edit Sheet and Texture Browser:
 
-- **Material browser** — load textures from a local folder using the File System Access API, filter them by name, and click one to apply it
+- **Texture Browser** — load textures from a local folder using the File System Access API, filter them by name, and click one to apply it
 - **Per-face texture assignment** — assign different textures to each face of a solid
-- **Face attributes** — offset (X/Y), scale (X/Y), and rotation fields with quick nudge buttons, docked above the material browser
-- **Texture alignment** — one-click align to floor, wall, or ceiling orientation
+- **Face attributes** — texture scale, shift, and rotation on the Face Edit Sheet Material tab
+- **Texture alignment** — Justify, Align World/Face, and Align to Floor, Wall, or Ceiling
 - **Planar UV projection** — automatic world-aligned UV baking per face
 - **Cylinder side unwrap** — special-case UV unwrapping for cylinder geometry
 - **UV smear** — drag to adjust UV coordinates directly on the mesh
@@ -218,7 +218,9 @@ Shift+U Ungroup selected
 Alt+G   Align to origin
 Shift+E Extrude faces
 1-4     Shading mode (Solid, Wireframe, Flat, Wireframe+Overlay)
-Tab     Toggle object / face selection
+Tab     Return to Object Select / toggle Edit Mode
+Shift+Tab  Face Select
+Alt+Enter  Object Properties
 .       Snap interval forward
 ,       Snap interval backward
 Escape  Deselect / exit tool
@@ -227,7 +229,7 @@ Ctrl+Shift+A  Select none
 Space   Cycle the view under the pointer
 Ctrl+Space    Maximize / restore the view under the pointer
 F5      Play
-Ctrl+1-3      Show the Map / Entity / Face inspector tab
+Ctrl+1  Show the Map inspector
 Ctrl+4  Toggle the info panel
 Ctrl+5  Toggle the inspector
 Ctrl+Alt+T    Toggle the toolbar
@@ -237,17 +239,19 @@ All shortcuts can be rebound in Settings > Keyboard.
 
 ### UI
 
-- **Blender-inspired dark theme** — dark backgrounds with orange selection highlights
+- **Classic Hammer++ theme** — light grey Windows chrome, black 2D views, grey 3D view, and red selection
 - **Menu bar** — File, Edit, Add, Tools, View, Run, and Help menus
-- **Toolbar** — undo and redo, tool buttons, snap and grid size, gizmo axes, and texture locks
+- **Toolbar** — undo and redo, snap and grid size, gizmo axes, and texture locks
+- **Tools palette** — Object Select, Entity, Block, Face, Apply Texture, Clip, Vertex, Polygon, Sprinkle, and Grid
 - **View bar** — the active tool's options and the workspace tabs above the viewports
-- **Inspector** — docked on the right with Map (layers and outliner), Entity (properties and entity browser), and Face (face attributes and material browser) tabs
+- **Right dock** — selection filter, current texture, VisGroups, prefabs, and the Map section with layers and the outliner
 - **Outliner** — collapsible tree view of the scene hierarchy
-- **Properties panel** — transform, material, and brush property editors
-- **Entity browser** — thumbnails of every placeable kind; drag one onto a viewport to place it
-- **Info panel** — docked below the viewports with Console (messages and errors) and Issues (map validation) tabs
-- **Remembered layout** — dock visibility, sizes, and tabs are restored between sessions
-- **Floating panels** — draggable Solid Model, Game Preview, and other tool panels
+- **Object Properties** — floating dialog for class, transform, material, brush, and game-component edits (`Alt+Enter`)
+- **Face Edit Sheet** — floating window for per-face textures and displacements
+- **Entity Browser** — thumbnails of every placeable kind; drag one onto a viewport to place it
+- **Info panel** — docked below the viewports with Console and Issues; starts collapsed
+- **Remembered layout** — dock visibility, sizes, and floating-window positions are restored between sessions
+- **Floating panels** — draggable Solid Model, Game Preview, Texture Browser, and other tool panels
 - **Status bar** — real-time feedback on tool state, snap settings, and shading mode
 - **Context menus** — right-click actions on objects in the outliner and viewports
 

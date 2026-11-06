@@ -19,7 +19,7 @@ const TOOL_INSTRUCTIONS_BY_ID: Readonly<Record<EditorToolId, ToolInstruction>> =
     title: 'Block Tool',
     shortcut: 'Shift+B',
     description:
-      'Drag in any viewport to draw a new convex brush using the active shape (Cuboid, Cylinder, Wedge, Stairs, Arch, Spheroid) and current texture.',
+      'Drag in any viewport to draw a new convex brush using the active shape (Cuboid, Stairs, Arch, Cylinder, Cone, Spheroid UV, Spheroid Icosahedron) and current texture.',
   },
   [EditorToolId.FACE]: {
     title: 'Face Select',

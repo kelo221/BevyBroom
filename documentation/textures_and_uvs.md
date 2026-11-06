@@ -1,17 +1,21 @@
 # Textures and UV Mapping
 
-Texturing has two parts: choosing an image and controlling how that image is placed on the selected surfaces. Both happen in the inspector's **Face** tab: the face attributes at the top place the image, and the material browser below them chooses it. Click the **Face** tab or press `Ctrl+3` to show it.
+Texturing has two parts: choosing an image and controlling how that image is placed on the selected surfaces. Choosing happens in the floating **Texture Browser**. Placement happens in the **Face Edit Sheet**.
+
+Face Select (`Shift+Tab`) opens the Face Edit Sheet. **Textures** on the view bar reopens it if you closed it. Open the Texture Browser with **Browse** in the right dock, **Browse…** in the Face Edit Sheet, or **View > Texture Browser**. See [Understanding the interface](understanding_the_interface.md).
 
 ## Open a texture folder
 
-1. Show the inspector's **Face** tab.
-2. Click **Open Folder…** next to the filter field of the material browser.
+1. Open the **Texture Browser**.
+2. Click **Open Folder…** next to the filter field.
 3. Choose a local folder containing supported image files.
 4. Approve browser access if prompted.
 
-The material browser shows the folder name, texture thumbnails, and the number of textures found. Hovering a tile reveals its relative path. Type in the **Filter** field to show only the textures whose name or path contains those words. If no folder is open, the browser displays an empty-state message.
+The browser shows the folder name, texture thumbnails, and the number of textures found. Hovering a tile reveals its relative path. Type in the **Filter** field to show only the textures whose name or path contains those words. If no folder is open, the browser displays an empty-state message.
 
 For manageable projects, keep related textures in a dedicated folder with clear filenames. The editor scans the selected folder and presents eligible images.
+
+When a game preview is connected, the browser also lists the game's material catalog as **Game materials**. Assigning one of them to a face stores the game material id, and the game uses its own material for that face.
 
 ## Apply a texture
 
@@ -19,25 +23,29 @@ For an entire ordinary mesh:
 
 1. Use Object Select.
 2. Select the mesh.
-3. Click a texture in the material browser.
+3. Click a texture in the Texture Browser.
 
 For individual surfaces:
 
 1. Enter Face Select with `Shift+Tab`.
 2. Select one or more face regions.
-3. Click a texture in the material browser.
+3. Click a texture in the Texture Browser, or **Apply** in the Face Edit Sheet.
+
+In Face Select, **right-click** a face to put the current texture on it, keeping that face's alignment. **Alt+right-click** applies the texture plus the alignment of the last face you lifted. The **Apply Current Texture** tool on the tools palette paints the current texture onto the selection, then stamps it onto the faces you click.
 
 Solid-model brushes retain per-face texture information through CSG rebuilding where the surface can be traced through the result.
 
 ## Face attributes
 
-The face attributes sit at the top of the **Face** tab. To show them from Face Select, you can also click **Face Inspector** in the tool options on the view bar. The top row shows a preview and the name of the selected surfaces' material, or **Multiple materials** when they differ, and reports the number of selected face regions it can edit.
+The Face Edit Sheet **Material** tab edits the selected faces. The texture block shows a preview and the name of the selected surfaces' material, or **Multiple materials** when they differ, and reports the number of selected face regions it can edit.
 
 If it says **No surfaces selected**, enter Face Select and choose a surface first.
 
+The top row has **Texture scale** X and Y, **Texture shift** X and Y, and **Rotation**. The spinner arrows, Arrow Up and Arrow Down in a field, or the mouse wheel over a field step the value; hold `Shift` for ten steps or `Ctrl` for a tenth of a step. The **X** and **Y** buttons beside Shift shift that axis by a random whole number of texels. Below them are the **UV vectors (X Y Z)**. **Justify** fits or justifies the texture; **Align** projects it from the **World** axes or the **Face**.
+
 ## Alignment presets
 
-The icon strip below the material row offers:
+The collapsed **More tools** section of the Face Edit Sheet offers:
 
 - **Align to Floor** for upward-facing horizontal surfaces.
 - **Align to Wall** for vertical surfaces.
@@ -48,11 +56,11 @@ These are quick starting orientations. Choose the closest surface type, then ref
 
 ## Scale, offset, and rotation
 
-The fields are arranged in rows with an X (U) column and a Y (V) column:
+The fields are arranged with an X (U) column and a Y (V) column:
 
-- **Offset** X and Y slide the image across the surface. The `−¼` and `+¼` buttons shift it by a quarter tile.
-- **Scale** X and Y control texture size or repetition along the two surface directions. The `½` and `×2` buttons halve or double the scale.
-- **Rotation** turns the image on the surface in degrees. The `−90` and `+90` buttons turn it a quarter turn.
+- **Texture shift** X and Y slide the image across the surface.
+- **Texture scale** X and Y control texture size or repetition along the two surface directions.
+- **Rotation** turns the image on the surface in degrees.
 
 Commit a changed field to apply it. When several surfaces are selected, the change applies across the target regions, and a field whose value differs between them shows a dash until you enter a value.
 
@@ -91,7 +99,7 @@ Examples:
 
 ## Material color
 
-The Material color in Properties tints a mesh. It is separate from the selected texture. A non-white tint can make the image appear darker or colored, so return the tint to white when you want the texture's original colors.
+The Material color in Object Properties tints a mesh. It is separate from the selected texture. A non-white tint can make the image appear darker or colored, so return the tint to white when you want the texture's original colors.
 
 ## Diagnosing texture problems
 

@@ -36,20 +36,20 @@ Geometry is sent as a GLB file that keeps every object's id and material id, and
 
 ## Lights
 
-Choose **Add > Lights > Point Light** or **Spot Light**. A light shows as a small translucent box in its own color, with its icon inside: a bulb for point lights and a spotlight for spot lights. Click the box to select the light, then move and rotate it like any object; dragging inside the box moves the light in every view, including up and down in the front and side views. While a light is selected, thin lines show its range; spot lights also show their cone, pointing along the light's local −Z axis, at any angle up to 179°, and lights with fog show its outline. Unselected lights show only their box. The box, its icon and the orange balls show in the 3D view and in the top, front and side views.
+Choose **Add > Lights > Point Light** or **Spot Light**. A light shows as a small translucent box in its own color, with its icon inside: a bulb for point lights and a spotlight for spot lights. Click the box to select the light, then move and rotate it like any object; dragging inside the box moves the light in every view, including up and down in the front and side views. While a light is selected, thin lines show its range; spot lights also show their cone, pointing along the light's local −Z axis, at any angle up to 179°, and lights with fog show its outline. Unselected lights show only their box. The box, its icon and the red balls show in the 3D view and in the top, front and side views.
 
-A selected light shows orange balls you drag to size it:
+A selected light shows red balls you drag to size it:
 
 - **Radius ball**: on the range circle of a point light, always to the right of the light in each view. On a spot light it sits at the tip of the cone's axis, and moves to the right of the light when the axis points straight at you. Drag it to set the **Radius**.
 - **Cone ball** (spot lights): on the rim of the cone. Drag it to set the **Outer** angle; the **Inner** angle keeps its share of the outer one.
 
 With grid snapping on, the radius snaps to the grid step and the cone angle to the rotation step. A drag updates the light and the game while you move, `Esc` cancels it, and one undo restores it. Locked lights show no balls.
 
-Lights, like point game entities, are points that only move and rotate: they keep a scale of 1 and set their size through the **Radius** ball and property. While a light or a point game entity is selected, even together with brushes, the selection offers no scale handles, no resize bars and no size labels, `S` does not start scaling, and the Scale fields in the Properties panel are hidden. Rooms and portals keep their sizing. Scenes saved with a scaled light load with that scale turned into the radius, which is what the game already showed.
+Lights, like point game entities, are points that only move and rotate: they keep a scale of 1 and set their size through the **Radius** ball and property. While a light or a point game entity is selected, even together with brushes, the selection offers no scale handles, no resize bars and no size labels, `S` does not start scaling, and the Scale fields in Object Properties are hidden. Rooms and portals keep their sizing. Scenes saved with a scaled light load with that scale turned into the radius, which is what the game already showed.
 
 The fog radius follows the light: dragging the radius ball, scaling, or typing a new **Radius** (also through the MCP `set_light_settings` tool) changes the fog radius by the same factor. Set the fog radius on its own in the **Fog** group.
 
-The Properties panel edits a selected light. The main fields are always shown:
+Object Properties edits a selected light. The main fields are always shown:
 
 - **Type**: point or spot.
 - **Enabled**: disabled lights stay in the scene but give no light.
@@ -83,8 +83,8 @@ Lights are saved in the scene file and duplicate with `Ctrl+D`. GLB exports carr
 
 Rooms and portals let the game skip the realtime lights, shadow cubemaps and fog that the camera cannot see through a doorway. DynLight calls this portal culling. It does not skip drawing geometry; meshes are culled only by the camera's view.
 
-- **Add > Portals > Room** adds a room: a box drawn as a wireframe, with a small box and floor plan icon at its center that you click to select it. A selected room's selection box is the whole room, so its resize bars resize the room. Size it exactly in the Properties panel with **Half size X / Y / Z** (meters from its center), then move, rotate and scale it like any object. Cover each walkable space with one room.
-- **Add > Portals > Portal** adds a portal: a rectangle with an arrow on its front side. Set **Width** and **Height** in the Properties panel and place it in a doorway, in the wall between two rooms.
+- **Add > Portals > Room** adds a room: a box drawn as a wireframe, with a small box and floor plan icon at its center that you click to select it. A selected room's selection box is the whole room, so its resize bars resize the room. Size it exactly in Object Properties with **Half size X / Y / Z** (meters from its center), then move, rotate and scale it like any object. Cover each walkable space with one room.
+- **Add > Portals > Portal** adds a portal: a rectangle with an arrow on its front side. Set **Width** and **Height** in Object Properties and place it in a doorway, in the wall between two rooms.
 - **Closed** on a portal makes it a shut door: the game stops looking through it. Closing and opening doors updates the game live.
 
 Moving rooms and portals or toggling a door never rebuilds the level geometry; only the room and portal data is sent.
@@ -95,11 +95,11 @@ Rooms and portals are saved in the scene file and are exported to GLB as empty n
 
 ## Game components
 
-The game reports the components it registered for placement. They appear under **Add > Game Entities** and in the **Game Components** section of the Properties panel, with the game's own fields and defaults. Adding, editing and removing components updates the game live, also on brushes, and a component stays on a brush when its geometry is rebuilt. Data asset files are edited through the game, which writes and reloads them. See [Game components and data assets](game_components.md).
+The game reports the components it registered for placement. They appear under **Add > Game Entities** and in the **Class Info** tab of Object Properties, with the game's own fields and defaults. Adding, editing and removing components updates the game live, also on brushes, and a component stays on a brush when its geometry is rebuilt. Data asset files are edited through the game, which writes and reloads them. See [Game components and data assets](game_components.md).
 
 ## Game materials
 
-When connected, the material browser in the inspector's **Face** tab shows the game's material catalog as **Game materials**. Assigning one of them to a face stores the game material id, and the game uses its own material for that face, including normal and metallic maps the editor does not show. When the catalog file or one of its textures changes on disk, both the game and the editor update in place.
+When connected, the **Texture Browser** shows the game's material catalog as **Game materials**. Assigning one of them to a face stores the game material id, and the game uses its own material for that face, including normal and metallic maps the editor does not show. When the catalog file or one of its textures changes on disk, both the game and the editor update in place.
 
 ## Preview bake
 

@@ -111,14 +111,14 @@ Earlier builds may have described plain `Tab` as a toggle. In the current defaul
 
 ### Main window
 
-| Shortcut     | Action                        |
-| ------------ | ----------------------------- |
-| `Ctrl+1`     | Show the Map inspector tab    |
-| `Ctrl+2`     | Show the Entity inspector tab |
-| `Ctrl+3`     | Show the Face inspector tab   |
-| `Ctrl+4`     | Show or hide the info panel   |
-| `Ctrl+5`     | Show or hide the inspector    |
-| `Ctrl+Alt+T` | Show or hide the toolbar      |
+| Shortcut     | Action                                      |
+| ------------ | ------------------------------------------- |
+| `Ctrl+1`     | Show the right dock (Map inspector)         |
+| `Ctrl+4`     | Show or hide the info panel                 |
+| `Ctrl+5`     | Show or hide the inspector                  |
+| Ctrl+`       | Collapse or expand the info panel           |
+| `Ctrl+Alt+T` | Show or hide the toolbar                    |
+| `Alt+Enter`  | Open Object Properties on the selection     |
 
 These shortcuts are listed under **Window and Views** in **Settings > Keyboard**, and the menus show the current binding next to each command.
 
@@ -148,6 +148,6 @@ Check the following:
 
 1. Finish or unfocus the current text or number field.
 2. Release the right mouse button after fly navigation.
-3. Confirm the active tool: its button is highlighted in the toolbar.
+3. Confirm the active tool: its button is highlighted in the tools palette.
 4. Confirm the current selection is appropriate for the action.
 5. Review the Keyboard tab in Settings in case the binding was changed.

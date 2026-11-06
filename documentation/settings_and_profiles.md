@@ -40,7 +40,7 @@ Change one preference at a time and test it in both Perspective and an orthograp
 
 ## Keyboard settings
 
-The Keyboard tab displays editable bindings for tool, selection, file, view, snapping, extrusion, and clipping actions. Its **Window and Views** category holds the bindings for cycling and maximizing the view under the pointer, Play, the inspector tabs, the info panel, the inspector, the toolbar, and Select All and Select None. The menus show each command's current binding.
+The Keyboard tab displays editable bindings for tool, selection, file, view, snapping, extrusion, and clipping actions. Its **Window and Views** category holds the bindings for cycling and maximizing the view under the pointer, Play, Map Inspector, the info panel, the inspector, the toolbar, Object Properties, and Select All and Select None. The menus show each command's current binding.
 
 When assigning a shortcut:
 
