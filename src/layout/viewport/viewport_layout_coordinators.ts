@@ -12,16 +12,20 @@ import {
   cancelClipToolSelection,
   refreshViewportToolChrome,
 } from '@/layout/setup/layout_coordinator_setup.js';
-import { CoordinatorEditorOrientation } from '@/navigation/orientation/coordinator_editor_orientation.js';
+import {
+  layoutToolsPaletteEditModeCoordinatorCreate,
+  layoutToolsPaletteEditorOrientationCoordinatorCreate,
+  layoutToolsPaletteGridOrientationHandlerCreate,
+} from '@/layout/setup/layout_tools_palette_clip_coordinators.js';
+import { layoutToolsPaletteClipOptionsCreate } from '@/layout/setup/layout_tools_palette_clip_options.js';
+import type { LayoutToolsPaletteClipHost } from '@/layout/setup/layout_tools_palette_clip_host.js';
 import type { EditorOrientation } from '@/navigation/orientation/editor_orientation.js';
-import { HandlerGridOrientation } from '@/tools/grid/handler_grid_orientation.js';
+import type { HandlerClipPlane } from '@/tools/clip_plane/handler_clip_plane.js';
 import { TransformMode } from '@/types/transform_mode.js';
 import type { ObjectApplyTransformKind } from '@/types/object_apply_transform_kind.js';
 import { HandlerObjectApplyTransform } from '@/transform/apply/handler_object_apply_transform.js';
 import { HandlerSolidBrushHull } from '@/tools/hull/handler_solid_brush_hull.js';
 import { hullBrushSelectionFinish } from '@/tools/hull/hull_brush_selection_finish.js';
-import { CoordinatorEditMode } from '@/edit/coordinator/coordinator_edit_mode.js';
-import { EditorComponentMode } from '@/types/editor_component_mode.js';
 import { EditorOverlayId } from '@/tools/overlay/editor_overlay_id.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
 import { ManagerProjectedGrid } from '@/viewports/grid/projected/manager_projected_grid.js';
@@ -133,19 +137,42 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
   /**
    * Returns the camera from the active viewport for object spawn placement.
    *
-   * @returns Active viewport camera, falling back to the 3D camera.
+   * @returns Active viewport camera, falling back to any live viewport camera.
+   * @throws When no live viewport camera exists.
    */
   protected getActiveSpawnCamera(): THREE.Camera {
     const coordinator = this.shadingModeCoordinator;
     if (coordinator) {
       const viewport = coordinator.getOrderedViewports()[coordinator.getActiveViewportIndex()];
-      if (viewport) return viewport.getCamera();
+      if (viewport) {
+        return viewport.getCamera();
+      }
     }
-    return (
-      this.getActiveViewports()[0]?.getCamera() ??
-      this.viewport3D?.getCamera() ??
-      this.getAllLiveViewports()[0]!.getCamera()
-    );
+    const camera = this.firstLiveViewportCameraRead();
+    if (camera) {
+      return camera;
+    }
+    throw new Error('no live viewport camera for spawn placement');
+  }
+
+  /**
+   * Returns the first camera any live viewport has, or null when none does.
+   *
+   * @returns Camera from an active, perspective, or live viewport.
+   */
+  private firstLiveViewportCameraRead(): THREE.Camera | null {
+    const active = this.getActiveViewports()[0]?.getCamera() ?? null;
+    if (active) {
+      return active;
+    }
+    const perspective = this.viewport3D?.getCamera() ?? null;
+    if (perspective) {
+      return perspective;
+    }
+    for (const viewport of this.getAllLiveViewports()) {
+      return viewport.getCamera();
+    }
+    return null;
   }
 
   /** Creates object, CSG, and alignment action handlers. */
@@ -271,146 +298,199 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
 
   /** Creates per-viewport tool chrome, clip plane tool, and related wiring. */
   protected setupToolsPaletteAndClip(): void {
-    this.editModeCoordinator = new CoordinatorEditMode({
-      getPrimaryScene: () => this.getPrimaryScene(),
-      getSelectedObjects: () => this.selectionManager.getAllSelectedObjectsAsArray(),
-      getViewports: () => this.getAllInteractiveViewports(),
-      showStatusMessage: (message) => this.showStatusMessage(message),
-      getCommandStack: () => this.commandStack,
-    });
-    this.editorOrientationCoordinator = new CoordinatorEditorOrientation({
-      getViewports: () => this.getAllLiveViewports(),
-      showStatusMessage: (message) => this.showStatusMessage(message),
-    });
-    this.editorOrientationCoordinator.bindViewports();
+    this.setupToolsPaletteCoordinators();
+    this.setupToolsPaletteAndClipWiring();
+  }
+
+  /**
+   * Creates Edit Mode, orientation, and grid-align coordinators used by tool
+   * chrome.
+   */
+  private setupToolsPaletteCoordinators(): void {
+    const host = this.toolsPaletteClipHostRead();
+    this.editModeCoordinator = layoutToolsPaletteEditModeCoordinatorCreate(host);
+    const orientationCoordinator = layoutToolsPaletteEditorOrientationCoordinatorCreate(host);
+    this.editorOrientationCoordinator = orientationCoordinator;
+    orientationCoordinator.bindViewports();
     this.bindGridSnapToGridOrientation();
-    this.gridOrientationHandler = new HandlerGridOrientation({
-      worldObject: this.worldObject,
-      orientationCoordinator: this.editorOrientationCoordinator,
-      getViewports: () => this.getAllInteractiveViewports(),
-      getPrimaryScene: () => this.getPrimaryScene(),
-      showStatusMessage: (message) => this.showStatusMessage(message),
-      onPickModeChanged: (mode) => this.toolsPaletteController?.setActiveGridPickMode(mode),
-      isShiftPressed: () => this.toolEditorSystem?.editorWindow.getServices()?.isShiftPressed() === true,
-    });
-    const result = createToolsPaletteAndClip({
+    this.gridOrientationHandler = layoutToolsPaletteGridOrientationHandlerCreate(host, orientationCoordinator);
+  }
+
+  /**
+   * Returns this layout as the tool-chrome host bag.
+   *
+   * @returns Host callbacks for palette and clip factories.
+   */
+  private toolsPaletteClipHostRead(): LayoutToolsPaletteClipHost {
+    return {
+      ...this.toolsPaletteClipHostIdentityRead(),
+      ...this.toolsPaletteClipHostLiveRead(),
+      ...this.toolsPaletteClipHostStatusRead(),
+      ...this.toolsPaletteClipHostActionRead(),
+    };
+  }
+
+  /**
+   * Returns the identity fields of the tool-chrome host bag.
+   *
+   * @returns Core objects the palette and clip factories read.
+   */
+  private toolsPaletteClipHostIdentityRead(): Pick<
+    LayoutToolsPaletteClipHost,
+    | 'worldObject'
+    | 'commandStack'
+    | 'selectionManager'
+    | 'gridSnap'
+    | 'clipPlaneTool'
+    | 'faceModeCoordinator'
+    | 'shellElements'
+    | 'detachedViewportWindow'
+    | 'keyboardShortcutHandler'
+    | 'shadingModeCoordinator'
+  > {
+    return {
       worldObject: this.worldObject,
       commandStack: this.commandStack,
       selectionManager: this.selectionManager,
       gridSnap: this.gridSnap,
       clipPlaneTool: this.clipPlaneTool,
       faceModeCoordinator: this.faceModeCoordinator,
-      toolChromeDocking: this.shellElements.toolChromeDocking,
-      getFloatingChromeViewports: () => this.detachedViewportWindow.getViewports(),
+      shellElements: this.shellElements,
+      detachedViewportWindow: this.detachedViewportWindow,
       keyboardShortcutHandler: this.keyboardShortcutHandler,
+      shadingModeCoordinator: this.shadingModeCoordinator,
+    };
+  }
+
+  /**
+   * Returns the live coordinator fields of the tool-chrome host bag.
+   *
+   * @returns Coordinators and handlers the palette and clip factories read.
+   */
+  private toolsPaletteClipHostLiveRead(): Pick<
+    LayoutToolsPaletteClipHost,
+    | 'editorOverlayPolicy'
+    | 'modalToolSessionRegistry'
+    | 'toolEditorSystem'
+    | 'gridOrientationHandler'
+    | 'editModeCoordinator'
+    | 'transformInteractionBridge'
+    | 'transformHandler'
+    | 'selectionVisualController'
+    | 'toolsPaletteController'
+    | 'shapeDrawSetup'
+  > {
+    return {
+      editorOverlayPolicy: this.editorOverlayPolicy,
+      modalToolSessionRegistry: this.modalToolSessionRegistry,
+      toolEditorSystem: this.toolEditorSystem,
+      gridOrientationHandler: this.gridOrientationHandler,
+      editModeCoordinator: this.editModeCoordinator,
+      transformInteractionBridge: this.transformInteractionBridge,
+      transformHandler: this.transformHandler,
+      selectionVisualController: this.selectionVisualController,
+      toolsPaletteController: this.toolsPaletteController,
+      shapeDrawSetup: this.shapeDrawSetup,
+    };
+  }
+
+  /**
+   * Returns the status callbacks of the tool-chrome host bag.
+   *
+   * @returns Status and clip-lifecycle callbacks.
+   */
+  private toolsPaletteClipHostStatusRead(): Pick<
+    LayoutToolsPaletteClipHost,
+    | 'showStatusMessage'
+    | 'syncPrimitivesToViewports'
+    | 'refreshOutliner'
+    | 'onClipToolStateChanged'
+    | 'onClipCancel'
+    | 'onTransformMode'
+    | 'faceInspectorReveal'
+    | 'isEditModeActive'
+    | 'applyEditModeDefaultNoTransformWidget'
+  > {
+    return {
       showStatusMessage: (message) => this.showStatusMessage(message),
       syncPrimitivesToViewports: () => this.syncPrimitivesToViewports(),
       refreshOutliner: () => this.refreshOutliner(),
-      updateShadingMeshes: () => this.shadingModeCoordinator.updateShadingMeshes(),
-      onToolStateChanged: () => this.onClipToolStateChanged(),
+      onClipToolStateChanged: () => this.onClipToolStateChanged(),
       onClipCancel: () => this.onClipCancel(),
       onTransformMode: (mode) => this.onTransformMode(mode),
       faceInspectorReveal: () => this.faceInspectorReveal(),
-      editorOverlayPolicy: this.editorOverlayPolicy,
-      modalToolSessionRegistry: this.modalToolSessionRegistry,
-      isEditorToolBusy: () => this.toolEditorSystem?.isActiveEventReceiverBusy() === true,
-      switchToClipTool: () => this.toolEditorSystem?.switchToClipTool() === true,
-      switchToObjectSelect: () => {
-        this.toolEditorSystem?.switchToObjectSelect();
-      },
-      switchToFaceSelect: () => {
-        this.toolEditorSystem?.switchToFaceSelect();
-      },
-      switchToEditSelect: () => {
-        this.toolEditorSystem?.switchToEditSelect();
-      },
-      switchToGridTool: () => {
-        this.toolEditorSystem?.switchToGridTool();
-      },
-      onGridReset: () => {
-        this.gridOrientationHandler?.resetOrientation();
-      },
-      onGridAlignToFace: () => {
-        this.toolEditorSystem?.switchToGridTool();
-        this.toolEditorSystem?.editorWindow.getServices()?.pinExclusiveViewport();
-        this.gridOrientationHandler?.armAlignPick();
-      },
-      onGridAlignAxis: (axis) => {
-        this.toolEditorSystem?.switchToGridTool();
-        this.toolEditorSystem?.editorWindow.getServices()?.pinExclusiveViewport();
-        this.gridOrientationHandler?.armEdgeAlignPick(axis);
-      },
-      onGridOriginVertex: () => {
-        this.toolEditorSystem?.switchToGridTool();
-        this.toolEditorSystem?.editorWindow.getServices()?.pinExclusiveViewport();
-        this.gridOrientationHandler?.armOriginVertexPick();
-      },
-      onCameraReset: () => {
-        this.gridOrientationHandler?.resetCameraOrientation();
-      },
-      onCameraAlignToFace: () => {
-        this.toolEditorSystem?.switchToGridTool();
-        this.toolEditorSystem?.editorWindow.getServices()?.pinExclusiveViewport();
-        this.gridOrientationHandler?.armCameraAlignPick();
-      },
-      onPrimaryToolChanged: () => {
-        this.updateGizmoVisibility();
-        this.updateGizmoPivot();
-      },
-      registerClipTool: (placement, handler) => {
-        this.toolEditorSystem?.registerClipTool(placement, handler);
-      },
-      onEnterEditMode: () => this.editModeCoordinator?.enterFromObjectSelection() === true,
-      onExitEditMode: () => {
-        this.editModeCoordinator?.exitToObjectMode();
-      },
-      onComponentMode: (mode: EditorComponentMode) => {
-        this.editModeCoordinator?.setComponentMode(mode);
-      },
-      onEditModePresentationChanged: () => {
-        if (this.isEditModeActive()) {
-          this.applyEditModeDefaultNoTransformWidget();
-          this.editModeCoordinator?.suppressObjectModeWireframes();
-          this.transformInteractionBridge?.clearBoundsHover();
-          this.transformHandler?.clearBoundsHover();
-        }
-        this.updateGizmoVisibility();
-        this.updateTransformButtons();
-        this.refreshCadRulersFromSelection();
-        this.selectionVisualController?.setObjectSelectionChromeEnabled(!this.isEditModeActive());
-      },
-      onApplyObjectTransform: (kind) => this.applyObjectTransformsFromChrome(kind),
-      onConvexHull: () => this.hullBrushesFromChrome(),
-      onShapeSettingChanged: () => this.shapeDrawSetup.shapeSettingChanged(),
-      onEditKnife: () => this.toolEditorSystem?.editorWindow.useSingleUseEditKnifeTool(),
-      onEditLoopCut: () => this.toolEditorSystem?.editorWindow.useSingleUseEditLoopCutTool(),
-      onEditMerge: (mode) => {
-        this.editModeCoordinator?.mergeSelection(mode);
-      },
-      onEditDissolve: () => {
-        this.editModeCoordinator?.dissolveSelection();
-      },
-      onEditDelete: () => {
-        this.editModeCoordinator?.deleteSelection();
-      },
-    });
+      isEditModeActive: () => this.isEditModeActive(),
+      applyEditModeDefaultNoTransformWidget: () => this.applyEditModeDefaultNoTransformWidget(),
+    };
+  }
+
+  /**
+   * Returns the action callbacks of the tool-chrome host bag.
+   *
+   * @returns Gizmo, hull, and viewport callbacks.
+   */
+  private toolsPaletteClipHostActionRead(): Pick<
+    LayoutToolsPaletteClipHost,
+    | 'updateGizmoVisibility'
+    | 'updateGizmoPivot'
+    | 'refreshCadRulersFromSelection'
+    | 'applyObjectTransformsFromChrome'
+    | 'hullBrushesFromChrome'
+    | 'updateTransformButtons'
+    | 'getPrimaryScene'
+    | 'getAllInteractiveViewports'
+    | 'getAllLiveViewports'
+  > {
+    return {
+      updateGizmoVisibility: () => this.updateGizmoVisibility(),
+      updateGizmoPivot: () => this.updateGizmoPivot(),
+      refreshCadRulersFromSelection: () => this.refreshCadRulersFromSelection(),
+      applyObjectTransformsFromChrome: (kind) => this.applyObjectTransformsFromChrome(kind),
+      hullBrushesFromChrome: () => this.hullBrushesFromChrome(),
+      updateTransformButtons: () => this.updateTransformButtons(),
+      getPrimaryScene: () => this.getPrimaryScene(),
+      getAllInteractiveViewports: () => this.getAllInteractiveViewports(),
+      getAllLiveViewports: () => this.getAllLiveViewports(),
+    };
+  }
+
+  /** Wires tool chrome, clip, keyboard, and render-loop handlers. */
+  private setupToolsPaletteAndClipWiring(): void {
+    const result = createToolsPaletteAndClip(layoutToolsPaletteClipOptionsCreate(this.toolsPaletteClipHostRead()));
     this.clipPlaneHandler = result.clipPlaneHandler;
     this.toolsPaletteController = result.toolsPaletteController;
+    this.setupToolsPaletteKeyboardAndRenderLoop(result.clipPlaneHandler);
+  }
+
+  /**
+   * Binds Edit Mode keyboard shortcuts, render-loop handlers, overlay refresh,
+   * and floating tool chrome.
+   *
+   * @param clipPlaneHandler Clip plane handler from tool chrome wiring.
+   */
+  private setupToolsPaletteKeyboardAndRenderLoop(clipPlaneHandler: HandlerClipPlane): void {
     this.keyboardShortcutHandler.setOnComponentMode(
-      (mode) => {
-        this.toolsPaletteController?.setComponentMode(mode);
-      },
+      (mode) => this.toolsPaletteController?.setComponentMode(mode),
       () => this.isEditModeActive(),
     );
     this.keyboardShortcutHandler.setOnDeleteEditComponents(() => this.editModeCoordinator?.deleteSelection());
-    this.renderLoop.setClipPlaneHandler(result.clipPlaneHandler);
+    this.toolsPaletteRenderLoopBind(clipPlaneHandler);
+    this.floatingToolChromeSync();
+  }
+
+  /**
+   * Binds clip, orientation, and overlay handlers onto the render loop.
+   *
+   * @param clipPlaneHandler Clip plane handler from tool chrome wiring.
+   */
+  private toolsPaletteRenderLoopBind(clipPlaneHandler: HandlerClipPlane): void {
+    this.renderLoop.setClipPlaneHandler(clipPlaneHandler);
     this.renderLoop.setEditorOrientationCoordinator(this.editorOrientationCoordinator);
     this.renderLoop.setGridOrientationHandler(this.gridOrientationHandler);
     this.editorOverlayPolicy.addChangeListener(() => {
       this.refreshCadRulersFromSelection();
       this.updateGizmoVisibility();
     });
-    this.floatingToolChromeSync();
   }
 
   /**

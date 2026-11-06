@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import { CommandEntitySettingsSet } from '@/entity/commands/command_entity_settings_set.js';
 import type { EntityOwner } from '@/entity/model/entity_owner.js';
 import { EntityOwnerRegistry } from '@/entity/registry/entity_owner_registry.js';
+import { objectPropertiesKeyvalueEntitySettingCaptionLookup } from './object_properties_keyvalue_entity_setting_caption.js';
 import {
   type ObjectPropertiesKeyvalueRawRow,
   objectPropertiesKeyvalueTextFormat,
@@ -28,19 +29,71 @@ export class ObjectPropertiesKeyvalueRawSourceEntitySettings extends ObjectPrope
     }
     const settingsList = objects.map((object) => entityOwner.settingsRead(object) ?? {});
     const firstSettings = settingsList[0] ?? {};
-    return Object.keys(firstSettings).map((key) => ({
+    return Object.keys(firstSettings).map((key) =>
+      this.rowCreate(entityOwner, objects, key, settingsList, firstSettings),
+    );
+  }
+
+  /**
+   * Builds the row of one settings key.
+   *
+   * @param entityOwner Owner helper of the kind.
+   * @param objects Edited owners.
+   * @param key Setting key.
+   * @param settingsList Settings of every edited owner.
+   * @param firstSettings Settings of the first owner.
+   * @returns Setting row.
+   */
+  private rowCreate(
+    entityOwner: EntityOwner<object>,
+    objects: readonly THREE.Object3D[],
+    key: string,
+    settingsList: readonly object[],
+    firstSettings: object,
+  ): ObjectPropertiesKeyvalueRawRow {
+    const caption = objectPropertiesKeyvalueEntitySettingCaptionLookup(entityOwner.kind, key);
+    return {
       key,
-      label: key,
-      helpText: `Setting ${key} of the ${entityOwner.kind} kind.`,
-      valueTexts: settingsList.map((settings) => objectPropertiesKeyvalueTextFormat(Reflect.get(settings, key))),
-      commit: (text) =>
-        this.settingCommit(
-          entityOwner,
-          objects,
-          key,
-          objectPropertiesKeyvalueTextParse(text, Reflect.get(firstSettings, key)),
-        ),
-    }));
+      label: caption.label,
+      helpText: caption.helpText,
+      valueTexts: this.settingValueTextsRead(settingsList, key),
+      commit: (text) => this.settingTextCommit(entityOwner, objects, key, firstSettings, text),
+    };
+  }
+
+  /**
+   * Formats one setting of every owner as keyvalue text.
+   *
+   * @param settingsList Settings of every edited owner.
+   * @param key Setting key.
+   * @returns Value text of every owner.
+   */
+  private settingValueTextsRead(settingsList: readonly object[], key: string): string[] {
+    return settingsList.map((settings) => objectPropertiesKeyvalueTextFormat(Reflect.get(settings, key)));
+  }
+
+  /**
+   * Parses typed text and writes it as one setting of every owner.
+   *
+   * @param entityOwner Owner helper of the kind.
+   * @param objects Edited owners.
+   * @param key Setting key.
+   * @param firstSettings Settings of the first owner.
+   * @param text Typed value.
+   */
+  private settingTextCommit(
+    entityOwner: EntityOwner<object>,
+    objects: readonly THREE.Object3D[],
+    key: string,
+    firstSettings: object,
+    text: string,
+  ): void {
+    this.settingCommit(
+      entityOwner,
+      objects,
+      key,
+      objectPropertiesKeyvalueTextParse(text, Reflect.get(firstSettings, key)),
+    );
   }
 
   /**

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PanelFloatingContentHost } from '@/ui/floating_panel/panel_floating_content_host.js';
+import { panelLeftTopRead, stubPanelRectFromStyle, titleBarDrag } from './panel_floating_test_support.js';
 
 /** Floating windows built by the running test. */
 const contentHostTestWindows: PanelFloatingContentHost[] = [];
@@ -74,26 +75,33 @@ describe('PanelFloatingContentHost', () => {
   it('keeps a moved position on reopen when centered', () => {
     const host = document.createElement('div');
     document.body.appendChild(host);
+    const panelWidth = 100;
+    const panelHeight = 60;
     const centeredWindow = new PanelFloatingContentHost(
       host,
       {
         titleText: 'Centered',
         className: 'panel-floating-centered',
-        width: '100px',
-        height: '60px',
+        width: `${panelWidth}px`,
+        height: `${panelHeight}px`,
         corner: 'top-left',
         centered: true,
       },
       document.createElement('div'),
     );
     contentHostTestWindows.push(centeredWindow);
+    stubPanelRectFromStyle(centeredWindow.getRootElement(), panelWidth, panelHeight);
     centeredWindow.show();
-    const root = centeredWindow.getRootElement();
-    const movedLeft = `${parseFloat(root.style.left) + 33}px`;
-    root.style.left = movedLeft;
+    const start = panelLeftTopRead(centeredWindow);
+    const titleBar = centeredWindow.getRootElement().firstElementChild;
+    if (!(titleBar instanceof HTMLElement)) {
+      throw new Error('centered window title bar');
+    }
+    titleBarDrag(titleBar, start.left + 10, start.top + 5, 33, 0);
+    const moved = panelLeftTopRead(centeredWindow);
     centeredWindow.hide();
     centeredWindow.show();
-    expect(root.style.left).toBe(movedLeft);
+    expect(panelLeftTopRead(centeredWindow)).toEqual(moved);
   });
 
   it('stays open on Escape by default and closes on Escape when asked to', () => {

@@ -214,7 +214,8 @@ describe('TabObjectPropertiesClassInfo', () => {
     );
     smartEdit.click();
     expect(smartEdit.getAttribute('aria-pressed')).toBe('false');
-    expect(container.querySelector('[data-properties-row="Radius"]')).toBeNull();
+    expect(container.querySelector('[data-keyvalue-key="radius"]')).not.toBeNull();
+    expect(container.querySelector('[data-properties-row="Radius"]')).not.toBeNull();
     const radiusText = objectPropertiesTestQuery<HTMLInputElement>(container, '[data-keyvalue-key="radius"] input');
     expect(Number(radiusText.value)).toBe(radius);
     expect(container.querySelector('[data-keyvalue-key="targetname"]')).not.toBeNull();

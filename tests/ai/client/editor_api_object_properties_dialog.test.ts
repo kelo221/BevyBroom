@@ -95,9 +95,16 @@ describe('EditorApiObjectPropertiesDialog', () => {
     const rig = dialogToolsRigCreate();
     const undoCountBefore = rig.commandStack.getUndoCount();
     expect(rig.api.invokeTool('set_object_properties_dialog', { comments: 'note' }).ok).toBe(false);
-    rig.api.invokeTool('set_object_properties_dialog', { action: 'open' });
-    expect(rig.api.invokeTool('set_object_properties_dialog', { comments: 'Hall note' }).ok).toBe(true);
+    const opened = rig.api.invokeTool('set_object_properties_dialog', { action: 'open' });
+    expect(opened.ok).toBe(true);
+    expect(opened.message).toBe('Object Properties dialog changed');
+    const written = rig.api.invokeTool('set_object_properties_dialog', { comments: 'Hall note' });
+    expect(written.ok).toBe(true);
+    expect(written.message).toBe('Object Properties comments written');
     expect(GameEntityLogicStore.commentsRead(rig.scene.button)).toBe('Hall note');
+    const unchanged = rig.api.invokeTool('set_object_properties_dialog', { comments: 'Hall note' });
+    expect(unchanged.ok).toBe(true);
+    expect(unchanged.message).toBe('Object Properties comments already set');
     rig.api.invokeTool('set_object_properties_dialog', { action: 'cancel' });
     expect(GameEntityLogicStore.commentsRead(rig.scene.button)).toBe('');
     expect(rig.commandStack.getUndoCount()).toBe(undoCountBefore);

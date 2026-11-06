@@ -1,20 +1,48 @@
 import { TransformMode, isBoundsWidgetMode } from '@/types/transform_mode.js';
 import { EditorWindow } from '@/editor/window/editor_window.js';
-import { EditorInputBridge } from '@/editor/window/editor_input_bridge.js';
 import { GuiWindow } from '@/editor/gui/gui_window.js';
 import { ClipTool } from '@/editor/tools/clip_tool.js';
 import { keyboardShortcutCodeFromEvent } from '@/input/keyboard_event_match.js';
-import { audioViewportFocus } from '@/audio/spatial/audio_viewport_focus.js';
+import type { HandlerClipPlane } from '@/tools/clip_plane/handler_clip_plane.js';
+import type { ToolClipPlane } from '@/tools/clip_plane/tool_clip_plane.js';
 import type { LayoutToolEditorSetupDeps, LayoutToolEditorSystem } from './layout_tool_editor_types.js';
-import { createEditorServices } from './layout_tool_editor_services.js';
 import {
-  collectInteractivePickElements,
-  objectDragControllerCreate,
-  syncAudioViewportContentRegistry,
-  wireAfterDragVisualRefresh,
-} from './layout_tool_editor_helpers.js';
+  layoutToolEditorSystemSessionCreate,
+  type LayoutToolEditorSystemSession,
+} from './layout_tool_editor_system_session.js';
 
 export type { LayoutToolEditorSetupDeps, LayoutToolEditorSystem } from './layout_tool_editor_types.js';
+
+/** Tool-switch and busy-state handles. */
+type LayoutToolEditorSystemToolSwitchHandles = Pick<
+  LayoutToolEditorSystem,
+  | 'switchToTransformMode'
+  | 'switchToObjectSelect'
+  | 'switchToFaceSelect'
+  | 'switchToEditSelect'
+  | 'switchToGridTool'
+  | 'refreshInteractiveViewportDomain'
+  | 'cancelActiveSingleUseTool'
+  | 'isToolBusy'
+  | 'isActiveEventReceiverBusy'
+>;
+
+/** GUI surface and focus-router handles. */
+type LayoutToolEditorSystemGuiHandles = Pick<
+  LayoutToolEditorSystem,
+  'registerGuiSurface' | 'unregisterGuiSurface' | 'installFocusPointerRouter' | 'uninstallFocusPointerRouter'
+>;
+
+/** Keyboard, navigation-block, and clip-tool handles. */
+type LayoutToolEditorSystemClipKeyHandles = Pick<
+  LayoutToolEditorSystem,
+  | 'handleKeyDown'
+  | 'setGlobalKeyDownHandler'
+  | 'setNavigationBlocksActions'
+  | 'registerClipTool'
+  | 'switchToClipTool'
+  | 'isClipToolActive'
+>;
 
 /**
  * Creates an editor window and EditorInputBridge, wires services and exclusive
@@ -24,85 +52,193 @@ export type { LayoutToolEditorSetupDeps, LayoutToolEditorSystem } from './layout
  * @returns Tool system handles.
  */
 export function createLayoutToolEditorSystem(deps: LayoutToolEditorSetupDeps): LayoutToolEditorSystem {
-  const editorWindow = new EditorWindow();
-  const inputBridge = new EditorInputBridge(editorWindow);
-  let globalKeyDown: ((event: KeyboardEvent) => boolean) | null = deps.handleGlobalKeyDown ?? null;
-  let navigationBlocks: (() => boolean) | null = deps.isNavigationBlockingTools ?? null;
-  const services = createEditorServices(
-    deps,
-    () => globalKeyDown,
-    () => navigationBlocks,
-    inputBridge,
-    () => editorWindow.lastPointerOwnerDocument,
-    () => editorWindow.getLatchedModifierFlags(),
-    objectDragControllerCreate(deps, () => editorWindow.lastPointerOwnerDocument),
-  );
-  editorWindow.setServices(services);
-  editorWindow.validateTools();
-  wireAfterDragVisualRefresh(deps);
-  const refreshInteractiveViewportDomain = (): void => {
-    syncAudioViewportContentRegistry(deps);
-    inputBridge.setExclusiveViewportRoots(collectInteractivePickElements(deps));
-  };
-  inputBridge.setExclusiveRootHitListener((root) => {
-    audioViewportFocus.recordFromContentElement(root);
-  });
-  refreshInteractiveViewportDomain();
+  const session = layoutToolEditorSystemSessionCreate(deps);
+  return layoutToolEditorSystemHandlesCreate(session);
+}
+
+/**
+ * Builds the public tool-system handle object from a wired session.
+ *
+ * @param session Wired editor window, input bridge, and key-state setters.
+ * @returns Tool system handles.
+ */
+function layoutToolEditorSystemHandlesCreate(session: LayoutToolEditorSystemSession): LayoutToolEditorSystem {
   return {
-    editorWindow,
-    inputBridge,
+    editorWindow: session.editorWindow,
+    inputBridge: session.inputBridge,
+    ...layoutToolEditorSystemToolSwitchHandlesCreate(session),
+    ...layoutToolEditorSystemGuiHandlesCreate(session),
+    ...layoutToolEditorSystemClipKeyHandlesCreate(session),
+  };
+}
+
+/**
+ * Builds tool-switch and busy-state handles.
+ *
+ * @param session Wired editor window, input bridge, and key-state setters.
+ * @returns Tool-switch handles.
+ */
+function layoutToolEditorSystemToolSwitchHandlesCreate(
+  session: LayoutToolEditorSystemSession,
+): LayoutToolEditorSystemToolSwitchHandles {
+  const editorWindow = session.editorWindow;
+  return {
     switchToTransformMode: (mode) => switchPermanentTransformMode(editorWindow, mode),
-    switchToObjectSelect: () => {
-      editorWindow.userSwitchToBoundsTool();
-      return true;
-    },
-    switchToFaceSelect: () => {
-      editorWindow.userSwitchToFaceSelectTool();
-      return true;
-    },
-    switchToEditSelect: () => {
-      editorWindow.userSwitchToEditSelectTool();
-      return true;
-    },
-    switchToGridTool: () => {
-      editorWindow.userSwitchToGridTool();
-      return true;
-    },
-    refreshInteractiveViewportDomain,
+    switchToObjectSelect: () => layoutToolEditorObjectSelectSwitch(editorWindow),
+    switchToFaceSelect: () => layoutToolEditorFaceSelectSwitch(editorWindow),
+    switchToEditSelect: () => layoutToolEditorEditSelectSwitch(editorWindow),
+    switchToGridTool: () => layoutToolEditorGridToolSwitch(editorWindow),
+    refreshInteractiveViewportDomain: session.refreshInteractiveViewportDomain,
     cancelActiveSingleUseTool: () => cancelActiveSingleUseTool(editorWindow),
     isToolBusy: () => editorWindow.isToolBusy,
     isActiveEventReceiverBusy: () => editorWindow.isActiveEventReceiverBusy,
-    registerGuiSurface: (rootElement, surfaceId) => {
-      editorWindow.registerGuiWindow(new GuiWindow(rootElement, surfaceId));
-    },
+  };
+}
+
+/**
+ * Builds GUI surface and focus-router handles.
+ *
+ * @param session Wired editor window, input bridge, and key-state setters.
+ * @returns GUI handles.
+ */
+function layoutToolEditorSystemGuiHandlesCreate(
+  session: LayoutToolEditorSystemSession,
+): LayoutToolEditorSystemGuiHandles {
+  const editorWindow = session.editorWindow;
+  return {
+    registerGuiSurface: (rootElement, surfaceId) =>
+      layoutToolEditorGuiSurfaceRegister(editorWindow, rootElement, surfaceId),
     unregisterGuiSurface: (rootElement) => {
       editorWindow.unregisterGuiWindowByRoot(rootElement);
     },
-    installFocusPointerRouter: (hostElement) => {
-      inputBridge.install(hostElement);
-      refreshInteractiveViewportDomain();
-    },
+    installFocusPointerRouter: (hostElement) => layoutToolEditorFocusPointerRouterInstall(session, hostElement),
     uninstallFocusPointerRouter: () => {
-      inputBridge.uninstall();
+      session.inputBridge.uninstall();
     },
-    handleKeyDown: (event) => {
-      const keyCode = keyboardShortcutCodeFromEvent(event);
-      return editorWindow.onKeyDown(keyCode, event);
-    },
-    setGlobalKeyDownHandler: (handler) => {
-      globalKeyDown = handler;
-    },
-    setNavigationBlocksActions: (callback) => {
-      navigationBlocks = callback;
-    },
-    registerClipTool: (placement, handler) => {
-      const clipTool = new ClipTool(placement, handler);
-      editorWindow.setClipTool(clipTool);
-      return clipTool;
-    },
+  };
+}
+
+/**
+ * Builds keyboard, navigation-block, and clip-tool handles.
+ *
+ * @param session Wired editor window, input bridge, and key-state setters.
+ * @returns Clip and key handles.
+ */
+function layoutToolEditorSystemClipKeyHandlesCreate(
+  session: LayoutToolEditorSystemSession,
+): LayoutToolEditorSystemClipKeyHandles {
+  const editorWindow = session.editorWindow;
+  return {
+    handleKeyDown: (event) => layoutToolEditorKeyDownHandle(editorWindow, event),
+    setGlobalKeyDownHandler: (handler) => session.setGlobalKeyDownHandler(handler),
+    setNavigationBlocksActions: (callback) => session.setNavigationBlocksActions(callback),
+    registerClipTool: (placement, handler) => layoutToolEditorClipToolRegister(editorWindow, placement, handler),
     switchToClipTool: () => editorWindow.userSwitchToClipTool(),
     isClipToolActive: () => editorWindow.isClipToolActive(),
   };
+}
+
+/**
+ * Switches to the default object-select tool.
+ *
+ * @param editorWindow Editor window.
+ * @returns True when switched.
+ */
+function layoutToolEditorObjectSelectSwitch(editorWindow: EditorWindow): boolean {
+  editorWindow.userSwitchToBoundsTool();
+  return true;
+}
+
+/**
+ * Switches to the face select tool.
+ *
+ * @param editorWindow Editor window.
+ * @returns True when switched.
+ */
+function layoutToolEditorFaceSelectSwitch(editorWindow: EditorWindow): boolean {
+  editorWindow.userSwitchToFaceSelectTool();
+  return true;
+}
+
+/**
+ * Switches to the Edit Mode select tool.
+ *
+ * @param editorWindow Editor window.
+ * @returns True when switched.
+ */
+function layoutToolEditorEditSelectSwitch(editorWindow: EditorWindow): boolean {
+  editorWindow.userSwitchToEditSelectTool();
+  return true;
+}
+
+/**
+ * Switches to the grid orientation tool.
+ *
+ * @param editorWindow Editor window.
+ * @returns True when switched.
+ */
+function layoutToolEditorGridToolSwitch(editorWindow: EditorWindow): boolean {
+  editorWindow.userSwitchToGridTool();
+  return true;
+}
+
+/**
+ * Registers a floating tool window with the focus system.
+ *
+ * @param editorWindow Editor window.
+ * @param rootElement Panel root element.
+ * @param surfaceId Stable surface id.
+ */
+function layoutToolEditorGuiSurfaceRegister(
+  editorWindow: EditorWindow,
+  rootElement: HTMLElement,
+  surfaceId: string,
+): void {
+  editorWindow.registerGuiWindow(new GuiWindow(rootElement, surfaceId));
+}
+
+/**
+ * Installs capture-phase focus pointer routing on the editor host.
+ *
+ * @param session Wired editor window, input bridge, and key-state setters.
+ * @param hostElement Element that contains floating panels.
+ */
+function layoutToolEditorFocusPointerRouterInstall(
+  session: LayoutToolEditorSystemSession,
+  hostElement: HTMLElement,
+): void {
+  session.inputBridge.install(hostElement);
+  session.refreshInteractiveViewportDomain();
+}
+
+/**
+ * Routes a keyboard event through the editor window.
+ *
+ * @param editorWindow Editor window.
+ * @param event Browser keyboard event.
+ * @returns True when consumed.
+ */
+function layoutToolEditorKeyDownHandle(editorWindow: EditorWindow, event: KeyboardEvent): boolean {
+  const keyCode = keyboardShortcutCodeFromEvent(event);
+  return editorWindow.onKeyDown(keyCode, event);
+}
+
+/**
+ * Registers the clip plane tool with the editor window.
+ *
+ * @param editorWindow Editor window.
+ * @param placement Clip placement model.
+ * @param handler Clip interaction handler.
+ * @returns Registered clip tool.
+ */
+function layoutToolEditorClipToolRegister(
+  editorWindow: EditorWindow,
+  placement: ToolClipPlane,
+  handler: HandlerClipPlane,
+): ClipTool {
+  const clipTool = new ClipTool(placement, handler);
+  editorWindow.setClipTool(clipTool);
+  return clipTool;
 }
 
 /**
@@ -113,6 +249,24 @@ export function createLayoutToolEditorSystem(deps: LayoutToolEditorSetupDeps): L
  * @returns True when switched.
  */
 function switchPermanentTransformMode(editorWindow: EditorWindow, mode: TransformMode): boolean {
+  if (layoutToolEditorNamedTransformModeSwitch(editorWindow, mode)) {
+    return true;
+  }
+  if (layoutToolEditorBoundsModeSwitch(editorWindow, mode)) {
+    return true;
+  }
+  editorWindow.userSwitchToBoundsTool();
+  return true;
+}
+
+/**
+ * Switches to translate, rotate, or scale when the mode is one of those.
+ *
+ * @param editorWindow Editor window.
+ * @param mode Transform mode.
+ * @returns True when switched.
+ */
+function layoutToolEditorNamedTransformModeSwitch(editorWindow: EditorWindow, mode: TransformMode): boolean {
   if (mode === TransformMode.TRANSLATE) {
     editorWindow.userSwitchToTranslateTool();
     return true;
@@ -125,14 +279,24 @@ function switchPermanentTransformMode(editorWindow: EditorWindow, mode: Transfor
     editorWindow.userSwitchToScaleTool();
     return true;
   }
-  if (isBoundsWidgetMode(mode)) {
-    editorWindow.userSwitchToBoundsTool();
-    if (mode === TransformMode.SHEAR) {
-      editorWindow.userSwitchToShearTool();
-    }
-    return true;
+  return false;
+}
+
+/**
+ * Switches to bounds or shear when the mode is a bounds widget mode.
+ *
+ * @param editorWindow Editor window.
+ * @param mode Transform mode.
+ * @returns True when switched.
+ */
+function layoutToolEditorBoundsModeSwitch(editorWindow: EditorWindow, mode: TransformMode): boolean {
+  if (!isBoundsWidgetMode(mode)) {
+    return false;
   }
   editorWindow.userSwitchToBoundsTool();
+  if (mode === TransformMode.SHEAR) {
+    editorWindow.userSwitchToShearTool();
+  }
   return true;
 }
 

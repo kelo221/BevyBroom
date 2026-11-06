@@ -20,11 +20,13 @@ import { resolveUvTransformPlaneNormal } from '@/texture/interactive/uv_transfor
 import { expandFaceSelectionIndices } from '@/selection/face/solid_result_face_indices.js';
 import { FaceTextureApplyCoordinator } from './texture_apply/face_texture_apply_coordinator.js';
 import { FaceRegionWorldGeometry } from '@/selection/face/face_region_world_geometry.js';
+import { faceModeStatusLabelSelectionMode, faceModeStatusLabelUvTransform } from './face_mode_status_labels.js';
 import {
-  faceModeStatusLabelExtrude,
-  faceModeStatusLabelSelectionMode,
-  faceModeStatusLabelUvTransform,
-} from './face_mode_status_labels.js';
+  type CoordinatorFaceModeExtrudeHost,
+  faceModeEnsureFaceSelectionActive,
+  faceModeEnsureFacesSelected,
+  faceModeExtrudeSelectedFacesApply,
+} from './coordinator_face_mode_extrude.js';
 import { DisplacementFaceTools } from '@/displacement/controller/displacement_face_tools.js';
 import { createSyntheticPointerDown, createSyntheticPointerDragMove } from '@/utils/synthetic_pointer_event.js';
 
@@ -75,17 +77,17 @@ export class CoordinatorFaceMode {
   private uvTransformController: ControllerUvTransform;
   private selectionMode: SelectionMode;
   private activeDragViewport: Viewport3D | Viewport2D | null = null;
-  private dragButtonMask: number = FACE_MODE_PRIMARY_BUTTON_MASK;
+  private dragButtonMask = FACE_MODE_PRIMARY_BUTTON_MASK;
   private dragOwnerWindow: Window | null = null;
   private windowPointerMoveListener: ((event: PointerEvent) => void) | null = null;
   private windowPointerUpListener: ((event: PointerEvent) => void) | null = null;
-  private isSmearStrokeLive: boolean = false;
+  private isSmearStrokeLive = false;
   private armedUvMove: ArmedUvMoveGesture | null = null;
-  private lastStatusFaceCount: number = -1;
-  private dragPickFrame: number = 0;
+  private lastStatusFaceCount = -1;
+  private dragPickFrame = 0;
   private pendingDragEvent: PointerEvent | null = null;
-  private userSnapEnabledAtSessionStart: boolean = false;
-  private uvTransformOwnedByDrag: boolean = false;
+  private userSnapEnabledAtSessionStart = false;
+  private uvTransformOwnedByDrag = false;
   private textureApplyCoordinator: FaceTextureApplyCoordinator;
   private displacementTools: DisplacementFaceTools;
 
@@ -415,33 +417,33 @@ export class CoordinatorFaceMode {
     this.deps.showStatusMessage('UV transform cancelled');
   }
 
-  /**
-   * Extrudes currently selected faces by the default snap distance, or shows
-   * guidance when face mode is inactive or no faces are selected.
-   */
+  /** Extrudes selected faces by the default snap distance, or shows guidance. */
   onExtrudeFaces(): void {
-    if (this.faceExtrusionController.getSelectionMode() !== SelectionMode.FACE) {
-      this.faceExtrusionController.setSelectionMode(SelectionMode.FACE);
-      this.deps.showStatusMessage('Face mode: drag faces to select, G/R/S for UVs, Extrude (Shift+E)');
+    const host = this.faceModeExtrudeHostRead();
+    if (!faceModeEnsureFaceSelectionActive(this.faceExtrusionController, host)) {
       return;
     }
-    if (this.faceExtrusionController.getSelectedFaceCount() === 0) {
-      this.deps.showStatusMessage('Select a face first, then Extrude (Shift+E)');
+    if (!faceModeEnsureFacesSelected(this.faceExtrusionController, host)) {
       return;
     }
-    const createdMeshes = this.faceExtrusionController.extrudeSelectedFacesByDefaultDistance();
-    if (createdMeshes.length === 0) {
-      this.deps.showStatusMessage('Extrude failed — select one or more faces');
-      return;
-    }
-    this.faceExtrusionController.setSelectionMode(SelectionMode.OBJECT);
-    this.deps.syncPrimitivesToViewports();
-    this.updateFaceSelectionMeshes();
-    this.deps.updateShadingMeshes();
-    this.deps.refreshOutliner();
-    this.deps.selectionManager.setSelection(createdMeshes);
-    this.updateSelectionModeStatus();
-    this.deps.showStatusMessage(faceModeStatusLabelExtrude(createdMeshes));
+    faceModeExtrudeSelectedFacesApply(this.faceExtrusionController, host);
+  }
+
+  /**
+   * Returns the status and world-refresh callbacks used while extruding faces.
+   *
+   * @returns Extrude host bound to this coordinator.
+   */
+  private faceModeExtrudeHostRead(): CoordinatorFaceModeExtrudeHost {
+    return {
+      showStatusMessage: (message) => this.deps.showStatusMessage(message),
+      syncPrimitivesToViewports: () => this.deps.syncPrimitivesToViewports(),
+      updateFaceSelectionMeshes: () => this.updateFaceSelectionMeshes(),
+      updateShadingMeshes: () => this.deps.updateShadingMeshes(),
+      refreshOutliner: () => this.deps.refreshOutliner(),
+      setSelection: (createdMeshes: THREE.Mesh[]) => this.deps.selectionManager.setSelection(createdMeshes),
+      updateSelectionModeStatus: () => this.updateSelectionModeStatus(),
+    };
   }
 
   /**

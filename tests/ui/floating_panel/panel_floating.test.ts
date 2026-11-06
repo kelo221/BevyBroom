@@ -266,6 +266,48 @@ describe('FloatingPanel non-modal centered placement', () => {
     expect(panelLeftTopRead(centeredPanel)).toEqual(clamped);
   });
 
+  it('retries first placement after a zero-size host becomes sized', async () => {
+    stubBoundingRect(host, { left: 0, top: 0, width: 0, height: 0 });
+    const centeredPanel = centeredPanelCreate();
+    centeredPanel.show();
+    expect(centeredPanel.isOpen()).toBe(true);
+    expect(centeredPanel.hasConsumedFreeFirstPlacement()).toBe(false);
+    stubBoundingRect(host, hostRect);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    expect(centeredPanel.hasConsumedFreeFirstPlacement()).toBe(true);
+    const position = panelLeftTopRead(centeredPanel);
+    expect(position.left + panelWidth / 2).toBeCloseTo(hostRect.left + hostRect.width / 2, 0);
+    expect(position.top + panelHeight / 2).toBeCloseTo(hostRect.top + hostRect.height / 2, 0);
+  });
+
+  it('cancels a first-placement retry when the panel is hidden', async () => {
+    stubBoundingRect(host, { left: 0, top: 0, width: 0, height: 0 });
+    const centeredPanel = centeredPanelCreate();
+    centeredPanel.show();
+    centeredPanel.hide();
+    stubBoundingRect(host, hostRect);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    expect(centeredPanel.isOpen()).toBe(false);
+    expect(centeredPanel.hasConsumedFreeFirstPlacement()).toBe(false);
+    centeredPanel.show();
+    expect(centeredPanel.hasConsumedFreeFirstPlacement()).toBe(true);
+    const position = panelLeftTopRead(centeredPanel);
+    expect(position.left + panelWidth / 2).toBeCloseTo(hostRect.left + hostRect.width / 2, 0);
+    expect(position.top + panelHeight / 2).toBeCloseTo(hostRect.top + hostRect.height / 2, 0);
+  });
+
+  it('cancels a first-placement retry when the panel is disposed', async () => {
+    stubBoundingRect(host, { left: 0, top: 0, width: 0, height: 0 });
+    const centeredPanel = centeredPanelCreate();
+    centeredPanel.show();
+    expect(centeredPanel.hasConsumedFreeFirstPlacement()).toBe(false);
+    centeredPanel.dispose();
+    panel = null;
+    stubBoundingRect(host, hostRect);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    expect(centeredPanel.isOpen()).toBe(false);
+  });
+
   it('keeps corner panels snapping back to their corner on every show', () => {
     const cornerPanel = new TestFloatingPanel(host);
     stubPanelRectFromStyle(cornerPanel.getRootElement(), panelWidth, panelHeight);

@@ -28,7 +28,7 @@ export class ObjectPropertiesKeyvaluesViewRaw extends ObjectPropertiesKeyvaluesV
         new ObjectPropertiesKeyvalueRawSourceEntitySettings(context),
         new ObjectPropertiesKeyvalueRawSourceGameComponents(context),
       ],
-      (row) => row.key,
+      (row) => row.label,
     );
   }
 
