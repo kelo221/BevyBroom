@@ -65,9 +65,8 @@ const WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, stri
   ['view_maximize', 'Maximize / Restore View'],
   ['play_start', 'Play'],
   ['inspector_map', 'Show Map Inspector'],
-  ['inspector_entity', 'Show Entity Inspector'],
-  ['inspector_face', 'Show Face Inspector'],
   ['info_panel_toggle', 'Toggle Info Panel'],
+  ['info_panel_collapse_toggle', 'Collapse / Expand Info Panel'],
   ['inspector_toggle', 'Toggle Inspector'],
   ['toolbar_toggle', 'Toggle Toolbar'],
   ['select_all', 'Select All'],
@@ -75,6 +74,7 @@ const WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, stri
   ['visibility_hide', 'Hide Selected'],
   ['visibility_isolate', 'Isolate Selected'],
   ['visibility_show_all', 'Show All'],
+  ['object_properties', 'Object Properties'],
 ];
 
 /**
@@ -82,6 +82,10 @@ const WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, stri
  * navigation.
  */
 const KEYBOARD_REMINDER_ROWS: ReadonlyArray<readonly [string, string, string]> = [
+  ['object-click-toggle', 'Add / Remove Object (Object Select)', 'Ctrl + Click'],
+  ['object-click-face-edit', 'Edit Clicked Brush Face (Object Select)', 'Shift + Click'],
+  ['face-click-add', 'Add Face (Face Select)', 'Shift + Click'],
+  ['face-click-remove', 'Remove Face (Face Select)', 'Ctrl + Click'],
   ['clipboard-cut', 'Cut Selected', 'Ctrl+X'],
   ['clipboard-copy', 'Copy Selected', 'Ctrl+C'],
   ['clipboard-paste', 'Paste Under Pointer', 'Ctrl+V'],

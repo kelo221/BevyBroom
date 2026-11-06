@@ -148,7 +148,11 @@ describe('AboutDialog', () => {
     expect(backdrop.classList.contains('about-dialog-backdrop')).toBe(true);
     expect(panel.classList.contains('about-dialog-panel')).toBe(true);
     expect(title.classList.contains('about-dialog-title')).toBe(true);
-    expect(panel.style.background).toContain('linear-gradient');
+    const gradientBands = Array.from(panel.querySelectorAll<HTMLElement>('*')).filter((element) =>
+      element.style.background.includes('linear-gradient'),
+    );
+    expect(gradientBands.length).toBeGreaterThan(0);
+    expect(panel.style.background).not.toContain('linear-gradient');
     expect(document.getElementById('bevybroom-about-dialog-styles')).toBeTruthy();
   });
 

@@ -1,10 +1,12 @@
 import type * as THREE from 'three';
+import type { EntityClassPointVariant } from '@/entity/class/entity_class_point_variant.js';
 import type { EntityHandle } from '@/entity/handles/entity_handle.js';
 import type { EntityKind } from '@/entity/model/entity_owner_keys.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
+import { Theme } from '@/theme.js';
 
 /** Icon color of entity kinds that do not choose their own. */
-export const ENTITY_ICON_DEFAULT_COLOR = 0xb0b0b0;
+export const ENTITY_ICON_DEFAULT_COLOR = Theme.entityIconDefaultColor;
 
 /**
  * Rules of one entity kind: default, valid and parsed settings, and how its
@@ -79,6 +81,16 @@ export abstract class EntityDefinition<TSettings extends object> {
   }
 
   /**
+   * Returns whether transform edits may scale or resize owners of this kind. On
+   * unless a kind turns it off; kinds without it only move and rotate.
+   *
+   * @returns True when owners may be scaled.
+   */
+  transformScaleAllowed(): boolean {
+    return true;
+  }
+
+  /**
    * Returns the settings an owner gets when it is scaled uniformly by a factor.
    * Kinds that absorb scale override it; the default keeps the settings.
    *
@@ -137,6 +149,17 @@ export abstract class EntityDefinition<TSettings extends object> {
    */
   settingsPatch(settings: TSettings, patch: Readonly<Record<string, unknown>>): Record<string, unknown> {
     return { ...settings, ...patch };
+  }
+
+  /**
+   * Returns the point classes owners of this kind can be, as listed in class
+   * pickers. Kinds that are picked as classes override it; the default offers
+   * none.
+   *
+   * @returns Point class variants in display order.
+   */
+  pointClassVariants(): readonly EntityClassPointVariant<TSettings>[] {
+    return [];
   }
 
   /**

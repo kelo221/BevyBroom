@@ -56,11 +56,11 @@ describe('RendererWireframeOverlay', () => {
       expect(overlay.geometry instanceof THREE.EdgesGeometry).toBe(true);
     });
 
-    it('should use the correct orange line color', () => {
+    it('should draw overlays in the wireframe overlay color', () => {
       renderer.setMeshes([meshA]);
       const overlay = renderer.getOverlayForMesh(meshA)!;
       const material = overlay.material as THREE.LineBasicMaterial;
-      expect(material.color.getHex()).toBe(Theme.selectionColor);
+      expect(material.color.getHex()).toBe(Theme.wireframeOverlayColor);
     });
 
     it('should keep overlay at local identity so it follows mesh transforms', () => {

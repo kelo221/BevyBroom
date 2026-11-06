@@ -1,5 +1,4 @@
 import { Theme } from '@/theme.js';
-import { hexToRgb } from '@/utils/utils_color.js';
 import { getMenuPanelZIndex } from '@/ui/stack/ui_stack_layers.js';
 
 /**
@@ -15,11 +14,11 @@ export function styleMenuPanel(menu: HTMLElement, isSubmenu: boolean): void {
   menu.style.position = isSubmenu ? 'absolute' : 'fixed';
   menu.style.zIndex = String(getMenuPanelZIndex(isSubmenu));
   menu.style.minWidth = '196px';
-  menu.style.background = hexToRgb(Theme.toolbarBackground);
-  menu.style.border = '1px solid rgba(255,255,255,0.1)';
-  menu.style.borderRadius = '8px';
-  menu.style.boxShadow = '0 10px 28px rgba(0,0,0,0.55)';
-  menu.style.padding = '4px';
+  menu.style.background = Theme.menuBackground;
+  menu.style.border = `1px solid ${Theme.menuBorderColor}`;
+  menu.style.borderRadius = '0';
+  menu.style.boxShadow = Theme.menuShadow;
+  menu.style.padding = '2px';
   if (isSubmenu) {
     // Slight overlap so the pointer never crosses a dead gap when entering the
     // flyout from the parent row (Windows-style cascade menus).
@@ -44,16 +43,16 @@ export function styleMenuActionRow(entry: HTMLButtonElement): void {
   entry.style.gap = '16px';
   entry.style.width = '100%';
   entry.style.textAlign = 'left';
-  entry.style.padding = '7px 10px';
+  entry.style.padding = '3px 10px';
   entry.style.margin = '0';
   entry.style.border = '1px solid transparent';
-  entry.style.borderRadius = '5px';
+  entry.style.borderRadius = '0';
   entry.style.background = 'transparent';
   entry.style.color = Theme.buttonTextColor;
   entry.style.cursor = 'pointer';
   entry.style.fontFamily = Theme.uiFontFamily;
-  entry.style.fontSize = '12px';
-  entry.style.fontWeight = '500';
+  entry.style.fontSize = `${Theme.uiFontSizePx}px`;
+  entry.style.fontWeight = '400';
   entry.style.position = 'relative';
   entry.style.overflow = 'visible';
   entry.style.boxSizing = 'border-box';
@@ -107,7 +106,7 @@ export function styleMenuShortcut(shortcut: HTMLElement): void {
   shortcut.style.flex = '0 0 auto';
   shortcut.style.marginLeft = '12px';
   shortcut.style.opacity = '0.55';
-  shortcut.style.fontSize = '11px';
+  shortcut.style.fontSize = `${Theme.uiFontSizePx}px`;
   shortcut.style.fontWeight = '400';
   shortcut.style.letterSpacing = '0.02em';
   shortcut.style.whiteSpace = 'nowrap';
@@ -137,8 +136,8 @@ export function styleMenuSeparator(separator: HTMLElement): void {
   separator.classList.add('editor-toolbar-dropdown-separator');
   separator.setAttribute('role', 'separator');
   separator.style.height = '1px';
-  separator.style.margin = '4px 6px';
-  separator.style.background = 'rgba(255,255,255,0.12)';
+  separator.style.margin = '3px 4px';
+  separator.style.background = Theme.menuSeparatorColor;
   separator.style.border = 'none';
   separator.style.padding = '0';
   separator.style.flexShrink = '0';
@@ -154,7 +153,7 @@ export function applyMenuItemEnabledState(entry: HTMLButtonElement, enabled: boo
   entry.disabled = !enabled;
   entry.style.opacity = enabled ? '1' : '0.4';
   entry.style.cursor = enabled ? 'pointer' : 'default';
-  entry.style.color = enabled ? Theme.buttonTextColor : '#666666';
+  entry.style.color = enabled ? Theme.buttonTextColor : Theme.disabledTextColor;
 }
 
 /**
@@ -168,5 +167,23 @@ export function applyMenuItemHoverState(entry: HTMLButtonElement, hovered: boole
     entry.style.background = 'transparent';
     return;
   }
-  entry.style.background = hovered ? hexToRgb(Theme.buttonHoverColor) : 'transparent';
+  entry.style.background = hovered ? Theme.menuHighlightBackground : 'transparent';
+  entry.style.color = hovered ? Theme.menuHighlightTextColor : Theme.buttonTextColor;
+  menuRowChildrenColorWrite(entry, hovered ? Theme.menuHighlightTextColor : Theme.buttonTextColor);
+}
+
+/**
+ * Writes one text color onto the check mark and shortcut hint of a menu row so
+ * they follow the row highlight.
+ *
+ * @param entry Menu item button.
+ * @param color CSS text color.
+ */
+function menuRowChildrenColorWrite(entry: HTMLButtonElement, color: string): void {
+  const hintElements = entry.querySelectorAll<HTMLElement>(
+    '.editor-toolbar-dropdown-check, .editor-toolbar-dropdown-shortcut, .editor-toolbar-dropdown-submenu-caret',
+  );
+  hintElements.forEach((element) => {
+    element.style.color = color;
+  });
 }

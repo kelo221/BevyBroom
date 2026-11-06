@@ -1,8 +1,15 @@
 import { Theme } from '@/theme.js';
+import { hexToRgb } from '@/utils/utils_color.js';
 import { PanelMenu } from '@/ui/menu/panel_menu.js';
 import { appendMenuDropdownCaret } from '@/ui/menu/menu_dropdown_caret.js';
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import { UiStackLayers } from '@/ui/stack/ui_stack_layers.js';
+import {
+  TOOLBAR_OVERFLOW_PRIORITY_GLOBAL,
+  toolbarOverflowItemMark,
+} from '@/ui/toolbar/overflow/toolbar_overflow_item.js';
+import { ToolbarOverflowController } from '@/ui/toolbar/overflow/toolbar_overflow_controller.js';
+import type { ToolbarOverflowMeasure } from '@/ui/toolbar/overflow/toolbar_overflow_measure.js';
 
 export type {
   ToolbarDropdownItem,
@@ -21,16 +28,35 @@ export type ToolbarVariant = 'toolbar' | 'menubar';
 /** Height of the slim menu bar row in CSS pixels. */
 export const TOOLBAR_MENUBAR_HEIGHT_PX = 24;
 
+/** Visible text of the overflow menu trigger. */
+const TOOLBAR_OVERFLOW_TRIGGER_LABEL = '»';
+
+/** CSS class of the overflow menu trigger wrapper. */
+export const TOOLBAR_OVERFLOW_TRIGGER_CLASS = 'editor-toolbar-overflow';
+
+/**
+ * How much smaller the buttons and icons of the small toolbar are, in CSS
+ * pixels.
+ */
+const TOOLBAR_SMALL_SHRINK_PX = 4;
+
+/** Size of the buttons of the small toolbar in CSS pixels. */
+const TOOLBAR_SMALL_BUTTON_PX = Theme.toolbarButtonPx - TOOLBAR_SMALL_SHRINK_PX;
+
+/** Size of the icons of the small toolbar in CSS pixels. */
+const TOOLBAR_SMALL_ICON_PX = Theme.toolbarIconPx - TOOLBAR_SMALL_SHRINK_PX;
+
 const TOOLBAR_SIZES: readonly ToolbarSize[] = ['small', 'medium', 'large'];
 const TOOLBAR_MIN_HEIGHTS: Readonly<Record<ToolbarSize, number>> = {
-  small: 36,
+  small: TOOLBAR_SMALL_BUTTON_PX + TOOLBAR_SMALL_SHRINK_PX,
   medium: Theme.toolbarHeightPx,
   large: Theme.toolbarHeightPx,
 };
 
 /**
- * Horizontal application toolbar with a compact, modern dark chrome. Supports
- * text buttons, icon buttons, dropdown menus, and active states.
+ * Single-line application toolbar with compact Hammer-style chrome. Supports
+ * text buttons, icon buttons, dropdown menus, slots, active states, and an
+ * overflow menu that takes the items that do not fit.
  */
 export class Toolbar {
   private container: HTMLElement;
@@ -38,6 +64,9 @@ export class Toolbar {
   private openMenuPanel: PanelMenu | null;
   private openMenuButton: HTMLButtonElement | null;
   private dropdownPanels: Map<HTMLButtonElement, PanelMenu>;
+  private readonly dropdownLiveEntries: Map<HTMLButtonElement, () => ToolbarMenuEntry[]>;
+  private overflowController: ToolbarOverflowController | null;
+  private overflowPriority: number;
   private iconButtons: HTMLButtonElement[];
   private buttonLabelsEnabled: boolean;
   private size: ToolbarSize;
@@ -63,6 +92,9 @@ export class Toolbar {
     this.openMenuPanel = null;
     this.openMenuButton = null;
     this.dropdownPanels = new Map();
+    this.dropdownLiveEntries = new Map();
+    this.overflowController = null;
+    this.overflowPriority = TOOLBAR_OVERFLOW_PRIORITY_GLOBAL;
     this.iconButtons = [];
     this.buttonLabelsEnabled = true;
     this.size = 'medium';
@@ -97,7 +129,7 @@ export class Toolbar {
     this.container.style.minHeight = `${TOOLBAR_MENUBAR_HEIGHT_PX}px`;
     this.container.style.padding = '0 4px';
     this.container.style.gap = '0';
-    this.container.style.background = this.hexToRgba(Theme.toolbarBackgroundEnd);
+    this.container.style.background = hexToRgb(Theme.toolbarBackgroundEnd);
     this.container.style.boxShadow = 'none';
     this.container.style.flexWrap = 'nowrap';
   }
@@ -130,8 +162,42 @@ export class Toolbar {
     slot.style.display = 'inline-flex';
     slot.style.alignItems = 'center';
     slot.style.gap = '2px';
+    slot.style.flex = '0 0 auto';
     this.container.appendChild(slot);
     return slot;
+  }
+
+  /**
+   * Sets the collapse rank given to items added from now on; lower ranks move
+   * into the overflow menu first.
+   *
+   * @param priority Collapse rank for following items.
+   */
+  overflowPrioritySet(priority: number): void {
+    this.overflowPriority = priority;
+  }
+
+  /**
+   * Adds the overflow menu trigger at the end of the toolbar. Items that do not
+   * fit the row are hidden and listed in its menu; the trigger shows only while
+   * an item is hidden.
+   *
+   * @param measure Optional width check of the row; laid-out DOM widths by
+   *   default.
+   * @returns Controller that collapses items, already observing the row.
+   */
+  addOverflowMenu(measure?: ToolbarOverflowMeasure): ToolbarOverflowController {
+    const button = this.dropdownCreate(TOOLBAR_OVERFLOW_TRIGGER_LABEL, []);
+    button.title = 'More toolbar items';
+    button.setAttribute('aria-label', 'More toolbar items');
+    const wrapper = button.parentElement ?? button;
+    wrapper.classList.add(TOOLBAR_OVERFLOW_TRIGGER_CLASS);
+    this.overflowController?.dispose();
+    const controller = new ToolbarOverflowController(this.container, wrapper, measure);
+    this.dropdownLiveEntries.set(button, () => controller.menuEntriesBuild());
+    controller.observe();
+    this.overflowController = controller;
+    return controller;
   }
 
   /**
@@ -164,8 +230,7 @@ export class Toolbar {
     button.title = label;
     button.addEventListener('click', onClick);
     this.applyButtonStyles(button, false);
-    this.container.appendChild(button);
-    this.buttons.push(button);
+    this.buttonAppend(button);
     return button;
   }
 
@@ -183,21 +248,38 @@ export class Toolbar {
     button.title = label;
     button.setAttribute('aria-label', label);
     button.innerHTML = iconSvg;
+    button.appendChild(this.iconButtonLabelCreate(label));
+    button.addEventListener('click', onClick);
+    this.applyButtonStyles(button, true);
+    this.buttonAppend(button);
+    this.iconButtons.push(button);
+    this.applyIconButtonStyle(button, this.size === 'large' && this.buttonLabelsEnabled);
+    return button;
+  }
+
+  /**
+   * Creates the hidden text label an icon button shows in the large size.
+   *
+   * @param label Label text.
+   * @returns Label span.
+   */
+  private iconButtonLabelCreate(label: string): HTMLElement {
     const visibleLabel = document.createElement('span');
     visibleLabel.textContent = label;
     visibleLabel.dataset['toolbarButtonLabel'] = 'true';
     visibleLabel.style.display = 'none';
-    button.appendChild(visibleLabel);
-    const icon = button.querySelector('svg');
-    icon?.setAttribute('width', '25');
-    icon?.setAttribute('height', '25');
-    button.addEventListener('click', onClick);
-    this.applyButtonStyles(button, true);
+    return visibleLabel;
+  }
+
+  /**
+   * Appends a button to the row, registers it and marks it as collapsible.
+   *
+   * @param button Styled button.
+   */
+  private buttonAppend(button: HTMLButtonElement): void {
+    toolbarOverflowItemMark(button, this.overflowPriority);
     this.container.appendChild(button);
     this.buttons.push(button);
-    this.iconButtons.push(button);
-    this.applyIconButtonStyle(button, this.size === 'large' && this.buttonLabelsEnabled);
-    return button;
   }
 
   /**
@@ -235,6 +317,24 @@ export class Toolbar {
    * @returns The header button element.
    */
   addDropdown(label: string, items: ToolbarMenuEntry[]): HTMLButtonElement {
+    const button = this.dropdownCreate(label, items);
+    const wrapper = button.parentElement;
+    if (wrapper) {
+      toolbarOverflowItemMark(wrapper, this.overflowPriority, () => [
+        { kind: 'submenu', label: button.title, children: items },
+      ]);
+    }
+    return button;
+  }
+
+  /**
+   * Creates a dropdown header with its menu panel and appends it to the row.
+   *
+   * @param label The dropdown header label.
+   * @param items The menu entries.
+   * @returns The header button element, child of its wrapper.
+   */
+  private dropdownCreate(label: string, items: ToolbarMenuEntry[]): HTMLButtonElement {
     const wrapper = this.dropdownWrapperCreate();
     const button = this.dropdownHeaderCreate(label);
     const panel = new PanelMenu(items, () => this.closeOpenMenu());
@@ -258,6 +358,7 @@ export class Toolbar {
     wrapper.style.position = 'relative';
     wrapper.style.display = 'inline-flex';
     wrapper.style.alignItems = 'center';
+    wrapper.style.flex = '0 0 auto';
     return wrapper;
   }
 
@@ -304,6 +405,7 @@ export class Toolbar {
   addSeparator(): void {
     const separator = document.createElement('div');
     this.applySeparatorStyles(separator);
+    toolbarOverflowItemMark(separator, this.overflowPriority, () => [{ kind: 'separator' }]);
     this.container.appendChild(separator);
   }
 
@@ -327,8 +429,9 @@ export class Toolbar {
    * @param active Whether the button should be highlighted as active.
    */
   setButtonActive(index: number, active: boolean): void {
-    if (index < 0 || index >= this.buttons.length) return;
-    this.applyActiveVisual(this.buttons[index]!, active);
+    const button = this.buttons[index];
+    if (!button) return;
+    this.applyActiveVisual(button, active);
   }
 
   /**
@@ -375,6 +478,9 @@ export class Toolbar {
     this.openMenuPanel = null;
     this.openMenuButton = null;
     this.dropdownPanels.clear();
+    this.dropdownLiveEntries.clear();
+    this.overflowController?.dispose();
+    this.overflowController = null;
     this.iconButtons = [];
     window.removeEventListener('pointermove', this.windowMoveListener);
     window.removeEventListener('pointerup', this.windowUpListener);
@@ -397,7 +503,6 @@ export class Toolbar {
     handle.style.height = '6px';
     handle.style.cursor = 'ns-resize';
     handle.style.zIndex = '2';
-    handle.style.borderTop = '1px solid rgba(255,255,255,0.06)';
     handle.addEventListener('pointerdown', (event) => this.beginResize(event));
     return handle;
   }
@@ -442,9 +547,19 @@ export class Toolbar {
   private applyToolbarSize(): void {
     this.container.style.height = 'auto';
     this.container.style.minHeight = `${TOOLBAR_MIN_HEIGHTS[this.size]}px`;
-    this.container.style.padding = '6px 8px';
+    this.container.style.padding = '2px 4px';
     this.refreshIconButtonAppearance();
     this.menubarVariantApply();
+    this.overflowController?.refresh();
+  }
+
+  /**
+   * Returns the button size of the current toolbar size.
+   *
+   * @returns Button size in CSS pixels.
+   */
+  private buttonSizePxRead(): number {
+    return this.size === 'small' ? TOOLBAR_SMALL_BUTTON_PX : Theme.toolbarButtonPx;
   }
 
   /** Applies icon and text visibility for the current toolbar state. */
@@ -462,37 +577,36 @@ export class Toolbar {
   private applyIconButtonStyle(button: HTMLButtonElement, showLabel: boolean): void {
     const label = button.querySelector('[data-toolbar-button-label]') as HTMLElement | null;
     const icon = button.querySelector('svg');
-    const iconSize = this.size === 'small' ? '16' : '25';
+    const iconSize = String(this.size === 'small' ? TOOLBAR_SMALL_ICON_PX : Theme.toolbarIconPx);
+    const buttonSize = `${this.buttonSizePxRead()}px`;
     if (label) label.style.display = showLabel ? '' : 'none';
     if (icon) icon.style.display = showLabel ? 'none' : '';
     icon?.setAttribute('width', iconSize);
     icon?.setAttribute('height', iconSize);
-    button.style.width = showLabel ? 'auto' : '';
+    button.style.width = showLabel ? 'auto' : buttonSize;
     button.style.padding = showLabel ? '0 8px' : '0';
-    button.style.minWidth = this.size === 'small' ? '24px' : showLabel ? '0' : '30px';
-    button.style.height = this.size === 'small' ? '24px' : '28px';
+    button.style.minWidth = showLabel ? '0' : buttonSize;
+    button.style.height = buttonSize;
   }
 
   /** Applies the toolbar container styles as a single compact strip. */
   private applyStyles(): void {
-    const start = this.hexToRgba(Theme.toolbarBackground);
-    const end = this.hexToRgba(Theme.toolbarBackgroundEnd);
+    const start = hexToRgb(Theme.toolbarBackground);
+    const end = hexToRgb(Theme.toolbarBackgroundEnd);
     this.container.style.display = 'flex';
     this.container.style.position = 'relative';
-    this.container.style.flexWrap = 'wrap';
+    this.container.style.flexWrap = 'nowrap';
     this.container.style.alignItems = 'center';
-    this.container.style.alignContent = 'center';
     this.container.style.justifyContent = 'flex-start';
     this.container.style.minHeight = `${Theme.toolbarHeightPx}px`;
-    this.container.style.padding = '6px 8px';
-    this.container.style.gap = '4px';
-    this.container.style.rowGap = '4px';
+    this.container.style.padding = '2px 4px';
+    this.container.style.gap = '2px';
     this.container.style.background = `linear-gradient(180deg, ${start} 0%, ${end} 100%)`;
-    this.container.style.borderBottom = `1px solid ${this.hexToRgba(Theme.separatorColor)}`;
-    this.container.style.boxShadow = 'inset 0 -1px 0 rgba(255,255,255,0.03)';
+    this.container.style.borderBottom = `1px solid ${hexToRgb(Theme.separatorColor)}`;
+    this.container.style.boxShadow = 'none';
     this.container.style.userSelect = 'none';
     this.container.style.maxWidth = '100%';
-    this.container.style.overflow = 'visible';
+    this.container.style.overflow = 'hidden';
     this.container.style.boxSizing = 'border-box';
     this.container.style.flexShrink = '0';
     this.container.style.zIndex = String(UiStackLayers.mainToolbar);
@@ -510,11 +624,12 @@ export class Toolbar {
     button.style.alignItems = 'center';
     button.style.justifyContent = 'center';
     button.style.gap = '4px';
-    button.style.padding = iconOnly ? '0' : '5px 10px';
-    button.style.minWidth = iconOnly ? '30px' : '0';
-    button.style.height = '28px';
+    button.style.padding = iconOnly ? '0' : '0 6px';
+    button.style.minWidth = iconOnly ? `${Theme.toolbarButtonPx}px` : '0';
+    button.style.height = `${Theme.toolbarButtonPx}px`;
+    button.style.flex = '0 0 auto';
     button.style.border = '1px solid transparent';
-    button.style.borderRadius = '5px';
+    button.style.borderRadius = '2px';
     button.style.background = 'transparent';
     button.style.color = Theme.buttonTextColor;
     button.style.cursor = 'pointer';
@@ -525,10 +640,20 @@ export class Toolbar {
     button.style.whiteSpace = 'nowrap';
     button.style.boxShadow = 'none';
     button.style.transition = 'background 80ms ease, border-color 80ms ease, color 80ms ease';
+    this.buttonHoverListenersAdd(button);
+  }
+
+  /**
+   * Highlights a button while the pointer is over it, unless it shows itself as
+   * active.
+   *
+   * @param button Toolbar button.
+   */
+  private buttonHoverListenersAdd(button: HTMLButtonElement): void {
     button.addEventListener('mouseenter', () => {
       if (button.dataset['active'] !== 'true') {
-        button.style.background = this.hexToRgba(Theme.buttonHoverColor);
-        button.style.borderColor = 'rgba(255,255,255,0.06)';
+        button.style.background = hexToRgb(Theme.buttonHoverColor);
+        button.style.borderColor = hexToRgb(Theme.toggleAccentColor);
       }
     });
     button.addEventListener('mouseleave', () => {
@@ -557,9 +682,9 @@ export class Toolbar {
   private applyActiveVisual(button: HTMLButtonElement, active: boolean): void {
     button.dataset['active'] = active ? 'true' : 'false';
     if (active) {
-      button.style.background = 'rgba(232, 106, 23, 0.22)';
-      button.style.borderColor = this.hexToRgba(Theme.selectionColor);
-      button.style.color = '#ffffff';
+      button.style.background = Theme.buttonPressedBackground;
+      button.style.borderColor = Theme.toggleActiveBorder;
+      button.style.color = Theme.buttonTextColor;
       button.style.boxShadow = 'none';
     } else {
       button.style.background = 'transparent';
@@ -577,7 +702,7 @@ export class Toolbar {
   private applySeparatorStyles(separator: HTMLElement): void {
     separator.style.width = '1px';
     separator.style.height = '18px';
-    separator.style.background = 'rgba(255,255,255,0.1)';
+    separator.style.background = hexToRgb(Theme.separatorColor);
     separator.style.margin = '0 4px';
     separator.style.flexShrink = '0';
   }
@@ -617,6 +742,10 @@ export class Toolbar {
    */
   private openDropdownMenu(panel: PanelMenu, button: HTMLButtonElement): void {
     this.closeOpenMenu();
+    const liveEntries = this.dropdownLiveEntries.get(button);
+    if (liveEntries) {
+      panel.entriesSet(liveEntries());
+    }
     panel.open(button);
     this.openMenuPanel = panel;
     this.openMenuButton = button;
@@ -669,18 +798,5 @@ export class Toolbar {
     if (text.startsWith(labelPrefix)) return true;
     const aria = button.getAttribute('aria-label') || '';
     return aria.startsWith(labelPrefix);
-  }
-
-  /**
-   * Converts a hex color number to an rgb CSS string.
-   *
-   * @param hex The hex color value.
-   * @returns An rgb CSS color string.
-   */
-  private hexToRgba(hex: number): string {
-    const r = (hex >> 16) & 255;
-    const g = (hex >> 8) & 255;
-    const b = hex & 255;
-    return `rgb(${r}, ${g}, ${b})`;
   }
 }

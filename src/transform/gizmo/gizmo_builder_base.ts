@@ -158,7 +158,7 @@ export abstract class GizmoBuilderBase {
     if (material instanceof THREE.MeshBasicMaterial) {
       return material.color.getHex();
     }
-    return 0xffffff;
+    return Theme.gizmoHoverColor;
   }
 
   /**

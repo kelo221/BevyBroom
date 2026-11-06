@@ -1,12 +1,17 @@
 import { DEFAULT_CHECKER_TEXTURE_ID } from '@/texture/library/texture_id.js';
 
+/** Listener notified when the active paint texture id changes. */
+export type StateTexturePaintListener = (textureId: string) => void;
+
 /** Tracks the last texture chosen in the browser for paint / fill operations. */
 export class StateTexturePaint {
   private lastTextureId: string;
+  private readonly listeners: Set<StateTexturePaintListener>;
 
   /** Creates paint state defaulting to the built-in checker. */
   constructor() {
     this.lastTextureId = DEFAULT_CHECKER_TEXTURE_ID;
+    this.listeners = new Set();
   }
 
   /**
@@ -24,13 +29,36 @@ export class StateTexturePaint {
    * @param textureId Texture id to remember.
    */
   setLastTextureId(textureId: string): void {
-    if (!textureId) return;
+    if (!textureId || this.lastTextureId === textureId) {
+      return;
+    }
     this.lastTextureId = textureId;
+    this.listenersNotify();
+  }
+
+  /**
+   * Registers a listener called whenever the current paint texture changes.
+   *
+   * @param listener Callback receiving the new texture id.
+   * @returns Unsubscribe function.
+   */
+  changeListenerAdd(listener: StateTexturePaintListener): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   /** Resets to the built-in checker (tests / teardown). */
   reset(): void {
     this.lastTextureId = DEFAULT_CHECKER_TEXTURE_ID;
+    this.listenersNotify();
+  }
+
+  /** Notifies all registered texture paint listeners. */
+  private listenersNotify(): void {
+    const current = this.lastTextureId;
+    this.listeners.forEach((listener) => listener(current));
   }
 }
 

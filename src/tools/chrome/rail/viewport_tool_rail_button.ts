@@ -36,8 +36,8 @@ export function createViewportToolRailButton(
  * @param active Whether the tool is selected.
  */
 export function styleViewportToolRailButton(button: HTMLButtonElement, active: boolean): void {
-  button.style.border = active ? `1px solid ${hexToRgb(Theme.selectionColor)}` : `1px solid ${Theme.inputBorderColor}`;
-  button.style.background = active ? 'rgba(232, 106, 23, 0.28)' : hexToRgb(Theme.buttonBackground);
+  button.style.border = `1px solid ${active ? Theme.toggleActiveBorder : Theme.inputBorderColor}`;
+  button.style.background = active ? Theme.buttonPressedBackground : hexToRgb(Theme.buttonBackground);
   button.style.opacity = '1';
 }
 
@@ -47,8 +47,8 @@ export function styleViewportToolRailButton(button: HTMLButtonElement, active: b
  * @param button Button element.
  */
 function applyRailButtonBaseStyles(button: HTMLButtonElement): void {
-  button.style.width = '30px';
-  button.style.height = '30px';
+  button.style.width = `${Theme.toolPaletteButtonPx}px`;
+  button.style.height = `${Theme.toolPaletteButtonPx}px`;
   button.style.padding = '0';
   button.style.margin = '0';
   button.style.display = 'inline-flex';

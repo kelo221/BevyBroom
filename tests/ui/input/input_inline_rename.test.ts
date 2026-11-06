@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { InputInlineRename } from '@/outliner/ui/input_inline_rename_outliner.js';
+import { Theme } from '@/theme.js';
+import { cssColorNormalize } from '../ui_css_color_test_support.js';
 
 describe('InputInlineRename', () => {
   let parentElement: HTMLElement;
@@ -210,7 +212,9 @@ describe('InputInlineRename', () => {
   it('should set correct styles on input element', () => {
     renameInput.activate();
     const input = parentElement.querySelector('input') as HTMLInputElement;
-    expect(input.style.border).toBe('1px solid rgb(230, 126, 34)');
+    expect(input.style.borderColor).toBe(cssColorNormalize(Theme.focusOutline));
+    expect(input.style.background).toContain(cssColorNormalize(Theme.inputBackgroundColor));
+    expect(input.style.color).toBe(cssColorNormalize(Theme.inputTextColor));
     expect(input.style.padding).toBe('0px 4px');
     expect(input.style.boxSizing).toBe('border-box');
   });

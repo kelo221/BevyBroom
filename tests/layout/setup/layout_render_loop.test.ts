@@ -5,6 +5,7 @@ import { CoordinatorCameraFit } from '@/navigation/camera/coordinator_camera_fit
 import { MultiViewComposer } from '@/viewports/core/multi_view_composer.js';
 import type { SharedWorldScene } from '@/viewports/shared/shared_world_scene.js';
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
 
 function createViewportMock(): ViewportEditor {
   const container = document.createElement('div');
@@ -18,6 +19,7 @@ function createViewportMock(): ViewportEditor {
     getCamera: () => new THREE.PerspectiveCamera(),
     getContentElement: () => content,
     getContainer: () => container,
+    getBackgroundColor: () => Theme.viewport2dBackground,
   } as unknown as ViewportEditor;
 }
 
@@ -48,8 +50,9 @@ describe('LayoutRenderLoop', () => {
     loop.start();
     await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
     expect(render).toHaveBeenCalled();
-    const firstCallPanes = render.mock.calls[0]?.[1] as Array<{ contentElement: HTMLElement }>;
+    const firstCallPanes = render.mock.calls[0]?.[1] as Array<{ contentElement: HTMLElement; clearColor: number }>;
     expect(firstCallPanes?.length).toBe(1);
+    expect(firstCallPanes?.[0]?.clearColor).toBe(visible.getBackgroundColor());
     expect(firstCallPanes?.[0]?.contentElement).toBe(visible.getContentElement());
     expect(firstCallPanes?.[0]?.contentElement).not.toBe(visible.getContainer());
     active = [visible, hidden];
@@ -72,6 +75,7 @@ describe('LayoutRenderLoop', () => {
       getCamera: () => camera,
       getContentElement: () => content,
       getContainer: () => container,
+      getBackgroundColor: () => Theme.viewportBackground,
     } as unknown as ViewportEditor;
     const prepareForCamera = vi.fn();
     const endCameraPass = vi.fn();

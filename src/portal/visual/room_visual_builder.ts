@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
 import { EntityVisualShapes } from '@/entity/visual/entity_visual_shapes.js';
 import { EntityVisualPointBox } from '@/entity/visual/entity_visual_point_box.js';
 import { type EntityGuideLineStyle, EntityVisualBuilder } from '@/entity/visual/entity_visual_builder.js';
@@ -6,7 +7,7 @@ import type { RoomSettings } from '@/portal/model/room_settings.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 
 /** Color of room markers and outlines. */
-export const ROOM_GUIDE_COLOR = 0x4fc3f7;
+export const ROOM_GUIDE_COLOR = Theme.roomGuideColor;
 
 /** Icon every room shows. */
 export const ROOM_ICON_NAME: IconName = 'floor-plan';

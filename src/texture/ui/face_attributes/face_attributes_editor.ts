@@ -4,10 +4,8 @@ import { ToolbarIcons } from '@/ui/toolbar/toolbar_icons.js';
 import type { FaceTextureAlign, FaceTextureMappingTrs } from '@/texture/uv/face_texture_mapping.js';
 import type { UvEditorTrsFieldState } from '@/texture/uv/face_texture_applier.js';
 import type { UvRelativeTrsOp } from '@/texture/uv/uv_trs_ops.js';
-import {
-  FACE_INSPECTOR_METRICS,
-  faceInspectorButtonCreate,
-} from '@/texture/ui/face_inspector/face_inspector_controls.js';
+import { FACE_INSPECTOR_METRICS } from '@/texture/ui/face_inspector/face_inspector_controls.js';
+import { buttonCompactCreate } from '@/ui/button/button_compact.js';
 import type { FaceAttributesView } from './face_attributes_view.js';
 import { FaceAttributesFieldGrid } from './face_attributes_field_grid.js';
 import { FaceAttributesMaterialRow, type FaceAttributesMaterialDescriber } from './face_attributes_material_row.js';
@@ -30,7 +28,6 @@ export interface FaceAttributesEditorHandlers {
   onAlignEdge: (mode: FaceUvAlignEdgeMode) => void;
   onFlip: (axis: FaceUvFlipAxis) => void;
   onRotate: (degrees: number) => void;
-  onResetFace: () => void;
   onResetWorld: () => void;
   onShearCommit: (mode: FaceUvShearMode, factor: number | null) => void;
 }
@@ -96,7 +93,8 @@ export class FaceAttributesEditor implements FaceAttributesView {
       onAlignEdge: (mode) => this.handlers.onAlignEdge(mode),
       onFlip: (axis) => this.handlers.onFlip(axis),
       onRotate: (degrees) => this.handlers.onRotate(degrees),
-      onResetFace: () => this.handlers.onResetFace(),
+      onAlign: (align) => this.handlers.onAlign(align),
+      onReset: () => this.handlers.onReset(),
       onResetWorld: () => this.handlers.onResetWorld(),
       onShearCommit: (mode, factor) => this.handlers.onShearCommit(mode, factor),
     };
@@ -119,6 +117,18 @@ export class FaceAttributesEditor implements FaceAttributesView {
   setFromFieldState(fields: UvEditorTrsFieldState): void {
     this.materialRow.setFromFieldState(fields);
     this.fieldGrid.setFromFieldState(fields);
+  }
+
+  /**
+   * Shows or hides the UV tool strip and the offset, scale and rotation field
+   * grid, keeping the material row and the align strip.
+   *
+   * @param visible True to show the UV tools and fields.
+   */
+  trsControlsVisibleSet(visible: boolean): void {
+    const display = visible ? '' : 'none';
+    this.uvToolStrip.getElement().style.display = display;
+    this.fieldGrid.getElement().style.display = display;
   }
 
   /** Removes field listeners and detaches the editor element. */
@@ -189,6 +199,6 @@ export class FaceAttributesEditor implements FaceAttributesView {
    */
   private iconButtonCreate(title: string, svgIcon: string, onClick: () => void): HTMLButtonElement {
     const size = FACE_INSPECTOR_METRICS.iconButtonSize;
-    return faceInspectorButtonCreate({ title, svgIcon, widthPx: size, heightPx: size, onClick });
+    return buttonCompactCreate({ title, svgIcon, widthPx: size, heightPx: size, onClick });
   }
 }

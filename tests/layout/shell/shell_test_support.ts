@@ -8,7 +8,7 @@ import type { ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 import { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
 import { ShellFrame } from '@/layout/shell/frame/shell_frame.js';
 import { ShellInspector } from '@/layout/shell/inspector/shell_inspector.js';
-import { ShellInfoPanel } from '@/layout/shell/info_panel/shell_info_panel.js';
+import { ShellInfoPanel, type ShellInfoPanelTabId } from '@/layout/shell/info_panel/shell_info_panel.js';
 import { ShellDockCommands } from '@/layout/shell/actions/shell_dock_commands.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
 import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
@@ -21,6 +21,8 @@ export type ShellTestToolbarActions = { [Key in keyof EditorToolbarActions]: Moc
 export interface ShellTestDocks {
   readonly storage: Storage;
   readonly container: HTMLElement;
+  /** Main window root that floating windows mount into. */
+  readonly toolbarContainer: HTMLElement;
   readonly stateStore: ShellStateStore;
   readonly frame: ShellFrame;
   readonly inspector: ShellInspector;
@@ -163,6 +165,8 @@ export class ShellTestWindowActions implements ShellWindowActions {
   selectionVisibility: HandlerSelectionVisibility | null = null;
   /** Spy that returns the visibility commands. */
   readonly selectionVisibilityRead = vi.fn(() => this.selectionVisibility);
+  /** Spy for opening the Object Properties dialog. */
+  readonly objectPropertiesOpen = vi.fn<() => void>();
 
   /**
    * Changes the grid size and tells every registered listener.
@@ -218,8 +222,17 @@ export function shellTestDocksCreate(storage: Storage = shellTestStorageCreate()
   const infoPanel = new ShellInfoPanel(stateStore);
   frame.inspectorHostRead().appendChild(inspector.getElement());
   frame.infoPanelHostRead().appendChild(infoPanel.getElement());
-  const dockCommands = new ShellDockCommands(frame, inspector, infoPanel);
-  return { storage, container, stateStore, frame, inspector, infoPanel, dockCommands };
+  const dockCommands = new ShellDockCommands(frame, infoPanel);
+  return {
+    storage,
+    container,
+    toolbarContainer: frame.getElement(),
+    stateStore,
+    frame,
+    inspector,
+    infoPanel,
+    dockCommands,
+  };
 }
 
 /**
@@ -228,10 +241,26 @@ export function shellTestDocksCreate(storage: Storage = shellTestStorageCreate()
  * @param docks Docks to remove.
  */
 export function shellTestDocksDispose(docks: ShellTestDocks): void {
+  docks.dockCommands.dispose();
   docks.inspector.dispose();
   docks.infoPanel.dispose();
   docks.frame.dispose();
   docks.container.remove();
+}
+
+/**
+ * Returns the tab button of one info panel tab.
+ *
+ * @param infoPanel Info panel holding the button.
+ * @param tabId Tab id.
+ * @returns Tab button.
+ */
+export function shellTestInfoPanelTabButtonRead(infoPanel: ShellInfoPanel, tabId: ShellInfoPanelTabId): HTMLElement {
+  const button = infoPanel.stripElementRead().querySelector<HTMLElement>(`[role="tab"][data-tab-id="${tabId}"]`);
+  if (!button) {
+    throw new Error(`Missing info panel tab button ${tabId}`);
+  }
+  return button;
 }
 
 /**

@@ -80,6 +80,46 @@ pub enum PlaceablePlacement {
     Any,
 }
 
+/// Parameter kind accepted by an entity I/O input or emitted by an output.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PlaceableIoParameterKind {
+    #[default]
+    None,
+    String,
+    Number,
+    Integer,
+    Bool,
+}
+
+/// Metadata for one declared entity I/O input or output pin on a placeable class.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PlaceableIoPin {
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parameter_kind: Option<PlaceableIoParameterKind>,
+}
+
+/// One authored entity I/O output connection row on an object.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct AuthoredLogicOutput {
+    pub output: String,
+    pub target: String,
+    pub input: String,
+    #[serde(default)]
+    pub parameter: String,
+    #[serde(default)]
+    pub delay: f32,
+    #[serde(default = "default_times_to_fire")]
+    pub times_to_fire: i32,
+}
+
+fn default_times_to_fire() -> i32 {
+    -1
+}
+
 /// A component type the game lets the editor place.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct PlaceableClass {
@@ -92,6 +132,12 @@ pub struct PlaceableClass {
     /// sRGB color of the editor marker.
     pub marker_color: [f32; 3],
     pub fields: Vec<PlaceableField>,
+    /// Declared entity I/O inputs on this class.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub inputs: Vec<PlaceableIoPin>,
+    /// Declared entity I/O outputs on this class.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub outputs: Vec<PlaceableIoPin>,
 }
 
 /// An asset type that asset fields can reference.

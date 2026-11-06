@@ -1,4 +1,5 @@
 import { GithubContributorInfo, fetchGitHubContributors } from './about_contributor_fetcher.js';
+import { AboutArtPalette } from './about_art_palette.js';
 
 const SPHERE_SIZE = 44;
 
@@ -92,8 +93,8 @@ export class ContributorRoll {
     sphere.style.flexShrink = '0';
     sphere.style.position = 'relative';
     sphere.style.overflow = 'hidden';
-    sphere.style.border = '2px solid rgba(232, 106, 23, 0.5)';
-    sphere.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.4)';
+    sphere.style.border = `2px solid ${AboutArtPalette.avatarRingRest}`;
+    sphere.style.boxShadow = AboutArtPalette.avatarShadowRest;
     sphere.style.transform = 'translateX(80px) scale(0.3)';
     sphere.style.opacity = '0';
     sphere.style.animation = `contributorSphereRollIn 0.6s ${
@@ -119,15 +120,15 @@ export class ContributorRoll {
 
     sphere.addEventListener('mouseenter', () => {
       sphere.style.transform = 'scale(1.15)';
-      sphere.style.borderColor = 'rgba(232, 106, 23, 0.9)';
-      sphere.style.boxShadow = '0 0 14px rgba(232, 106, 23, 0.45), 0 2px 12px rgba(0, 0, 0, 0.5)';
+      sphere.style.borderColor = AboutArtPalette.avatarRingHover;
+      sphere.style.boxShadow = AboutArtPalette.avatarShadowHover;
       sphere.style.transition = 'transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease';
     });
 
     sphere.addEventListener('mouseleave', () => {
       sphere.style.transform = 'scale(1)';
-      sphere.style.borderColor = 'rgba(232, 106, 23, 0.5)';
-      sphere.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.4)';
+      sphere.style.borderColor = AboutArtPalette.avatarRingRest;
+      sphere.style.boxShadow = AboutArtPalette.avatarShadowRest;
     });
 
     sphere.appendChild(sphereImage);

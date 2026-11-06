@@ -53,7 +53,6 @@ export class EntityVisualPointBox {
    */
   static ensure(owner: THREE.Object3D, look: EntityPointBoxLook): THREE.Mesh {
     const marker = EntityVisualBuilder.markerEnsure(owner, entityPointBoxGeometry, look.name);
-    marker.geometry = entityPointBoxGeometry;
     shadingExemptFlag(marker);
     EntityVisualPointBox.edgesEnsure(marker);
     const iconSize = ENTITY_POINT_BOX_SIZE * ENTITY_POINT_BOX_ICON_SHARE;

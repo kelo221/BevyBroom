@@ -148,7 +148,7 @@ export class GizmoRotate extends GizmoBuilderBase {
    */
   private brightenColor(hex: number, amount: number): number {
     const color = new THREE.Color(hex);
-    color.lerp(new THREE.Color(0xffffff), amount);
+    color.lerp(new THREE.Color(Theme.gizmoHoverColor), amount);
     return color.getHex();
   }
 }

@@ -15,7 +15,10 @@ import {
 import { createDefaultFaceTextureMapping } from '@/texture/uv/face_texture_mapping.js';
 import { SurfaceUvMatrix } from '@/texture/uv_matrix/surface_uv_matrix.js';
 import { FaceUvOperation } from '@/texture/uv/operations/face_uv_operation.js';
-import type { FaceUvOperationContext } from '@/texture/uv/operations/face_uv_operation_context.js';
+import type {
+  FaceUvOperationContext,
+  FaceUvTextureSizePixels,
+} from '@/texture/uv/operations/face_uv_operation_context.js';
 import {
   FaceUvCameraDirections,
   createWorldPolygonTargetContextFactory,
@@ -38,6 +41,16 @@ import {
 import { FaceUvOperationScale } from '@/texture/uv/operations/face_uv_operation_scale.js';
 import { FaceUvOperationResetWorld } from '@/texture/uv/operations/face_uv_operation_reset_world.js';
 import { FaceUvOperationResetFace } from '@/texture/uv/operations/face_uv_operation_reset_face.js';
+import {
+  FaceUvOperationRandomShift,
+  type FaceUvRandomUnitSource,
+} from '@/texture/uv/operations/face_uv_operation_random_shift.js';
+import { textureSizePixelsRead } from '@/texture/library/texture_size_pixels.js';
+import { FaceUvOperationFullTileShift } from '@/texture/uv/operations/face_uv_operation_full_tile_shift.js';
+import { FaceUvOperationVectorsSet } from '@/texture/uv/operations/face_uv_operation_vectors_set.js';
+import { createCombinedWorldPolygonTargetContextFactory } from '@/texture/uv/operations/face_uv_operation_context_combined.js';
+import { surfaceUvVectors2x3Read, type SurfaceUvVectors2x3 } from '@/texture/uv_matrix/surface_uv_matrix_vectors.js';
+import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
 import { faceUvNudgeStepResolve, faceUvRotateStepResolve, type FaceUvToolModifiers } from './face_uv_tool_steps.js';
 
 /** Rotation fallback in degrees when the grid angle is unusable. */
@@ -238,6 +251,57 @@ export class ControllerFaceUvTools {
   }
 
   /**
+   * Shifts one texture axis of every target by a random whole-texel offset
+   * inside one tile, measured in the first target's texture texels.
+   *
+   * @param axis Texture axis to shift.
+   * @param randomUnitRead Source of numbers in [0, 1).
+   */
+  shiftRandom(axis: 'u' | 'v', randomUnitRead: FaceUvRandomUnitSource = Math.random): void {
+    const first = this.collectTargets()[0];
+    const textureSize = first ? textureSizePixelsRead(resolveTargetMapping(first).textureId) : null;
+    this.operationApply(
+      new FaceUvOperationRandomShift(axis, randomUnitRead),
+      `Shifted texture ${axis.toUpperCase()} randomly`,
+      textureSize,
+    );
+  }
+
+  /**
+   * Shifts the texture by whole-tile increments (`±1.0` per tile) along U and
+   * V.
+   *
+   * @param tilesU Whole tiles along U.
+   * @param tilesV Whole tiles along V.
+   */
+  shiftFullTile(tilesU: number, tilesV: number): void {
+    this.operationApply(new FaceUvOperationFullTileShift(tilesU, tilesV), 'Shifted texture by full tile');
+  }
+
+  /**
+   * Sets the 2×3 U and V projection axis direction vectors across the
+   * selection.
+   *
+   * @param vectors Target U and V direction vectors.
+   */
+  setVectors2x3(vectors: SurfaceUvVectors2x3): void {
+    this.operationApply(new FaceUvOperationVectorsSet(vectors), 'Updated texture UV vectors');
+  }
+
+  /**
+   * Reads the 2×3 UV vectors of the first selected target, or null when empty.
+   *
+   * @returns 2×3 UV axis vectors, or null.
+   */
+  readFirstVectors2x3(): SurfaceUvVectors2x3 | null {
+    const first = this.collectTargets()[0];
+    if (!first) {
+      return null;
+    }
+    return surfaceUvVectors2x3Read(resolveTargetMapping(first).uv);
+  }
+
+  /**
    * Returns whether face mode is active with at least one selected face, the
    * gate every keyboard shortcut checks before running.
    *
@@ -284,16 +348,26 @@ export class ControllerFaceUvTools {
    *
    * @param operation Operation to apply.
    * @param statusMessage Status text on success.
+   * @param textureSizePixels Texture image size the operation measures texels
+   *   in, or null when unknown.
    */
-  private operationApply(operation: FaceUvOperation, statusMessage: string): void {
+  private operationApply(
+    operation: FaceUvOperation,
+    statusMessage: string,
+    textureSizePixels: FaceUvTextureSizePixels | null = null,
+  ): void {
     const targets = this.collectTargets();
     if (targets.length === 0) {
       this.statusCallback?.('Select face(s) in Face mode, or object(s) in Object mode');
       return;
     }
+    const camDirs = this.cameraDirectionsProvider();
+    const factory = getStateFaceEditSession().treatAsOneRead()
+      ? createCombinedWorldPolygonTargetContextFactory(targets, camDirs, textureSizePixels)
+      : createWorldPolygonTargetContextFactory(camDirs, textureSizePixels);
     const command = new CommandTextureFaceApply(targets, createDefaultFaceTextureMapping(), {
       matrixOperation: operation,
-      matrixOperationContextFactory: createWorldPolygonTargetContextFactory(this.cameraDirectionsProvider()),
+      matrixOperationContextFactory: factory,
     });
     this.commandStack.push(command);
     this.statusCallback?.(`${statusMessage} on ${targets.length} face region(s)`);

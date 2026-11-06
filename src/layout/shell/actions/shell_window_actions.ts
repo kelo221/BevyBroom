@@ -101,4 +101,9 @@ export interface ShellWindowActions {
    * @returns Visibility commands, or null before the editor finished starting.
    */
   selectionVisibilityRead(): HandlerSelectionVisibility | null;
+  /**
+   * Opens the Object Properties dialog on the selection; does nothing without
+   * one.
+   */
+  objectPropertiesOpen(): void;
 }

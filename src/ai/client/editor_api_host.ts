@@ -81,6 +81,34 @@ export interface EditorApiHost {
    * @returns Interactive views.
    */
   viewportsInteractiveRead?: () => readonly EditorApiViewportView[];
+  /**
+   * Returns the Object Properties dialog, creating it on first use. Set by
+   * layout bootstrap; unit tests may omit it.
+   *
+   * @returns Dialog control.
+   */
+  objectPropertiesDialogRead?: () => EditorApiObjectPropertiesDialogControl;
+  /**
+   * Returns the id of the active tools palette tool (object, face, block and so
+   * on) for get_face_edit_state. Set by layout bootstrap; unit tests may omit
+   * it.
+   *
+   * @returns Active tool id, or null before the tools palette exists.
+   */
+  activeToolRead?: () => string | null;
+}
+
+/** Object Properties dialog members the dialog tools need. */
+export interface EditorApiObjectPropertiesDialogControl {
+  open(): boolean;
+  apply(): void;
+  cancel(): void;
+  isOpen(): boolean;
+  tabShow(tabId: string): boolean;
+  tabActiveRead(): string | null;
+  tabIdsRead(): string[];
+  editedObjectsRead(): readonly THREE.Object3D[];
+  commentsWrite(comments: string): boolean;
 }
 
 /** View members the viewport input tools need (2D and 3D panes satisfy it). */

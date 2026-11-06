@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import { FactoryObjectIcon } from './factory_object_icon.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 import { iconSvgMarkup } from '@/ui/icons/icon_svg.js';
+import { Theme } from '@/theme.js';
 
 /** Pixel size of SVG icons in outliner rows. */
 const OUTLINER_ITEM_ICON_SIZE_PX = 13;
@@ -115,7 +116,7 @@ export function outlinerItemApplyCenteredCssDot(
   element.style.height = `${sizePx}px`;
   element.style.fontSize = '0';
   element.style.lineHeight = '0';
-  element.style.boxShadow = '0 0 0 1px rgba(0, 0, 0, 0.35)';
+  element.style.boxShadow = Theme.outlinerIconDotShadow;
 }
 
 /**
@@ -139,7 +140,7 @@ export function outlinerItemApplyOverlayDot(element: HTMLElement, color: string,
   element.style.borderRadius = '50%';
   element.style.width = `${sizePx}px`;
   element.style.height = `${sizePx}px`;
-  element.style.boxShadow = '0 0 0 1px rgba(0, 0, 0, 0.35)';
+  element.style.boxShadow = Theme.outlinerIconDotShadow;
   element.style.fontSize = '0';
   element.style.lineHeight = '0';
   element.style.color = 'transparent';

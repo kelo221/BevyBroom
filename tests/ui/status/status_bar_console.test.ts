@@ -48,8 +48,9 @@ describe('StatusBar console forwarding', () => {
   it('shows live feedback and fit feedback without writing them', () => {
     const { statusBar, log } = statusBarRigCreate();
     statusBar.setLastActionTransient('ΔX 1.25');
-    statusBar.setFitFeedback('Fit 3 objects');
     expect(statusBar.getRootElement().textContent).toContain('ΔX 1.25');
+    statusBar.setFitFeedback('Fit 3 objects');
+    expect(statusBar.getRootElement().textContent).toContain('Fit 3 objects');
     expect(log.entriesRead()).toEqual([]);
     statusBar.dispose();
   });

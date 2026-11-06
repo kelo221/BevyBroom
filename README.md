@@ -131,7 +131,7 @@ Toggle viewport rendering modes for any viewport:
 
 Robust selection system with full multi-select support:
 
-- Click to select, Shift+click to add, Ctrl+click to toggle
+- Click to select, Ctrl+click to add or remove, Shift+click a brush face to edit that face in Face Select
 - TrenchBroom-style dragging: drag a selected object to move it (Alt moves vertically in 3D, Ctrl duplicates first), or drag while nothing is selected to draw a box brush
 - Copy, cut and paste through the system clipboard (Ctrl+C / Ctrl+X / Ctrl+V, Ctrl+Alt+V at the original position)
 - Tab to switch between object and face selection modes

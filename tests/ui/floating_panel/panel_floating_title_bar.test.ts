@@ -6,6 +6,9 @@ import {
 import { PanelFloating } from '@/ui/floating_panel/panel_floating.js';
 import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js';
 import { applyFloatingPanelToolChrome } from '@/ui/floating_panel/panel_floating_tool_chrome.js';
+import { Theme } from '@/theme.js';
+import { hexToRgb } from '@/utils/utils_color.js';
+import { cssColorNormalize } from '../ui_css_color_test_support.js';
 
 /** Concrete floating panel used to exercise the shared title-bar helper. */
 class TitleBarTestPanel extends PanelFloating {
@@ -37,12 +40,13 @@ describe('panel_floating_title_bar', () => {
     expect(closed).toBe(1);
   });
 
-  it('applies shared chrome button styles', () => {
+  it('applies classic chrome button styles', () => {
     const button = document.createElement('button');
     styleFloatingPanelChromeButton(button);
     expect(button.style.cursor).toBe('pointer');
-    expect(button.style.fontSize).toBe('11px');
-    expect(button.style.borderRadius).toBe('3px');
+    expect(button.style.fontSize).toBe(`${Theme.uiFontSizePx}px`);
+    expect(button.style.borderColor).toBe(cssColorNormalize(Theme.chromeBorderColor));
+    expect(button.style.color).toBe(cssColorNormalize(Theme.buttonTextColor));
   });
 
   it('createStandardTitleBar hides the panel when close is clicked', () => {
@@ -62,12 +66,14 @@ describe('panel_floating_title_bar', () => {
 });
 
 describe('panel_floating_tool_chrome', () => {
-  it('applies shared tool-window background and border chrome', () => {
+  it('applies the light tool-window face, grey border and black text', () => {
     const root = document.createElement('div');
     applyFloatingPanelToolChrome(root, { width: '200px', borderBox: true });
     expect(root.style.width).toBe('200px');
     expect(root.style.boxSizing).toBe('border-box');
-    expect(root.style.borderRadius).toBe('6px');
+    expect(root.style.background).toContain(cssColorNormalize(hexToRgb(Theme.propertiesPanelBackground)));
+    expect(root.style.borderColor).toBe(cssColorNormalize(Theme.chromeBorderColor));
+    expect(root.style.color).toBe(cssColorNormalize(Theme.buttonTextColor));
     expect(root.style.fontFamily.length).toBeGreaterThan(0);
   });
 });

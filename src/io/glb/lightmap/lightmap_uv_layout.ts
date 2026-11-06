@@ -24,22 +24,27 @@ const LIGHTMAP_PADDING_TEXELS = 2;
  */
 export class LightmapUvLayout {
   /**
-   * Returns a copy of the mesh's geometry with a `uv1` lightmap attribute.
+   * Returns a copy of a geometry shown by a mesh with a `uv1` lightmap
+   * attribute.
    *
-   * @param mesh Mesh whose world size decides the chart sizes.
-   * @returns New geometry, or the mesh's own geometry when it has no triangles.
+   * @param mesh Mesh whose world matrix decides the chart sizes.
+   * @param geometry Geometry to lay out; defaults to the mesh's own geometry.
+   * @returns New geometry, or the given geometry when it has no triangles.
    */
-  static geometryWithLightmapUvs(mesh: THREE.Mesh): THREE.BufferGeometry {
+  static geometryWithLightmapUvs(
+    mesh: THREE.Mesh,
+    geometry: THREE.BufferGeometry = mesh.geometry,
+  ): THREE.BufferGeometry {
     mesh.updateWorldMatrix(true, false);
-    const soup = LightmapTriangleSoupReader.read(mesh.geometry, mesh.matrixWorld);
+    const soup = LightmapTriangleSoupReader.read(geometry, mesh.matrixWorld);
     if (!soup) {
-      return mesh.geometry;
+      return geometry;
     }
     const charts = LightmapUvChartGrouper.group(soup).map((triangles) =>
       LightmapUvChartProjector.project(soup, triangles),
     );
     const packing = LightmapUvChartPacker.pack(charts, LightmapUvLayout.paddingChoose(charts));
-    return LightmapUvGeometryWriter.write(mesh.geometry, soup.corners, soup.vertexCount, charts, packing);
+    return LightmapUvGeometryWriter.write(geometry, soup.corners, soup.vertexCount, charts, packing);
   }
 
   /**

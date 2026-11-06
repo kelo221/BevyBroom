@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import { tagGizmoDepthRole } from './gizmo_depth_style.js';
 
 /**
@@ -169,7 +170,7 @@ export function applyGizmoFrontRenderOrder(mesh: THREE.Mesh): void {
  */
 export function createGizmoPickMaterial(): THREE.MeshBasicMaterial {
   const material = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+    color: MaterialColorNeutral.white,
     depthTest: false,
     depthWrite: false,
     colorWrite: false,

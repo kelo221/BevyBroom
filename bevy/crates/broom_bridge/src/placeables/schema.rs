@@ -68,6 +68,8 @@ pub(crate) fn class_describe(
         placement: options.placement,
         marker_color: options.marker_color.to_f32_array_no_alpha(),
         fields: type_fields_describe(registry, type_path, assets)?,
+        inputs: options.inputs.clone(),
+        outputs: options.outputs.clone(),
     })
 }
 

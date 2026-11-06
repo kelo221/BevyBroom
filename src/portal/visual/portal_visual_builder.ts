@@ -1,12 +1,13 @@
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
 import { type EntityGuideLineStyle, EntityVisualBuilder } from '@/entity/visual/entity_visual_builder.js';
 import type { PortalSettings } from '@/portal/model/portal_settings.js';
 
 /** Color of open portals. */
-export const PORTAL_OPEN_COLOR = 0x66bb6a;
+export const PORTAL_OPEN_COLOR = Theme.portalOpenColor;
 
 /** Color of closed portals. */
-export const PORTAL_CLOSED_COLOR = 0xef5350;
+export const PORTAL_CLOSED_COLOR = Theme.portalClosedColor;
 
 /** Opacity of the clickable portal surface. */
 const PORTAL_SURFACE_OPACITY = 0.22;

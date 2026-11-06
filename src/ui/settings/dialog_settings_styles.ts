@@ -55,13 +55,13 @@ export function styleSettingsPanel(panel: HTMLElement): void {
   panel.style.height = 'min(78vh, 640px)';
   panel.style.display = 'flex';
   panel.style.flexDirection = 'column';
-  panel.style.borderRadius = '8px';
-  panel.style.border = `1px solid ${hexToRgb(Theme.separatorColor)}`;
+  panel.style.borderRadius = '2px';
+  panel.style.border = `1px solid ${Theme.chromeBorderColor}`;
   panel.style.background = hexToRgb(Theme.propertiesPanelBackground);
   panel.style.fontFamily = Theme.uiFontFamily;
   panel.style.color = Theme.buttonTextColor;
   panel.style.overflow = 'hidden';
-  panel.style.boxShadow = '0 12px 36px rgba(0, 0, 0, 0.55)';
+  panel.style.boxShadow = Theme.dialogShadow;
   panel.style.boxSizing = 'border-box';
 }
 

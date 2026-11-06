@@ -5,9 +5,6 @@ import { IconOutlinerVisibility } from '@/outliner/ui/icon_outliner_visibility.j
 const ICON_LAYER_STROKE_ATTRIBUTES =
   'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
 
-/** Attributes of the red slash drawn over switched-off icons. */
-const ICON_LAYER_SLASH_ATTRIBUTES = 'fill="none" stroke="#e74c3c" stroke-width="2.25" stroke-linecap="round"';
-
 /** Inline SVG icons for the three switches of a layer row. */
 export class IconLayerToggle {
   /**
@@ -49,7 +46,7 @@ export class IconLayerToggle {
   private static exportMarkup(isOmitted: boolean): string {
     const tray = `<path d="M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5" ${ICON_LAYER_STROKE_ATTRIBUTES}/>`;
     const arrow = `<path d="M12 15V4M7 9l5-5 5 5" ${ICON_LAYER_STROKE_ATTRIBUTES}/>`;
-    const slash = isOmitted ? `<path d="M4 4l16 16" ${ICON_LAYER_SLASH_ATTRIBUTES}/>` : '';
+    const slash = isOmitted ? `<path d="M4 4l16 16" ${IconOutlinerVisibility.redSlashAttributes}/>` : '';
     return IconLayerToggle.svgWrap(`${tray}${arrow}${slash}`);
   }
 

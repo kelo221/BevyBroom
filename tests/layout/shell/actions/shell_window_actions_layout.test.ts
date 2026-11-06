@@ -62,6 +62,7 @@ function fixtureCreate(
     clipboardEditCommandsRead: () => clipboardEditCommands,
     solidBrushToolsRead: () => null,
     selectionVisibilityRead: () => null,
+    objectPropertiesOpen: vi.fn(),
     selectionManager,
     worldObject,
     snapManager,
@@ -71,6 +72,12 @@ function fixtureCreate(
 }
 
 describe('ShellWindowActionsLayout', () => {
+  it('opens Object Properties through the layout source', () => {
+    const fixture = fixtureCreate();
+    fixture.actions.objectPropertiesOpen();
+    expect(fixture.source.objectPropertiesOpen).toHaveBeenCalledOnce();
+  });
+
   it('selects every mesh of the world and clears the selection again', () => {
     const fixture = fixtureCreate();
     fixture.actions.selectAll();

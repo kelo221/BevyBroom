@@ -3,7 +3,9 @@ import { TransformMode } from '@/types/transform_mode.js';
 import { EditorInteractionMode } from '@/types/editor_interaction_mode.js';
 import { EditorComponentMode } from '@/types/editor_component_mode.js';
 import { ViewportToolRail, type ViewportToolRailHandlers } from '@/tools/chrome/rail/viewport_tool_rail.js';
+import { TOOL_RAIL_CATALOG_ORDER } from '@/tools/chrome/rail/tool_rail_catalog.js';
 import {
+  viewportToolChromeDockedRailStyle,
   viewportToolChromeDockedStripStyle,
   type ViewportToolChromeDocking,
 } from '@/tools/chrome/host/viewport_tool_chrome_docking.js';
@@ -67,8 +69,9 @@ export class ViewportToolChromeHost {
   }
 
   /**
-   * Creates chrome docked into bars: the tool buttons go into one parent and
-   * the tool options into another. Docked chrome is always shown.
+   * Creates docked chrome: the tool buttons go into one parent as a vertical
+   * column and the tool options into another as a row. Docked chrome is always
+   * shown.
    *
    * @param docking Parents of the tool buttons strip and the tool options
    *   strip.
@@ -145,12 +148,15 @@ export class ViewportToolChromeHost {
     };
   }
 
-  /** Restyles both strips as inline bar rows when this chrome is docked. */
+  /**
+   * Restyles the rail as a vertical palette column and the options as an inline
+   * bar row when this chrome is docked.
+   */
   private dockedStripsStyle(): void {
     if (!this.docking) {
       return;
     }
-    viewportToolChromeDockedStripStyle(this.rail.getElement());
+    viewportToolChromeDockedRailStyle(this.rail.getElement());
     viewportToolChromeDockedStripStyle(this.optionsBar.getElement());
   }
 
@@ -183,17 +189,17 @@ export class ViewportToolChromeHost {
   }
 
   /**
-   * Updates the Object Mode / Edit Mode control.
+   * Updates the Object Mode / Edit Mode control and shows only the rail tools
+   * allowed in that mode.
    *
    * @param mode Interaction mode.
    */
   setActiveInteractionMode(mode: EditorInteractionMode): void {
     this.optionsBar.setActiveInteractionMode(mode);
-    const showObjectOnly = mode === EditorInteractionMode.EDIT_MODE;
-    this.rail.setToolButtonVisible(EditorToolId.OBJECT, true);
-    this.rail.setToolButtonVisible(EditorToolId.FACE, !showObjectOnly);
-    this.rail.setToolButtonVisible(EditorToolId.CLIP_PLANE, !showObjectOnly);
-    this.rail.setToolButtonVisible(EditorToolId.GRID, !showObjectOnly);
+    const isEditMode = mode === EditorInteractionMode.EDIT_MODE;
+    TOOL_RAIL_CATALOG_ORDER.forEach((entry) => {
+      this.rail.setToolButtonVisible(entry.id, !isEditMode || entry.allowedInEditMode);
+    });
   }
 
   /**

@@ -1,6 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import * as THREE from 'three';
-import { Theme } from '@/theme.js';
 import { DetachedViewportWindow } from '@/viewports/detached/detached_viewport_window.js';
 import type { ViewportEditor } from '@/viewports/core/viewport_editor.js';
 import type { SharedWebGLSurface } from '@/viewports/shared/shared_webgl_surface.js';
@@ -194,7 +193,7 @@ describe('DetachedViewportWindow', () => {
     expect(detached.getOpenCount()).toBe(0);
   });
 
-  it('should place content under the title bar for content-only scissor', () => {
+  it('should start the content at the top of the pane now that the view has no header strip', () => {
     const { fakeWindow } = createFakePopup();
     vi.spyOn(window, 'open').mockReturnValue(fakeWindow);
     const detached = new DetachedViewportWindow({ createSurface: createMockSurface });
@@ -203,7 +202,7 @@ describe('DetachedViewportWindow', () => {
     const viewport = detached.getViewport();
     expect(viewport).not.toBeNull();
     const content = viewport!.getContentElement();
-    expect(content.style.top).toBe(`${Theme.viewportToolbarHeightPx}px`);
+    expect(content.style.top).toBe('0px');
     expect(content.style.left).toBe('0px');
     expect(content).not.toBe(viewport!.getContainer());
     detached.dispose();
@@ -292,16 +291,21 @@ describe('DetachedViewportWindow', () => {
     const toolbar = viewport!.getViewportToolbar();
     expect(toolbar.getTitleElement().getAttribute('aria-haspopup')).toBe('menu');
     toolbar.getTitleElement().click();
-    const panel = toolbar.getTypeMenuPanel();
-    expect(panel?.isOpen()).toBe(true);
+    const panel = toolbar.getViewMenuPanel();
+    if (!panel) {
+      throw new Error('View menu panel missing');
+    }
+    expect(panel.isOpen()).toBe(true);
     expect(
-      panel!.getElement().ownerDocument.body.contains(panel!.getElement()) || panel!.getElement().parentElement,
+      panel.getElement().ownerDocument.body.contains(panel.getElement()) || panel.getElement().parentElement,
     ).toBeTruthy();
-    const topRow = Array.from(panel!.getElement().querySelectorAll('button')).find((button) =>
+    const topRow = Array.from(panel.getElement().querySelectorAll('button')).find((button) =>
       (button.textContent ?? '').includes('Top'),
     );
-    expect(topRow).toBeDefined();
-    topRow!.click();
+    if (!topRow) {
+      throw new Error('Top row missing');
+    }
+    topRow.click();
     expect(ready).toHaveBeenCalledTimes(2);
     expect(detached.getViewport()?.getViewportKind()).toBe(ViewportKind.TOP);
     detached.dispose();

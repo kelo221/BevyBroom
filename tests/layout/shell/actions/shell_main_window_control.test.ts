@@ -37,18 +37,32 @@ describe('ShellMainWindowControl', () => {
   it('reads the shown docks, tabs and menu titles', () => {
     const state = control.stateRead();
     expect(state.inspectorVisible).toBe(docks.frame.isInspectorVisible());
-    expect(state.inspectorTab).toBe(docks.inspector.activeTabIdRead());
+    expect(Object.keys(state)).not.toContain('inspectorTab');
     expect(state.infoPanelVisible).toBe(docks.frame.isInfoPanelVisible());
     expect(state.infoPanelTab).toBe(docks.infoPanel.activeTabIdRead());
     expect(state.toolbarVisible).toBe(docks.frame.isToolbarVisible());
     expect(state.menus).toEqual(SHELL_MAIN_WINDOW_TEST_MENUS);
+    expect(state.floatingWindows).toEqual({ texture_browser: false, entity_browser: false });
+  });
+
+  it('shows a registered floating window and leaves omitted windows alone', () => {
+    let textureBrowserOpen = false;
+    docks.dockCommands.floatingWindowRegister('texture_browser', {
+      toggle: () => {
+        textureBrowserOpen = !textureBrowserOpen;
+      },
+      isOpen: () => textureBrowserOpen,
+    });
+    control = new ShellMainWindowControl({ ...docks, menuBar });
+    const opened = control.changesApply({ floatingWindows: { texture_browser: true } });
+    expect(opened.floatingWindows.texture_browser).toBe(true);
+    expect(opened.floatingWindows.entity_browser).toBe(false);
+    expect(textureBrowserOpen).toBe(true);
   });
 
   it('switches tabs and hides docks, leaving omitted fields alone', () => {
     const before = control.stateRead();
-    const after = control.changesApply({ inspectorTab: 'face', infoPanelTab: 'issues', infoPanelVisible: false });
-    expect(after.inspectorTab).toBe('face');
-    expect(docks.inspector.activeTabIdRead()).toBe('face');
+    const after = control.changesApply({ infoPanelTab: 'issues', infoPanelVisible: false });
     expect(after.infoPanelTab).toBe('issues');
     expect(after.infoPanelVisible).toBe(false);
     expect(docks.frame.isInfoPanelVisible()).toBe(false);

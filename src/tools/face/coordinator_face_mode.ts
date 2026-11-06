@@ -18,10 +18,26 @@ import type { FacePickResult } from '@/selection/face/raycaster_face_selection.j
 import { computeRegionWorldNormal } from '@/texture/uv/planar_uv_projector.js';
 import { resolveUvTransformPlaneNormal } from '@/texture/interactive/uv_transform_solid_face_plane.js';
 import { expandFaceSelectionIndices } from '@/selection/face/solid_result_face_indices.js';
-import { FaceAttributeTransferHandler } from './face_attribute_transfer_handler.js';
+import { FaceTextureApplyCoordinator } from './texture_apply/face_texture_apply_coordinator.js';
+import { FaceRegionWorldGeometry } from '@/selection/face/face_region_world_geometry.js';
+import { faceModeStatusLabelSelectionMode, faceModeStatusLabelUvTransform } from './face_mode_status_labels.js';
+import {
+  type CoordinatorFaceModeExtrudeHost,
+  faceModeEnsureFaceSelectionActive,
+  faceModeEnsureFacesSelected,
+  faceModeExtrudeSelectedFacesApply,
+} from './coordinator_face_mode_extrude.js';
+import { DisplacementFaceTools } from '@/displacement/controller/displacement_face_tools.js';
+import { createSyntheticPointerDown, createSyntheticPointerDragMove } from '@/utils/synthetic_pointer_event.js';
 
 /** Keyboard code that enables continuous UV smear while held. */
 const UV_SMEAR_KEY_CODE = 'KeyM';
+
+/** PointerEvent.buttons bit of the left button. */
+const FACE_MODE_PRIMARY_BUTTON_MASK = 1;
+
+/** PointerEvent.buttons bit of the right button. */
+const FACE_MODE_SECONDARY_BUTTON_MASK = 2;
 
 /** Screen-space distance before an armed UV move becomes a drag. */
 const UV_MOVE_DRAG_THRESHOLD_PX = 4;
@@ -61,17 +77,19 @@ export class CoordinatorFaceMode {
   private uvTransformController: ControllerUvTransform;
   private selectionMode: SelectionMode;
   private activeDragViewport: Viewport3D | Viewport2D | null = null;
+  private dragButtonMask = FACE_MODE_PRIMARY_BUTTON_MASK;
   private dragOwnerWindow: Window | null = null;
   private windowPointerMoveListener: ((event: PointerEvent) => void) | null = null;
   private windowPointerUpListener: ((event: PointerEvent) => void) | null = null;
-  private isSmearStrokeLive: boolean = false;
+  private isSmearStrokeLive = false;
   private armedUvMove: ArmedUvMoveGesture | null = null;
-  private lastStatusFaceCount: number = -1;
-  private dragPickFrame: number = 0;
+  private lastStatusFaceCount = -1;
+  private dragPickFrame = 0;
   private pendingDragEvent: PointerEvent | null = null;
-  private userSnapEnabledAtSessionStart: boolean = false;
-  private uvTransformOwnedByDrag: boolean = false;
-  private attributeTransferHandler: FaceAttributeTransferHandler;
+  private userSnapEnabledAtSessionStart = false;
+  private uvTransformOwnedByDrag = false;
+  private textureApplyCoordinator: FaceTextureApplyCoordinator;
+  private displacementTools: DisplacementFaceTools;
 
   /**
    * Creates the coordinator, initializes controllers and drag state, and binds
@@ -86,7 +104,8 @@ export class CoordinatorFaceMode {
     this.uvSmearController = new ControllerUvSmear(deps.commandStack);
     this.uvTransformController = new ControllerUvTransform(deps.commandStack, deps.gridSnap);
     this.dragStateInitialize();
-    this.attributeTransferHandler = this.attributeTransferHandlerCreate();
+    this.textureApplyCoordinator = this.textureApplyCoordinatorCreate();
+    this.displacementTools = this.displacementToolsCreate();
     this.bindFaceSelectionCallbacks();
     this.updateSelectionModeStatus();
   }
@@ -100,19 +119,57 @@ export class CoordinatorFaceMode {
   }
 
   /**
-   * Creates the Alt+click attribute transfer handler bound to this
-   * coordinator's services.
+   * Creates the texture application (Alt+click transfer, click modes,
+   * right-click apply, stamp tool) bound to this coordinator's services.
    *
-   * @returns Wired transfer handler.
+   * @returns Wired texture application.
    */
-  private attributeTransferHandlerCreate(): FaceAttributeTransferHandler {
-    return new FaceAttributeTransferHandler({
+  private textureApplyCoordinatorCreate(): FaceTextureApplyCoordinator {
+    return new FaceTextureApplyCoordinator({
       commandStack: this.deps.commandStack,
+      selectionManager: this.deps.selectionManager,
       faceExtrusionController: this.faceExtrusionController,
       isAltDown: () => this.deps.keyboardShortcutHandler.isAltDown(),
       updateShadingMeshes: () => this.deps.updateShadingMeshes(),
+      syncPrimitivesToViewports: () => this.deps.syncPrimitivesToViewports(),
       showStatusMessage: (message) => this.deps.showStatusMessage(message),
     });
+  }
+
+  /**
+   * Creates the displacement tools bound to this coordinator's face selection.
+   *
+   * @returns Displacement tab actions and viewport sculpt router.
+   */
+  private displacementToolsCreate(): DisplacementFaceTools {
+    return new DisplacementFaceTools({
+      commandStack: this.deps.commandStack,
+      faceSelection: this.faceExtrusionController,
+      isCtrlDown: () => this.deps.keyboardShortcutHandler.modifiersStateRead().ctrl,
+      isShiftDown: () => this.deps.keyboardShortcutHandler.modifiersStateRead().shift,
+      afterDab: () => this.displacementDabRefresh(),
+    });
+  }
+
+  /**
+   * Refreshes shading and the face highlight after a sculpt dab changed a
+   * surface.
+   */
+  private displacementDabRefresh(): void {
+    this.deps.updateShadingMeshes();
+    this.faceExtrusionController.faceHighlightRefresh();
+  }
+
+  /**
+   * Ends live strokes, removes window listeners, releases the displacement
+   * tools and disposes the face extrusion controller. Safe to call more than
+   * once.
+   */
+  dispose(): void {
+    this.onWindowPointerUp();
+    this.textureApplyCoordinator.dispose();
+    this.displacementTools.dispose();
+    this.faceExtrusionController.dispose();
   }
 
   /** Enters face selection mode. */
@@ -143,15 +200,54 @@ export class CoordinatorFaceMode {
     isCtrlPressed: boolean,
     ownerDocument: Document | null = null,
   ): boolean {
-    if (this.faceExtrusionController.getSelectionMode() !== SelectionMode.FACE) {
-      return false;
+    const viewport = this.faceModeViewportAtClientPoint(clientX, clientY, ownerDocument);
+    const event = createSyntheticPointerDown(clientX, clientY);
+    return viewport !== null && this.onViewportFacePointerDown(event, viewport, isShiftPressed, isCtrlPressed);
+  }
+
+  /**
+   * Starts a right-button displacement paint stroke or brush resize when the
+   * press hits a selected displaced face while a paint tool is active;
+   * otherwise arms the right-button texture apply click. Face mode only.
+   *
+   * @param clientX Pointer client X.
+   * @param clientY Pointer client Y.
+   * @param ownerDocument Document that owns the client coordinates, or null.
+   * @returns True when displacement painting took the press.
+   */
+  beginFaceSelectSecondaryPress(clientX: number, clientY: number, ownerDocument: Document | null = null): boolean {
+    const viewport = this.faceModeViewportAtClientPoint(clientX, clientY, ownerDocument);
+    if (!viewport) return false;
+    const pressed = { camera: viewport.getCamera(), pickElement: viewport.getContentElement() };
+    const event = createSyntheticPointerDown(clientX, clientY);
+    if (this.displacementTools.sculptRouter.strokeTryBegin(event, pressed.camera, pressed.pickElement, 'secondary')) {
+      this.beginWindowDragTracking(viewport, FACE_MODE_SECONDARY_BUTTON_MASK);
+      return true;
     }
-    const viewport = this.findViewportAtClientPoint(clientX, clientY, ownerDocument);
-    if (!viewport) {
-      return false;
-    }
-    const event = this.createSyntheticMouseEvent(clientX, clientY);
-    return this.onViewportFacePointerDown(event, viewport, isShiftPressed, isCtrlPressed);
+    this.textureApplyCoordinator.secondaryPressBegin(pressed, clientX, clientY);
+    return false;
+  }
+
+  /**
+   * Finds the viewport under a client point while face mode is active.
+   *
+   * @param clientX Pointer client X.
+   * @param clientY Pointer client Y.
+   * @param ownerDocument Document that owns the client coordinates, or null.
+   * @returns Viewport, or null outside face mode or any viewport.
+   */
+  private faceModeViewportAtClientPoint(
+    clientX: number,
+    clientY: number,
+    ownerDocument: Document | null,
+  ): Viewport3D | Viewport2D | null {
+    const isFaceMode = this.faceExtrusionController.getSelectionMode() === SelectionMode.FACE;
+    return isFaceMode ? this.findViewportAtClientPoint(clientX, clientY, ownerDocument) : null;
+  }
+
+  /** Paints the current texture onto the selected faces or objects. */
+  textureStampApplyToSelection(): void {
+    this.textureApplyCoordinator.stampApplyToSelection();
   }
 
   /**
@@ -165,8 +261,7 @@ export class CoordinatorFaceMode {
     if (!this.activeDragViewport) {
       return;
     }
-    const event = this.createSyntheticPointerMove(clientX, clientY, buttons);
-    this.onWindowPointerMove(event);
+    this.onWindowPointerMove(createSyntheticPointerDragMove(clientX, clientY, buttons));
   }
 
   /** Ends face paint, UV smear, or UV transform. */
@@ -175,15 +270,22 @@ export class CoordinatorFaceMode {
   }
 
   /**
-   * Returns whether a face paint, UV smear, or drag-owned UV transform stroke
-   * is live. Single-use G/R/S sessions are owned by the UV tool, not this busy
-   * flag.
+   * Returns whether a face paint, UV smear, displacement sculpt, or drag-owned
+   * UV transform stroke is live. Single-use G/R/S sessions are owned by the UV
+   * tool, not this busy flag.
    *
    * @returns True while stroke tracking is active.
    */
   isFaceSelectStrokeActive(): boolean {
     const uvDragActive = this.uvTransformController.isActive() && this.uvTransformOwnedByDrag;
-    return this.activeDragViewport !== null || this.isSmearStrokeLive || uvDragActive || this.armedUvMove !== null;
+    const sculptActive = this.displacementTools.sculptRouter.isStrokeActive();
+    return (
+      this.activeDragViewport !== null ||
+      this.isSmearStrokeLive ||
+      uvDragActive ||
+      this.armedUvMove !== null ||
+      sculptActive
+    );
   }
 
   /**
@@ -253,7 +355,7 @@ export class CoordinatorFaceMode {
     if (!started) {
       return false;
     }
-    this.deps.showStatusMessage(this.describeUvTransformMode(mode));
+    this.deps.showStatusMessage(faceModeStatusLabelUvTransform(mode));
     return true;
   }
 
@@ -315,62 +417,33 @@ export class CoordinatorFaceMode {
     this.deps.showStatusMessage('UV transform cancelled');
   }
 
-  /**
-   * Extrudes currently selected faces by the default snap distance, or shows
-   * guidance when face mode is inactive or no faces are selected.
-   */
+  /** Extrudes selected faces by the default snap distance, or shows guidance. */
   onExtrudeFaces(): void {
-    if (this.faceExtrusionController.getSelectionMode() !== SelectionMode.FACE) {
-      this.faceExtrusionController.setSelectionMode(SelectionMode.FACE);
-      this.deps.showStatusMessage('Face mode: drag faces to select, G/R/S for UVs, Extrude (Shift+E)');
+    const host = this.faceModeExtrudeHostRead();
+    if (!faceModeEnsureFaceSelectionActive(this.faceExtrusionController, host)) {
       return;
     }
-    if (this.faceExtrusionController.getSelectedFaceCount() === 0) {
-      this.deps.showStatusMessage('Select a face first, then Extrude (Shift+E)');
+    if (!faceModeEnsureFacesSelected(this.faceExtrusionController, host)) {
       return;
     }
-    const createdMeshes = this.faceExtrusionController.extrudeSelectedFacesByDefaultDistance();
-    if (createdMeshes.length === 0) {
-      this.deps.showStatusMessage('Extrude failed — select one or more faces');
-      return;
-    }
-    this.faceExtrusionController.setSelectionMode(SelectionMode.OBJECT);
-    this.deps.syncPrimitivesToViewports();
-    this.updateFaceSelectionMeshes();
-    this.deps.updateShadingMeshes();
-    this.deps.refreshOutliner();
-    this.deps.selectionManager.setSelection(createdMeshes);
-    this.updateSelectionModeStatus();
-    this.deps.showStatusMessage(this.buildExtrudeStatusLabel(createdMeshes));
+    faceModeExtrudeSelectedFacesApply(this.faceExtrusionController, host);
   }
 
   /**
-   * Builds a status label describing extrude products (meshes and/or brushes).
+   * Returns the status and world-refresh callbacks used while extruding faces.
    *
-   * @param createdMeshes Meshes created by extrude.
-   * @returns Status string.
+   * @returns Extrude host bound to this coordinator.
    */
-  /**
-   * Builds a status label describing extrude products (meshes and/or brushes).
-   *
-   * @param createdMeshes Selectable meshes to describe in the label.
-   * @returns Human-readable status string.
-   */
-  private buildExtrudeStatusLabel(createdMeshes: THREE.Mesh[]): string {
-    if (createdMeshes.length === 1) {
-      const mesh = createdMeshes[0]!;
-      const kind = SolidBrushVisual.isBrushObject(mesh) ? 'brush' : 'mesh';
-      return `Created ${kind} ${mesh.name}`;
-    }
-    const brushCount = createdMeshes.filter((mesh) => SolidBrushVisual.isBrushObject(mesh)).length;
-    const meshCount = createdMeshes.length - brushCount;
-    if (brushCount > 0 && meshCount > 0) {
-      return `Created ${brushCount} brush(es) and ${meshCount} mesh(es)`;
-    }
-    if (brushCount > 0) {
-      return `Created ${brushCount} brush(es)`;
-    }
-    return `Created ${createdMeshes.length} convex solids`;
+  private faceModeExtrudeHostRead(): CoordinatorFaceModeExtrudeHost {
+    return {
+      showStatusMessage: (message) => this.deps.showStatusMessage(message),
+      syncPrimitivesToViewports: () => this.deps.syncPrimitivesToViewports(),
+      updateFaceSelectionMeshes: () => this.updateFaceSelectionMeshes(),
+      updateShadingMeshes: () => this.deps.updateShadingMeshes(),
+      refreshOutliner: () => this.deps.refreshOutliner(),
+      setSelection: (createdMeshes: THREE.Mesh[]) => this.deps.selectionManager.setSelection(createdMeshes),
+      updateSelectionModeStatus: () => this.updateSelectionModeStatus(),
+    };
   }
 
   /**
@@ -465,7 +538,11 @@ export class CoordinatorFaceMode {
     }
     const camera = viewport.getCamera();
     const pickElement = viewport.getContentElement();
-    if (this.attributeTransferHandler.tryBegin(event, camera, pickElement)) {
+    if (this.textureApplyCoordinator.primaryPressTryHandle(event, { camera, pickElement }, isCtrlPressed)) {
+      return true;
+    }
+    if (this.displacementTools.sculptRouter.strokeTryBegin(event, camera, pickElement)) {
+      this.beginWindowDragTracking(viewport);
       return true;
     }
     if (this.tryArmUvMoveOnSelectedFace(event, viewport, camera, pickElement, isShiftPressed, isCtrlPressed)) {
@@ -550,10 +627,13 @@ export class CoordinatorFaceMode {
    * Registers window listeners so face drag continues outside the canvas.
    *
    * @param viewport Viewport that started the drag.
+   * @param buttonMask PointerEvent.buttons bit of the button that holds the
+   *   drag.
    */
-  private beginWindowDragTracking(viewport: Viewport3D | Viewport2D): void {
+  private beginWindowDragTracking(viewport: Viewport3D | Viewport2D, buttonMask = FACE_MODE_PRIMARY_BUTTON_MASK): void {
     this.endWindowDragTracking();
     this.activeDragViewport = viewport;
+    this.dragButtonMask = buttonMask;
     this.windowPointerMoveListener = (event) => {
       this.onWindowPointerMove(event);
     };
@@ -591,7 +671,7 @@ export class CoordinatorFaceMode {
    * @param event Window pointer move event.
    */
   private onWindowPointerMove(event: PointerEvent): void {
-    if ((event.buttons & 1) === 0) {
+    if ((event.buttons & this.dragButtonMask) === 0) {
       this.onWindowPointerUp();
       return;
     }
@@ -609,8 +689,11 @@ export class CoordinatorFaceMode {
     const event = this.pendingDragEvent;
     this.pendingDragEvent = null;
     if (!viewport || !event) return;
-    if ((event.buttons & 1) === 0) {
+    if ((event.buttons & this.dragButtonMask) === 0) {
       this.onWindowPointerUp();
+      return;
+    }
+    if (this.displacementTools.sculptRouter.strokeContinue(event, viewport.getCamera(), viewport.getContentElement())) {
       return;
     }
     if (this.processArmedOrActiveUvMove(event, viewport)) {
@@ -724,6 +807,7 @@ export class CoordinatorFaceMode {
       this.dragPickFrame = 0;
     }
     this.pendingDragEvent = null;
+    this.displacementStrokeFinish();
     this.finishArmedUvClickIfNeeded();
     this.finishUvTransformDragIfNeeded();
     this.faceExtrusionController.onPointerUp();
@@ -735,6 +819,13 @@ export class CoordinatorFaceMode {
     }
     this.endWindowDragTracking();
     this.updateSelectionModeStatus(true);
+  }
+
+  /** Ends a displacement sculpt stroke and reports when it changed geometry. */
+  private displacementStrokeFinish(): void {
+    if (this.displacementTools.sculptRouter.strokeEnd() > 0) {
+      this.deps.showStatusMessage('Displacement stroke applied');
+    }
   }
 
   /** Applies a plain face click when an armed UV move never became a drag. */
@@ -775,7 +866,7 @@ export class CoordinatorFaceMode {
     camera: THREE.Camera,
     pickElement: HTMLElement,
   ): { worldStart: THREE.Vector3; planeNormal: THREE.Vector3 } | null {
-    const event = this.createSyntheticMouseEvent(clientX, clientY);
+    const event = createSyntheticPointerDown(clientX, clientY);
     const pick = this.faceExtrusionController.pickFaceAtPointer(event, camera, pickElement);
     if (pick && this.faceExtrusionController.isFaceSelected(pick.mesh, pick.faceIndex)) {
       return {
@@ -802,7 +893,7 @@ export class CoordinatorFaceMode {
     }
     const triangles = expandFaceSelectionIndices(first.mesh, first.faceIndex);
     const fallback = computeRegionWorldNormal(first.mesh, triangles);
-    const center = computeFaceRegionWorldCenter(first.mesh, triangles);
+    const center = FaceRegionWorldGeometry.centerWorld(first.mesh, triangles);
     const planeNormal = resolveUvTransformPlaneNormal(first.mesh, first.faceIndex, fallback);
     return { worldStart: center, planeNormal };
   }
@@ -828,42 +919,6 @@ export class CoordinatorFaceMode {
       clientY,
       ownerDocument,
     );
-  }
-
-  /**
-   * Builds a synthetic mouse event for face pick helpers.
-   *
-   * @param clientX Pointer client X.
-   * @param clientY Pointer client Y.
-   * @returns Synthetic mouse event.
-   */
-  private createSyntheticMouseEvent(clientX: number, clientY: number): MouseEvent {
-    return {
-      clientX,
-      clientY,
-      button: 0,
-      buttons: 1,
-      preventDefault: () => {},
-      stopPropagation: () => {},
-    } as unknown as MouseEvent;
-  }
-
-  /**
-   * Builds a synthetic pointer move for face drag paint.
-   *
-   * @param clientX Pointer client X.
-   * @param clientY Pointer client Y.
-   * @param buttons Pointer buttons bitfield.
-   * @returns Synthetic pointer event.
-   */
-  private createSyntheticPointerMove(clientX: number, clientY: number, buttons: number): PointerEvent {
-    return {
-      clientX,
-      clientY,
-      buttons,
-      preventDefault: () => {},
-      stopPropagation: () => {},
-    } as unknown as PointerEvent;
   }
 
   /**
@@ -927,61 +982,6 @@ export class CoordinatorFaceMode {
       return;
     }
     this.lastStatusFaceCount = count;
-    this.deps.statusBar.setSelectionModeInfo(this.formatSelectionMode(mode), count);
+    this.deps.statusBar.setSelectionModeInfo(faceModeStatusLabelSelectionMode(mode), count);
   }
-
-  /**
-   * Converts a selection mode enum value to its display string.
-   *
-   * @param mode The selection mode to format.
-   * @returns The display name of the selection mode.
-   */
-  private formatSelectionMode(mode: SelectionMode): string {
-    if (mode === SelectionMode.FACE) return 'Face';
-    return 'Object';
-  }
-
-  /**
-   * Builds a short status string for a UV transform mode.
-   *
-   * @param mode Transform mode.
-   * @returns Status text.
-   */
-  private describeUvTransformMode(mode: UvTransformMode): string {
-    if (mode === 'move') {
-      return 'UV Move (single-use) — move mouse, click or Enter to confirm, Esc to cancel';
-    }
-    if (mode === 'rotate') {
-      return 'UV Rotate (single-use) — drag away from pivot first, then orbit; click to confirm';
-    }
-    return 'UV Scale (single-use) — drag away from pivot first, then in/out; click to confirm';
-  }
-}
-
-/**
- * Computes the average world-space center of a face region.
- *
- * @param mesh Mesh owner.
- * @param triangleIndices Region triangles.
- * @returns World-space center.
- */
-function computeFaceRegionWorldCenter(mesh: THREE.Mesh, triangleIndices: number[]): THREE.Vector3 {
-  mesh.updateMatrixWorld(true);
-  const position = mesh.geometry.getAttribute('position');
-  const index = mesh.geometry.getIndex();
-  const local = new THREE.Vector3();
-  const sum = new THREE.Vector3();
-  let count = 0;
-  for (const faceIndex of triangleIndices) {
-    for (let corner = 0; corner < 3; corner++) {
-      const vertexIndex = index ? index.getX(faceIndex * 3 + corner) : faceIndex * 3 + corner;
-      local.fromBufferAttribute(position, vertexIndex);
-      sum.add(local.clone().applyMatrix4(mesh.matrixWorld));
-      count += 1;
-    }
-  }
-  if (count === 0) {
-    return new THREE.Vector3();
-  }
-  return sum.multiplyScalar(1 / count);
 }

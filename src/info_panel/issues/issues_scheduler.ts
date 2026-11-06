@@ -49,7 +49,7 @@ export interface IssuesSchedulerOptions {
 }
 
 /** Timer source backed by the global setTimeout and clearTimeout. */
-const ISSUES_SCHEDULER_TIMER_SOURCE_GLOBAL: IssuesSchedulerTimerSource = {
+export const ISSUES_SCHEDULER_TIMER_SOURCE_GLOBAL: IssuesSchedulerTimerSource = {
   timeoutSet: (callback, delayMilliseconds) => globalThis.setTimeout(callback, delayMilliseconds),
   timeoutClear: (handle) => globalThis.clearTimeout(handle as ReturnType<typeof setTimeout>),
 };

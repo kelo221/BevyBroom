@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { DECORATIVE_EDGE_USERDATA_KEY, isSolidBrushEdge } from '@/utils/mesh_edge_sync.js';
@@ -15,6 +16,9 @@ import {
   meshUsesShadingOverrideMaterials,
 } from '@/viewports/shared/shared_content_material_store.js';
 import { objectInOmittedLayerIs } from '@/layer/model/layer_membership.js';
+import { DisplacementExportBrushFilter } from '@/displacement/export/displacement_export_brush_filter.js';
+import { getTriangleCount } from '@/selection/pick/utils_triangle_geometry.js';
+import { displacementSurfaceMeshesUnder } from '@/displacement/mesh/displacement_surface_mesh_keys.js';
 
 /** Export extras key that carries the stable editor identifier of a node. */
 export const EXPORT_OBJECT_IDENTITY_EXTRAS_KEY = 'broom_id';
@@ -157,11 +161,14 @@ function cloneEntityOwnerForExport(owner: THREE.Object3D, options: ExportSceneOp
 }
 
 /**
- * Clones a solid model as a group containing only the compiled CSG result mesh.
+ * Clones a solid model as a group containing the compiled CSG result mesh
+ * without the triangles of displaced brushes, plus one mesh per displacement
+ * surface. The result mesh is left out when displaced brushes leave it without
+ * triangles.
  *
  * @param solidRoot Solid model root group.
  * @param options Export behavior switches.
- * @returns Export group with result mesh, or null when no result exists.
+ * @returns Export group, or null when no result exists.
  */
 function cloneSolidModelForExport(solidRoot: THREE.Object3D, options: ExportSceneOptions): THREE.Group | null {
   const resultMesh = findSolidResultMesh(solidRoot);
@@ -169,8 +176,13 @@ function cloneSolidModelForExport(solidRoot: THREE.Object3D, options: ExportScen
   const group = new THREE.Group();
   copyObjectTransformAndIdentity(solidRoot, group, options);
   group.name = solidRoot.name || 'SolidModel';
-  const resultClone = cloneContentMeshForExport(resultMesh, options);
-  group.add(resultClone);
+  const resultGeometry = DisplacementExportBrushFilter.geometryRead(resultMesh, solidRoot);
+  if (resultGeometry === resultMesh.geometry || getTriangleCount(resultGeometry) > 0) {
+    group.add(cloneContentMeshForExport(resultMesh, options, resultGeometry));
+  }
+  displacementSurfaceMeshesUnder(solidRoot).forEach((surfaceMesh) => {
+    group.add(cloneContentMeshForExport(surfaceMesh, options));
+  });
   return group;
 }
 
@@ -219,10 +231,19 @@ function cloneGroupForExport(group: THREE.Group, options: ExportSceneOptions): T
  *
  * @param mesh Live content or solid result mesh.
  * @param options Export behavior switches.
+ * @param sourceGeometry Geometry to export for the mesh; defaults to the mesh's
+ *   own geometry.
  * @returns Mesh clone without helper children.
  */
-function cloneContentMeshForExport(mesh: THREE.Mesh, options: ExportSceneOptions): THREE.Mesh {
-  const geometry = options.includeLightmapUvs === true ? LightmapUvLayout.geometryWithLightmapUvs(mesh) : mesh.geometry;
+function cloneContentMeshForExport(
+  mesh: THREE.Mesh,
+  options: ExportSceneOptions,
+  sourceGeometry: THREE.BufferGeometry = mesh.geometry,
+): THREE.Mesh {
+  const geometry =
+    options.includeLightmapUvs === true
+      ? LightmapUvLayout.geometryWithLightmapUvs(mesh, sourceGeometry)
+      : sourceGeometry;
   const clone = new THREE.Mesh(geometry, cloneMaterialsForExport(exportContentMaterialResolve(mesh), options));
   copyObjectTransformAndIdentity(mesh, clone, options);
   clone.userData[EXPORT_STATIC_MESH_EXTRAS_KEY] = true;
@@ -316,7 +337,7 @@ function createStandardMaterialFromContent(
 ): THREE.MeshStandardMaterial {
   const map = isEditorOnlySurfaceMap(material.map ?? null) ? null : (material.map ?? null);
   return new THREE.MeshStandardMaterial({
-    color: material.color?.clone() ?? new THREE.Color(0xffffff),
+    color: material.color?.clone() ?? new THREE.Color(MaterialColorNeutral.white),
     map,
     metalness: CONTENT_METALNESS,
     roughness: CONTENT_ROUGHNESS,

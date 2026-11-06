@@ -1,6 +1,33 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Theme } from '@/theme.js';
 import { StatusBar } from '@/ui/status/status_bar.js';
+import { STATUS_HELP_IDLE_TEXT, statusSnapFormat, statusZoomFormat } from '@/ui/status/status_bar_hammer_format.js';
+
+/**
+ * Returns one status field and fails the test when it is missing.
+ *
+ * @param statusBar Status bar under test.
+ * @param className CSS class of the field.
+ * @returns Field element.
+ */
+function statusBarTestFieldRead(statusBar: StatusBar, className: string): HTMLElement {
+  const field = statusBar.getRootElement().querySelector<HTMLElement>(`.${className}`);
+  if (!field) {
+    throw new Error(`Missing status field ${className}`);
+  }
+  return field;
+}
+
+/**
+ * Returns the index of a field among the status bar fields.
+ *
+ * @param statusBar Status bar under test.
+ * @param className CSS class of the field.
+ * @returns Field index from the left.
+ */
+function statusBarTestFieldIndex(statusBar: StatusBar, className: string): number {
+  return Array.from(statusBar.getRootElement().children).indexOf(statusBarTestFieldRead(statusBar, className));
+}
 
 describe('StatusBar', () => {
   let container: HTMLElement;
@@ -12,92 +39,126 @@ describe('StatusBar', () => {
     statusBar = new StatusBar(container, Theme);
   });
 
-  it('should display initial undo/redo counts', () => {
-    statusBar.setUndoRedoCounts(0, 0);
-    const root = statusBar.getRootElement();
-    expect(root.textContent).toContain('Undo: 0');
-    expect(root.textContent).toContain('Redo: 0');
+  afterEach(() => {
+    statusBar.dispose();
+    container.remove();
   });
 
-  it('should update undo/redo text', () => {
+  it('lays out help, selection, cursor, zoom and snap fields from left to right', () => {
+    const order = [
+      'status-bar-help',
+      'status-bar-hammer-selection',
+      'status-bar-cursor-coords',
+      'status-bar-zoom',
+      'status-bar-snap',
+    ].map((className) => statusBarTestFieldIndex(statusBar, className));
+    expect(order.every((index) => index >= 0)).toBe(true);
+    expect([...order].sort((first, second) => first - second)).toEqual(order);
+  });
+
+  it('is exactly the theme status bar height', () => {
+    expect(statusBar.getRootElement().style.height).toBe(`${Theme.statusBarHeightPx}px`);
+  });
+
+  it('shows the idle help text until an action is reported, and again once cleared', () => {
+    const help = statusBarTestFieldRead(statusBar, 'status-bar-help');
+    expect(help.textContent).toBe(STATUS_HELP_IDLE_TEXT);
+    statusBar.setLastAction('Duplicated 2 object(s)');
+    expect(help.textContent).toBe('Duplicated 2 object(s)');
+    statusBar.setLastAction('');
+    expect(help.textContent).toBe(STATUS_HELP_IDLE_TEXT);
+  });
+
+  it('shows fit feedback over the last action until it is cleared', () => {
+    const help = statusBarTestFieldRead(statusBar, 'status-bar-help');
+    statusBar.setLastAction('Moved');
+    statusBar.setFitFeedback('Framed 3 objects');
+    expect(help.textContent).toBe('Framed 3 objects');
+    statusBar.setFitFeedback('');
+    expect(help.textContent).toBe('Moved');
+  });
+
+  it('lists undo and redo counts, the save state and the modes in the help tooltip', () => {
+    const help = statusBarTestFieldRead(statusBar, 'status-bar-help');
     statusBar.setUndoRedoCounts(5, 3);
-    const root = statusBar.getRootElement();
-    expect(root.textContent).toContain('Undo: 5');
-    expect(root.textContent).toContain('Redo: 3');
-  });
-
-  it('should update mode text', () => {
+    statusBar.setLastSavedInfo('arena.broom');
+    statusBar.setUnsavedChanges(true);
     statusBar.setTransformMode('Rotate');
-    const root = statusBar.getRootElement();
-    expect(root.textContent).toContain('Mode: Rotate');
+    statusBar.setShadingMode('Wireframe');
+    const tooltipLines = help.title.split('\n');
+    expect(tooltipLines).toContain('Undo: 5 | Redo: 3');
+    expect(tooltipLines).toContain('Saved: arena.broom');
+    expect(tooltipLines).toContain('Unsaved changes');
+    expect(tooltipLines).toContain('Mode: Rotate');
+    expect(tooltipLines).toContain('Shading: Wireframe');
+    expect(statusBar.getRootElement().textContent).not.toContain('Undo:');
   });
 
-  it('should update snap status to On with default interval', () => {
+  it('reports the unsaved state it shows', () => {
+    statusBar.setUnsavedChanges(true);
+    expect(statusBar.isUnsavedChangesShown()).toBe(true);
+    statusBar.setUnsavedChanges(false);
+    expect(statusBar.isUnsavedChangesShown()).toBe(false);
+    expect(statusBarTestFieldRead(statusBar, 'status-bar-help').title.split('\n')).toContain('No unsaved changes');
+  });
+
+  it('shows the snap state and grid size in the Hammer wording', () => {
+    const snap = statusBarTestFieldRead(statusBar, 'status-bar-snap');
+    statusBar.setSnapInterval(0.25);
     statusBar.setSnapStatus(true);
-    const root = statusBar.getRootElement();
-    expect(root.textContent).toContain('Snap: On (0.25)');
-  });
-
-  it('should update snap status to Off without interval', () => {
+    expect(snap.textContent).toBe(statusSnapFormat(true, '0.25'));
+    expect(snap.textContent).toBe('Snap: On Grid: 0.25');
     statusBar.setSnapStatus(false);
-    const root = statusBar.getRootElement();
-    expect(root.textContent).toContain('Snap: Off');
+    expect(snap.textContent).toBe(statusSnapFormat(false, '0.25'));
   });
 
-  it('should show the latest snap interval and format non-integers cleanly', () => {
-    statusBar.setSnapInterval(0.5);
-    statusBar.setSnapInterval(7.5);
+  it('formats grid sizes without float noise and with fine steps kept', () => {
+    const snap = statusBarTestFieldRead(statusBar, 'status-bar-snap');
     statusBar.setSnapStatus(true);
-    const root = statusBar.getRootElement();
-    expect(root.textContent).toContain('Snap: On (7.5)');
-    expect(root.textContent).not.toContain('7.5000');
     statusBar.setSnapInterval(0.07);
-    expect(statusBar.getRootElement().textContent).toContain('Snap: On (0.07)');
-    expect(statusBar.getRootElement().textContent).not.toContain('0.0699');
-  });
-
-  it('should show fine snap intervals with five decimal places when needed', () => {
+    expect(snap.textContent).toBe(statusSnapFormat(true, '0.07'));
     statusBar.setSnapInterval(0.03125);
-    statusBar.setSnapStatus(true);
-    expect(statusBar.getRootElement().textContent).toContain('Snap: On (0.03125)');
-    statusBar.setSnapInterval(0.0625);
-    expect(statusBar.getRootElement().textContent).toContain('Snap: On (0.0625)');
+    expect(snap.textContent).toBe(statusSnapFormat(true, '0.03125'));
     statusBar.setSnapInterval(1);
-    expect(statusBar.getRootElement().textContent).toContain('Snap: On (1.0)');
+    expect(snap.textContent).toBe(statusSnapFormat(true, '1.0'));
   });
 
-  it('should remove from DOM on dispose', () => {
+  it('shows the 2D view zoom, and the empty marker while it is unknown', () => {
+    const zoom = statusBarTestFieldRead(statusBar, 'status-bar-zoom');
+    expect(zoom.textContent).toBe(statusZoomFormat(null));
+    const zoomFactor = 2.5;
+    statusBar.setViewZoom(zoomFactor);
+    expect(zoom.textContent).toBe(statusZoomFormat(zoomFactor));
+    expect(zoom.textContent).toContain('Zoom:');
+    statusBar.setViewZoom(null);
+    expect(zoom.textContent).toBe(statusZoomFormat(null));
+  });
+
+  it('keeps the selection mode in the selection field tooltip', () => {
+    const selection = statusBarTestFieldRead(statusBar, 'status-bar-hammer-selection');
+    statusBar.setSelectionModeInfo('Face', 4);
+    expect(selection.title).toContain('Face');
+    expect(selection.title).toContain('4');
+    statusBar.setSelectionModeInfo('Object', 0);
+    expect(selection.title).toBe('Selection: Object');
+  });
+
+  it('uses the theme UI font and the theme status bar background', () => {
+    statusBar
+      .getRootElement()
+      .querySelectorAll<HTMLElement>('.status-bar-field')
+      .forEach((field) => {
+        expect(field.style.fontFamily).toBe(Theme.uiFontFamily);
+      });
+    const probe = document.createElement('div');
+    probe.style.background = Theme.statusBarBackground;
+    expect(statusBar.getRootElement().style.background).toBe(probe.style.background);
+  });
+
+  it('removes itself from the DOM on dispose', () => {
     const root = statusBar.getRootElement();
     expect(container.contains(root)).toBe(true);
     statusBar.dispose();
     expect(container.contains(root)).toBe(false);
-  });
-
-  it('should use monospace font for text', () => {
-    const root = statusBar.getRootElement();
-    const spans = root.querySelectorAll('span');
-    expect(spans.length).toBeGreaterThan(0);
-    spans.forEach((span) => {
-      expect(span.style.fontFamily).toBe('monospace');
-    });
-  });
-
-  it('should display last action message', () => {
-    statusBar.setLastAction('Duplicated 2 object(s)');
-    const root = statusBar.getRootElement();
-    expect(root.textContent).toContain('Duplicated 2 object(s)');
-  });
-
-  it('should clear last action with empty string', () => {
-    statusBar.setLastAction('Some action');
-    statusBar.setLastAction('');
-    const lastActionSpan = statusBar.getRootElement().querySelectorAll('span')[1]!;
-    expect(lastActionSpan.textContent).toBe('');
-  });
-
-  it('should have dark background from theme', () => {
-    const root = statusBar.getRootElement();
-    const bgValue = root.style.background;
-    expect(bgValue).toMatch(/rgb\(26,\s*26,\s*26\)|#1a1a1a/);
   });
 });

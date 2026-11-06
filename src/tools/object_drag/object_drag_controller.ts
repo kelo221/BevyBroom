@@ -17,10 +17,25 @@ import {
   ShapeDrawReferenceBoundsTracker,
   type ShapeDrawReferenceSelectionSource,
 } from '@/tools/shape_draw/shape_draw_reference_bounds.js';
+import { getStateBlockDrawSettings } from '@/tools/block/state_block_draw_settings.js';
+import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js';
+import { getStatePolygonTool } from '@/tools/polygon/state_polygon_tool.js';
+import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
 
 /** Selection members the drag controller needs. */
 export interface ObjectDragControllerSelection extends ObjectDragMoveSelection, ShapeDrawReferenceSelectionSource {
+  /**
+   * Returns whether a mesh is currently selected.
+   *
+   * @param mesh Candidate mesh.
+   * @returns True when selected.
+   */
   isObjectSelected(mesh: THREE.Mesh): boolean;
+  /**
+   * Returns the total number of selected meshes.
+   *
+   * @returns Selected mesh count.
+   */
   getSelectedObjectCount(): number;
 }
 
@@ -98,15 +113,24 @@ export class ObjectDragController {
       return null;
     }
     const source = this.deps.viewportAtClientPoint(press.clientX, press.clientY);
-    if (!source) {
+    if (
+      !source ||
+      getStateEntityPlace().toolActiveRead() ||
+      getStatePolygonTool().toolActiveRead() ||
+      getStateSprinkleTool().toolActiveRead()
+    ) {
       return null;
     }
     const viewport = new ObjectDragViewport(source);
+    const blockSettings = getStateBlockDrawSettings();
+    if (blockSettings.blockToolActiveRead()) {
+      return !press.ctrlKey ? this.drawSessionBegin(viewport, press) : null;
+    }
     const pressedMesh = this.pressedSelectedMeshFind(viewport, press);
     if (pressedMesh) {
       return this.moveSessionBegin(viewport, press, pressedMesh);
     }
-    if (this.selectionIsEmpty() && !press.ctrlKey) {
+    if (this.selectionIsEmpty() && !press.ctrlKey && blockSettings.emptySpaceDrawInSelectRead()) {
       return this.drawSessionBegin(viewport, press);
     }
     return null;

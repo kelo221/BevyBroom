@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { Theme } from '@/theme.js';
 import {
   applyViewportContainerChromeStyles,
   applyViewportContentDrawableStyles,
@@ -7,19 +6,18 @@ import {
 } from '@/viewports/core/viewport_base.js';
 
 /**
- * Content sits under the title bar only. The floating tool panel overlays the
- * content area and does not reserve layout space.
+ * Content fills the whole pane: the corner label and the hover icon row float
+ * over it, and the floating tool panel reserves no layout space.
  */
 describe('applyViewportContentDrawableStyles', () => {
-  it('should place content strictly below the viewport title bar height', () => {
+  it('should fill the pane from its top edge', () => {
     const content = document.createElement('div');
     applyViewportContentDrawableStyles(content);
-    expect(content.style.top).toBe(`${Theme.viewportToolbarHeightPx}px`);
+    expect(content.style.top).toBe('0px');
     expect(content.style.bottom).toBe('0px');
     expect(content.style.left).toBe('0px');
     expect(content.style.right).toBe('0px');
     expect(content.style.position).toBe('absolute');
-    expect(content.style.top).not.toBe('0px');
   });
 });
 

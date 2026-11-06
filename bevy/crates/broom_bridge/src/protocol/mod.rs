@@ -45,8 +45,9 @@ pub use package::{
 };
 pub(crate) use placeable::validate_components;
 pub use placeable::{
-    AuthoredComponents, PlaceableAssetType, PlaceableClass, PlaceableClassList, PlaceableField,
-    PlaceableFieldKind, PlaceablePlacement,
+    AuthoredComponents, AuthoredLogicOutput, PlaceableAssetType, PlaceableClass,
+    PlaceableClassList, PlaceableField, PlaceableFieldKind, PlaceableIoParameterKind,
+    PlaceableIoPin, PlaceablePlacement,
 };
 pub use portal::{AuthoredPortal, AuthoredRoom};
 pub use revision::{RevisionGate, RevisionVerdict};
@@ -61,6 +62,12 @@ pub const EXTRAS_MATERIAL_ID: &str = "broom_material";
 /// The glTF node extras key carrying an object's placed game components as
 /// [`AuthoredComponents`].
 pub const EXTRAS_COMPONENTS: &str = "broom_components";
+/// The glTF node extras key carrying an object's authored entity I/O output connections as
+/// `Vec<AuthoredLogicOutput>`.
+pub const EXTRAS_LOGIC: &str = "broom_logic";
+/// The glTF node extras key carrying the collision flags of a displacement surface node, read
+/// into `placeables::BroomDisplacementSurface`.
+pub const EXTRAS_DISPLACEMENT: &str = "broom_displacement";
 /// The glTF node extras key carrying a shipped light node's complete [`AuthoredLight`].
 pub const EXTRAS_LIGHT: &str = "broom_light";
 /// The glTF node extras key carrying the editor id of the light a shipped light node belongs to.

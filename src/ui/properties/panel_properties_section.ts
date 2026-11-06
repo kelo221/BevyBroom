@@ -18,6 +18,12 @@ export interface PanelPropertiesSection {
   setCommandStack(stack: CommandStack | null): void;
   /** Shows, hides and fills the section for the current inspector selection. */
   updateFromObjects(objects: readonly THREE.Object3D[]): void;
+  /**
+   * Returns true for sections whose fields are an entity's keyvalues, which
+   * Object Properties shows as rows of its Class Info table. Sections without
+   * it are not keyvalues.
+   */
+  keyvaluesSectionIs?(): boolean;
 }
 
 /** Creates one inspector section with the panel's chrome. */

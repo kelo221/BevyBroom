@@ -12,6 +12,7 @@ import {
   resolveProjectionNormal,
 } from './planar_uv_projector.js';
 import { getTriangleVertexIndices, getVertexPosition } from '@/selection/pick/utils_triangle_geometry.js';
+import { uvSmearFoldMappingBuild } from './uv_smear_transfer_fold.js';
 
 /** Edge coincidence tolerance in world units. */
 const EDGE_MATCH_TOLERANCE = 1e-3;
@@ -58,7 +59,11 @@ export function transferUvMappingAcrossFaces(
   );
   const uvA = sampleSourceUvAtWorldPoint(sourceMesh, sourceTriangles, sourceMapping, points.pointA);
   const uvB = sampleSourceUvAtWorldPoint(sourceMesh, sourceTriangles, sourceMapping, points.pointB);
-  return solveDestinationMapping(destNormal, sourceMapping, points.pointA, points.pointB, uvA, uvB, points.flipU);
+  const anchor = { pointA: points.pointA, pointB: points.pointB, uvA, uvB };
+  const folded = points.isSharedEdge ? uvSmearFoldMappingBuild(sourceMapping, sourceNormal, destNormal, anchor) : null;
+  return (
+    folded ?? solveDestinationMapping(destNormal, sourceMapping, points.pointA, points.pointB, uvA, uvB, points.flipU)
+  );
 }
 
 /**
@@ -125,7 +130,8 @@ function findNearestRegionVertexUv(
  * @param destMesh Destination mesh.
  * @param destTriangles Destination triangles.
  * @param destNormal Destination world normal.
- * @returns Alignment points and whether U should flip.
+ * @returns Alignment points, whether U should flip and whether the points lie
+ *   on a shared edge.
  */
 function resolveAlignmentWorldPoints(
   sourceMesh: THREE.Mesh,
@@ -134,16 +140,17 @@ function resolveAlignmentWorldPoints(
   destMesh: THREE.Mesh,
   destTriangles: number[],
   destNormal: THREE.Vector3,
-): { pointA: THREE.Vector3; pointB: THREE.Vector3; flipU: boolean } {
+): { pointA: THREE.Vector3; pointB: THREE.Vector3; flipU: boolean; isSharedEdge: boolean } {
   const shared = findSharedWorldEdge(sourceMesh, sourceTriangles, destMesh, destTriangles);
   if (shared) {
     return {
       pointA: shared.a,
       pointB: shared.b,
       flipU: sourceNormal.dot(destNormal) < 0,
+      isSharedEdge: true,
     };
   }
-  return buildPlaneAlignmentPoints(sourceMesh, sourceTriangles, sourceNormal, destNormal);
+  return { ...buildPlaneAlignmentPoints(sourceMesh, sourceTriangles, sourceNormal, destNormal), isSharedEdge: false };
 }
 
 /**

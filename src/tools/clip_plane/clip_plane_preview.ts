@@ -146,7 +146,7 @@ export class ClipPlanePreview {
   private createMarkerRim(): THREE.Mesh {
     const geometry = new THREE.SphereGeometry(CLIP_MARKER_RIM_RADIUS, 14, 12);
     const material = new THREE.MeshBasicMaterial({
-      color: 0xe8eef4,
+      color: Theme.clipMarkerRimColor,
       depthTest: false,
       transparent: true,
       opacity: 0.85,
@@ -163,7 +163,7 @@ export class ClipPlanePreview {
   private createMarkerHalo(): THREE.Mesh {
     const geometry = new THREE.SphereGeometry(CLIP_MARKER_HALO_RADIUS, 14, 12);
     const material = new THREE.MeshBasicMaterial({
-      color: 0x0c0e12,
+      color: Theme.clipMarkerHaloColor,
       depthTest: false,
       transparent: true,
       opacity: 0.72,

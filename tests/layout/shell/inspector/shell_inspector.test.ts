@@ -1,21 +1,19 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  SHELL_INSPECTOR_TABS,
+  SHELL_INSPECTOR_HAMMER_BAR_SLOTS,
   ShellInspector,
   type ShellInspectorSlot,
-  type ShellInspectorTabId,
 } from '@/layout/shell/inspector/shell_inspector.js';
 import { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
-import { shellStateDefaultCreate } from '@/layout/shell/state/shell_state.js';
 import { shellTestStorageCreate } from '../shell_test_support.js';
 
-/** Every inspector slot with the tab whose page holds it. */
-const SHELL_INSPECTOR_TEST_SLOTS: ReadonlyArray<readonly [ShellInspectorSlot, ShellInspectorTabId]> = [
-  ['map_layers', 'map'],
-  ['map_outliner', 'map'],
-  ['entity_properties', 'entity'],
-  ['entity_browser', 'entity'],
-  ['face', 'face'],
+/** Every inspector slot in top to bottom order. */
+const SHELL_INSPECTOR_TEST_SLOTS: readonly ShellInspectorSlot[] = [
+  'hammer_object_bar',
+  'hammer_visgroups',
+  'hammer_prefabs',
+  'map_layers',
+  'map_outliner',
 ];
 
 /**
@@ -29,21 +27,6 @@ function shellInspectorTestCreate(storage: Storage): { inspector: ShellInspector
   const inspector = new ShellInspector(stateStore);
   document.body.appendChild(inspector.getElement());
   return { inspector, stateStore };
-}
-
-/**
- * Returns the page of one inspector tab.
- *
- * @param inspector Inspector holding the page.
- * @param tabId Tab id.
- * @returns Page element.
- */
-function shellInspectorTestPageRead(inspector: ShellInspector, tabId: ShellInspectorTabId): HTMLElement {
-  const page = inspector.pageRead(tabId);
-  if (!page) {
-    throw new Error(`Inspector page ${tabId} not found`);
-  }
-  return page;
 }
 
 /**
@@ -78,64 +61,61 @@ function shellInspectorTestDividerDragAfter(pane: HTMLElement, travelPx: number)
   window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 5, clientX: 0, clientY: start + travelPx }));
 }
 
+/**
+ * Returns whether one element comes before another in document order.
+ *
+ * @param earlier Element expected first.
+ * @param later Element expected second.
+ * @returns True when earlier precedes later.
+ */
+function shellInspectorTestPrecedes(earlier: HTMLElement, later: HTMLElement): boolean {
+  return (earlier.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+}
+
 afterEach(() => {
   document.body.replaceChildren();
 });
 
 describe('ShellInspector', () => {
-  it('offers the Map, Entity and Face tabs in that order', () => {
+  it('has no tabs and no Entity or Face page', () => {
     const { inspector } = shellInspectorTestCreate(shellTestStorageCreate());
-    const tabIds = [...inspector.getElement().querySelectorAll<HTMLElement>('[role="tab"]')].map(
-      (button) => button.dataset['tabId'],
-    );
-    expect(tabIds).toEqual(['map', 'entity', 'face']);
-    expect(SHELL_INSPECTOR_TABS.map((tab) => tab.label)).toEqual(['Map', 'Entity', 'Face']);
-    expect(inspector.getElement().classList.contains('shell-inspector')).toBe(true);
+    const root = inspector.getElement();
+    expect(root.classList.contains('shell-inspector')).toBe(true);
+    expect(root.querySelectorAll('[role="tab"]').length).toBe(0);
+    expect(root.querySelector('.shell-dock-page-entity')).toBeNull();
+    expect(root.querySelector('.shell-dock-page-face')).toBeNull();
   });
 
-  it('starts on the default tab when nothing is stored', () => {
+  it('returns a distinct connected element for every slot in top to bottom order', () => {
     const { inspector } = shellInspectorTestCreate(shellTestStorageCreate());
-    expect(inspector.activeTabIdRead()).toBe(shellStateDefaultCreate().inspectorTabId);
-  });
-
-  it('returns a distinct element for every slot, held inside its tab page', () => {
-    const { inspector } = shellInspectorTestCreate(shellTestStorageCreate());
-    const slotElements = SHELL_INSPECTOR_TEST_SLOTS.map(([slot]) => inspector.slotRead(slot));
+    const slotElements = SHELL_INSPECTOR_TEST_SLOTS.map((slot) => inspector.slotRead(slot));
     expect(new Set(slotElements).size).toBe(SHELL_INSPECTOR_TEST_SLOTS.length);
-    SHELL_INSPECTOR_TEST_SLOTS.forEach(([slot, tabId]) => {
-      expect(shellInspectorTestPageRead(inspector, tabId).contains(inspector.slotRead(slot))).toBe(true);
+    slotElements.forEach((element) => expect(element.isConnected).toBe(true));
+    slotElements.slice(1).forEach((element, index) => {
+      const previous = slotElements[index];
+      expect(previous && shellInspectorTestPrecedes(previous, element)).toBe(true);
     });
   });
 
-  it('attaches every slot to the document once its tab is shown', () => {
+  it('keeps the Hammer bar slots together in one scrollable bar above the Map section', () => {
     const { inspector } = shellInspectorTestCreate(shellTestStorageCreate());
-    SHELL_INSPECTOR_TEST_SLOTS.forEach(([slot, tabId]) => {
-      inspector.tabShow(tabId);
-      const element = inspector.slotRead(slot);
-      expect(element.isConnected).toBe(true);
-      expect(element.closest('[hidden]')).toBeNull();
-    });
+    const bar = inspector.getElement().querySelector<HTMLElement>('.shell-inspector-hammer-bar');
+    expect(bar).not.toBeNull();
+    expect(bar?.style.overflowY).toBe('auto');
+    SHELL_INSPECTOR_HAMMER_BAR_SLOTS.forEach((slot) => expect(bar?.contains(inspector.slotRead(slot))).toBe(true));
+    expect(bar?.contains(inspector.slotRead('map_layers'))).toBe(false);
   });
 
-  it('keeps the two panes of a split page in separate splitter panes', () => {
+  it('keeps the layers and the outliner in separate panes of the Map section splitter', () => {
     const { inspector } = shellInspectorTestCreate(shellTestStorageCreate());
     const layers = inspector.slotRead('map_layers');
     const outliner = inspector.slotRead('map_outliner');
     expect(layers.parentElement).toBe(outliner.parentElement);
     expect(layers.parentElement?.classList.contains('splitter-box')).toBe(true);
+    expect(layers.parentElement?.classList.contains('shell-inspector-map-section')).toBe(true);
   });
 
-  it('remembers the shown tab and restores it in a fresh inspector', () => {
-    const storage = shellTestStorageCreate();
-    const first = shellInspectorTestCreate(storage);
-    first.inspector.tabShow('face');
-    expect(first.stateStore.getState().inspectorTabId).toBe('face');
-    first.inspector.dispose();
-    const second = shellInspectorTestCreate(storage);
-    expect(second.inspector.activeTabIdRead()).toBe('face');
-  });
-
-  it('remembers a dragged inner splitter size and restores it in a fresh inspector', () => {
+  it('remembers a dragged Map section splitter size and restores it in a fresh inspector', () => {
     const storage = shellTestStorageCreate();
     const first = shellInspectorTestCreate(storage);
     const layersPane = first.inspector.slotRead('map_layers');
@@ -143,7 +123,7 @@ describe('ShellInspector', () => {
     shellInspectorTestDividerDragAfter(layersPane, 60);
     const sizeAfter = shellInspectorTestPaneSizeRead(layersPane);
     expect(sizeAfter).toBe(sizeBefore + 60);
-    expect(Object.values(first.stateStore.getState().splitSizesPx)).toContain(sizeAfter);
+    expect(first.stateStore.getState().splitSizesPx['inspector_map_layers']).toBe(sizeAfter);
     first.inspector.dispose();
     const second = shellInspectorTestCreate(storage);
     expect(shellInspectorTestPaneSizeRead(second.inspector.slotRead('map_layers'))).toBe(sizeAfter);
@@ -153,6 +133,6 @@ describe('ShellInspector', () => {
     const { inspector } = shellInspectorTestCreate(shellTestStorageCreate());
     inspector.dispose();
     expect(inspector.getElement().isConnected).toBe(false);
-    expect(() => inspector.slotRead('face')).toThrow();
+    expect(() => inspector.slotRead('map_layers')).toThrow();
   });
 });

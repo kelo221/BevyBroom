@@ -58,6 +58,6 @@ export function panelGamePreviewLineCreate(text: string, isError: boolean): HTML
   const line = document.createElement('div');
   line.textContent = text;
   line.style.fontSize = '11px';
-  line.style.color = isError ? '#ff7a6a' : Theme.inputTextColor;
+  line.style.color = isError ? Theme.severityErrorColor : Theme.inputTextColor;
   return line;
 }

@@ -9,12 +9,15 @@
 //! - [`AppDataAssetExt::register_data_asset`] makes a type a data asset the editor edits.
 //! - [`BroomGltfComponentsPlugin`] does the same for the `broom_components` node extras of a
 //!   GLB exported by the editor, without the bridge.
+//! - [`BroomGltfDisplacementPlugin`] inserts [`BroomDisplacementSurface`] with the collision
+//!   flags of displacement surfaces from their `broom_displacement` node extras.
 
 mod assets;
 mod attributes;
 mod compose;
 pub(crate) mod data_asset_files;
 pub(crate) mod data_assets;
+mod displacement;
 mod extras;
 mod points;
 mod properties;
@@ -41,6 +44,7 @@ pub use data_asset_files::DataAssetWrites;
 pub use data_assets::{
     AppDataAssetExt, DataAssetLoader, data_asset_values_format, data_asset_values_parse,
 };
+pub use displacement::{BroomDisplacementSurface, BroomGltfDisplacementPlugin};
 pub use extras::BroomGltfComponentsPlugin;
 pub use points::AuthoredGameEntity;
 pub use properties::{BroomProperties, PropertyValue};
@@ -83,8 +87,10 @@ impl Plugin for PlaceablesPlugin {
     }
 }
 
-/// The resources and built-in placeables every placeable plugin needs. Safe to run twice.
+/// The resources, built-in placeables and displacement flags every placeable plugin needs. Safe
+/// to run twice.
 fn placeable_basics_init(app: &mut App) {
+    displacement::displacement_plugin_ensure(app);
     app.init_resource::<PlaceableClasses>()
         .init_resource::<PlaceableAssetTypes>();
     let has_properties = app

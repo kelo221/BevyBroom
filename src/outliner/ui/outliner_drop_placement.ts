@@ -1,3 +1,5 @@
+import { Theme } from '@/theme.js';
+
 /**
  * Vertical drop placement relative to an outliner row. Matches the workspace
  * tab strip's edge-insert idea, but for a vertical tree: before / after a row,
@@ -9,7 +11,7 @@ export type OutlinerDropPlacement = 'before' | 'after' | 'into';
 export const OUTLINER_TREE_PADDING_PX = 4;
 
 /** Fixed outliner row height (matches {@link OutlinerItem} row styling). */
-export const OUTLINER_ROW_HEIGHT_PX = 22;
+export const OUTLINER_ROW_HEIGHT_PX = Theme.dockControlHeightPx;
 
 /**
  * Pointer distance from the tree top/bottom edge that triggers drag

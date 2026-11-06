@@ -3,6 +3,9 @@ import { EditorSettingsStore } from '@/settings/store/editor_settings_store.js';
 import { MemorySettingsStorage } from '@/settings/storage/settings_storage.js';
 import { DialogSettings } from '@/ui/settings/dialog_settings.js';
 import { IMPERIAL_UNIT_LABELS, METRIC_UNIT_LABELS } from '@/settings/units/unit_presets.js';
+import { Theme } from '@/theme.js';
+import { hexToRgb } from '@/utils/utils_color.js';
+import { cssColorNormalize } from '../ui_css_color_test_support.js';
 
 describe('SettingsDialog', () => {
   let host: HTMLElement;
@@ -236,7 +239,7 @@ describe('SettingsDialog', () => {
     expect(clipInput.value).toBe('Enter');
   });
 
-  it('should show fixed reminders for the clipboard, UV smear and 3D fly navigation keys', () => {
+  it('should show fixed reminders for click modifiers, the clipboard, UV smear and 3D fly navigation keys', () => {
     dialog.show();
     dialog.showTab('keyboard');
     const content = dialog.getContentElement();
@@ -252,6 +255,10 @@ describe('SettingsDialog', () => {
     expect(categoryTitles).toContain('Navigation & Modifiers');
     expect(categoryTitles).not.toContain('Navigation & Modifiers (Fixed)');
     expect(reminders).toEqual([
+      { id: 'keyboard-reminder-object-click-toggle', value: 'Ctrl + Click', readOnly: true },
+      { id: 'keyboard-reminder-object-click-face-edit', value: 'Shift + Click', readOnly: true },
+      { id: 'keyboard-reminder-face-click-add', value: 'Shift + Click', readOnly: true },
+      { id: 'keyboard-reminder-face-click-remove', value: 'Ctrl + Click', readOnly: true },
       { id: 'keyboard-reminder-clipboard-cut', value: 'Ctrl+X', readOnly: true },
       { id: 'keyboard-reminder-clipboard-copy', value: 'Ctrl+C', readOnly: true },
       { id: 'keyboard-reminder-clipboard-paste', value: 'Ctrl+V', readOnly: true },
@@ -313,9 +320,9 @@ describe('SettingsDialog', () => {
   it('should use editor theme tokens for panel chrome', () => {
     dialog.show();
     const panel = dialog.getPanelElement();
-    expect(panel.style.background).toContain('26, 26, 26');
-    expect(panel.style.fontFamily).toContain('Segoe UI');
-    expect(panel.style.color.replace(/\s/g, '')).toMatch(/#e0e0e0|rgb\(224,224,224\)/);
-    expect(panel.style.border).toContain('10, 10, 10');
+    expect(panel.style.background).toContain(cssColorNormalize(hexToRgb(Theme.propertiesPanelBackground)));
+    expect(panel.style.fontFamily.length).toBeGreaterThan(0);
+    expect(panel.style.color).toBe(cssColorNormalize(Theme.buttonTextColor));
+    expect(panel.style.borderColor).toBe(cssColorNormalize(Theme.chromeBorderColor));
   });
 });

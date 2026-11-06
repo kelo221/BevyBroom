@@ -9,7 +9,7 @@ import { hexToRgb } from '@/utils/utils_color.js';
  *   appearance.
  */
 export function applyViewportToolOptionsControlBox(element: HTMLElement): void {
-  const heightPx = Theme.viewportToolOptionsControlHeightPx;
+  const heightPx = Theme.toolbarButtonPx;
   element.style.boxSizing = 'border-box';
   element.style.height = `${heightPx}px`;
   element.style.minHeight = `${heightPx}px`;
@@ -29,7 +29,7 @@ export function applyViewportToolOptionsControlBox(element: HTMLElement): void {
  * @param button Button element that receives the icon-button styles.
  */
 export function applyViewportToolOptionsIconButtonMetrics(button: HTMLButtonElement): void {
-  const sizePx = Theme.viewportToolOptionsControlHeightPx;
+  const sizePx = Theme.toolbarButtonPx;
   applyViewportToolOptionsControlBox(button);
   button.style.width = `${sizePx}px`;
   button.style.minWidth = `${sizePx}px`;

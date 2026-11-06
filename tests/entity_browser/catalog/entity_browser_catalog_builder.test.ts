@@ -3,7 +3,7 @@ import {
   ENTITY_BROWSER_CATALOG_CATEGORY_SEPARATOR,
   EntityBrowserCatalogBuilder,
 } from '@/entity_browser/catalog/entity_browser_catalog_builder.js';
-import { GAME_ENTITY_ADD_MENU_CLASS_ID_PREFIX } from '@/game_entity/ui/game_entity_add_menu_section.js';
+import { GAME_ENTITY_CLASS_ID_PREFIX } from '@/game_entity/class/game_entity_class_id.js';
 import { addMenuCatalogActionCreate } from '@/layout/setup/add_menu_catalog.js';
 import { createAddMenuEntries } from '@/layout/setup/add_menu_entries.js';
 import { AddMenuSectionRegistry, type AddMenuSectionFactory } from '@/layout/setup/add_menu_section_registry.js';
@@ -93,7 +93,7 @@ describe('EntityBrowserCatalogBuilder', () => {
 
   it('follows the game classes known when the catalog is built', () => {
     const door = testDoorClassCreate();
-    const doorId = `${GAME_ENTITY_ADD_MENU_CLASS_ID_PREFIX}${door.type_path}`;
+    const doorId = `${GAME_ENTITY_CLASS_ID_PREFIX}${door.type_path}`;
     const before = EntityBrowserCatalogBuilder.catalogBuild(entityBrowserTestActionSpiesCreate());
     const { uninstall } = testClassesInstall();
     cleanups.push(uninstall);

@@ -1,8 +1,12 @@
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import { SolidBrush } from '@/solid/brush/solid_brush.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { SolidBrushEdgeMaterials, SOLID_BRUSH_EDGE_USERDATA_KEY } from './solid_brush_edge_materials.js';
 import { solidBoxSizeVectorResolve, type SolidBoxSize } from './solid_box_size.js';
+import { solidBrushWireOwnerIdRead } from './solid_model_root_find.js';
+import { ViewportObjectWireColor } from '@/viewports/shading/viewport_object_wire_color.js';
 
 /** UserData key marking a mesh as a solid brush volume helper. */
 export const SOLID_BRUSH_USERDATA_KEY = 'isSolidBrush';
@@ -272,6 +276,9 @@ export class SolidBrushVisual {
       this.applyOutlineOnlyStyle(material);
     }
     this.applyHullFillDepthPresentation(mesh, material, visible);
+    if (this.hasBrushEdges(mesh)) {
+      this.bindEdgeMaterials(mesh, operation);
+    }
   }
 
   /**
@@ -447,7 +454,7 @@ export class SolidBrushVisual {
    */
   private static applyOutlineOnlyStyle(material: THREE.MeshBasicMaterial): void {
     material.visible = false;
-    material.color.setHex(0x000000);
+    material.color.setHex(MaterialColorNeutral.black);
     material.transparent = false;
     material.opacity = 1;
     material.depthWrite = false;
@@ -482,7 +489,7 @@ export class SolidBrushVisual {
    */
   private static createOutlineOnlyMaterial(): THREE.MeshBasicMaterial {
     const material = new THREE.MeshBasicMaterial({
-      color: 0x000000,
+      color: MaterialColorNeutral.black,
       side: THREE.FrontSide,
       toneMapped: false,
     });
@@ -514,15 +521,27 @@ export class SolidBrushVisual {
   }
 
   /**
-   * Binds the shared edge material for the given operation and strips any
-   * legacy occluded ghost edge children.
+   * Returns the 2D wire color of a brush's personal edges: the selection color
+   * while its hull fill marks it selected, otherwise the stable color of its
+   * solid model.
+   *
+   * @param mesh Brush preview mesh.
+   * @returns Hex color.
+   */
+  private static edgeWireColorRead(mesh: THREE.Mesh): number {
+    return ViewportObjectWireColor.colorResolve(solidBrushWireOwnerIdRead(mesh), this.isHullFillVisible(mesh));
+  }
+
+  /**
+   * Binds the shared edge material for the given operation and the brush's 2D
+   * wire color, and strips any legacy occluded ghost edge children.
    *
    * @param mesh Brush preview mesh.
    * @param operation CSG operation.
    */
   private static bindEdgeMaterials(mesh: THREE.Mesh, operation: SolidOperation): void {
     this.stripLegacyOccludedEdges(mesh);
-    const material = SolidBrushEdgeMaterials.getFrontMaterial(operation);
+    const material = SolidBrushEdgeMaterials.getFrontMaterial(operation, this.edgeWireColorRead(mesh));
     for (const child of mesh.children) {
       if (!(child instanceof THREE.LineSegments)) continue;
       if (child.userData[SOLID_BRUSH_EDGE_USERDATA_KEY] !== true) continue;
@@ -620,9 +639,9 @@ export class SolidBrushVisual {
    * @returns Hex color.
    */
   private static colorForOperation(operation: SolidOperation): number {
-    if (operation === SolidOperation.Subtractive) return 0xc0392b;
-    if (operation === SolidOperation.Intersecting) return 0x2980b9;
-    return 0x27ae60;
+    if (operation === SolidOperation.Subtractive) return Theme.solidFillSubtractiveColor;
+    if (operation === SolidOperation.Intersecting) return Theme.solidFillIntersectingColor;
+    return Theme.solidFillAdditiveColor;
   }
 
   /**
@@ -640,7 +659,8 @@ export class SolidBrushVisual {
     if (!edgeGeometry.boundingSphere) {
       edgeGeometry.computeBoundingSphere();
     }
-    const edges = new THREE.LineSegments(edgeGeometry, SolidBrushEdgeMaterials.getFrontMaterial(operation));
+    const material = SolidBrushEdgeMaterials.getFrontMaterial(operation, this.edgeWireColorRead(mesh));
+    const edges = new THREE.LineSegments(edgeGeometry, material);
     edges.userData[SOLID_BRUSH_EDGE_USERDATA_KEY] = true;
     edges.renderOrder = BRUSH_EDGE_RENDER_ORDER;
     mesh.add(edges);

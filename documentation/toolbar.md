@@ -1,10 +1,40 @@
 # Toolbar
 
 The toolbar is the row of icon buttons and quick controls between the menu bar
-and the view bar. It holds undo and redo, the tool buttons, snapping and the
-**Grid** size dropdown, the gizmo axes, the texture locks, and the MCP server
-button. The menus are in the separate menu bar above it. See
+and the view bar. It holds undo and redo, duplicating and flipping, grouping,
+snapping and the **Grid** size dropdown, the gizmo axes, the texture locks, and
+the MCP server button. The menus are in the separate menu bar above it, and the
+tools are in the tools palette on the left. See
 [Understanding the interface](understanding_the_interface.md).
+
+## Toolbar buttons
+
+From left to right:
+
+- **Undo** and **Redo**.
+- **Duplicate** duplicates the selection.
+- **Flip Horizontally** and **Flip Vertically** mirror the selection.
+- **Group** puts the selection into a new group, and **Ungroup** dissolves the
+  selected groups into their parent.
+- **Ignore Groups** is a toggle. While it is highlighted, clicking an object in
+  a viewport selects that object even when it belongs to a group; while it is
+  off, the click selects according to the **Select:** filter in the right dock.
+- **Snap** turns grid snapping on or off, and the **Grid** dropdown shows and
+  changes the grid size.
+- **Global** and **Local** choose the gizmo axes.
+- **Pos Lock** and **Stretch Lock** keep textures in place while brushes move or
+  stretch.
+- The **MCP** server button on the far right, highlighted orange while the
+  server runs.
+
+## Tools palette
+
+The tools are not on the toolbar. They are in the vertical **tools palette**
+along the left edge of the window: Object Select, Entity Tool, Block Tool, Face
+Select, Apply Current Texture, Clip Plane, Vertex Tool, Polygon Tool, Sprinkle
+Tool, and Grid. Hover over a palette button to read its name and shortcut, and
+use **View > Show Tools Palette** to hide or show the palette. The options of
+the active tool appear on the view bar above the viewports.
 
 ## Hide the toolbar
 

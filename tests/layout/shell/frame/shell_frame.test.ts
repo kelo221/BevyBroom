@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ShellFrame } from '@/layout/shell/frame/shell_frame.js';
 import { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
 import { shellTestStorageCreate } from '../shell_test_support.js';
+import { Theme } from '@/theme.js';
+import { SHELL_INFO_PANEL_MIN_HEIGHT_PX } from '@/layout/shell/state/shell_state.js';
 
 /** One dock or bar the frame can show and hide. */
 interface ShellFrameTestVisibilityCase {
@@ -112,12 +114,10 @@ describe('ShellFrame', () => {
     expect(infoPanelHost.parentElement?.parentElement?.parentElement).toBe(inspectorHost.parentElement);
   });
 
-  it('puts the view bar first in the view column with tool and workspace slots in order', () => {
+  it('starts the view column empty so the map views begin right under the toolbar', () => {
     const { frame } = shellFrameTestCreate(shellTestStorageCreate());
-    const viewBar = frame.viewColumnRead().firstElementChild;
-    expect(viewBar?.classList.contains('shell-view-bar')).toBe(true);
-    expect(viewBar?.children[0]).toBe(frame.viewBarToolSlotRead());
-    expect(viewBar?.children[1]).toBe(frame.viewBarWorkspaceSlotRead());
+    expect(frame.viewColumnRead().children.length).toBe(0);
+    expect(frame.getElement().querySelector('.shell-view-bar')).toBeNull();
   });
 
   SHELL_FRAME_TEST_VISIBILITY_CASES.forEach((testCase) => {
@@ -169,5 +169,53 @@ describe('ShellFrame', () => {
     expect(frame.getElement().isConnected).toBe(false);
     frame.toolbarVisibleSet(false);
     expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Returns the divider between the map views and the info panel.
+ *
+ * @param frame Frame holding the divider.
+ * @returns Divider element, or null.
+ */
+function shellFrameTestInfoPanelDividerRead(frame: ShellFrame): HTMLElement | null {
+  const splitterRoot = frame.infoPanelHostRead().parentElement;
+  return splitterRoot?.querySelector<HTMLElement>(':scope > .splitter-box-divider') ?? null;
+}
+
+describe('ShellFrame info panel folding', () => {
+  it('starts with the info panel folded to the strip height and no divider on first run', () => {
+    const { frame } = shellFrameTestCreate(shellTestStorageCreate());
+    expect(frame.isInfoPanelCollapsed()).toBe(true);
+    expect(frame.infoPanelHostRead().style.flex).toBe(`0 0 ${Theme.infoStripHeightPx}px`);
+    expect(shellFrameTestInfoPanelDividerRead(frame)?.style.display).toBe('none');
+  });
+
+  it('unfolds to the remembered height with the divider and folds again', () => {
+    const { frame, stateStore } = shellFrameTestCreate(shellTestStorageCreate());
+    const listener = vi.fn();
+    frame.visibilityListenerAdd(listener);
+    frame.infoPanelCollapsedSet(false);
+    const expandedHeightPx = frame.infoPanelExpandedHeightPxRead();
+    expect(expandedHeightPx).toBeGreaterThanOrEqual(SHELL_INFO_PANEL_MIN_HEIGHT_PX);
+    expect(frame.infoPanelHostRead().style.flex).toBe(`0 0 ${expandedHeightPx}px`);
+    expect(shellFrameTestInfoPanelDividerRead(frame)?.style.display).toBe('block');
+    expect(stateStore.getState().infoPanelCollapsed).toBe(false);
+    frame.infoPanelCollapsedSet(true);
+    expect(frame.infoPanelHostRead().style.flex).toBe(`0 0 ${Theme.infoStripHeightPx}px`);
+    expect(frame.infoPanelExpandedHeightPxRead()).toBe(expandedHeightPx);
+    expect(listener).toHaveBeenCalledTimes(2);
+  });
+
+  it('restores the unfolded state and stored expanded height in a fresh frame', () => {
+    const storage = shellTestStorageCreate();
+    const first = shellFrameTestCreate(storage);
+    const storedHeightPx = SHELL_INFO_PANEL_MIN_HEIGHT_PX + 55;
+    first.stateStore.update({ infoPanelHeightPx: storedHeightPx });
+    first.frame.infoPanelCollapsedSet(false);
+    first.frame.dispose();
+    const second = shellFrameTestCreate(storage);
+    expect(second.frame.isInfoPanelCollapsed()).toBe(false);
+    expect(second.frame.infoPanelHostRead().style.flex).toBe(`0 0 ${storedHeightPx}px`);
   });
 });

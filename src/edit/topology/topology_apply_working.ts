@@ -3,7 +3,13 @@ import { MESH_EDIT_DOCUMENT_USERDATA_KEY } from '@/edit/mesh/mesh_edit_binding.j
 import { SolidBrushValidator } from '@/solid/brush/solid_brush_validator.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { applyTransferredSurfacesToInstance } from '@/solid/brush/solid_brush_surface_transfer.js';
-import { deserializeFaceSurface } from '@/texture/uv_matrix/face_surface_description.js';
+import {
+  createDefaultFaceSurface,
+  deserializeFaceSurface,
+  type FaceSurfaceDescription,
+  type FaceSurfaceDescriptionSerialized,
+} from '@/texture/uv_matrix/face_surface_description.js';
+import type { DisplacementFaceSurface } from '@/displacement/model/displacement_types.js';
 import { markSolidBrushConvexityState } from '@/edit/transform/brush_edit_convexity.js';
 import { workingGeometryToBrush } from './topology_working_from_brush.js';
 import { workingGeometryToMeshDocument } from './topology_working_from_mesh.js';
@@ -126,16 +132,35 @@ function transferBrushSurfacesFromSnapshot(
  */
 function materializeSnapshotFaceSurfaces(
   sourceSnapshot: TopologyBrushSnapshot,
-): import('@/texture/uv_matrix/face_surface_description.js').FaceSurfaceDescription[] {
-  const faceSurfaces: import('@/texture/uv_matrix/face_surface_description.js').FaceSurfaceDescription[] = [];
+): (FaceSurfaceDescription | undefined)[] {
+  const faceSurfaces: (FaceSurfaceDescription | undefined)[] = [];
   const stored = sourceSnapshot.faceSurfaces ?? [];
+  const displacements = sourceSnapshot.faceDisplacements ?? [];
   for (let index = 0; index < sourceSnapshot.brush.faces.length; index++) {
-    const serialized = stored[index];
-    if (serialized) {
-      faceSurfaces[index] = deserializeFaceSurface(serialized);
-    }
+    faceSurfaces[index] = snapshotFaceSurfaceRead(stored[index], displacements[index]);
   }
   return faceSurfaces;
+}
+
+/**
+ * Builds one snapshot face surface, attaching its displacement when present.
+ *
+ * @param serialized Serialized UV surface.
+ * @param displacement Stored displacement of the same face.
+ * @returns Face surface, or undefined when the face had neither.
+ */
+function snapshotFaceSurfaceRead(
+  serialized: FaceSurfaceDescriptionSerialized | undefined,
+  displacement: DisplacementFaceSurface | undefined,
+): FaceSurfaceDescription | undefined {
+  if (!serialized && !displacement) {
+    return undefined;
+  }
+  const surface = serialized ? deserializeFaceSurface(serialized) : createDefaultFaceSurface();
+  if (displacement) {
+    surface.displacement = displacement;
+  }
+  return surface;
 }
 
 /**

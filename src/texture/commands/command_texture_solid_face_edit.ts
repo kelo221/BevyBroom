@@ -98,7 +98,8 @@ export abstract class CommandTextureSolidFaceEdit implements UndoCommand {
   }
 
   /**
-   * Restores one face surface snapshot.
+   * Restores one face surface snapshot, including whether the face carried a
+   * displacement.
    *
    * @param snapshot Previous surface.
    * @returns True when the brush still exists.
@@ -109,6 +110,7 @@ export abstract class CommandTextureSolidFaceEdit implements UndoCommand {
       return false;
     }
     brush.setFaceSurface(snapshot.target.surfaceIndex, snapshot.previousSurface);
+    brush.faceDisplacementWrite(snapshot.target.surfaceIndex, snapshot.previousSurface.displacement ?? null);
     return true;
   }
 

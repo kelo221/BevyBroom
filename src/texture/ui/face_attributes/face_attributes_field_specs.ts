@@ -34,7 +34,7 @@ export interface FaceAttributesRowSpec {
 }
 
 /** Offset row: phase shift along X (U) and Y (V) in quarter tiles. */
-const FACE_ATTRIBUTES_ROW_OFFSET: FaceAttributesRowSpec = {
+export const FACE_ATTRIBUTES_ROW_OFFSET: FaceAttributesRowSpec = {
   label: 'Offset',
   fields: [
     {
@@ -61,7 +61,7 @@ const FACE_ATTRIBUTES_ROW_OFFSET: FaceAttributesRowSpec = {
 };
 
 /** Scale row: meters per tile along X (U) and Y (V), halved or doubled. */
-const FACE_ATTRIBUTES_ROW_SCALE: FaceAttributesRowSpec = {
+export const FACE_ATTRIBUTES_ROW_SCALE: FaceAttributesRowSpec = {
   label: 'Scale',
   fields: [
     {
@@ -88,7 +88,7 @@ const FACE_ATTRIBUTES_ROW_SCALE: FaceAttributesRowSpec = {
 };
 
 /** Rotation row: degrees around the face normal, in quarter turns. */
-const FACE_ATTRIBUTES_ROW_ROTATION: FaceAttributesRowSpec = {
+export const FACE_ATTRIBUTES_ROW_ROTATION: FaceAttributesRowSpec = {
   label: 'Rotation',
   fields: [
     {

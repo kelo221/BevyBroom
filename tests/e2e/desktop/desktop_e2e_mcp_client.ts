@@ -93,6 +93,18 @@ export class DesktopE2eMcpClient {
   }
 
   /**
+   * Calls one editor tool, fails when the editor reports a failure and returns
+   * the result data as a given shape.
+   *
+   * @param name Tool name.
+   * @param args Tool arguments.
+   * @returns The data of the successful result.
+   */
+  async toolDataExpectOk<Data>(name: string, args: Record<string, unknown> = {}): Promise<Data> {
+    return (await this.toolCallExpectOk(name, args)).data as Data;
+  }
+
+  /**
    * Sends one JSON-RPC request.
    *
    * @param method JSON-RPC method.

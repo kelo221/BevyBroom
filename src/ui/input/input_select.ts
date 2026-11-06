@@ -15,6 +15,7 @@ export class InputSelect {
   private readonly element: HTMLSelectElement;
   private readonly blankOption: HTMLOptionElement;
   private commitHandler: (() => void) | null;
+  private readonly changeListener: () => void;
 
   /**
    * Creates a select and fills it.
@@ -27,13 +28,20 @@ export class InputSelect {
     this.blankOption = this.createOption('', '');
     this.blankOption.hidden = true;
     this.commitHandler = null;
+    this.changeListener = () => {
+      this.refreshTitle();
+      this.commitHandler?.();
+    };
     this.applyChrome();
     this.setChoices(choices);
     this.element.setAttribute('aria-label', ariaLabel);
-    this.element.addEventListener('change', () => {
-      this.refreshTitle();
-      this.commitHandler?.();
-    });
+    this.element.addEventListener('change', this.changeListener);
+  }
+
+  /** Removes the change listener and drops the commit handler. */
+  dispose(): void {
+    this.element.removeEventListener('change', this.changeListener);
+    this.commitHandler = null;
   }
 
   /**

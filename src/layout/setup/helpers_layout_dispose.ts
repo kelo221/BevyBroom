@@ -4,7 +4,7 @@
  * @param parts Objects with optional dispose methods.
  */
 export function disposeLayoutOwnedResources(parts: {
-  faceExtrusionController?: { dispose: () => void } | null;
+  faceModeCoordinator?: { dispose: () => void } | null;
   selectionVisualController?: { dispose: () => void } | null;
   selectionManager?: { dispose: () => void } | null;
   commandStack?: { dispose: () => void } | null;
@@ -24,7 +24,7 @@ export function disposeLayoutOwnedResources(parts: {
   cadRulerSystem?: { dispose: () => void } | null;
   layerSystem?: { dispose: () => void } | null;
 }): void {
-  parts.faceExtrusionController?.dispose();
+  parts.faceModeCoordinator?.dispose();
   parts.selectionVisualController?.dispose();
   parts.selectionManager?.dispose();
   parts.commandStack?.dispose();

@@ -16,10 +16,12 @@ import {
 import { PanelPropertiesColorSession } from './panel_properties_color_session.js';
 import { PanelPropertiesChrome } from './panel_properties_chrome.js';
 import { PanelPropertiesMaterialSection } from './panel_properties_material_section.js';
+import type { PanelPropertiesHostOptions } from './host/panel_properties_host_options.js';
 import { InputNumeric } from '@/ui/input/input_numeric.js';
-import { hexToRgb } from '@/utils/utils_color.js';
+import { hexToCssHex, hexToRgb } from '@/utils/utils_color.js';
 import { entityScaleAbsorbCommandWrap } from '@/entity/commands/command_entity_scale_absorb.js';
 import { entityScaleAbsorbsAll } from '@/entity/scale/entity_scale_absorb.js';
+import { entityTransformScaleAllowedAll } from '@/entity/scale/entity_scale_allowed.js';
 import {
   panelPropertiesAreObjectPositionsUnchanged,
   panelPropertiesAreObjectRotationsUnchanged,
@@ -39,9 +41,10 @@ interface AxisInputConfig {
 }
 
 /**
- * Right-side properties panel with Position, Rotation, Scale, and Material.
- * Supports multi-selection: mixed fields show dashes; edits apply to all
- * selected objects (Unity-style inspector behavior).
+ * Properties panel with Position, Rotation, Scale, and Material that any host
+ * element can attach and detach while one instance stays alive. Supports
+ * multi-selection: mixed fields show dashes; edits apply to all selected
+ * objects (Unity-style inspector behavior).
  */
 export class PanelProperties {
   private container: HTMLElement;
@@ -60,6 +63,8 @@ export class PanelProperties {
   private sections: HTMLElement[];
   private colorSession: PanelPropertiesColorSession;
   private solidBrushSection: PanelPropertiesSolidBrushSection;
+  private activeHostOptions: PanelPropertiesHostOptions | null;
+  private commandStackBeforeHost: CommandStack | null;
   /**
    * Layout callback after inspector transform commands. Must refresh selection
    * outlines, brush hulls, CAD rulers, and gizmo (same contract as undo/redo).
@@ -67,13 +72,13 @@ export class PanelProperties {
   private afterTransformCommit: ((objects: THREE.Object3D[]) => void) | null;
 
   /**
-   * Creates a new properties panel.
+   * Creates a new properties panel whose root stays detached until a host
+   * attaches it.
    *
-   * @param container The parent DOM element to append the panel into.
    * @param theme The theme containing color definitions.
    * @param selectionManager The selection manager to bind to.
    */
-  constructor(container: HTMLElement, theme: typeof Theme, selectionManager: ManagerSelection) {
+  constructor(theme: typeof Theme, selectionManager: ManagerSelection) {
     this.container = document.createElement('div');
     this.theme = theme;
     this.selectionManager = selectionManager;
@@ -92,6 +97,8 @@ export class PanelProperties {
       this.getEditableBoundObjects(),
     );
     this.afterTransformCommit = null;
+    this.activeHostOptions = null;
+    this.commandStackBeforeHost = null;
     this.solidBrushSection = this.solidBrushSectionCreate();
     this.applyContainerStyles();
     this.createPositionSection();
@@ -99,8 +106,77 @@ export class PanelProperties {
     this.createScaleSection();
     this.createMaterialSection();
     this.mountSolidBrushSection();
-    container.appendChild(this.container);
     this.bindSelectionChanges();
+  }
+
+  /**
+   * Moves the panel root into a host element, applies the host's options in
+   * place of an earlier host's and re-reads the bound objects so the shown
+   * values are current.
+   *
+   * @param host Element that receives the panel root.
+   * @param options Opt-in changes the host makes while it holds the panel.
+   */
+  hostAttach(host: HTMLElement, options: PanelPropertiesHostOptions = {}): void {
+    this.hostOptionsRelease();
+    host.appendChild(this.container);
+    this.hostOptionsApply(options);
+    this.refreshBoundObject();
+  }
+
+  /**
+   * Removes the panel root from its host while keeping the panel alive and
+   * undoes the host's options.
+   */
+  hostDetach(): void {
+    this.container.remove();
+    this.hostOptionsRelease();
+  }
+
+  /**
+   * Applies a host's options: its command stack, its section filter and its
+   * pinned objects.
+   *
+   * @param options Options of the host now holding the panel.
+   */
+  private hostOptionsApply(options: PanelPropertiesHostOptions): void {
+    this.activeHostOptions = options;
+    this.commandStackBeforeHost = this.commandStack;
+    if (options.commandStack) {
+      this.setCommandStack(options.commandStack);
+    }
+    this.solidBrushSection.registeredSectionsFilterSet(options.sectionShown ?? null);
+    if (options.pinnedObjects) {
+      this.bindObjects([...options.pinnedObjects]);
+    }
+  }
+
+  /**
+   * Undoes the active host options: restores the earlier command stack, shows
+   * every section and follows the selection again.
+   */
+  private hostOptionsRelease(): void {
+    const options = this.activeHostOptions;
+    if (!options) {
+      return;
+    }
+    this.activeHostOptions = null;
+    if (options.commandStack) {
+      this.setCommandStack(this.commandStackBeforeHost);
+    }
+    this.solidBrushSection.registeredSectionsFilterSet(null);
+    if (options.pinnedObjects) {
+      this.selectionBindCurrent();
+    }
+  }
+
+  /**
+   * Returns whether the panel root is currently inside a host element.
+   *
+   * @returns True while attached to a host.
+   */
+  isHostAttached(): boolean {
+    return this.container.parentElement !== null;
   }
 
   /**
@@ -147,9 +223,10 @@ export class PanelProperties {
   /**
    * Sets the command stack for undo/redo support on property edits.
    *
-   * @param stack The command stack to use for property changes.
+   * @param stack The command stack to use for property changes, or null to
+   *   apply them directly.
    */
-  setCommandStack(stack: CommandStack): void {
+  setCommandStack(stack: CommandStack | null): void {
     this.commandStack = stack;
     this.colorSession.setCommandStack(stack);
     this.solidBrushSection.setCommandStack(stack);
@@ -253,13 +330,15 @@ export class PanelProperties {
 
   /**
    * Hides the Scale section when every object turns scale edits into its
-   * settings, such as lights whose scale changes their radius.
+   * settings, or when one object may not be scaled, such as a light or a point
+   * game entity.
    *
    * @param objects Objects in the current selection.
    */
   private scaleSectionVisibilityWrite(objects: readonly THREE.Object3D[]): void {
     if (this.scaleSection) {
-      this.scaleSection.style.display = entityScaleAbsorbsAll(objects) ? 'none' : 'block';
+      const isScaleHidden = entityScaleAbsorbsAll(objects) || !entityTransformScaleAllowedAll(objects);
+      this.scaleSection.style.display = isScaleHidden ? 'none' : 'block';
     }
   }
 
@@ -271,9 +350,7 @@ export class PanelProperties {
     this.disposeNumericInputs(this.rotationInputs);
     this.disposeNumericInputs(this.scaleInputs);
     this.sections = [];
-    if (this.container.parentNode) {
-      this.container.parentNode.removeChild(this.container);
-    }
+    this.hostDetach();
   }
 
   /**
@@ -295,6 +372,15 @@ export class PanelProperties {
    */
   getContainer(): HTMLElement {
     return this.container;
+  }
+
+  /**
+   * Returns the objects the panel edits.
+   *
+   * @returns Bound objects.
+   */
+  boundObjectsRead(): readonly THREE.Object3D[] {
+    return this.boundObjects;
   }
 
   /**
@@ -621,9 +707,9 @@ export class PanelProperties {
     const section = this.createSection(
       'Position',
       [
-        { label: 'x', axis: 'x', color: this.axisColor(Theme.gizmoXAxisColor) },
-        { label: 'y', axis: 'y', color: this.axisColor(Theme.gizmoYAxisColor) },
-        { label: 'z', axis: 'z', color: this.axisColor(Theme.gizmoZAxisColor) },
+        { label: 'x', axis: 'x', color: hexToCssHex(Theme.gizmoXAxisColor) },
+        { label: 'y', axis: 'y', color: hexToCssHex(Theme.gizmoYAxisColor) },
+        { label: 'z', axis: 'z', color: hexToCssHex(Theme.gizmoZAxisColor) },
       ],
       this.positionInputs,
     );
@@ -636,9 +722,9 @@ export class PanelProperties {
     const section = this.createSection(
       'Rotation',
       [
-        { label: 'x', axis: 'x', color: this.axisColor(Theme.gizmoXAxisColor) },
-        { label: 'y', axis: 'y', color: this.axisColor(Theme.gizmoYAxisColor) },
-        { label: 'z', axis: 'z', color: this.axisColor(Theme.gizmoZAxisColor) },
+        { label: 'x', axis: 'x', color: hexToCssHex(Theme.gizmoXAxisColor) },
+        { label: 'y', axis: 'y', color: hexToCssHex(Theme.gizmoYAxisColor) },
+        { label: 'z', axis: 'z', color: hexToCssHex(Theme.gizmoZAxisColor) },
       ],
       this.rotationInputs,
     );
@@ -651,25 +737,15 @@ export class PanelProperties {
     const section = this.createSection(
       'Scale',
       [
-        { label: 'x', axis: 'x', color: this.axisColor(Theme.gizmoXAxisColor) },
-        { label: 'y', axis: 'y', color: this.axisColor(Theme.gizmoYAxisColor) },
-        { label: 'z', axis: 'z', color: this.axisColor(Theme.gizmoZAxisColor) },
+        { label: 'x', axis: 'x', color: hexToCssHex(Theme.gizmoXAxisColor) },
+        { label: 'y', axis: 'y', color: hexToCssHex(Theme.gizmoYAxisColor) },
+        { label: 'z', axis: 'z', color: hexToCssHex(Theme.gizmoZAxisColor) },
       ],
       this.scaleInputs,
     );
     this.scaleSection = section;
     this.sections.push(section);
     this.container.appendChild(section);
-  }
-
-  /**
-   * Formats a theme hex color as a CSS #rrggbb string.
-   *
-   * @param hex Theme color number.
-   * @returns CSS color string.
-   */
-  private axisColor(hex: number): string {
-    return '#' + hex.toString(16).padStart(6, '0');
   }
 
   /** Mounts the Material color section for mesh color editing. */
@@ -808,17 +884,25 @@ export class PanelProperties {
     });
   }
 
-  /** Binds selection change events to update the panel for multi-select. */
+  /**
+   * Binds selection change events to update the panel for multi-select, unless
+   * a host pinned the edited objects.
+   */
   private bindSelectionChanges(): void {
     this.selectionManager.onSelectionChanged(() => {
-      if (this.isDisposed) return;
-      const selected = this.selectionManager.getInspectorObjects();
-      if (selected.length > 0) {
-        this.bindObjects(selected);
-        return;
-      }
-      this.unbindObject();
+      if (this.isDisposed || this.activeHostOptions?.pinnedObjects) return;
+      this.selectionBindCurrent();
     });
+  }
+
+  /** Binds the panel to the current inspector selection, or clears it. */
+  private selectionBindCurrent(): void {
+    const selected = this.selectionManager.getInspectorObjects();
+    if (selected.length > 0) {
+      this.bindObjects(selected);
+      return;
+    }
+    this.unbindObject();
   }
 
   /** Clears all input values to empty strings. */

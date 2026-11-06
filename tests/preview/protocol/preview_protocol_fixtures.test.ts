@@ -15,6 +15,10 @@ import {
   LIGHT_EXPORT_SETTINGS_EXTRAS_KEY,
   LightExportNodeBuilder,
 } from '@/light/export/light_export_node_builder.js';
+import {
+  DISPLACEMENT_EXPORT_COLLISION_EXTRAS_KEY,
+  DisplacementExportCollisionExtrasBuilder,
+} from '@/displacement/export/displacement_export_collision_extras.js';
 
 /** Wire fixtures of the game bridge workspace, parsed by its Rust tests too. */
 const FIXTURE_BRIDGE_DIRECTORY = resolve(__dirname, '../../../bevy/fixtures');
@@ -57,6 +61,7 @@ const OBJECT_FIELDS: Record<keyof PreviewAuthoredObject, true> = {
   room: true,
   portal: true,
   components: true,
+  logic_outputs: true,
 };
 
 /**
@@ -102,6 +107,18 @@ describe('preview protocol fixtures', () => {
     expect(fieldsUndeclared(state, STATE_FIELDS)).toEqual([]);
     expect(state.objects.length).toBeGreaterThan(0);
     state.objects.forEach((object) => expect(fieldsUndeclared(object, OBJECT_FIELDS)).toEqual([]));
+    const withLogic = state.objects.find((obj) => (obj.logic_outputs?.length ?? 0) > 0);
+    expect(withLogic?.logic_outputs?.[0]?.output).toBe('OnSpawn');
+    expect(withLogic?.logic_outputs?.[0]?.target).toBe('Door*');
+  });
+
+  it('parses inputs and outputs pins on the shared placeable classes fixture', () => {
+    const list = fixtureBridgeRead<{ classes: Array<{ type_path: string; inputs?: unknown[]; outputs?: unknown[] }> }>(
+      'placeable_classes_sample.json',
+    );
+    const door = list.classes.find((cls) => cls.type_path === 'broom_preview::placeables::Door');
+    expect(door?.inputs).toHaveLength(2);
+    expect(door?.outputs).toHaveLength(1);
   });
 
   it('writes exactly the light node extras the bridge sample reads', () => {
@@ -111,6 +128,15 @@ describe('preview protocol fixtures', () => {
     const written: Record<string, unknown> = {};
     LightExportNodeBuilder.extrasWrite(light, written);
     LightExportNodeBuilder.identityExtrasWrite(light, ownerIdentifier, written);
+    expect(JSON.parse(JSON.stringify(written))).toEqual(sample);
+  });
+
+  it('writes exactly the displacement collision extras the bridge sample reads', () => {
+    const sample = fixtureBridgeRead<Record<string, unknown>>('displacement_extras_sample.json');
+    const flags = { noPhysicsCollision: true, noHullCollision: false, noRayCollision: true, seals: false };
+    const written = {
+      [DISPLACEMENT_EXPORT_COLLISION_EXTRAS_KEY]: DisplacementExportCollisionExtrasBuilder.extrasFromFlags(flags),
+    };
     expect(JSON.parse(JSON.stringify(written))).toEqual(sample);
   });
 });

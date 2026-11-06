@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import type { GameEntityField } from '@/game_entity/class/game_entity_class_schema.js';
 import { GameEntityFieldEditor } from '@/game_entity/ui/fields/game_entity_field_editor.js';
 import type { PreviewFieldValue } from '@/preview/protocol/preview_protocol_placeable_types.js';
@@ -57,7 +58,7 @@ export class GameEntityFieldEditorColor extends GameEntityFieldEditor {
    */
   private static hexOf(value: PreviewFieldValue): number {
     if (!Array.isArray(value) || value.length < 3) {
-      return 0xffffff;
+      return MaterialColorNeutral.white;
     }
     const [red = 1, green = 1, blue = 1] = value;
     return new THREE.Color().setRGB(red, green, blue, THREE.SRGBColorSpace).getHex(THREE.SRGBColorSpace);

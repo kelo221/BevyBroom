@@ -116,7 +116,7 @@ export class CadRulerLabelLayer {
     element.style.transform = 'translate(-50%, -50%)';
     element.style.padding = '1px 5px';
     element.style.borderRadius = '3px';
-    element.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+    element.style.fontFamily = Theme.monospaceFontFamily;
     element.style.fontSize = '11px';
     element.style.fontWeight = '600';
     element.style.letterSpacing = '0.02em';
@@ -124,7 +124,7 @@ export class CadRulerLabelLayer {
     element.style.whiteSpace = 'nowrap';
     element.style.background = Theme.rulerLabelBackground;
     element.style.border = `1px solid ${Theme.rulerLabelBorder}`;
-    element.style.boxShadow = '0 1px 4px rgba(0, 0, 0, 0.45)';
+    element.style.boxShadow = Theme.viewportChipShadow;
     element.style.pointerEvents = 'none';
     this.layer.appendChild(element);
     return { element, id: '' };

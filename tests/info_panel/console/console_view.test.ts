@@ -7,6 +7,7 @@ import {
   INFO_PANEL_SEVERITY_COLOR_WARNING,
 } from '@/info_panel/info_panel_severity.js';
 import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js';
+import { uiTestCssColorNormalize } from '../../ui/ui_test_css_color.js';
 
 /**
  * Returns the line elements a console view shows.
@@ -16,18 +17,6 @@ import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js'
  */
 function linesRead(view: ConsoleView): HTMLElement[] {
   return Array.from(view.linesElementRead().children) as HTMLElement[];
-}
-
-/**
- * Normalizes a CSS color the way the DOM reports it.
- *
- * @param color CSS color.
- * @returns Color as read back from an element.
- */
-function cssColorNormalize(color: string): string {
-  const probe = document.createElement('div');
-  probe.style.color = color;
-  return probe.style.color;
 }
 
 /**
@@ -67,8 +56,8 @@ describe('ConsoleView', () => {
     expect(lines.map((line) => line.dataset['level'])).toEqual(['info', 'warning', 'error']);
     const errorEntry = log.entriesRead().at(-1);
     expect(lines[2]?.textContent).toBe(`[${consoleViewLineTimeFormat(errorEntry?.timestampMilliseconds ?? 0)}] broken`);
-    expect(lines[1]?.style.color).toBe(cssColorNormalize(INFO_PANEL_SEVERITY_COLOR_WARNING));
-    expect(lines[2]?.style.color).toBe(cssColorNormalize(INFO_PANEL_SEVERITY_COLOR_ERROR));
+    expect(lines[1]?.style.color).toBe(uiTestCssColorNormalize(INFO_PANEL_SEVERITY_COLOR_WARNING));
+    expect(lines[2]?.style.color).toBe(uiTestCssColorNormalize(INFO_PANEL_SEVERITY_COLOR_ERROR));
   });
 
   it('drops the lines the capped log dropped', () => {

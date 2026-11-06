@@ -25,7 +25,7 @@ export class TransformModalConstraintLine {
     this.halfLength = halfLength;
     this.geometry = new THREE.BufferGeometry();
     this.material = new THREE.LineBasicMaterial({
-      color: 0xff3333,
+      color: Theme.gizmoXAxisColor,
       depthTest: false,
       depthWrite: false,
       transparent: true,

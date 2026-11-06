@@ -28,5 +28,6 @@ describe('keyboard_shortcut_format', () => {
     expect(formatKeyboardCode('Digit3')).toBe('3');
     expect(formatKeyboardCode('Delete')).toBe('Del');
     expect(formatKeyboardCode('Escape')).toBe('Esc');
+    expect(formatKeyboardCode('Backquote')).toBe('`');
   });
 });

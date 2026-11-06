@@ -35,7 +35,7 @@ export class InfiniteGrid2D {
   private buffer: GridLineBuffer;
   private snapInterval: number;
   private minorColor: THREE.Color;
-  private sectionColor: THREE.Color;
+  private majorColor: THREE.Color;
   private backgroundColor: THREE.Color;
   private axisUColor: THREE.Color;
   private axisVColor: THREE.Color;
@@ -70,8 +70,8 @@ export class InfiniteGrid2D {
     this.group.add(this.buffer.getObject());
     this.snapInterval = Math.max(snapInterval, 0.001);
     this.minorColor = new THREE.Color(Theme.gridColor);
-    this.sectionColor = new THREE.Color(Theme.gridOriginColor);
-    this.backgroundColor = new THREE.Color(Theme.viewportBackground);
+    this.majorColor = new THREE.Color(Theme.gridMajorColor);
+    this.backgroundColor = new THREE.Color(Theme.viewport2dBackground);
     this.axisUColor = new THREE.Color(this.resolveAxisUColor(plane));
     this.axisVColor = new THREE.Color(this.resolveAxisVColor(plane));
     this.workMinor = new THREE.Color();
@@ -362,14 +362,16 @@ export class InfiniteGrid2D {
   }
 
   /**
-   * Prepares minor/section/major colors for the current minor fade.
+   * Prepares minor/section/major colors for the current minor fade: minor lines
+   * fade in from the background, section lines sit between minor and major,
+   * major lines use the full major color.
    *
    * @param minorFade Minor-line visibility 0..1.
    */
   private prepareLineColors(minorFade: number): void {
     this.workMinor.copy(this.backgroundColor).lerp(this.minorColor, minorFade);
-    this.workSection.copy(this.backgroundColor).lerp(this.sectionColor, THREE.MathUtils.lerp(0.55, 1, minorFade));
-    this.workMajor.copy(this.backgroundColor).lerp(this.sectionColor, 1);
+    this.workSection.lerpColors(this.minorColor, this.majorColor, THREE.MathUtils.lerp(0.55, 0.75, minorFade));
+    this.workMajor.copy(this.majorColor);
   }
 
   /**

@@ -1,39 +1,46 @@
 import type { ShellFrame } from '@/layout/shell/frame/shell_frame.js';
-import type { ShellInspector, ShellInspectorTabId } from '@/layout/shell/inspector/shell_inspector.js';
-import type { ShellInfoPanel, ShellInfoPanelTabId } from '@/layout/shell/info_panel/shell_info_panel.js';
+import {
+  SHELL_INFO_PANEL_TAB_IDS,
+  type ShellInfoPanel,
+  type ShellInfoPanelTabId,
+} from '@/layout/shell/info_panel/shell_info_panel.js';
 import type { Toolbar } from '@/ui/toolbar/toolbar.js';
-
-/** Inspector tabs in display order. */
-export const SHELL_MAIN_WINDOW_INSPECTOR_TABS: readonly ShellInspectorTabId[] = ['map', 'entity', 'face'];
+import type { ShellDockCommands } from './shell_dock_commands.js';
+import { SHELL_FLOATING_WINDOW_IDS, type ShellFloatingWindowId } from './shell_floating_window.js';
+import { shellMainWindowLayoutRead, type ShellMainWindowLayout } from './shell_main_window_layout.js';
 
 /** Info panel tabs in display order. */
-export const SHELL_MAIN_WINDOW_INFO_PANEL_TABS: readonly ShellInfoPanelTabId[] = ['console', 'issues'];
+export const SHELL_MAIN_WINDOW_INFO_PANEL_TABS: readonly ShellInfoPanelTabId[] = SHELL_INFO_PANEL_TAB_IDS;
 
 /** Arrangement of the main window docks and bars. */
 export interface ShellMainWindowState {
   /** True while the inspector is shown. */
   inspectorVisible: boolean;
-  /** Shown inspector tab. */
-  inspectorTab: ShellInspectorTabId;
   /** True while the info panel is shown. */
   infoPanelVisible: boolean;
+  /** True while the info panel is folded to its one-line strip. */
+  infoPanelCollapsed: boolean;
   /** Shown info panel tab. */
   infoPanelTab: ShellInfoPanelTabId;
   /** True while the icon toolbar is shown. */
   toolbarVisible: boolean;
   /** Menu bar titles in display order. */
   menus: string[];
+  /** True while each registered floating window is shown. */
+  floatingWindows: Record<ShellFloatingWindowId, boolean>;
 }
 
 /** Changes to the main window arrangement; omitted fields stay as they are. */
-export type ShellMainWindowChanges = Partial<Omit<ShellMainWindowState, 'menus'>>;
+export type ShellMainWindowChanges = Partial<Omit<ShellMainWindowState, 'menus' | 'floatingWindows'>> & {
+  floatingWindows?: Partial<Record<ShellFloatingWindowId, boolean>>;
+};
 
 /** Main window parts the control reads and changes. */
 export interface ShellMainWindowParts {
   frame: ShellFrame;
-  inspector: ShellInspector;
   infoPanel: ShellInfoPanel;
   menuBar: Toolbar;
+  dockCommands?: ShellDockCommands;
 }
 
 /** Reads and changes which docks, tabs and bars of the main window are shown. */
@@ -41,7 +48,7 @@ export class ShellMainWindowControl {
   /**
    * Creates the control over the main window parts.
    *
-   * @param parts Frame, docks and menu bar.
+   * @param parts Frame, info panel and menu bar.
    */
   constructor(private readonly parts: ShellMainWindowParts) {}
 
@@ -53,11 +60,12 @@ export class ShellMainWindowControl {
   stateRead(): ShellMainWindowState {
     return {
       inspectorVisible: this.parts.frame.isInspectorVisible(),
-      inspectorTab: this.inspectorTabRead(),
       infoPanelVisible: this.parts.frame.isInfoPanelVisible(),
+      infoPanelCollapsed: this.parts.frame.isInfoPanelCollapsed(),
       infoPanelTab: this.infoPanelTabRead(),
       toolbarVisible: this.parts.frame.isToolbarVisible(),
       menus: this.menuTitlesRead(),
+      floatingWindows: this.floatingWindowsRead(),
     };
   }
 
@@ -68,22 +76,23 @@ export class ShellMainWindowControl {
    * @returns Main window state after the changes.
    */
   changesApply(changes: ShellMainWindowChanges): ShellMainWindowState {
-    if (changes.inspectorTab !== undefined) this.parts.inspector.tabShow(changes.inspectorTab);
     if (changes.infoPanelTab !== undefined) this.parts.infoPanel.tabShow(changes.infoPanelTab);
     if (changes.inspectorVisible !== undefined) this.parts.frame.inspectorVisibleSet(changes.inspectorVisible);
     if (changes.infoPanelVisible !== undefined) this.parts.frame.infoPanelVisibleSet(changes.infoPanelVisible);
+    if (changes.infoPanelCollapsed !== undefined) this.parts.frame.infoPanelCollapsedSet(changes.infoPanelCollapsed);
     if (changes.toolbarVisible !== undefined) this.parts.frame.toolbarVisibleSet(changes.toolbarVisible);
+    this.floatingWindowsApply(changes.floatingWindows);
     return this.stateRead();
   }
 
   /**
-   * Returns the shown inspector tab.
+   * Returns where the map views, the info panel and the inspector sit on
+   * screen.
    *
-   * @returns Inspector tab id.
+   * @returns Bounds of the main window areas.
    */
-  private inspectorTabRead(): ShellInspectorTabId {
-    const tabId = this.parts.inspector.activeTabIdRead();
-    return SHELL_MAIN_WINDOW_INSPECTOR_TABS.find((candidate) => candidate === tabId) ?? 'map';
+  layoutRead(): ShellMainWindowLayout {
+    return shellMainWindowLayoutRead(this.parts.frame);
   }
 
   /**
@@ -104,5 +113,36 @@ export class ShellMainWindowControl {
   private menuTitlesRead(): string[] {
     const headers = this.parts.menuBar.getElement().querySelectorAll<HTMLElement>('.editor-toolbar-menu-button');
     return Array.from(headers, (header) => header.textContent?.trim() ?? '');
+  }
+
+  /**
+   * Returns whether each floating window is shown.
+   *
+   * @returns Open flag per floating window id.
+   */
+  private floatingWindowsRead(): Record<ShellFloatingWindowId, boolean> {
+    const dockCommands = this.parts.dockCommands;
+    const flags = {} as Record<ShellFloatingWindowId, boolean>;
+    for (const windowId of SHELL_FLOATING_WINDOW_IDS) {
+      flags[windowId] = dockCommands?.isFloatingWindowOpen(windowId) ?? false;
+    }
+    return flags;
+  }
+
+  /**
+   * Shows or hides the floating windows named in the change.
+   *
+   * @param floatingWindows Wanted open flags; omitted ids stay as they are.
+   */
+  private floatingWindowsApply(floatingWindows: ShellMainWindowChanges['floatingWindows']): void {
+    if (!floatingWindows) {
+      return;
+    }
+    for (const windowId of SHELL_FLOATING_WINDOW_IDS) {
+      const visible = floatingWindows[windowId];
+      if (visible !== undefined) {
+        this.parts.dockCommands?.floatingWindowVisibleSet(windowId, visible);
+      }
+    }
   }
 }

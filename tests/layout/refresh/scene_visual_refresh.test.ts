@@ -183,7 +183,8 @@ describe('properties panel transform commit hook', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const selectionManager = new ManagerSelection();
-    const panel = new PanelProperties(container, Theme, selectionManager);
+    const panel = new PanelProperties(Theme, selectionManager);
+    panel.hostAttach(container);
     const commandStack = new CommandStack(16);
     panel.setCommandStack(commandStack);
     const mesh = new THREE.Mesh();
@@ -210,7 +211,8 @@ describe('properties panel transform commit hook', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const selectionManager = new ManagerSelection();
-    const panel = new PanelProperties(container, Theme, selectionManager);
+    const panel = new PanelProperties(Theme, selectionManager);
+    panel.hostAttach(container);
     panel.setCommandStack(new CommandStack(16));
     const mesh = new THREE.Mesh();
     panel.bindObject(mesh);

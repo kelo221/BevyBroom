@@ -4,6 +4,7 @@ import {
   type FaceAttributesUvToolStripHandlers,
 } from '@/texture/ui/face_attributes/face_attributes_uv_tool_strip.js';
 import type { FaceUvToolSelectionStatus } from '@/texture/controller/controller_face_uv_tools.js';
+import { buttonCompactActiveRead } from '@/ui/button/button_compact.js';
 
 describe('FaceAttributesUvToolStrip', () => {
   let host: HTMLElement;
@@ -19,7 +20,8 @@ describe('FaceAttributesUvToolStrip', () => {
       onAlignEdge: vi.fn(),
       onFlip: vi.fn(),
       onRotate: vi.fn(),
-      onResetFace: vi.fn(),
+      onAlign: vi.fn(),
+      onReset: vi.fn(),
       onResetWorld: vi.fn(),
       onShearCommit: vi.fn(),
     };
@@ -55,17 +57,27 @@ describe('FaceAttributesUvToolStrip', () => {
     expect(handlers.onRotate).toHaveBeenCalledWith(-90);
     clickButton('Rot 90');
     expect(handlers.onRotate).toHaveBeenCalledWith(90);
-    clickButton('Reset Face');
-    expect(handlers.onResetFace).toHaveBeenCalled();
     clickButton('Reset World');
     expect(handlers.onResetWorld).toHaveBeenCalled();
   });
 
   it('highlights satisfied fit buttons and clears them without a status', () => {
     strip.setFromStatus(statusWith({ fittedU: true, fittedV: true }));
-    expect(buttonByName('Fit H').style.borderColor).not.toBe(buttonByName('Flip H').style.borderColor);
+    expect(buttonCompactActiveRead(buttonByName('Fit H'))).toBe(true);
+    expect(buttonByName('Fit H').style.background).not.toBe(buttonByName('Flip H').style.background);
     strip.setFromStatus(null);
-    expect(buttonByName('Fit H').style.borderColor).toBe(buttonByName('Flip H').style.borderColor);
+    expect(buttonCompactActiveRead(buttonByName('Fit H'))).toBe(false);
+    expect(buttonByName('Fit H').style.background).toBe(buttonByName('Flip H').style.background);
+  });
+
+  it('keeps the satisfied highlight after the pointer leaves the button', () => {
+    strip.setFromStatus(statusWith({ justifiedLeft: true }));
+    const left = buttonByName('Justify ←');
+    const highlightedBackground = left.style.background;
+    left.dispatchEvent(new MouseEvent('mouseenter'));
+    left.dispatchEvent(new MouseEvent('mouseleave'));
+    expect(left.style.background).toBe(highlightedBackground);
+    expect(left.style.borderColor).not.toBe(buttonByName('Justify →').style.borderColor);
   });
 
   it('highlights the justify button of the satisfied side', () => {

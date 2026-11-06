@@ -1,9 +1,9 @@
 import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
-import { ToolbarIcons } from '@/ui/toolbar/toolbar_icons.js';
+import { IconHammerCatalog } from '@/ui/icons/hammer/icon_hammer_catalog.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
 import { TransformMode, isBoundsWidgetMode } from '@/types/transform_mode.js';
-import { EditorInteractionMode } from '@/types/editor_interaction_mode.js';
+import { EditorInteractionMode, getEditorInteractionModeLabel } from '@/types/editor_interaction_mode.js';
 import { EditorComponentMode, getEditorComponentModeLabel } from '@/types/editor_component_mode.js';
 import { UiStackLayers } from '@/ui/stack/ui_stack_layers.js';
 import { formatToolInstructionTooltip, type ToolInstruction } from '@/tools/chrome/instruction/tool_instruction.js';
@@ -40,7 +40,17 @@ import { ViewportToolModeDropdown } from './viewport_tool_mode_dropdown.js';
 import { ViewportToolObjectDropdown } from './viewport_tool_object_dropdown.js';
 import { ViewportToolNamedDropdown } from './viewport_tool_named_dropdown.js';
 import { ViewportToolShapeControls } from './viewport_tool_shape_controls.js';
+import { ViewportToolEntityPlaceControls } from './viewport_tool_entity_place_controls.js';
+import { ViewportToolPolygonSprinkleControls } from './viewport_tool_polygon_sprinkle_controls.js';
 import type { ObjectApplyTransformKind } from '@/types/object_apply_transform_kind.js';
+import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
+import {
+  TOOLBAR_OVERFLOW_PRIORITY_TOOL_OPTIONS,
+  toolbarOverflowItemMark,
+  type ToolbarOverflowEntriesProvider,
+} from '@/ui/toolbar/overflow/toolbar_overflow_item.js';
+import { buildViewportToolModeMenuEntries } from './viewport_tool_mode_menu.js';
+import { buildViewportToolObjectMenuEntries } from './viewport_tool_object_menu.js';
 import type { TopologyVertexMergeMode } from '@/edit/topology/topology_vertex_merge_mode.js';
 import {
   buildViewportToolEdgeMenuEntries,
@@ -77,8 +87,10 @@ export interface ViewportToolOptionsBarHandlers {
 }
 
 /**
- * Horizontal context bar under the viewport title toolbar (Photoshop-style).
- * Shown only while the pane owns hover.
+ * Horizontal context bar with the options of the active tool. Floats under the
+ * corner label of a pane while that pane owns hover, or sits inline in a
+ * toolbar row when docked; each shown control is marked as a collapsible
+ * toolbar item.
  */
 export class ViewportToolOptionsBar {
   private readonly root: HTMLElement;
@@ -87,6 +99,8 @@ export class ViewportToolOptionsBar {
   private readonly modeDropdown: ViewportToolModeDropdown;
   private readonly objectDropdown: ViewportToolObjectDropdown;
   private readonly shapeControls: ViewportToolShapeControls;
+  private readonly entityPlaceControls: ViewportToolEntityPlaceControls;
+  private readonly polygonSprinkleControls: ViewportToolPolygonSprinkleControls;
   private readonly meshDropdown: ViewportToolNamedDropdown;
   private readonly vertexMenuDropdown: ViewportToolNamedDropdown;
   private readonly edgeMenuDropdown: ViewportToolNamedDropdown;
@@ -111,6 +125,7 @@ export class ViewportToolOptionsBar {
   private activeToolId: EditorToolId;
   private activeGridPickMode: GridAlignPickMode;
   private readonly componentButtons: Map<EditorComponentMode, HTMLButtonElement>;
+  private readonly overflowProviders: Map<HTMLElement, ToolbarOverflowEntriesProvider>;
 
   /**
    * Creates the options bar under the pane title toolbar.
@@ -123,6 +138,7 @@ export class ViewportToolOptionsBar {
     this.actionsRow = parentElement.ownerDocument.createElement('div');
     this.transformButtons = new Map();
     this.componentButtons = new Map();
+    this.overflowProviders = new Map();
     this.handlers = handlers;
     this.activeTransformMode = TransformMode.BOUNDS;
     this.activeInteractionMode = EditorInteractionMode.OBJECT_MODE;
@@ -148,6 +164,8 @@ export class ViewportToolOptionsBar {
     this.shapeControls = new ViewportToolShapeControls(parentElement, () => {
       this.handlers.onShapeSettingChanged?.();
     });
+    this.entityPlaceControls = new ViewportToolEntityPlaceControls(parentElement.ownerDocument);
+    this.polygonSprinkleControls = new ViewportToolPolygonSprinkleControls(parentElement.ownerDocument);
     this.flipButton = this.createTextAction('Flip', TOOL_INSTRUCTION_CLIP_FLIP, () => {
       this.handlers.onFlipClipPlane();
     });
@@ -157,7 +175,7 @@ export class ViewportToolOptionsBar {
     this.splitButton = this.createTextAction('Split', TOOL_INSTRUCTION_CLIP_SPLIT, () => {
       this.handlers.onCommitSplit();
     });
-    this.faceInspectorButton = this.createTextAction('Face Inspector', TOOL_INSTRUCTION_FACE_INSPECTOR, () => {
+    this.faceInspectorButton = this.createTextAction('Textures', TOOL_INSTRUCTION_FACE_INSPECTOR, () => {
       this.handlers.faceInspectorReveal();
     });
     this.extrudeButton = this.createTextAction('Extrude', TOOL_INSTRUCTION_EXTRUDE, () => {
@@ -187,6 +205,7 @@ export class ViewportToolOptionsBar {
     this.cameraAlignToFaceButton = this.createTextAction('Cam Face', TOOL_INSTRUCTION_CAMERA_ALIGN_TO_FACE, () => {
       this.handlers.onCameraAlignToFace();
     });
+    this.overflowProvidersDropdownsRegister();
     this.styleRoot();
     this.styleActionsRow();
     this.buildTransformButtons();
@@ -305,6 +324,8 @@ export class ViewportToolOptionsBar {
     this.modeDropdown.dispose();
     this.objectDropdown.dispose();
     this.shapeControls.dispose();
+    this.entityPlaceControls.dispose();
+    this.polygonSprinkleControls.dispose();
     this.meshDropdown.dispose();
     this.vertexMenuDropdown.dispose();
     this.edgeMenuDropdown.dispose();
@@ -314,7 +335,7 @@ export class ViewportToolOptionsBar {
   }
 
   /**
-   * Lays out a content-sized floating strip under the viewport title toolbar
+   * Lays out a content-sized floating strip under the viewport corner label
    * (same language as the tool rail: only as wide as its controls).
    */
   private styleRoot(): void {
@@ -323,11 +344,11 @@ export class ViewportToolOptionsBar {
     this.applyFloatingOptionsBarChrome();
   }
 
-  /** Positions the options bar under the title toolbar at the content inset. */
+  /** Positions the options bar under the corner label at the content inset. */
   private applyFloatingOptionsBarPosition(): void {
     this.root.style.position = 'absolute';
     this.root.style.left = `${Theme.viewportToolFloatingOffsetLeftPx}px`;
-    this.root.style.top = `${Theme.viewportToolbarHeightPx + Theme.viewportToolFloatingOffsetTopPx}px`;
+    this.root.style.top = `${Theme.viewportLabelHeightPx + Theme.viewportToolFloatingOffsetTopPx}px`;
     this.root.style.right = 'auto';
     this.root.style.width = 'max-content';
     this.root.style.maxWidth = 'calc(100% - 20px)';
@@ -344,7 +365,7 @@ export class ViewportToolOptionsBar {
     this.root.style.background = hexToRgb(Theme.propertiesPanelBackground);
     this.root.style.border = `1px solid ${hexToRgb(Theme.separatorColor)}`;
     this.root.style.borderRadius = '8px';
-    this.root.style.boxShadow = '0 10px 28px rgba(0,0,0,0.55)';
+    this.root.style.boxShadow = Theme.windowShadow;
     this.root.style.zIndex = String(UiStackLayers.viewportChrome + 1);
     this.root.style.pointerEvents = 'auto';
   }
@@ -360,11 +381,11 @@ export class ViewportToolOptionsBar {
 
   /** Builds Bounds / Move / Rotate / Scale / Shear icon buttons once. */
   private buildTransformButtons(): void {
-    this.addTransformButton(TransformMode.BOUNDS, ToolbarIcons.toolBounds());
-    this.addTransformButton(TransformMode.TRANSLATE, ToolbarIcons.toolMove());
-    this.addTransformButton(TransformMode.ROTATE, ToolbarIcons.toolRotate());
-    this.addTransformButton(TransformMode.SCALE, ToolbarIcons.toolScale());
-    this.addTransformButton(TransformMode.SHEAR, ToolbarIcons.toolShear());
+    this.addTransformButton(TransformMode.BOUNDS, IconHammerCatalog.toolbarSvg('transform_bounds'));
+    this.addTransformButton(TransformMode.TRANSLATE, IconHammerCatalog.toolbarSvg('transform_move'));
+    this.addTransformButton(TransformMode.ROTATE, IconHammerCatalog.toolbarSvg('transform_rotate'));
+    this.addTransformButton(TransformMode.SCALE, IconHammerCatalog.toolbarSvg('transform_scale'));
+    this.addTransformButton(TransformMode.SHEAR, IconHammerCatalog.toolbarSvg('transform_shear'));
   }
 
   /**
@@ -391,37 +412,110 @@ export class ViewportToolOptionsBar {
     this.actionsRow.replaceChildren();
     this.actionsRow.appendChild(this.modeDropdown.getElement());
     if (this.activeInteractionMode === EditorInteractionMode.EDIT_MODE) {
-      this.appendComponentModeButtons();
-      this.appendEditModeMenus();
-      this.appendTransformModeButtons();
-      return;
+      this.appendEditModeActions();
+    } else {
+      this.appendObjectModeActionsForTool(toolId);
     }
-    if (toolId === EditorToolId.FACE) {
-      this.actionsRow.appendChild(this.faceInspectorButton);
-      this.actionsRow.appendChild(this.extrudeButton);
-      return;
-    }
-    if (toolId === EditorToolId.CLIP_PLANE) {
-      this.actionsRow.appendChild(this.flipButton);
-      this.actionsRow.appendChild(this.clipButton);
-      this.actionsRow.appendChild(this.splitButton);
-      return;
-    }
-    if (toolId === EditorToolId.GRID) {
-      this.actionsRow.appendChild(this.gridResetButton);
-      this.actionsRow.appendChild(this.gridAlignToFaceButton);
-      this.actionsRow.appendChild(this.gridAlignXButton);
-      this.actionsRow.appendChild(this.gridAlignYButton);
-      this.actionsRow.appendChild(this.gridAlignZButton);
-      this.actionsRow.appendChild(this.gridOriginVertexButton);
-      this.actionsRow.appendChild(this.cameraResetButton);
-      this.actionsRow.appendChild(this.cameraAlignToFaceButton);
-      this.applyActiveGridPickModeStyles();
-      return;
-    }
+    this.actionsRowOverflowMark();
+  }
+
+  /**
+   * Marks every shown control as a toolbar item that may collapse into an
+   * overflow menu.
+   */
+  private actionsRowOverflowMark(): void {
+    Array.from(this.actionsRow.children).forEach((child) => {
+      if (child instanceof HTMLElement) {
+        toolbarOverflowItemMark(child, TOOLBAR_OVERFLOW_PRIORITY_TOOL_OPTIONS, this.overflowProviders.get(child));
+      }
+    });
+  }
+
+  /**
+   * Registers the overflow menu stand-ins of the mode and Object dropdowns: a
+   * submenu per dropdown with the same entries as its own menu.
+   */
+  private overflowProvidersDropdownsRegister(): void {
+    this.overflowProviders.set(this.modeDropdown.getElement(), () => [
+      {
+        kind: 'submenu',
+        label: getEditorInteractionModeLabel(this.activeInteractionMode),
+        children: buildViewportToolModeMenuEntries(this.activeInteractionMode, (mode) =>
+          this.handlers.onInteractionMode(mode),
+        ),
+      },
+    ]);
+    this.overflowProviders.set(this.objectDropdown.getElement(), () => [
+      { kind: 'submenu', label: 'Object', children: this.objectMenuEntriesBuild() },
+    ]);
+  }
+
+  /**
+   * Builds the Object menu entries bound to the current handlers.
+   *
+   * @returns Object menu entries.
+   */
+  private objectMenuEntriesBuild(): ToolbarMenuEntry[] {
+    return buildViewportToolObjectMenuEntries(
+      (kind) => this.handlers.onApplyObjectTransform?.(kind),
+      () => this.handlers.onConvexHull?.(),
+    );
+  }
+
+  /** Appends Edit Mode component toggles, menus, and transform buttons. */
+  private appendEditModeActions(): void {
+    this.appendComponentModeButtons();
+    this.appendEditModeMenus();
+    this.appendTransformModeButtons();
+  }
+
+  /**
+   * Appends Object Mode actions for the selected primary tool.
+   *
+   * @param toolId Active tool id.
+   */
+  private appendObjectModeActionsForTool(toolId: EditorToolId): void {
+    if (toolId === EditorToolId.FACE) return void this.actionsRow.append(this.faceInspectorButton, this.extrudeButton);
+    if (toolId === EditorToolId.CLIP_PLANE)
+      return void this.actionsRow.append(this.flipButton, this.clipButton, this.splitButton);
+    if (toolId === EditorToolId.GRID) return this.appendGridActions();
+    if (toolId === EditorToolId.BLOCK) return this.appendBlockActions();
+    if (toolId === EditorToolId.ENTITY)
+      return void this.actionsRow.appendChild(this.entityPlaceControls.entityElementRead());
+    if (toolId === EditorToolId.POLYGON)
+      return void this.actionsRow.appendChild(this.polygonSprinkleControls.polygonElementRead());
+    if (toolId === EditorToolId.SPRINKLE)
+      return void this.actionsRow.appendChild(this.polygonSprinkleControls.sprinkleElementRead());
+    this.appendObjectSelectActions();
+  }
+
+  /** Appends shape controls for the Block tool. */
+  private appendBlockActions(): void {
+    this.actionsRow.appendChild(this.shapeControls.getElement());
+    this.shapeControls.selectionRefresh();
+  }
+
+  /** Appends Grid tool action buttons. */
+  private appendGridActions(): void {
+    this.actionsRow.append(
+      this.gridResetButton,
+      this.gridAlignToFaceButton,
+      this.gridAlignXButton,
+      this.gridAlignYButton,
+      this.gridAlignZButton,
+      this.gridOriginVertexButton,
+      this.cameraResetButton,
+      this.cameraAlignToFaceButton,
+    );
+    this.applyActiveGridPickModeStyles();
+  }
+
+  /** Appends Object Select transform, object, shape, and empty-draw controls. */
+  private appendObjectSelectActions(): void {
     this.appendTransformModeButtons();
     this.actionsRow.appendChild(this.objectDropdown.getElement());
     this.actionsRow.appendChild(this.shapeControls.getElement());
+    this.actionsRow.appendChild(this.entityPlaceControls.emptyDrawButtonRead());
     this.shapeControls.selectionRefresh();
   }
 
@@ -456,9 +550,12 @@ export class ViewportToolOptionsBar {
   private createEditMenuDropdown(
     parentElement: HTMLElement,
     label: string,
-    buildEntries: (actions: ViewportToolEditMenuActions) => import('@/ui/menu/menu_types.js').ToolbarMenuEntry[],
+    buildEntries: (actions: ViewportToolEditMenuActions) => ToolbarMenuEntry[],
   ): ViewportToolNamedDropdown {
-    return new ViewportToolNamedDropdown(parentElement, label, () => buildEntries(this.buildEditMenuActions()));
+    const entriesBuild = (): ToolbarMenuEntry[] => buildEntries(this.buildEditMenuActions());
+    const dropdown = new ViewportToolNamedDropdown(parentElement, label, entriesBuild);
+    this.overflowProviders.set(dropdown.getElement(), () => [{ kind: 'submenu', label, children: entriesBuild() }]);
+    return dropdown;
   }
 
   /**

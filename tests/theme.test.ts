@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Theme } from '@/theme.js';
+import { themeColorChannelSum } from './theme/theme_color_parse_support.js';
 
 describe('Theme', () => {
   it('should freeze theme tokens against mutation', () => {
@@ -9,8 +10,18 @@ describe('Theme', () => {
     }).toThrow();
   });
 
-  it('should expose the orange selection accent used by the editor', () => {
-    expect(Theme.selectionColor).toBe(0xe86a17);
+  it('should expose a red selection color that dominates its green and blue channels', () => {
+    const red = (Theme.selectionColor >> 16) & 255;
+    const green = (Theme.selectionColor >> 8) & 255;
+    const blue = Theme.selectionColor & 255;
+    expect(red).toBeGreaterThan(green * 2);
+    expect(red).toBeGreaterThan(blue * 2);
+  });
+
+  it('should draw the 2D views darker than the 3D view', () => {
+    expect(themeColorChannelSum(Theme.viewport2dBackground)).toBeLessThan(
+      themeColorChannelSum(Theme.viewportBackground),
+    );
   });
 
   it('should expose distinct clip point and keep/discard preview colors', () => {

@@ -108,7 +108,7 @@ export class HandlerCsgAction {
    */
   private validateMeshBooleanSelection(selected: THREE.Mesh[]): boolean {
     if (selected.length < 2) {
-      this.emitStatus('CSG needs two regular meshes — Shift+click or Ctrl+click to multi-select');
+      this.emitStatus('CSG needs two regular meshes — Ctrl+click to multi-select');
       return false;
     }
     return this.rejectSolidSelectionIfPresent(selected);

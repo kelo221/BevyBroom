@@ -43,6 +43,16 @@ describe('GameEntityFieldEditorPropertyMap', () => {
     expect(edits.map((edit) => edit(null))).toEqual([{ team: 'red', boss: true }, { side: 'red' }, {}]);
   });
 
+  it('labels the key and value inputs with hints so the adding row is not blank', () => {
+    const editor = new GameEntityFieldEditorPropertyMap(valuesField());
+    editor.valuesShow([{}]);
+    const inputs = editor.getElement().querySelectorAll('input');
+    expect(inputs).toHaveLength(2);
+    expect(inputs[0]?.value).toBe('');
+    expect(inputs[0]?.placeholder).toBe('key');
+    expect(inputs[1]?.placeholder).toBe('value');
+  });
+
   it('types values by their text', () => {
     expect(GameEntityFieldEditorPropertyMap.valueParse('false')).toBe(false);
     expect(GameEntityFieldEditorPropertyMap.valueParse('2.5')).toBe(2.5);

@@ -88,4 +88,46 @@ describe('CommandStackTransaction', () => {
     expect(stack.canRedo()).toBe(false);
     expect(first.isDisposed && second.isDisposed).toBe(true);
   });
+
+  it('commits only its own commands after the size limit trimmed the entry it began on', () => {
+    const counter = { value: 0 };
+    const maxSize = 3;
+    const stack = new CommandStack(maxSize);
+    const earlierCommands = Array.from({ length: maxSize }, () => new CommandCounterAdd(counter, 1));
+    earlierCommands.forEach((command) => stack.push(command));
+    const transaction = new CommandStackTransaction(stack);
+    stack.push(new CommandCounterAdd(counter, 10));
+    stack.push(new CommandCounterAdd(counter, 100));
+    expect(stack.undoTrimmedTotalRead()).toBeGreaterThan(0);
+    expect(transaction.commit()).toBe(2);
+    stack.undo();
+    expect(counter.value).toBe(maxSize);
+    expect(stack.peekUndo()).toBe(earlierCommands[earlierCommands.length - 1]);
+  });
+
+  it('rolls back only its own commands after the size limit trimmed the entry it began on', () => {
+    const counter = { value: 0 };
+    const maxSize = 2;
+    const stack = new CommandStack(maxSize);
+    const earlierCommands = Array.from({ length: maxSize }, () => new CommandCounterAdd(counter, 1));
+    earlierCommands.forEach((command) => stack.push(command));
+    const transaction = new CommandStackTransaction(stack);
+    stack.push(new CommandCounterAdd(counter, 10));
+    expect(transaction.rollback()).toBe(1);
+    expect(counter.value).toBe(maxSize);
+    expect(stack.peekUndo()).toBe(earlierCommands[earlierCommands.length - 1]);
+    expect(stack.getUndoCount()).toBe(maxSize - 1);
+  });
+
+  it('takes nothing when the history was undone below the point where it began', () => {
+    const counter = { value: 0 };
+    const stack = new CommandStack(32);
+    stack.push(new CommandCounterAdd(counter, 1));
+    stack.push(new CommandCounterAdd(counter, 2));
+    const transaction = new CommandStackTransaction(stack);
+    stack.undo();
+    expect(transaction.rollback()).toBe(0);
+    expect(stack.getUndoCount()).toBe(1);
+    expect(stack.canRedo()).toBe(true);
+  });
 });

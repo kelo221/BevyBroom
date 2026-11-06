@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
 import { CommandStack } from '@/commands/command_stack.js';
+import type { UndoCommand } from '@/commands/command_undo.js';
 import { CommandTextureSurfaceAssign } from '@/texture/commands/command_texture_surface_assign.js';
 import { CommandTextureSolidBrushAssign } from '@/texture/commands/command_texture_solid_brush_assign.js';
 import { CommandTextureSolidFaceAssign } from '@/texture/commands/command_texture_solid_face_assign.js';
@@ -15,8 +16,9 @@ import {
 import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import { TextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
-import { SolidModel, SOLID_TRIANGLE_SOURCES_USERDATA_KEY } from '@/solid/model/solid_model.js';
+import { SolidModel } from '@/solid/model/solid_model.js';
 import { FaceSelection } from '@/selection/face/manager_face_selection.js';
+import { solidFaceTargetFromResultTriangle } from '@/selection/face/solid_face_target_resolver.js';
 import { mapPreviewTriangleToBrushFace } from '@/solid/model/brush_preview_face_map.js';
 import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js';
 
@@ -26,6 +28,24 @@ import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js'
  * @param message Status text.
  */
 export type TextureAssignmentStatusCallback = (message: string) => void;
+
+/** Texture identity and display name an assignment paints. */
+export interface TextureAssignmentChoice {
+  /** Durable texture identity. */
+  readonly id: string;
+  /** Name shown in status messages. */
+  readonly displayName: string;
+}
+
+/** Undoable texture assignment of face regions, built but not yet executed. */
+export interface FaceTextureAssignment {
+  /** Command painting the faces. */
+  readonly command: UndoCommand;
+  /** Number of painted brush faces or content regions. */
+  readonly regionCount: number;
+  /** True when the command paints solid brush faces. */
+  readonly isSolid: boolean;
+}
 
 /**
  * Assigns browser textures to regular content or solid-model brush surfaces.
@@ -82,51 +102,92 @@ export class ControllerTextureAssignment {
    */
   onTextureSelected(entry: TextureBrowserEntry): void {
     getStateTexturePaint().setLastTextureId(entry.id);
+    this.assignTextureToSelection(entry);
+  }
+
+  /**
+   * Assigns a texture to the selected faces in face mode, or to the selected
+   * objects otherwise, without changing the current paint texture.
+   *
+   * @param choice Texture identity and display name to assign.
+   */
+  assignTextureToSelection(choice: TextureAssignmentChoice): void {
     if (this.faceExtrusionController.getSelectionMode() === SelectionMode.FACE) {
-      this.assignFaceSelection(entry);
+      this.assignFaceSelection(choice);
       return;
     }
-    this.assignObjectSelection(entry);
+    this.assignObjectSelection(choice);
+  }
+
+  /**
+   * Assigns a texture to the given faces as one undo step, keeping each face's
+   * alignment.
+   *
+   * @param faces Faces to paint.
+   * @param choice Texture identity and display name to assign.
+   * @returns True when any face was painted.
+   */
+  assignTextureToFaces(faces: readonly FaceSelection[], choice: TextureAssignmentChoice): boolean {
+    const assignment = this.faceTextureAssignmentBuild(faces, choice.id);
+    if (!assignment) {
+      return false;
+    }
+    this.commandStack.push(assignment.command);
+    if (assignment.isSolid) {
+      this.afterSolidTextureAssign?.();
+    }
+    const regionNoun = assignment.isSolid ? 'solid face(s)' : 'surface region(s)';
+    this.statusCallback?.(`Assigned ${choice.displayName} to ${assignment.regionCount} ${regionNoun}`);
+    return true;
+  }
+
+  /**
+   * Builds the not yet executed undoable texture assignment of the given faces:
+   * solid brush faces when any are given, otherwise content mesh regions.
+   *
+   * @param faces Faces to paint.
+   * @param textureId Texture identity.
+   * @returns Command with its painted region count, or null when no face can be
+   *   painted.
+   */
+  faceTextureAssignmentBuild(faces: readonly FaceSelection[], textureId: string): FaceTextureAssignment | null {
+    const solidTargets = this.resolveSolidFaceTargets([...faces]);
+    if (solidTargets.length > 0) {
+      return {
+        command: new CommandTextureSolidFaceAssign(solidTargets, textureId),
+        regionCount: solidTargets.length,
+        isSolid: true,
+      };
+    }
+    const contentTargets = buildTargetsFromFaceSelection(faces.filter((face) => this.isContentTextureMesh(face.mesh)));
+    if (contentTargets.length === 0) {
+      return null;
+    }
+    return {
+      command: new CommandTextureSurfaceAssign(contentTargets, textureId),
+      regionCount: contentTargets.length,
+      isSolid: false,
+    };
   }
 
   /**
    * Paints selected solid or content faces, or reports that faces are required.
    *
-   * @param entry Selected browser entry.
+   * @param choice Texture identity and display name.
    */
-  private assignFaceSelection(entry: TextureBrowserEntry): void {
-    if (this.tryAssignSolidFaces(entry)) return;
-    if (this.tryAssignContentFaces(entry)) return;
-    this.statusCallback?.(`Paint texture: ${entry.displayName} (select faces to assign)`);
-  }
-
-  /**
-   * Face-mode paint for ordinary content-mesh face regions.
-   *
-   * @param entry Texture entry.
-   * @returns True when content faces were painted.
-   */
-  private tryAssignContentFaces(entry: TextureBrowserEntry): boolean {
-    const contentFaces = this.faceExtrusionController
-      .getSelectedFaces()
-      .filter((face) => this.isContentTextureMesh(face.mesh));
-    if (contentFaces.length === 0) {
-      return false;
+  private assignFaceSelection(choice: TextureAssignmentChoice): void {
+    if (this.assignTextureToFaces(this.faceExtrusionController.getSelectedFaces(), choice)) {
+      return;
     }
-    const targets = buildTargetsFromFaceSelection(contentFaces);
-    if (targets.length === 0) {
-      return false;
-    }
-    this.assignTextureToTargets(targets, entry);
-    return true;
+    this.statusCallback?.(`Paint texture: ${choice.displayName} (select faces to assign)`);
   }
 
   /**
    * Paints selected objects, skipping a selection that is only bevel volumes.
    *
-   * @param entry Selected browser entry.
+   * @param entry Texture identity and display name.
    */
-  private assignObjectSelection(entry: TextureBrowserEntry): void {
+  private assignObjectSelection(entry: TextureAssignmentChoice): void {
     const meshes = this.selectionManager.getAllSelectedObjectsAsArray();
     if (this.selectionIsOnlyBevelVolumes(meshes)) {
       this.statusCallback?.('Bevel volumes keep their texture in the volume settings');
@@ -139,9 +200,9 @@ export class ControllerTextureAssignment {
    * Paints solid brushes or content meshes in the object selection.
    *
    * @param meshes Current object selection.
-   * @param entry Selected browser entry.
+   * @param entry Texture identity and display name.
    */
-  private assignObjectTargets(meshes: THREE.Mesh[], entry: TextureBrowserEntry): void {
+  private assignObjectTargets(meshes: THREE.Mesh[], entry: TextureAssignmentChoice): void {
     const solidBrushes = CommandTextureSolidBrushAssign.filterBrushMeshes(meshes);
     if (solidBrushes.length > 0) {
       this.assignSolidBrushTextures(solidBrushes, entry);
@@ -153,24 +214,6 @@ export class ControllerTextureAssignment {
       return;
     }
     this.assignTextureToTargets(targets, entry);
-  }
-
-  /**
-   * Face-mode paint for solid result or solid brush faces.
-   *
-   * @param entry Texture entry.
-   * @returns True when solid faces were painted.
-   */
-  private tryAssignSolidFaces(entry: TextureBrowserEntry): boolean {
-    const faces = this.faceExtrusionController.getSelectedFaces();
-    if (faces.length === 0) return false;
-    const solidTargets = this.resolveSolidFaceTargets(faces);
-    if (solidTargets.length === 0) return false;
-    const command = new CommandTextureSolidFaceAssign(solidTargets, entry.id);
-    this.commandStack.push(command);
-    this.afterSolidTextureAssign?.();
-    this.statusCallback?.(`Assigned ${entry.displayName} to ${solidTargets.length} solid face(s)`);
-    return true;
   }
 
   /**
@@ -228,18 +271,7 @@ export class ControllerTextureAssignment {
     mesh: THREE.Mesh,
     triangleIndex: number,
   ): { model: SolidModel; brushId: string; surfaceIndex: number } | null {
-    const model = SolidModel.fromObject(mesh);
-    if (!model) return null;
-    const sources = mesh.userData[SOLID_TRIANGLE_SOURCES_USERDATA_KEY] as
-      Array<{ brushId: string; surfaceIndex: number }> | undefined;
-    if (!sources || !sources[triangleIndex]) return null;
-    const source = sources[triangleIndex];
-    if (!source.brushId) return null;
-    return {
-      model,
-      brushId: source.brushId,
-      surfaceIndex: source.surfaceIndex,
-    };
+    return solidFaceTargetFromResultTriangle(mesh, triangleIndex);
   }
 
   /**
@@ -272,9 +304,9 @@ export class ControllerTextureAssignment {
    * Assigns texture to solid brushes and rebuilds their CSG results.
    *
    * @param brushMeshes Selected solid brush meshes.
-   * @param entry Texture entry.
+   * @param entry Texture identity and display name.
    */
-  private assignSolidBrushTextures(brushMeshes: THREE.Mesh[], entry: TextureBrowserEntry): void {
+  private assignSolidBrushTextures(brushMeshes: THREE.Mesh[], entry: TextureAssignmentChoice): void {
     const command = new CommandTextureSolidBrushAssign(brushMeshes, entry.id);
     this.commandStack.push(command);
     this.afterSolidTextureAssign?.();
@@ -285,9 +317,9 @@ export class ControllerTextureAssignment {
    * Pushes an undoable assignment for regular content mesh targets.
    *
    * @param targets Regions to paint.
-   * @param entry Texture to apply.
+   * @param entry Texture identity and display name.
    */
-  private assignTextureToTargets(targets: TextureApplyTarget[], entry: TextureBrowserEntry): void {
+  private assignTextureToTargets(targets: TextureApplyTarget[], entry: TextureAssignmentChoice): void {
     const command = new CommandTextureSurfaceAssign(targets, entry.id);
     this.commandStack.push(command);
     this.statusCallback?.(`Assigned ${entry.displayName} to ${targets.length} surface region(s)`);

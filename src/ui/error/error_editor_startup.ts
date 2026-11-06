@@ -1,4 +1,5 @@
 import { Theme } from '@/theme.js';
+import { hexToRgb } from '@/utils/utils_color.js';
 
 /**
  * Displays a visible startup failure message over the editor shell.
@@ -59,7 +60,7 @@ function applyErrorEditorStartupOverlayStyles(overlay: HTMLElement): void {
   overlay.style.justifyContent = 'center';
   overlay.style.gap = '12px';
   overlay.style.padding = '32px';
-  overlay.style.background = `#${Theme.background.toString(16).padStart(6, '0')}`;
+  overlay.style.background = hexToRgb(Theme.background);
   overlay.style.color = Theme.buttonTextColor;
   overlay.style.fontFamily = Theme.uiFontFamily;
   overlay.style.textAlign = 'center';
@@ -73,7 +74,7 @@ function applyErrorEditorStartupOverlayStyles(overlay: HTMLElement): void {
 function createErrorEditorStartupTitle(): HTMLElement {
   const title = document.createElement('h1');
   title.textContent = '3D renderer failed to start';
-  title.style.color = `#${Theme.selectionColor.toString(16).padStart(6, '0')}`;
+  title.style.color = Theme.severityErrorColor;
   title.style.fontSize = '20px';
   return title;
 }
@@ -103,8 +104,10 @@ function createErrorEditorStartupDetails(error: unknown): HTMLElement {
   details.textContent = getErrorEditorStartupMessage(error);
   details.style.maxWidth = '760px';
   details.style.padding = '10px 12px';
-  details.style.background = '#111111';
-  details.style.border = '1px solid #444444';
+  details.style.background = Theme.panelSunkenBackground;
+  details.style.color = Theme.inputTextColor;
+  details.style.fontFamily = Theme.monospaceFontFamily;
+  details.style.border = `1px solid ${Theme.inputBorderColor}`;
   details.style.borderRadius = '4px';
   details.style.whiteSpace = 'pre-wrap';
   details.style.overflowWrap = 'anywhere';

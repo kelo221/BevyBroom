@@ -1,13 +1,39 @@
-import { describe, expect, it, vi } from 'vitest';
-import { WorkspaceSwitcherBar } from '@/ui/workspace/workspace_switcher_bar.js';
-import { createDefaultWorkspaces, WORKSPACE_IDS } from '@/layout/workspace/workspace_definition.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  WORKSPACE_SWITCHER_CLASS,
+  WORKSPACE_SWITCHER_NAME_CLASS,
+  WorkspaceSwitcherBar,
+} from '@/ui/workspace/workspace_switcher_bar.js';
+import {
+  createDefaultWorkspaces,
+  WORKSPACE_IDS,
+  type WorkspaceDefinition,
+} from '@/layout/workspace/workspace_definition.js';
+
+/** Layout chooser, its action spies and the layouts it shows. */
+interface WorkspaceSwitcherBarTestRig {
+  readonly bar: WorkspaceSwitcherBar;
+  readonly parent: HTMLElement;
+  readonly actions: {
+    onSelectWorkspace: ReturnType<typeof vi.fn>;
+    onAddPresetWorkspace: ReturnType<typeof vi.fn>;
+    onDuplicateCurrent: ReturnType<typeof vi.fn>;
+    onDeleteWorkspace: ReturnType<typeof vi.fn>;
+    onRenameWorkspace: ReturnType<typeof vi.fn>;
+    onReorderWorkspace: ReturnType<typeof vi.fn>;
+  };
+  readonly workspaces: WorkspaceDefinition[];
+}
+
+/** Chooser built by the running test. */
+let workspaceSwitcherBarTestBar: WorkspaceSwitcherBar | null = null;
 
 /**
- * Builds a switcher with vitest action spies.
+ * Builds a chooser showing the default layouts with the Quad View active.
  *
- * @returns Bar and action mocks.
+ * @returns Test rig.
  */
-function createSwitcherFixture() {
+function workspaceSwitcherBarTestRigCreate(): WorkspaceSwitcherBarTestRig {
   const parent = document.createElement('div');
   document.body.appendChild(parent);
   const actions = {
@@ -19,165 +45,123 @@ function createSwitcherFixture() {
     onReorderWorkspace: vi.fn(),
   };
   const bar = new WorkspaceSwitcherBar(parent, actions);
-  const defaults = createDefaultWorkspaces();
-  bar.setWorkspaces(defaults, WORKSPACE_IDS.quad);
-  return { bar, actions, defaults };
+  workspaceSwitcherBarTestBar = bar;
+  const workspaces = createDefaultWorkspaces();
+  bar.setWorkspaces(workspaces, WORKSPACE_IDS.quad);
+  return { bar, parent, actions, workspaces };
 }
 
+/**
+ * Returns the name of a layout of the rig.
+ *
+ * @param rig Test rig.
+ * @param workspaceId Layout id.
+ * @returns Layout name.
+ */
+function workspaceSwitcherBarTestNameRead(rig: WorkspaceSwitcherBarTestRig, workspaceId: string): string {
+  const workspace = rig.workspaces.find((candidate) => candidate.id === workspaceId);
+  if (!workspace) {
+    throw new Error(`Layout ${workspaceId} missing`);
+  }
+  return workspace.name;
+}
+
+/**
+ * Opens the chooser menu and clicks the top level row with a label.
+ *
+ * @param bar Layout chooser.
+ * @param label Row label.
+ */
+function workspaceSwitcherBarTestRowClick(bar: WorkspaceSwitcherBar, label: string): void {
+  bar.getTriggerButton().click();
+  const panel = bar.getMenuPanel();
+  if (!panel || !panel.isOpen()) {
+    throw new Error('Layout menu did not open');
+  }
+  const row = Array.from(panel.getElement().querySelectorAll<HTMLButtonElement>('.editor-toolbar-dropdown-item')).find(
+    (button) => (button.querySelector('.editor-toolbar-dropdown-label')?.textContent ?? '') === label,
+  );
+  if (!row) {
+    throw new Error(`Layout menu row ${label} missing`);
+  }
+  row.click();
+}
+
+/**
+ * Returns the visible name of the active layout on the trigger.
+ *
+ * @param bar Layout chooser.
+ * @returns Shown name.
+ */
+function workspaceSwitcherBarTestShownNameRead(bar: WorkspaceSwitcherBar): string {
+  return bar.getTriggerButton().querySelector(`.${WORKSPACE_SWITCHER_NAME_CLASS}`)?.textContent ?? '';
+}
+
+afterEach(() => {
+  workspaceSwitcherBarTestBar?.dispose();
+  workspaceSwitcherBarTestBar = null;
+  document.body.replaceChildren();
+});
+
 describe('WorkspaceSwitcherBar', () => {
-  it('should open a + menu with four presets, a separator, and Duplicate Current', () => {
-    const { bar, actions } = createSwitcherFixture();
-    bar.getAddButton().click();
-    expect(bar.getAddMenuPanel().isOpen()).toBe(true);
-    const labels = Array.from(
-      bar.getAddMenuPanel().getElement().querySelectorAll('.editor-toolbar-dropdown-label'),
-    ).map((node) => node.textContent);
-    expect(labels).toEqual(['Quad View', 'Single Perspective', 'Dual', 'Triple', 'Duplicate Current']);
-    const duplicate = Array.from(
-      bar.getAddMenuPanel().getElement().querySelectorAll('.editor-toolbar-dropdown-item'),
-    ).find((button) => button.textContent?.includes('Duplicate Current')) as HTMLButtonElement;
-    expect(duplicate.title).toBe('Add a new workspace.');
-    duplicate.click();
-    expect(actions.onDuplicateCurrent).toHaveBeenCalledTimes(1);
-    bar.dispose();
+  it('is one compact dropdown naming the active layout instead of a row of tabs', () => {
+    const rig = workspaceSwitcherBarTestRigCreate();
+    expect(rig.bar.getElement().parentElement).toBe(rig.parent);
+    expect(rig.bar.getElement().classList.contains(WORKSPACE_SWITCHER_CLASS)).toBe(true);
+    expect(rig.bar.getElement().querySelectorAll(':scope > button').length).toBe(1);
+    expect(rig.bar.getTriggerButton().getAttribute('aria-haspopup')).toBe('menu');
+    expect(workspaceSwitcherBarTestShownNameRead(rig.bar)).toBe(
+      workspaceSwitcherBarTestNameRead(rig, WORKSPACE_IDS.quad),
+    );
   });
 
-  it('should invoke onAddPresetWorkspace when a default template is chosen', () => {
-    const { bar, actions } = createSwitcherFixture();
-    bar.getAddButton().click();
-    const dual = Array.from(bar.getAddMenuPanel().getElement().querySelectorAll('.editor-toolbar-dropdown-item')).find(
-      (button) => button.textContent?.includes('Dual'),
-    ) as HTMLButtonElement;
-    dual.click();
-    expect(actions.onAddPresetWorkspace).toHaveBeenCalledTimes(1);
-    expect(actions.onAddPresetWorkspace.mock.calls[0]![0].name).toBe('Dual');
-    bar.dispose();
+  it('switches from Quad View to Single Perspective and back through the menu', () => {
+    const rig = workspaceSwitcherBarTestRigCreate();
+    workspaceSwitcherBarTestRowClick(rig.bar, workspaceSwitcherBarTestNameRead(rig, WORKSPACE_IDS.single));
+    expect(rig.actions.onSelectWorkspace).toHaveBeenLastCalledWith(WORKSPACE_IDS.single);
+    rig.bar.setWorkspaces(rig.workspaces, WORKSPACE_IDS.single);
+    expect(workspaceSwitcherBarTestShownNameRead(rig.bar)).toBe(
+      workspaceSwitcherBarTestNameRead(rig, WORKSPACE_IDS.single),
+    );
+    workspaceSwitcherBarTestRowClick(rig.bar, workspaceSwitcherBarTestNameRead(rig, WORKSPACE_IDS.quad));
+    expect(rig.actions.onSelectWorkspace).toHaveBeenLastCalledWith(WORKSPACE_IDS.quad);
+    expect(rig.actions.onSelectWorkspace).toHaveBeenCalledTimes(2);
   });
 
-  it('should close a tab on middle-click, not right-click', () => {
-    const { bar, actions } = createSwitcherFixture();
-    const tab = bar.getTabButton(WORKSPACE_IDS.dual)!;
-    expect(tab).toBeTruthy();
-    tab.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, button: 2 }));
-    expect(actions.onDeleteWorkspace).not.toHaveBeenCalled();
-    tab.dispatchEvent(new MouseEvent('auxclick', { bubbles: true, button: 1 }));
-    expect(actions.onDeleteWorkspace).toHaveBeenCalledWith(WORKSPACE_IDS.dual);
-    bar.dispose();
+  it('does not reselect the layout that is already active', () => {
+    const rig = workspaceSwitcherBarTestRigCreate();
+    workspaceSwitcherBarTestRowClick(rig.bar, workspaceSwitcherBarTestNameRead(rig, WORKSPACE_IDS.quad));
+    expect(rig.actions.onSelectWorkspace).not.toHaveBeenCalled();
   });
 
-  it('should rename a tab via double-click inline edit using shared rename input', () => {
-    const { bar, actions } = createSwitcherFixture();
-    const tab = bar.getTabButton(WORKSPACE_IDS.quad)!;
-    const nameSpan = tab.querySelector('.editor-workspace-tab-name') as HTMLSpanElement;
-    // Simulate a real double-click: first click must not destroy the tab.
-    tab.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, button: 0 }));
-    nameSpan.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-    const input = tab.querySelector('input') as HTMLInputElement;
-    expect(input).toBeTruthy();
-    expect(tab.isConnected).toBe(true);
-    input.value = 'Modeling';
-    input.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', bubbles: true }));
-    expect(actions.onRenameWorkspace).toHaveBeenCalledWith(WORKSPACE_IDS.quad, 'Modeling');
-    expect(nameSpan.textContent).toBe('Modeling');
-    // Tab remains the same element and stays interactive after rename.
-    expect(bar.getTabButton(WORKSPACE_IDS.quad)).toBe(tab);
-    tab.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, button: 0 }));
-    expect(actions.onSelectWorkspace).not.toHaveBeenCalled();
-    bar.dispose();
+  it('deletes and moves the active layout from the menu', () => {
+    const rig = workspaceSwitcherBarTestRigCreate();
+    rig.bar.setWorkspaces(rig.workspaces, WORKSPACE_IDS.dual);
+    const dualIndex = rig.workspaces.findIndex((workspace) => workspace.id === WORKSPACE_IDS.dual);
+    workspaceSwitcherBarTestRowClick(rig.bar, 'Move Layout Left');
+    expect(rig.actions.onReorderWorkspace).toHaveBeenLastCalledWith(WORKSPACE_IDS.dual, dualIndex - 1);
+    workspaceSwitcherBarTestRowClick(rig.bar, 'Delete Layout');
+    expect(rig.actions.onDeleteWorkspace).toHaveBeenCalledWith(WORKSPACE_IDS.dual);
   });
 
-  it('should select a different tab immediately on single click', () => {
-    const { bar, actions } = createSwitcherFixture();
-    const tab = bar.getTabButton(WORKSPACE_IDS.dual)!;
-    tab.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, button: 0 }));
-    expect(actions.onSelectWorkspace).toHaveBeenCalledWith(WORKSPACE_IDS.dual);
-    bar.dispose();
+  it('renames the active layout in place and reports the new name once', () => {
+    const rig = workspaceSwitcherBarTestRigCreate();
+    workspaceSwitcherBarTestRowClick(rig.bar, 'Rename Layout…');
+    const input = rig.bar.getTriggerButton().querySelector('input');
+    if (!input) {
+      throw new Error('Rename input missing');
+    }
+    input.value = 'Brush Work';
+    input.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', key: 'Enter', bubbles: true }));
+    expect(rig.actions.onRenameWorkspace).toHaveBeenCalledOnce();
+    expect(rig.actions.onRenameWorkspace).toHaveBeenCalledWith(WORKSPACE_IDS.quad, 'Brush Work');
+    expect(workspaceSwitcherBarTestShownNameRead(rig.bar)).toBe('Brush Work');
   });
 
-  it('should not re-select the already active tab on click', () => {
-    const { bar, actions } = createSwitcherFixture();
-    const tab = bar.getTabButton(WORKSPACE_IDS.quad)!;
-    tab.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1, button: 0 }));
-    expect(actions.onSelectWorkspace).not.toHaveBeenCalled();
-    bar.dispose();
-  });
-
-  it('should reorder tabs via drag and drop onto another tab', () => {
-    const { bar, actions } = createSwitcherFixture();
-    const source = bar.getTabButton(WORKSPACE_IDS.quad)!;
-    const target = bar.getTabButton(WORKSPACE_IDS.dual)!;
-    const transfer = {
-      data: '',
-      effectAllowed: 'all',
-      dropEffect: 'move',
-      setData(_type: string, value: string) {
-        this.data = value;
-      },
-      getData() {
-        return this.data;
-      },
-    };
-    const dragStart = new Event('dragstart', { bubbles: true }) as DragEvent;
-    Object.defineProperty(dragStart, 'dataTransfer', { value: transfer });
-    source.dispatchEvent(dragStart);
-    const drop = new Event('drop', { bubbles: true }) as DragEvent;
-    Object.defineProperty(drop, 'dataTransfer', { value: transfer });
-    target.dispatchEvent(drop);
-    // Quad (0) dropped on Dual (2) moves to Dual's index.
-    expect(actions.onReorderWorkspace).toHaveBeenCalledWith(WORKSPACE_IDS.quad, 2);
-    bar.dispose();
-  });
-
-  it('should swap with the next tab when dropped on the immediate neighbor', () => {
-    const { bar, actions } = createSwitcherFixture();
-    const source = bar.getTabButton(WORKSPACE_IDS.quad)!;
-    const target = bar.getTabButton(WORKSPACE_IDS.single)!;
-    const transfer = {
-      data: '',
-      effectAllowed: 'all',
-      dropEffect: 'move',
-      setData(_type: string, value: string) {
-        this.data = value;
-      },
-      getData() {
-        return this.data;
-      },
-    };
-    const dragStart = new Event('dragstart', { bubbles: true }) as DragEvent;
-    Object.defineProperty(dragStart, 'dataTransfer', { value: transfer });
-    source.dispatchEvent(dragStart);
-    const drop = new Event('drop', { bubbles: true }) as DragEvent;
-    Object.defineProperty(drop, 'dataTransfer', { value: transfer });
-    target.dispatchEvent(drop);
-    expect(actions.onReorderWorkspace).toHaveBeenCalledWith(WORKSPACE_IDS.quad, 1);
-    bar.dispose();
-  });
-
-  it('should show an orange insert line on the right when dragging a left tab over a right tab', () => {
-    const { bar } = createSwitcherFixture();
-    const source = bar.getTabButton(WORKSPACE_IDS.quad)!;
-    const target = bar.getTabButton(WORKSPACE_IDS.single)!;
-    const transfer = {
-      data: '',
-      effectAllowed: 'all',
-      dropEffect: 'move',
-      setData(_type: string, value: string) {
-        this.data = value;
-      },
-      getData() {
-        return this.data;
-      },
-    };
-    const dragStart = new Event('dragstart', { bubbles: true }) as DragEvent;
-    Object.defineProperty(dragStart, 'dataTransfer', { value: transfer });
-    source.dispatchEvent(dragStart);
-    const dragOver = new Event('dragover', { bubbles: true }) as DragEvent;
-    Object.defineProperty(dragOver, 'dataTransfer', { value: transfer });
-    target.dispatchEvent(dragOver);
-    const indicator = bar.getInsertIndicatorForTests();
-    expect(indicator.style.display).toBe('block');
-    expect(indicator.parentElement).toBe(bar.getElement());
-    expect(indicator.style.left.length).toBeGreaterThan(0);
-    bar.dispose();
+  it('removes itself from the parent on dispose', () => {
+    const rig = workspaceSwitcherBarTestRigCreate();
+    rig.bar.dispose();
+    workspaceSwitcherBarTestBar = null;
+    expect(rig.parent.children.length).toBe(0);
   });
 });

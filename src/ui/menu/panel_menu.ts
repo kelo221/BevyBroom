@@ -99,17 +99,21 @@ export class PanelMenu {
   /**
    * Shows the panel and refreshes live enablement and shortcut labels. When
    * this is a root menu and an anchor is provided, mounts on the anchor
-   * document body with fixed positioning and registers as a pointer-block
-   * surface.
+   * document body with fixed positioning below the anchor, keeps it fully
+   * on-screen, and registers as a pointer-block surface.
    *
    * @param anchor Optional trigger control used to place a root menu.
    */
   open(anchor?: HTMLElement): void {
     this.refresh();
-    if (!this.isSubmenu && anchor) {
+    const isAnchoredRoot = !this.isSubmenu && anchor !== undefined;
+    if (isAnchoredRoot) {
       this.mountRootMenuOnBody(anchor);
     }
     this.root.style.display = 'block';
+    if (isAnchoredRoot) {
+      this.clampRootMenuToViewport(anchor.ownerDocument);
+    }
     this.registerRootPointerBlockSurface();
   }
 
@@ -253,8 +257,8 @@ export class PanelMenu {
     if (!view) return;
     const rect = this.root.getBoundingClientRect();
     const margin = 4;
-    let left = rect.left;
-    let top = rect.top;
+    let left = Number.parseFloat(this.root.style.left) || 0;
+    let top = Number.parseFloat(this.root.style.top) || 0;
     if (left + rect.width > view.innerWidth - margin) {
       left = Math.max(margin, view.innerWidth - rect.width - margin);
     }

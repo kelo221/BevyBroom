@@ -20,6 +20,10 @@ import {
   serializeFaceTextureMapping,
 } from '@/texture/uv/face_texture_mapping.js';
 import { isResultMesh } from '@/solid/model/solid_model_keys.js';
+import {
+  displacementSurfaceSerialize,
+  type DisplacementFaceSurfaceSerialized,
+} from '@/displacement/model/displacement_face_surface.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
 import {
   solidSerializedTransformAssignFromMatrix,
@@ -56,6 +60,8 @@ export interface SerializedSolidBrush {
   faceSurfaces?: Array<
     { textureId: string; uv: { u: [number, number, number, number]; v: [number, number, number, number] } } | undefined
   >;
+  /** Sparse per-face displacements; written only when a face is displaced. */
+  faceDisplacements?: Array<DisplacementFaceSurfaceSerialized | null>;
   vertices: number[];
   wingEdges: Array<{ vertexIndex: number; twinIndex: number }>;
   edgeFaceIndices: number[];
@@ -545,7 +551,29 @@ export class SolidModelCodec {
       faceSurfaces: instance.serializeFaceSurfaces(),
       defaultMapping,
       faceMappings: instance.serializeFaceMappings(),
+      ...this.encodeBrushDisplacements(instance),
       ...this.encodeBrushGeometry(instance.brush),
+    };
+  }
+
+  /**
+   * Encodes the face displacements of a brush, omitting the field for brushes
+   * without any displaced face and the collision flags of surfaces whose flags
+   * are all off.
+   *
+   * @param instance Brush instance.
+   * @returns Object with the sparse displacement list, or an empty object.
+   */
+  private static encodeBrushDisplacements(
+    instance: SolidBrushInstance,
+  ): Pick<SerializedSolidBrush, 'faceDisplacements'> {
+    if (instance.faceDisplacementIndices().length === 0) {
+      return {};
+    }
+    return {
+      faceDisplacements: instance
+        .serializeFaceDisplacements()
+        .map((entry) => (entry ? displacementSurfaceSerialize(entry) : null)),
     };
   }
 
@@ -607,6 +635,7 @@ export class SolidModelCodec {
     instance.scale.set(data.scale.x, data.scale.y, data.scale.z);
     instance.visible = data.visible !== false;
     this.restoreBrushSurfaceData(instance, data);
+    instance.restoreFaceDisplacements(data.faceDisplacements);
     return instance;
   }
 

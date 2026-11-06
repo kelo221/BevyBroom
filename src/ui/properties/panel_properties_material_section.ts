@@ -1,10 +1,12 @@
 import * as THREE from 'three';
 import { Theme } from '@/theme.js';
+import { hexToCssHex } from '@/utils/utils_color.js';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import type { PanelPropertiesColorSession } from './panel_properties_color_session.js';
 import type { PanelPropertiesSectionChrome } from './panel_properties_section.js';
 
 /** Color shown when no mesh color is shared. */
-const PANEL_PROPERTIES_MATERIAL_NEUTRAL_COLOR = '#ffffff';
+const PANEL_PROPERTIES_MATERIAL_NEUTRAL_COLOR = hexToCssHex(MaterialColorNeutral.white);
 
 /**
  * Inspector Material section: one color picker that edits the material color of
@@ -55,9 +57,7 @@ export class PanelPropertiesMaterialSection {
     const colors = panelPropertiesMaterialColorsCollect(objects);
     const first = colors[0];
     const isShared = first !== undefined && colors.every((color) => color === first);
-    this.colorInput.value = isShared
-      ? `#${first.toString(16).padStart(6, '0')}`
-      : PANEL_PROPERTIES_MATERIAL_NEUTRAL_COLOR;
+    this.colorInput.value = isShared ? hexToCssHex(first) : PANEL_PROPERTIES_MATERIAL_NEUTRAL_COLOR;
     this.colorInput.style.opacity = isShared || colors.length === 0 ? '1' : '0.55';
   }
 

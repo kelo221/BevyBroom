@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import { Toolbar } from '@/ui/toolbar/toolbar.js';
-import { SHELL_TOOL_BAR_TOOL_SLOT_CLASS, ShellToolBarBuilder } from '@/layout/shell/toolbar/shell_tool_bar_builder.js';
+import {
+  SHELL_TOOL_BAR_LAYOUT_SLOT_CLASS,
+  SHELL_TOOL_BAR_TOOL_OPTIONS_SLOT_CLASS,
+  ShellToolBarBuilder,
+  type ShellToolBarParts,
+} from '@/layout/shell/toolbar/shell_tool_bar_builder.js';
+import { TOOLBAR_OVERFLOW_TRIGGER_CLASS } from '@/ui/toolbar/toolbar.js';
 import { formatGridIntervalLabel } from '@/layout/shell/toolbar/shell_grid_interval_label.js';
 import { SNAP_PRESETS } from '@/types/snap_presets.js';
 import {
@@ -10,12 +16,12 @@ import {
   type ShellTestToolbarActions,
 } from '../shell_test_support.js';
 
-/** Toolbar, its actions and the tool slot built for one test. */
+/** Toolbar, its actions and the slots built for one test. */
 interface ShellToolBarBuilderTestRig {
   readonly toolbar: Toolbar;
   readonly toolbarActions: ShellTestToolbarActions;
   readonly windowActions: ShellTestWindowActions;
-  readonly toolSlot: HTMLElement;
+  readonly parts: ShellToolBarParts;
 }
 
 /** Toolbar built by the running test. */
@@ -36,8 +42,8 @@ function shellToolBarBuilderTestRigCreate(
   document.body.appendChild(container);
   const toolbar = new Toolbar(container);
   shellToolBarBuilderTestToolbar = toolbar;
-  const toolSlot = new ShellToolBarBuilder().build(toolbar, toolbarActions, windowActions);
-  return { toolbar, toolbarActions, windowActions, toolSlot };
+  const parts = new ShellToolBarBuilder().build(toolbar, toolbarActions, windowActions);
+  return { toolbar, toolbarActions, windowActions, parts };
 }
 
 /**
@@ -113,17 +119,30 @@ afterEach(() => {
 });
 
 describe('ShellToolBarBuilder', () => {
-  it('returns the tool slot attached in the toolbar after the history buttons', () => {
-    const { toolbar, toolSlot } = shellToolBarBuilderTestRigCreate();
-    expect(toolSlot.parentElement).toBe(toolbar.getElement());
-    expect(toolSlot.classList.contains(SHELL_TOOL_BAR_TOOL_SLOT_CLASS)).toBe(true);
-    const slotIndex = shellToolBarBuilderTestChildIndex(toolbar, toolSlot);
-    expect(shellToolBarBuilderTestChildIndex(toolbar, shellToolBarBuilderTestButtonRead(toolbar, 'Redo'))).toBeLessThan(
-      slotIndex,
-    );
-    expect(
-      shellToolBarBuilderTestChildIndex(toolbar, shellToolBarBuilderTestButtonRead(toolbar, 'Snap')),
-    ).toBeGreaterThan(slotIndex);
+  it('builds one row with the global actions first, then the tool options slot, then the layout slot', () => {
+    const { toolbar, parts } = shellToolBarBuilderTestRigCreate();
+    expect(parts.toolOptionsSlot.parentElement).toBe(toolbar.getElement());
+    expect(parts.layoutSlot.parentElement).toBe(toolbar.getElement());
+    expect(parts.toolOptionsSlot.classList.contains(SHELL_TOOL_BAR_TOOL_OPTIONS_SLOT_CLASS)).toBe(true);
+    expect(parts.layoutSlot.classList.contains(SHELL_TOOL_BAR_LAYOUT_SLOT_CLASS)).toBe(true);
+    const optionsIndex = shellToolBarBuilderTestChildIndex(toolbar, parts.toolOptionsSlot);
+    ['Undo', 'Redo', 'Snap', 'Global', 'Local', 'Pos Lock', 'Stretch Lock'].forEach((label) => {
+      const buttonIndex = shellToolBarBuilderTestChildIndex(toolbar, shellToolBarBuilderTestButtonRead(toolbar, label));
+      expect(buttonIndex).toBeLessThan(optionsIndex);
+    });
+    expect(shellToolBarBuilderTestChildIndex(toolbar, parts.layoutSlot)).toBeGreaterThan(optionsIndex);
+  });
+
+  it('places the overflow trigger between the tool options and the layout slot', () => {
+    const { toolbar, parts } = shellToolBarBuilderTestRigCreate();
+    const trigger = toolbar.getElement().querySelector(`.${TOOLBAR_OVERFLOW_TRIGGER_CLASS}`);
+    if (!trigger) {
+      throw new Error('Overflow trigger not found');
+    }
+    const triggerIndex = shellToolBarBuilderTestChildIndex(toolbar, trigger);
+    expect(triggerIndex).toBeGreaterThan(shellToolBarBuilderTestChildIndex(toolbar, parts.toolOptionsSlot));
+    expect(triggerIndex).toBeLessThan(shellToolBarBuilderTestChildIndex(toolbar, parts.layoutSlot));
+    expect(parts.overflow.collapsedItemsRead()).toEqual([]);
   });
 
   it('runs undo and redo from their buttons', () => {

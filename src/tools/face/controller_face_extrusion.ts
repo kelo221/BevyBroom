@@ -19,12 +19,7 @@ import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
 import type { SolidTriangleSourceRef } from '@/selection/face/solid_result_face_indices.js';
-
-/** Max interval between pointer downs that count as a face-tool double-click. */
-const FACE_DOUBLE_CLICK_MAX_INTERVAL_MS = 400;
-
-/** Max client-pixel drift between double-click pointer downs. */
-const FACE_DOUBLE_CLICK_MAX_DISTANCE_PX = 6;
+import { PointerDoubleClickDetector } from '@/input/pointer_double_click_detector.js';
 
 /**
  * Callback for selection mode changes.
@@ -54,6 +49,7 @@ export class ControllerFaceExtrusion {
   private currentMode: SelectionMode;
   private modeChangedCallback: SelectionModeCallback | null;
   private faceSelectionChangedCallback: FaceSelectionChangedListener | null;
+  private readonly faceSelectionListeners = new Set<FaceSelectionChangedListener>();
   private availableMeshes: THREE.Mesh[];
   private extrudeCounter: number;
   private lastCreatedMeshes: THREE.Mesh[];
@@ -66,9 +62,7 @@ export class ControllerFaceExtrusion {
   private lastDragRegionKey: string | null;
   /** True when external listeners need a post-drag selection notification. */
   private externalSelectionNotifyPending: boolean;
-  private lastPointerDownTimeMs: number;
-  private lastPointerDownClientX: number;
-  private lastPointerDownClientY: number;
+  private readonly pointerDoubleClickDetector: PointerDoubleClickDetector;
 
   /**
    * Creates a new face extrusion controller.
@@ -96,9 +90,7 @@ export class ControllerFaceExtrusion {
     this.isSubtractiveStroke = false;
     this.lastDragRegionKey = null;
     this.externalSelectionNotifyPending = false;
-    this.lastPointerDownTimeMs = 0;
-    this.lastPointerDownClientX = 0;
-    this.lastPointerDownClientY = 0;
+    this.pointerDoubleClickDetector = new PointerDoubleClickDetector();
     this.bindSelectionChangeCallback();
   }
 
@@ -129,20 +121,53 @@ export class ControllerFaceExtrusion {
     if (this.highlight) {
       this.highlight.setSelectedFaces(faces);
     }
-    if (!this.faceSelectionChangedCallback) return;
     if (this.isFaceDragActive) {
       this.externalSelectionNotifyPending = true;
       return;
     }
-    this.faceSelectionChangedCallback(faces);
+    this.externalSelectionListenersNotify(faces);
   }
 
   /** Notifies deferred external selection listeners after a drag ends. */
   private flushExternalSelectionNotify(): void {
     if (!this.externalSelectionNotifyPending) return;
     this.externalSelectionNotifyPending = false;
-    if (!this.faceSelectionChangedCallback) return;
-    this.faceSelectionChangedCallback(this.selectionManager.getSelectedFaces());
+    this.externalSelectionListenersNotify(this.selectionManager.getSelectedFaces());
+  }
+
+  /**
+   * Calls the registered face selection callback and every added face selection
+   * listener.
+   *
+   * @param faces The current set of selected faces.
+   */
+  private externalSelectionListenersNotify(faces: FaceSelection[]): void {
+    this.faceSelectionChangedCallback?.(faces);
+    this.faceSelectionListeners.forEach((listener) => listener(faces));
+  }
+
+  /**
+   * Adds a listener for face selection changes next to the registered callback.
+   * Like the callback, it is deferred while drag-painting.
+   *
+   * @param listener Invoked with the current face list.
+   * @returns Function that removes the listener.
+   */
+  faceSelectionListenerAdd(listener: FaceSelectionChangedListener): () => void {
+    this.faceSelectionListeners.add(listener);
+    return () => {
+      this.faceSelectionListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Selects face seeds in one batch, notifying listeners once.
+   *
+   * @param seeds Face seeds to select.
+   * @param addToSelection When false, the current selection is replaced.
+   */
+  selectFaceSeeds(seeds: FaceSelection[], addToSelection: boolean): void {
+    this.selectionManager.selectFaceSeeds(seeds, addToSelection);
   }
 
   /**
@@ -226,7 +251,7 @@ export class ControllerFaceExtrusion {
     this.isFaceDragActive = true;
     this.isSubtractiveStroke = isCtrlPressed;
     this.lastDragRegionKey = null;
-    const isDoubleClick = this.consumePointerDoubleClick(event.clientX, event.clientY);
+    const isDoubleClick = this.pointerDoubleClickDetector.pressRegister(event.clientX, event.clientY);
     const result = this.raycaster.pickFace(event, camera, pickElement, this.availableMeshes);
     if (!result) {
       if (!isShiftPressed && !isCtrlPressed) {
@@ -292,6 +317,20 @@ export class ControllerFaceExtrusion {
    */
   pickFaceAtPointer(event: MouseEvent, camera: THREE.Camera, pickElement: HTMLElement): FacePickResult | null {
     if (this.currentMode !== SelectionMode.FACE) return null;
+    return this.pickFaceUnderPointer(event, camera, pickElement);
+  }
+
+  /**
+   * Picks a face of the face-pickable meshes at the pointer in any selection
+   * mode without changing selection. Displacement surfaces report the brush
+   * face they cover.
+   *
+   * @param event The pointer event.
+   * @param camera The viewport camera.
+   * @param pickElement DOM pick target for NDC.
+   * @returns Pick result, or null when nothing was hit.
+   */
+  pickFaceUnderPointer(event: MouseEvent, camera: THREE.Camera, pickElement: HTMLElement): FacePickResult | null {
     return this.raycaster.pickFace(event, camera, pickElement, this.availableMeshes);
   }
 
@@ -348,25 +387,6 @@ export class ControllerFaceExtrusion {
       return false;
     }
     return seeds.every((seed) => this.selectionManager.isFaceSelected(seed.mesh, seed.faceIndex));
-  }
-
-  /**
-   * Detects a double-click from successive face-tool pointer downs.
-   *
-   * @param clientX Pointer client X.
-   * @param clientY Pointer client Y.
-   * @returns True when this press completes a double-click.
-   */
-  private consumePointerDoubleClick(clientX: number, clientY: number): boolean {
-    const nowMs = performance.now();
-    const isDoubleClick =
-      nowMs - this.lastPointerDownTimeMs <= FACE_DOUBLE_CLICK_MAX_INTERVAL_MS &&
-      Math.abs(clientX - this.lastPointerDownClientX) <= FACE_DOUBLE_CLICK_MAX_DISTANCE_PX &&
-      Math.abs(clientY - this.lastPointerDownClientY) <= FACE_DOUBLE_CLICK_MAX_DISTANCE_PX;
-    this.lastPointerDownTimeMs = nowMs;
-    this.lastPointerDownClientX = clientX;
-    this.lastPointerDownClientY = clientY;
-    return isDoubleClick;
   }
 
   /**
@@ -675,6 +695,15 @@ export class ControllerFaceExtrusion {
    */
   pruneInvalidFaceSelection(sceneRoot: THREE.Object3D): boolean {
     return this.selectionManager.pruneInvalidSelections(sceneRoot);
+  }
+
+  /**
+   * Rebuilds the selection highlight from the current face selection so it
+   * follows geometry that changed under the selected faces.
+   */
+  faceHighlightRefresh(): void {
+    this.highlight?.setSelectedFaces(this.selectionManager.getSelectedFaces());
+    this.highlight?.flushPendingHighlights();
   }
 
   /** Disposes all internal resources. */

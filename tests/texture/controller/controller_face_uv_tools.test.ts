@@ -98,6 +98,22 @@ describe('ControllerFaceUvTools', () => {
     expect(after).toBe(before);
   });
 
+  it('shifts only the chosen axis randomly as one undo step', () => {
+    const before = topFaceMapEntry(mesh)?.mapping.uv.clone();
+    if (!before) throw new Error('missing top face mapping');
+    const middleDraw = 0.5;
+    controller.shiftRandom('v', () => middleDraw);
+    expect(commandStack.getUndoCount()).toBe(1);
+    const after = topFaceMapEntry(mesh)?.mapping.uv;
+    expect(after?.u.clone().sub(before.u).length()).toBeLessThan(1e-9);
+    expect(after?.v.x).toBeCloseTo(before.v.x, 9);
+    expect(after?.v.y).toBeCloseTo(before.v.y, 9);
+    expect(after?.v.z).toBeCloseTo(before.v.z, 9);
+    expect(after?.v.w).not.toBeCloseTo(before.v.w, 6);
+    commandStack.undo();
+    expect(topFaceMapEntry(mesh)?.mapping.uv.v.w).toBeCloseTo(before.v.w, 9);
+  });
+
   it('keeps the face-mode gate closed without selected faces', () => {
     faceController.setSelectionMode(SelectionMode.OBJECT);
     expect(controller.faceModeHasSelectedFaces()).toBe(false);

@@ -38,6 +38,13 @@
         },
         { "path": "stats", "label": "stats", "kind": "asset", "default": null, "asset_type": "broom_preview::placeables::DoorStats" },
         { "path": "pending", "label": "pending", "kind": "unsupported", "default": null, "hidden": true }
+      ],
+      "inputs": [
+        { "name": "Open", "description": "Opens the door" },
+        { "name": "Close", "description": "Closes the door" }
+      ],
+      "outputs": [
+        { "name": "OnOpen", "description": "Fired when the door finishes opening" }
       ]
     },
     {

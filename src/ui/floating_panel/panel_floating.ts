@@ -2,6 +2,17 @@ import { Theme } from '@/theme.js';
 import { FloatingPanelStack, type FloatingPanelStackLayer } from './panel_floating_stack.js';
 import { clampFloatingPanelRectToScreen, FLOATING_PANEL_SCREEN_PADDING_PX } from './panel_floating_screen_bounds.js';
 import {
+  floatingPanelBesidePlacementCompute,
+  floatingPanelBesideRectRead,
+  FLOATING_PANEL_BESIDE_GAP_PX,
+} from './panel_floating_beside_placement.js';
+import {
+  freeFirstPlacementRetryCancel,
+  freeFirstPlacementRetryRemaining,
+  freeFirstPlacementRetrySchedule,
+  placementAnchorRectIsDegenerate,
+} from './panel_floating_first_placement.js';
+import {
   buildFloatingPanelTitleBar,
   type FloatingPanelTitleBarOptions,
   type FloatingPanelTitleBarParts,
@@ -12,10 +23,13 @@ export type FloatingPanelCorner = 'top-left' | 'bottom-left' | 'bottom-right';
 
 /** Construction options for a floating tool window or modal dialog. */
 export interface FloatingPanelOptions {
-  /** Corner of the anchor used for the first open position. */
-  corner: FloatingPanelCorner;
   /**
-   * When true, top-left placement sits below the viewport title bar strip. Only
+   * Corner of the anchor used for the first open position; top-left when
+   * omitted.
+   */
+  corner?: FloatingPanelCorner;
+  /**
+   * When true, top-left placement sits below the viewport corner label. Only
    * applies to top-left corners.
    */
   insetBelowViewportToolbar?: boolean;
@@ -25,8 +39,21 @@ export interface FloatingPanelOptions {
   draggable?: boolean;
   /** When true, mounts a full-screen dimmed backdrop behind the panel. */
   modal?: boolean;
-  /** When true, centers the panel in the viewport (typical for modals). */
+  /**
+   * When true, centers the panel. Modal panels stay flex-centered on their
+   * backdrop. Non-modal panels are centered in the placement anchor on their
+   * first open and keep their (dragged) position on later opens, clamped to the
+   * screen. The corner option is ignored for centered panels.
+   */
   centered?: boolean;
+  /**
+   * Returns the element a non-modal panel opens beside. On its first open the
+   * panel sits flush right of that element (left when the right does not fit),
+   * top-aligned, or centered in the placement anchor when neither fits or the
+   * element is missing or hidden; later opens keep the (dragged) position,
+   * clamped to the screen. The corner and centered options are ignored then.
+   */
+  besideResolver?: () => HTMLElement | null;
   /** When true and modal, backdrop pointer-down outside the panel closes it. */
   closeOnBackdropClick?: boolean;
   /** When true, Escape hides the panel while it is open. */
@@ -69,6 +96,10 @@ export abstract class PanelFloating {
   private dragOffsetY: number;
   private isDragging: boolean;
   private isShellMounted: boolean;
+  private hasFreeFirstPlacement: boolean;
+  private freeFirstPlacementRetryFrameId: number | null;
+  private freeFirstPlacementRetryCount: number;
+  private besideResolver: (() => HTMLElement | null) | null;
   private readonly boundDocumentKeyDown: (event: KeyboardEvent) => void;
 
   /**
@@ -83,7 +114,7 @@ export abstract class PanelFloating {
     this.host = host;
     this.defaultAnchor = defaultAnchor;
     this.defaultAnchorResolver = null;
-    this.corner = options.corner;
+    this.corner = options.corner ?? 'top-left';
     this.insetBelowViewportToolbar = options.insetBelowViewportToolbar === true;
     this.paddingPx = options.paddingPx ?? FLOATING_PANEL_SCREEN_PADDING_PX;
     this.draggable = options.draggable !== false;
@@ -95,6 +126,10 @@ export abstract class PanelFloating {
     this.isVisible = false;
     this.isDragging = false;
     this.isShellMounted = false;
+    this.hasFreeFirstPlacement = false;
+    this.freeFirstPlacementRetryFrameId = null;
+    this.freeFirstPlacementRetryCount = 0;
+    this.besideResolver = options.besideResolver ?? null;
     this.dragOffsetX = 0;
     this.dragOffsetY = 0;
     this.boundDocumentKeyDown = (event) => this.onDocumentKeyDown(event);
@@ -120,6 +155,17 @@ export abstract class PanelFloating {
    */
   setDefaultAnchorResolver(resolver: (() => HTMLElement | null) | null): void {
     this.defaultAnchorResolver = resolver;
+  }
+
+  /**
+   * Sets the resolver of the element a non-modal panel opens beside on its
+   * first open.
+   *
+   * @param resolver Callback returning that element, or null to use the corner
+   *   or centered placement again.
+   */
+  setBesideResolver(resolver: (() => HTMLElement | null) | null): void {
+    this.besideResolver = resolver;
   }
 
   /**
@@ -160,6 +206,7 @@ export abstract class PanelFloating {
       return;
     }
     this.isVisible = false;
+    this.freeFirstPlacementRetryStop();
     this.unbindEscapeWhileOpen();
     this.onAfterHide();
     this.unmountShellFromHost();
@@ -192,6 +239,15 @@ export abstract class PanelFloating {
     return this.isShellMounted;
   }
 
+  /**
+   * Returns whether a free panel has consumed its first placement.
+   *
+   * @returns True after a non-degenerate first placement.
+   */
+  hasConsumedFreeFirstPlacement(): boolean {
+    return this.hasFreeFirstPlacement;
+  }
+
   /** Repositions to the default anchor while visible (startup layout pass). */
   repositionToDefaultAnchor(): void {
     if (!this.isVisible) {
@@ -211,6 +267,7 @@ export abstract class PanelFloating {
 
   /** Hides if open, unregisters from the stack, and drops any remaining DOM. */
   dispose(): void {
+    this.freeFirstPlacementRetryStop();
     this.hide(true);
     FloatingPanelStack.unregister(this.getStackElement());
     this.unmountShellFromHost();
@@ -370,12 +427,103 @@ export abstract class PanelFloating {
     }
   }
 
-  /** Positions using the corner anchor when the panel is not flex-centered. */
+  /**
+   * Positions a corner panel at its corner, places a free beside or centered
+   * panel on its first placement only, and leaves flex-centered modal panels
+   * alone.
+   */
   private positionDefaultIfNeeded(): void {
     if (this.centered && this.modal) {
       return;
     }
+    if (this.besideResolver || this.centered) {
+      this.positionFreeOnFirstPlacement();
+      return;
+    }
     this.positionDefault();
+  }
+
+  /**
+   * Places a free panel beside its element, or centers it in its placement
+   * anchor, the first time it is placed, keeping any later (dragged) position
+   * afterwards.
+   */
+  private positionFreeOnFirstPlacement(): void {
+    if (this.hasFreeFirstPlacement) {
+      return;
+    }
+    const bounds = this.resolvePlacementAnchor().getBoundingClientRect();
+    this.freeFirstPlacementApply(bounds);
+    if (placementAnchorRectIsDegenerate(bounds)) {
+      this.freeFirstPlacementRetryScheduleIfNeeded();
+      return;
+    }
+    this.hasFreeFirstPlacement = true;
+    this.freeFirstPlacementRetryStop();
+  }
+
+  /**
+   * Places the panel from the current fallback bounds and panel size.
+   *
+   * @param bounds Placement-anchor rect used as the fallback.
+   */
+  private freeFirstPlacementApply(bounds: DOMRect): void {
+    const size = this.resolvePanelSizeForPlacement();
+    const placed = this.freeFirstPlacementCompute(bounds, size.width, size.height);
+    this.setTopLeftPosition(placed.left, placed.top);
+  }
+
+  /**
+   * Computes the first free placement from fallback bounds and panel size.
+   *
+   * @param bounds Placement-anchor rect used as the fallback.
+   * @param panelWidth Panel width in CSS pixels.
+   * @param panelHeight Panel height in CSS pixels.
+   * @returns Unclamped left/top of the panel.
+   */
+  private freeFirstPlacementCompute(
+    bounds: DOMRect,
+    panelWidth: number,
+    panelHeight: number,
+  ): { left: number; top: number } {
+    return floatingPanelBesidePlacementCompute({
+      besideRect: floatingPanelBesideRectRead(this.besideResolver?.() ?? null),
+      fallbackBounds: bounds,
+      panelWidth,
+      panelHeight,
+      screenWidth: window.innerWidth,
+      screenPaddingPx: this.paddingPx,
+      gapPx: FLOATING_PANEL_BESIDE_GAP_PX,
+    });
+  }
+
+  /** Cancels a pending first-placement retry so it cannot fire after hide. */
+  private freeFirstPlacementRetryStop(): void {
+    freeFirstPlacementRetryCancel(this.freeFirstPlacementRetryFrameId);
+    this.freeFirstPlacementRetryFrameId = null;
+    this.freeFirstPlacementRetryCount = 0;
+  }
+
+  /** Schedules another first-placement retry while the panel is still open. */
+  private freeFirstPlacementRetryScheduleIfNeeded(): void {
+    if (this.freeFirstPlacementRetryFrameId !== null) {
+      return;
+    }
+    if (!this.isVisible || !freeFirstPlacementRetryRemaining(this.freeFirstPlacementRetryCount)) {
+      return;
+    }
+    this.freeFirstPlacementRetryCount += 1;
+    this.freeFirstPlacementRetryFrameId = freeFirstPlacementRetrySchedule(() => this.freeFirstPlacementRetryRun());
+  }
+
+  /** Re-runs first placement after a degenerate-anchor frame. */
+  private freeFirstPlacementRetryRun(): void {
+    this.freeFirstPlacementRetryFrameId = null;
+    if (!this.isVisible || this.hasFreeFirstPlacement) {
+      return;
+    }
+    this.positionFreeOnFirstPlacement();
+    this.clampToScreenIfNeeded();
   }
 
   /** Clamps free-positioned panels into the screen. */
@@ -421,7 +569,7 @@ export abstract class PanelFloating {
     backdrop.style.alignItems = 'center';
     backdrop.style.justifyContent = 'center';
     backdrop.style.padding = '24px';
-    backdrop.style.background = options.backdropBackground ?? 'rgba(0, 0, 0, 0.55)';
+    backdrop.style.background = options.backdropBackground ?? Theme.modalBackdropColor;
     backdrop.style.boxSizing = 'border-box';
     if (this.closeOnBackdropClick) {
       backdrop.addEventListener('pointerdown', (event) => this.onBackdropPointerDown(event));
@@ -500,21 +648,46 @@ export abstract class PanelFloating {
    */
   private beginDrag(event: PointerEvent): void {
     this.isDragging = true;
+    this.hasFreeFirstPlacement = true;
+    this.freeFirstPlacementRetryStop();
     FloatingPanelStack.bringToFront(this.getStackElement(), this.stackLayer);
+    this.dragOffsetsFromPointerWrite(event);
+    this.dragMoveListenersBind();
+  }
+
+  /**
+   * Converts the panel to a top-left position and stores the pointer offset
+   * inside it.
+   *
+   * @param event Pointer down event.
+   */
+  private dragOffsetsFromPointerWrite(event: PointerEvent): void {
     const rect = this.root.getBoundingClientRect();
     this.dragOffsetX = event.clientX - rect.left;
     this.dragOffsetY = event.clientY - rect.top;
     this.root.style.position = 'fixed';
     this.convertBottomToTopPosition(rect);
+  }
+
+  /** Binds window pointer-move and pointer-up listeners for the drag. */
+  private dragMoveListenersBind(): void {
     const onMove = (moveEvent: PointerEvent) => this.onDragMove(moveEvent);
-    const onUp = () => {
-      this.isDragging = false;
-      this.clampToScreen();
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
+    const onUp = () => this.dragPointerUpHandle(onMove, onUp);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+  }
+
+  /**
+   * Ends the drag, clamps the panel, and removes the window pointer listeners.
+   *
+   * @param onMove Pointer-move listener to remove.
+   * @param onUp Pointer-up listener to remove.
+   */
+  private dragPointerUpHandle(onMove: (moveEvent: PointerEvent) => void, onUp: () => void): void {
+    this.isDragging = false;
+    this.clampToScreen();
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
   }
 
   /**
@@ -598,7 +771,7 @@ export abstract class PanelFloating {
   ): { left: number; top: number } {
     const pad = this.paddingPx;
     if (this.corner === 'top-left') {
-      const topInset = this.insetBelowViewportToolbar ? Theme.viewportToolbarHeightPx + pad : pad;
+      const topInset = this.insetBelowViewportToolbar ? Theme.viewportLabelHeightPx + pad : pad;
       return { left: anchorRect.left + pad, top: anchorRect.top + topInset };
     }
     if (this.corner === 'bottom-left') {

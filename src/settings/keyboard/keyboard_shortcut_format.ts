@@ -27,5 +27,6 @@ export function formatKeyboardCode(code: string): string {
   if (code.startsWith('Digit')) return code.slice(5);
   if (code === 'Delete') return 'Del';
   if (code === 'Escape') return 'Esc';
+  if (code === 'Backquote') return '`';
   return code;
 }

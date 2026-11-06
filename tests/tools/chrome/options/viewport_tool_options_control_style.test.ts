@@ -9,16 +9,16 @@ import { ViewportToolOptionsBar } from '@/tools/chrome/options/viewport_tool_opt
 import { EditorInteractionMode } from '@/types/editor_interaction_mode.js';
 
 describe('viewport tool options control sizing', () => {
-  it('matches control height to viewport title toolbar icon buttons', () => {
-    expect(Theme.viewportToolOptionsControlHeightPx).toBe(24);
+  it('leaves room inside an icon control for a toolbar icon and its border', () => {
+    expect(Theme.toolbarButtonPx).toBeGreaterThanOrEqual(Theme.toolbarIconPx + 2);
   });
 
-  it('sizes icon and text controls to the shared control height', () => {
+  it('sizes icon and text controls to the main toolbar button size', () => {
     const icon = document.createElement('button');
     const text = document.createElement('button');
     applyViewportToolOptionsIconButtonMetrics(icon);
     applyViewportToolOptionsTextButtonMetrics(text);
-    const height = `${Theme.viewportToolOptionsControlHeightPx}px`;
+    const height = `${Theme.toolbarButtonPx}px`;
     expect(icon.style.height).toBe(height);
     expect(icon.style.width).toBe(height);
     expect(text.style.height).toBe(height);
@@ -31,7 +31,7 @@ describe('viewport tool options control sizing', () => {
     document.body.appendChild(host);
     const dropdown = new ViewportToolModeDropdown(host, () => undefined);
     const button = host.querySelector('button') as HTMLButtonElement;
-    expect(button.style.height).toBe(`${Theme.viewportToolOptionsControlHeightPx}px`);
+    expect(button.style.height).toBe(`${Theme.toolbarButtonPx}px`);
     dropdown.dispose();
     host.remove();
   });

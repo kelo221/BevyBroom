@@ -264,7 +264,7 @@ Solid mutations (including hierarchy create/reparent/rename/ungroup) are **undoa
   - **Fog:** `fogEnabled`, `fogShape` (`sphere`, `box`, `cone_z`, `cone_y`, `frustum`), `fogRadius`, `fogThickness`, `fogIntensity`, `fogVisibility`.
   - **Shimmer:** `shimmer` (`none`, `water`, `random`), `shimmerScale`, `shimmerModifier`.
   - **Baking:** `illumination` (`direct`, `single_bounce`), `transparency` (`disabled`, `enabled`, `enabled_max`), `bounceColorHex`, `bounceColorAlpha`, `bounceModifier`, `bounceIntensity`, `bounceSamples`, `bounceCompression` (`default`, `bits8`, `bits6`, `bits5`, `bits4`).
-  - Lights ignore `scale`; set `radius` instead.
+  - Lights ignore `scale`; set `radius` instead. Game entities ignore `scale` too.
   - A `radius` given to `set_light_settings` without `fogRadius` changes the fog radius by the same factor.
 - **Room settings:** `halfSizeX`, `halfSizeY`, `halfSizeZ` in meters; the box is centered on the room and follows its rotation and scale.
 - **Portal settings:** `width`, `height`, `closed`. The portal is a rectangle in its local XY plane facing local +Z. Closing it (a door) hides what is behind it in the game.
@@ -325,13 +325,25 @@ These tools need the desktop app; the browser editor answers that it cannot star
 
 ## Main window
 
-| Tool              | What it does                                                                                                                                                      |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_main_window` | `inspectorVisible`, `inspectorTab` (`map`, `entity`, `face`), `infoPanelVisible`, `infoPanelTab` (`console`, `issues`), `toolbarVisible` and the menu bar `menus` |
-| `set_main_window` | Change any of those fields except `menus`; returns the arrangement afterwards                                                                                     |
+| Tool               | What it does                                                                                                                                                                                                                           |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_main_window`  | `inspectorVisible`, `infoPanelVisible`, `infoPanelCollapsed` (folded to its one-line strip), `infoPanelTab` (`console`, `issues`), `toolbarVisible`, the menu bar `menus`, and `floatingWindows` (`texture_browser`, `entity_browser`) |
+| `set_main_window`  | Change any of those fields except `menus`; `floatingWindows` shows or hides each named window. Returns the arrangement afterwards                                                                                                      |
+| `get_shell_layout` | Read-only `{x, y, width, height}` rectangles in CSS pixels of `views` (map views above the info panel), `infoPanel` and `inspector`; hidden areas are zero sized                                                                       |
 
 - Choosing a tab does not show a hidden dock; set `inspectorVisible` or `infoPanelVisible` too.
+- The info panel starts folded to its strip; `infoPanelCollapsed: false` unfolds it to its remembered height.
 - The arrangement is remembered between sessions, the same as when it is changed from the View menu.
+
+| Tool                           | What it does                                                                                                                                                       |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `get_object_properties_dialog` | `open`, the visible `tab`, the `tabs` in order and the `editedIds` of the Object Properties dialog                                                                 |
+| `set_object_properties_dialog` | `action` `open` (needs a selection), `apply` (one undo step) or `cancel`, switch to `tab`, and/or write `comments` as a session edit                               |
+| `set_object_class`             | Convert objects `ids` in place to `class` (label, class id or game type path) on the editor stack. Each object keeps its id, name, transform, comments and outputs |
+
+- Object Properties edits (the Class combo, comments, Outputs and Inputs tabs) go on a private session stack while the dialog is open. `apply` records them as one editor undo step; `cancel` discards them.
+- `set_logic_outputs` and `set_object_class` use the editor stack. If the dialog is open they first keep the session edits so far as one undo step, then land on top. `cancel` does not revert those foreign commands.
+- `comments` needs the dialog open and is a session edit: send it before `apply` or `cancel`, not in the same call that closes the dialog.
 
 ## Clipboard
 
@@ -354,8 +366,15 @@ These tools need the desktop app; the browser editor answers that it cannot star
 - Both tools project the world points through the view camera and dispatch real pointer events, so the active tool reacts exactly as it does to the mouse. Both return `selection` like `get_selection`.
 - With the Object tool, dragging a selected object moves the selection (grid snapped; `shift` turns snapping off, `alt` moves vertically in the perspective view, `ctrl` duplicates first). Dragging empty space while nothing is selected draws a box brush (`shift` square, `alt` sets the height in the perspective view). Dragging empty space while something is selected does nothing.
 - Visible gizmo handles win over moving: the bounds resize arrows sit at the center of each face of the selection (arrows hidden behind the selection do not take the press), and in 2D views its outline edges resize too. To move a selected box, press on a visible face away from its center and edges (for example halfway between the face center and a corner).
-- A click selects what is under the point: `shift` adds, `ctrl` toggles, empty space deselects.
+- A click selects what is under the point: `ctrl` toggles (adds an unselected object, removes a selected one), empty space deselects.
+- With the Object tool, a `shift` click on a brush face (or on a displaced face's surface) switches to the Face tool, opens the Face Edit Sheet and selects exactly that face. A `shift` click whose nearest object is no brush (a light, an entity, a mesh) adds that object, and on empty space it changes nothing.
 - The call fails when no view of that kind is visible.
+
+## Face editing
+
+| Tool                  | What it does                                                                                                                                                      |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_face_edit_state` | `activeTool` of the tools palette (`object`, `face`, ...), `faceEditSheetOpen`, `faceEditSheetTab` (`material`, `displacement`) and the face selection as `faces` |
 
 ## Not in this build
 

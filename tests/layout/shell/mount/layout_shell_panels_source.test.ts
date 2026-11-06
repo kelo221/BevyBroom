@@ -7,6 +7,17 @@ import { ControllerFaceExtrusion } from '@/tools/face/controller_face_extrusion.
 import { LayerManager } from '@/layer/model/layer_manager.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import { setStateTexturePaintForTests, StateTexturePaint } from '@/texture/paint/state_texture_paint.js';
+import {
+  getStateFaceEditSession,
+  setStateFaceEditSessionForTests,
+  StateFaceEditSession,
+} from '@/texture/paint/state_face_edit_session.js';
+import {
+  getStateEntityPlace,
+  setStateEntityPlaceForTests,
+  StateEntityPlace,
+} from '@/tools/entity_place/state_entity_place.js';
+import { setVisGroupSharedServicesForTests } from '@/visgroup/visgroup_shared_services.js';
 import { setTextureMapCacheForTests, TextureMapCache } from '@/texture/library/texture_map_cache.js';
 import type { LayoutShellPanels } from '@/layout/shell/mount/layout_shell_panels.js';
 import {
@@ -17,6 +28,14 @@ import type { ShellInspectorSlot } from '@/layout/shell/inspector/shell_inspecto
 import { shellTestDocksCreate, shellTestDocksDispose, type ShellTestDocks } from '../shell_test_support.js';
 import { entityBrowserTestEditorCreate } from '../../../entity_browser/entity_browser_test_support.js';
 import { mockObjectUrlApis } from '../../../texture/library/utils_object_url_test.js';
+
+/** Inspector slots the docked panels fill. */
+const LAYOUT_SHELL_PANELS_TEST_FILLED_SLOTS: readonly ShellInspectorSlot[] = [
+  'hammer_object_bar',
+  'hammer_visgroups',
+  'hammer_prefabs',
+  'map_layers',
+];
 
 /** Docks, panels and the editor parts a docked panels test works with. */
 interface LayoutShellPanelsFixture {
@@ -78,33 +97,52 @@ function meshWithUnknownComponentAdd(worldObject: THREE.Group): THREE.Mesh {
   return mesh;
 }
 
+/** Installs fresh editor singletons the docked panels read. */
+function singletonsInstall(): void {
+  mockObjectUrlApis('blob:layout-shell-panels');
+  setStateTexturePaintForTests(new StateTexturePaint());
+  setTextureMapCacheForTests(new TextureMapCache());
+  setStateFaceEditSessionForTests(new StateFaceEditSession());
+  setStateEntityPlaceForTests(new StateEntityPlace());
+  setVisGroupSharedServicesForTests(null);
+}
+
+/** Drops the editor singletons a test installed. */
+function singletonsReset(): void {
+  setStateTexturePaintForTests(null);
+  setTextureMapCacheForTests(null);
+  setStateFaceEditSessionForTests(null);
+  setStateEntityPlaceForTests(null);
+  setVisGroupSharedServicesForTests(null);
+}
+
 describe('layoutShellPanelsCreate', () => {
   let fixture: LayoutShellPanelsFixture;
 
   beforeEach(() => {
-    mockObjectUrlApis('blob:layout-shell-panels');
-    setStateTexturePaintForTests(new StateTexturePaint());
-    setTextureMapCacheForTests(new TextureMapCache());
+    singletonsInstall();
     fixture = fixtureCreate();
   });
 
   afterEach(() => {
     fixture.panels.dispose();
     shellTestDocksDispose(fixture.docks);
-    setStateTexturePaintForTests(null);
-    setTextureMapCacheForTests(null);
+    singletonsReset();
     vi.restoreAllMocks();
   });
 
-  it('mounts the layers, entity browser and face inspector into their inspector slots', () => {
-    expect(inspectorSlotFilledIs(fixture.docks, 'map_layers')).toBe(true);
-    expect(inspectorSlotFilledIs(fixture.docks, 'entity_browser')).toBe(true);
-    expect(
-      fixture.docks.inspector.slotRead('face').contains(fixture.panels.faceInspectorParts.faceInspector.getElement()),
-    ).toBe(true);
-    expect(fixture.docks.inspector.slotRead('entity_browser').contains(fixture.panels.entityBrowser.getElement())).toBe(
-      true,
-    );
+  it('fills the Hammer bar slots and the layers slot of the inspector', () => {
+    LAYOUT_SHELL_PANELS_TEST_FILLED_SLOTS.forEach((slot) => {
+      expect(inspectorSlotFilledIs(fixture.docks, slot)).toBe(true);
+    });
+    const objectBarSlot = fixture.docks.inspector.slotRead('hammer_object_bar');
+    expect(objectBarSlot.contains(fixture.panels.hammerBar.objectBar.getElement())).toBe(true);
+  });
+
+  it('keeps the face inspector and the entity browser out of the inspector', () => {
+    const inspectorElement = fixture.docks.inspector.getElement();
+    expect(inspectorElement.contains(fixture.panels.faceInspectorParts.faceInspector.getElement())).toBe(false);
+    expect(inspectorElement.contains(fixture.panels.entityBrowser.getElement())).toBe(false);
   });
 
   it('mounts the console and issues views into the info panel tabs', () => {
@@ -112,13 +150,32 @@ describe('layoutShellPanelsCreate', () => {
     expect(fixture.docks.infoPanel.slotRead('issues').childElementCount).toBeGreaterThan(0);
   });
 
-  it('keeps the face inspector active only while the Face tab is shown', () => {
+  it('opens the floating texture browser from Browse and activates the face inspector', () => {
     const faceInspector = fixture.panels.faceInspectorParts.faceInspector;
-    fixture.docks.dockCommands.inspectorTabReveal('map');
+    const textureBrowser = fixture.panels.textureWindows.textureBrowser;
+    expect(textureBrowser.isOpen()).toBe(false);
     expect(faceInspector.isVisible()).toBe(false);
-    fixture.panels.faceInspectorReveal();
-    expect(fixture.docks.inspector.activeTabIdRead()).toBe('face');
+    fixture.docks.inspector.getElement().querySelector<HTMLElement>('.shell-inspector-texture-browse')?.click();
+    expect(textureBrowser.isOpen()).toBe(true);
+    expect(textureBrowser.bodyRead().contains(faceInspector.getElement())).toBe(true);
     expect(faceInspector.isVisible()).toBe(true);
+    textureBrowser.hide();
+    expect(faceInspector.isVisible()).toBe(false);
+  });
+
+  it('opens the Face Edit Sheet for face mode and activates the face inspector', () => {
+    fixture.panels.faceEditSheetReveal();
+    expect(getStateFaceEditSession().sheetOpenRead()).toBe(true);
+    expect(fixture.panels.faceInspectorParts.faceInspector.isVisible()).toBe(true);
+  });
+
+  it('opens the floating entity browser from the Entity tool Browse request and the View menu command', () => {
+    const entityBrowserWindow = fixture.panels.entityBrowserWindow;
+    getStateEntityPlace().browseRequest();
+    expect(entityBrowserWindow.isOpen()).toBe(true);
+    expect(entityBrowserWindow.bodyRead().contains(fixture.panels.entityBrowser.getElement())).toBe(true);
+    fixture.docks.dockCommands.floatingWindowToggle('entity_browser');
+    expect(fixture.docks.dockCommands.isFloatingWindowOpen('entity_browser')).toBe(false);
   });
 
   it('reports map issues and selects and frames the object of a clicked issue', () => {
@@ -131,10 +188,13 @@ describe('layoutShellPanelsCreate', () => {
     expect(fixture.source.selectionFrameAll).toHaveBeenCalledOnce();
   });
 
-  it('removes every docked panel on dispose', () => {
+  it('removes every docked panel and the Browse delegate on dispose', () => {
     fixture.panels.dispose();
-    const slots: ShellInspectorSlot[] = ['map_layers', 'entity_browser', 'face'];
-    slots.forEach((slot) => expect(inspectorSlotFilledIs(fixture.docks, slot)).toBe(false));
+    LAYOUT_SHELL_PANELS_TEST_FILLED_SLOTS.forEach((slot) => {
+      expect(inspectorSlotFilledIs(fixture.docks, slot)).toBe(false);
+    });
     expect(fixture.docks.infoPanel.slotRead('issues').childElementCount).toBe(0);
+    getStateEntityPlace().browseRequest();
+    expect(fixture.panels.entityBrowserWindow.isOpen()).toBe(false);
   });
 });

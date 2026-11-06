@@ -45,7 +45,7 @@ A selected light shows orange balls you drag to size it:
 
 With grid snapping on, the radius snaps to the grid step and the cone angle to the rotation step. A drag updates the light and the game while you move, `Esc` cancels it, and one undo restores it. Locked lights show no balls.
 
-Lights are not scaled, and their box has no resize bars. Scaling a light with `S`, the scale gizmo or typed values changes its **Radius** instead, and the light keeps a scale of 1; one undo restores both. The Scale fields are hidden when only lights are selected. Scenes saved with a scaled light load with that scale turned into the radius, which is what the game already showed.
+Lights, like point game entities, are points that only move and rotate: they keep a scale of 1 and set their size through the **Radius** ball and property. While a light or a point game entity is selected, even together with brushes, the selection offers no scale handles, no resize bars and no size labels, `S` does not start scaling, and the Scale fields in the Properties panel are hidden. Rooms and portals keep their sizing. Scenes saved with a scaled light load with that scale turned into the radius, which is what the game already showed.
 
 The fog radius follows the light: dragging the radius ball, scaling, or typing a new **Radius** (also through the MCP `set_light_settings` tool) changes the fog radius by the same factor. Set the fog radius on its own in the **Fog** group.
 

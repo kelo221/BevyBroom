@@ -47,6 +47,24 @@ describe('FaceExtrusionController', () => {
     });
   });
 
+  describe('face selection listeners', () => {
+    it('notifies added listeners next to the callback until removed, once per seed batch', () => {
+      const mesh = createTestMesh();
+      const callbackCounts: number[] = [];
+      const listenerCounts: number[] = [];
+      controller.setFaceSelectionChangedCallback((faces) => callbackCounts.push(faces.length));
+      const listenerRemove = controller.faceSelectionListenerAdd((faces) => listenerCounts.push(faces.length));
+      controller.selectFaceSeeds([{ mesh, faceIndex: 0 }], false);
+      expect(listenerCounts).toEqual(callbackCounts);
+      expect(listenerCounts).toHaveLength(1);
+      expect(controller.getSelectedFaceCount()).toBeGreaterThan(0);
+      listenerRemove();
+      controller.selectFaceSeeds([], false);
+      expect(listenerCounts).toHaveLength(1);
+      expect(callbackCounts).toHaveLength(2);
+    });
+  });
+
   describe('extrusion creates new objects', () => {
     it('should add a new convex prism to the world root', () => {
       const mesh = createTestMesh();

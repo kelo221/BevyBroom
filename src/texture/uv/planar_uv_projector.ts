@@ -7,6 +7,7 @@ import {
 } from './face_texture_mapping.js';
 import { getFaceTextureMaps } from './face_texture_storage.js';
 import { captureGeometrySourceIfNeeded } from './geometry_source.js';
+import { FaceRegionWorldGeometry } from '@/selection/face/face_region_world_geometry.js';
 
 /** Orthonormal U/V axes for planar projection in world space. */
 export interface ProjectionBasis {
@@ -287,23 +288,15 @@ function replaceGeometryWithNonIndexedCopy(mesh: THREE.Mesh, geometry: THREE.Buf
 }
 
 /**
- * Computes the average world-space normal of the given triangle indices.
+ * Computes the world-space normal of a face region through the shared face
+ * region resolver.
  *
  * @param mesh Mesh providing geometry and world matrix.
- * @param triangleIndices Triangle indices to average.
+ * @param triangleIndices Triangle indices of the region.
  * @returns Unit world normal (defaults to +Y when empty).
  */
 export function computeRegionWorldNormal(mesh: THREE.Mesh, triangleIndices: number[]): THREE.Vector3 {
-  mesh.updateMatrixWorld(true);
-  const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
-  const accumulator = new THREE.Vector3();
-  triangleIndices.forEach((faceIndex) => {
-    const local = computeLocalTriangleNormal(mesh.geometry, faceIndex);
-    local.applyMatrix3(normalMatrix).normalize();
-    accumulator.add(local);
-  });
-  if (accumulator.lengthSq() < 1e-12) return new THREE.Vector3(0, 1, 0);
-  return accumulator.normalize();
+  return FaceRegionWorldGeometry.normalWorld(mesh, triangleIndices);
 }
 
 /**

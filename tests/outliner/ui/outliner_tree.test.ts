@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import { OutlinerTree } from '@/outliner/ui/outliner_tree.js';
+import { Theme } from '@/theme.js';
+import { uiTestCssColorNormalize } from '../../ui/ui_test_css_color.js';
 
 describe('OutlinerTree', () => {
   let container: HTMLElement;
@@ -118,7 +120,9 @@ describe('OutlinerTree', () => {
     const selectionSet = new Set<THREE.Mesh>();
     selectionSet.add(mesh);
     tree.refresh(selectionSet);
-    expect(tree.getRowElementsForTests()[0]!.style.background).toBe('rgba(232, 106, 23, 0.3)');
+    expect(tree.getRowElementsForTests()[0]!.style.background).toBe(
+      uiTestCssColorNormalize(Theme.outlinerSelectedColor),
+    );
   });
 
   it('should not highlight unselected objects', () => {
@@ -175,7 +179,7 @@ describe('OutlinerTree', () => {
     searchInput.dispatchEvent(new Event('input'));
     expect(tree.getVisibleRowCountForTests()).toBe(2);
     const bananaRow = tree.getRowElementsForTests().find((row) => row.textContent?.includes('Banana'));
-    expect(bananaRow?.style.background).toBe('rgba(232, 106, 23, 0.3)');
+    expect(bananaRow?.style.background).toBe(uiTestCssColorNormalize(Theme.outlinerSelectedColor));
   });
 
   it('reuses matching row elements while refining the search query', () => {

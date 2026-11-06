@@ -26,8 +26,11 @@ import {
 import { DesktopE2eAppProcess } from './desktop_e2e_app_process.js';
 import { DesktopE2eMcpClient } from './desktop_e2e_mcp_client.js';
 import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
+import { desktopE2eBoundsTopFaceGripPoint } from './desktop_e2e_bounds.js';
 import { shellMenusBuiltinCreate } from '@/layout/shell/menubar/shell_menu_bar.js';
 import type { ShellMainWindowState } from '@/layout/shell/actions/shell_main_window_control.js';
+import type { ShellMainWindowLayout } from '@/layout/shell/actions/shell_main_window_layout.js';
+import { Theme } from '@/theme.js';
 
 /**
  * End-to-end acceptance of the built desktop app, driven through its MCP server
@@ -77,22 +80,6 @@ interface DesktopE2eIssue {
  */
 function toolDataRead<Data>(result: McpToolResult): Data {
   return result.data as Data;
-}
-
-/**
- * Returns a point on the top face of world bounds halfway between the face
- * center and its +X +Z corner. Pressing there grabs the box itself, clear of
- * the bounds resize handle at the face center.
- *
- * @param bounds World bounds of a box.
- * @returns World point on the top face.
- */
-function boundsTopFaceGripPoint(bounds: McpBounds): McpVec3 {
-  return {
-    x: (bounds.min.x + 3 * bounds.max.x) / 4,
-    y: bounds.max.y,
-    z: (bounds.min.z + 3 * bounds.max.z) / 4,
-  };
 }
 
 /**
@@ -229,6 +216,15 @@ describe.skipIf(desktopExecutable === '')('desktop app end to end', () => {
   }
 
   /**
+   * Reads where the views, the info panel and the inspector sit on screen.
+   *
+   * @returns Main window layout reported by the editor.
+   */
+  async function shellLayoutRead(): Promise<ShellMainWindowLayout> {
+    return toolDataRead<ShellMainWindowLayout>(await client.toolCallExpectOk('get_shell_layout'));
+  }
+
+  /**
    * Validates the map and reads its issues.
    *
    * @returns Issues of the open map.
@@ -276,17 +272,47 @@ describe.skipIf(desktopExecutable === '')('desktop app end to end', () => {
     async () => {
       const initial = toolDataRead<ShellMainWindowState>(await client.toolCallExpectOk('get_main_window'));
       expect(initial.menus).toEqual(shellMenusBuiltinCreate().map((menu) => menu.label));
-      const faceAndIssues = await mainWindowChange({ inspectorTab: 'face', infoPanelTab: 'issues' });
-      expect(faceAndIssues).toMatchObject({ inspectorTab: 'face', inspectorVisible: true, infoPanelTab: 'issues' });
+      expect(Object.keys(initial)).not.toContain('inspectorTab');
+      const issuesShown = await mainWindowChange({ infoPanelTab: 'issues' });
+      expect(issuesShown).toMatchObject({ inspectorVisible: true, infoPanelTab: 'issues' });
       const infoPanelHidden = await mainWindowChange({ infoPanelVisible: false, toolbarVisible: false });
       expect(infoPanelHidden).toMatchObject({ infoPanelVisible: false, toolbarVisible: false });
       const restored = await mainWindowChange({
-        inspectorTab: initial.inspectorTab,
         infoPanelTab: initial.infoPanelTab,
         infoPanelVisible: initial.infoPanelVisible,
         toolbarVisible: initial.toolbarVisible,
       });
       expect(restored).toEqual(initial);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'starts with the info panel folded to its strip and gives the views the space it frees',
+    async () => {
+      const initial = toolDataRead<ShellMainWindowState>(await client.toolCallExpectOk('get_main_window'));
+      expect(initial.infoPanelCollapsed).toBe(true);
+      const folded = await shellLayoutRead();
+      expect(Math.abs(folded.infoPanel.height - Theme.infoStripHeightPx)).toBeLessThanOrEqual(2);
+      await mainWindowChange({ infoPanelCollapsed: false });
+      const unfolded = await desktopE2eWaitUntil(
+        'the info panel to unfold',
+        async () => {
+          const layout = await shellLayoutRead();
+          return layout.infoPanel.height > folded.infoPanel.height ? layout : null;
+        },
+        STEP_TIMEOUT_MILLISECONDS,
+      );
+      expect(unfolded.views.height).toBeLessThan(folded.views.height);
+      expect(folded.views.height - unfolded.views.height).toBeGreaterThanOrEqual(
+        unfolded.infoPanel.height - folded.infoPanel.height,
+      );
+      await mainWindowChange({ infoPanelCollapsed: true });
+      await desktopE2eWaitUntil(
+        'the info panel to fold again',
+        async () => ((await shellLayoutRead()).views.height === folded.views.height ? true : null),
+        STEP_TIMEOUT_MILLISECONDS,
+      );
     },
     STEP_TIMEOUT_MILLISECONDS,
   );
@@ -521,7 +547,7 @@ describe.skipIf(desktopExecutable === '')('desktop app end to end', () => {
       for (const axis of ['x', 'y', 'z'] as const) {
         expect(before.worldBounds.max[axis]).toBeGreaterThan(before.worldBounds.min[axis]);
       }
-      const grip = boundsTopFaceGripPoint(before.worldBounds);
+      const grip = desktopE2eBoundsTopFaceGripPoint(before.worldBounds);
       const moveDistance = before.worldBounds.max.x - before.worldBounds.min.x;
       await client.toolCallExpectOk('viewport_drag', {
         view: 'perspective',

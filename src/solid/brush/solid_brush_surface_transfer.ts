@@ -6,6 +6,9 @@ import {
   createDefaultFaceSurface,
   orientDefaultFaceSurface,
 } from '@/texture/uv_matrix/face_surface_description.js';
+import type { DisplacementFaceSurface } from '@/displacement/model/displacement_types.js';
+import { displacementSurfaceClone } from '@/displacement/model/displacement_face_surface.js';
+import { displacementFaceFailureRead } from '@/displacement/model/displacement_face_eligibility.js';
 import type { SolidBrushSurfaceMatcher } from './surface_matcher/solid_brush_surface_matcher.js';
 import { SolidBrushSurfaceMatcherPlane } from './surface_matcher/solid_brush_surface_matcher_plane.js';
 
@@ -128,6 +131,70 @@ export function applyTransferredSurfacesToInstance(
 ): void {
   const transferred = transferSurfacesByPlaneMatch(sourceBrush, sourceDefault, sourceFaceSurfaces, instance.brush);
   instance.restoreFaceSurfaces(transferred.defaultSurface, transferred.faceSurfaces);
+  applyTransferredDisplacementsToInstance(instance, sourceBrush, sourceFaceSurfaces);
+}
+
+/**
+ * Moves source-face displacements onto matching destination faces and drops
+ * unmatched or ineligible ones.
+ *
+ * @param instance Brush instance already holding the new geometry.
+ * @param sourceBrush Previous geometry (for plane matching).
+ * @param sourceFaceSurfaces Previous faces, including their displacements.
+ */
+function applyTransferredDisplacementsToInstance(
+  instance: SolidBrushInstance,
+  sourceBrush: SolidBrush,
+  sourceFaceSurfaces: (FaceSurfaceDescription | undefined)[],
+): void {
+  const transferred: (DisplacementFaceSurface | undefined)[] = [];
+  for (let destinationIndex = 0; destinationIndex < instance.brush.faces.length; destinationIndex++) {
+    transferred[destinationIndex] = transferredDisplacementResolve(
+      sourceBrush,
+      sourceFaceSurfaces,
+      instance.brush,
+      destinationIndex,
+    );
+  }
+  instance.restoreFaceDisplacements(transferred);
+  transferredDisplacementsDropIneligible(instance);
+}
+
+/**
+ * Resolves the displacement one destination face inherits.
+ *
+ * @param sourceBrush Geometry that owned the source surfaces.
+ * @param sourceFaceSurfaces Sparse per-face surfaces from the source instance.
+ * @param destinationBrush New geometry receiving the displacements.
+ * @param destinationIndex Destination face index.
+ * @returns Cloned displacement, or undefined when unmatched.
+ */
+function transferredDisplacementResolve(
+  sourceBrush: SolidBrush,
+  sourceFaceSurfaces: (FaceSurfaceDescription | undefined)[],
+  destinationBrush: SolidBrush,
+  destinationIndex: number,
+): DisplacementFaceSurface | undefined {
+  const destinationPlane = destinationBrush.planes[destinationIndex];
+  if (!destinationPlane) {
+    return undefined;
+  }
+  const sourceIndex = surfaceMatcherPlane.faceMatchFind(sourceBrush.planes, destinationPlane);
+  const displacement = sourceIndex < 0 ? undefined : sourceFaceSurfaces[sourceIndex]?.displacement;
+  return displacement ? displacementSurfaceClone(displacement) : undefined;
+}
+
+/**
+ * Removes transferred displacements from faces that cannot carry them.
+ *
+ * @param instance Brush instance whose displacements were just remapped.
+ */
+function transferredDisplacementsDropIneligible(instance: SolidBrushInstance): void {
+  for (const faceIndex of instance.faceDisplacementIndices()) {
+    if (displacementFaceFailureRead(instance, faceIndex) !== null) {
+      instance.faceDisplacementWrite(faceIndex, null);
+    }
+  }
 }
 
 /**
@@ -139,9 +206,11 @@ export function applyTransferredSurfacesToInstance(
 export function captureInstanceFaceSurfaces(instance: SolidBrushInstance): {
   defaultSurface: ReturnType<SolidBrushInstance['serializeDefaultSurface']>;
   faceSurfaces: ReturnType<SolidBrushInstance['serializeFaceSurfaces']>;
+  faceDisplacements: ReturnType<SolidBrushInstance['serializeFaceDisplacements']>;
 } {
   return {
     defaultSurface: instance.serializeDefaultSurface(),
     faceSurfaces: instance.serializeFaceSurfaces(),
+    faceDisplacements: instance.serializeFaceDisplacements(),
   };
 }

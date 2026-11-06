@@ -17,7 +17,7 @@ export interface FaceInspectorParts {
 }
 
 /**
- * Face tab column: face attributes at their natural height on top and the
+ * Face inspector column: face attributes at their natural height on top and the
  * material browser filling the rest below. Selection refreshes only run while
  * the inspector is visible; becoming visible refreshes once.
  */
@@ -78,7 +78,7 @@ export class FaceInspector {
   /**
    * Shows or hides the column; showing it refreshes from the selection.
    *
-   * @param visible Whether the Face tab is shown.
+   * @param visible Whether a window showing the face attributes is open.
    */
   setVisible(visible: boolean): void {
     this.visible = visible;

@@ -111,11 +111,7 @@ export class PanelGamePreview extends PanelFloating {
    * and status.
    */
   private rootPopulate(): void {
-    applyFloatingPanelToolChrome(this.root, {
-      width: '340px',
-      borderRadiusPx: 8,
-      boxShadow: '0 10px 28px rgba(0,0,0,0.55)',
-    });
+    applyFloatingPanelToolChrome(this.root, { width: '340px' });
     this.root.appendChild(this.createStandardTitleBar({ titleText: 'Game Preview' }).bar);
     this.root.appendChild(this.projectSection.root);
     this.root.appendChild(this.endpointRowCreate());

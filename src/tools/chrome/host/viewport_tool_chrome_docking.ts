@@ -1,10 +1,10 @@
 /**
- * Where docked tool chrome goes: the tool buttons strip and the tool options
- * strip each get their own parent, typically the main toolbar and the view
- * bar.
+ * Where docked tool chrome goes: the tool buttons rail and the tool options
+ * strip each get their own parent, typically the left tools palette and the
+ * view bar.
  */
 export interface ViewportToolChromeDocking {
-  /** Parent that receives the tool buttons strip. */
+  /** Parent that receives the vertical tool buttons rail. */
   readonly railParent: HTMLElement;
   /** Parent that receives the tool options strip. */
   readonly optionsParent: HTMLElement;
@@ -20,19 +20,46 @@ export const VIEWPORT_TOOL_CHROME_DOCKED_CLASS = 'editor-viewport-tool-chrome-do
  * @param strip Rail or options strip root element.
  */
 export function viewportToolChromeDockedStripStyle(strip: HTMLElement): void {
-  strip.classList.add(VIEWPORT_TOOL_CHROME_DOCKED_CLASS);
-  strip.style.position = 'static';
-  strip.style.left = '';
-  strip.style.top = '';
+  viewportToolChromeDockedBaseStyle(strip);
   strip.style.width = 'auto';
-  strip.style.maxWidth = 'none';
   strip.style.flexDirection = 'row';
   strip.style.flexWrap = 'nowrap';
-  strip.style.alignItems = 'center';
   strip.style.padding = '0 2px';
-  strip.style.background = 'transparent';
-  strip.style.border = 'none';
-  strip.style.borderRadius = '0';
-  strip.style.boxShadow = 'none';
-  strip.style.zIndex = '';
+}
+
+/**
+ * Restyles the tool buttons rail so it fills a docked vertical palette: a
+ * full-width column of centered buttons without floating position, border,
+ * radius or shadow.
+ *
+ * @param element Rail root element.
+ */
+export function viewportToolChromeDockedRailStyle(element: HTMLElement): void {
+  viewportToolChromeDockedBaseStyle(element);
+  element.style.display = 'flex';
+  element.style.width = '100%';
+  element.style.flexDirection = 'column';
+  element.style.flexWrap = 'nowrap';
+  element.style.gap = '4px';
+  element.style.padding = '0';
+}
+
+/**
+ * Removes floating position, size limits, background, border, radius, shadow
+ * and stacking from a docked chrome element and centers its items.
+ *
+ * @param element Docked chrome root element.
+ */
+function viewportToolChromeDockedBaseStyle(element: HTMLElement): void {
+  element.classList.add(VIEWPORT_TOOL_CHROME_DOCKED_CLASS);
+  element.style.position = 'static';
+  element.style.left = '';
+  element.style.top = '';
+  element.style.maxWidth = 'none';
+  element.style.alignItems = 'center';
+  element.style.background = 'transparent';
+  element.style.border = 'none';
+  element.style.borderRadius = '0';
+  element.style.boxShadow = 'none';
+  element.style.zIndex = '';
 }

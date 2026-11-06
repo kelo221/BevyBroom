@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ControllerAreaLayout } from '@/layout/area/controller_area_layout.js';
 import { DEFAULT_AREA_IDS } from '@/layout/area/area_layout_presets.js';
 import { ViewportKind } from '@/viewports/core/viewport_kind.js';
+import { areaGridPaneAt } from './area_layout_test_grid.js';
 
 /**
  * Builds a pane layer with seed containers for the default quad.
@@ -41,9 +42,11 @@ describe('AreaLayoutController', () => {
     const layer = createSeedLayer();
     const controller = new ControllerAreaLayout(layer);
     controller.apply();
-    expect(controller.joinAreas(DEFAULT_AREA_IDS.top, DEFAULT_AREA_IDS.front)).toBe(true);
+    const upperRight = areaGridPaneAt(controller.getRoot(), 'right', 'upper');
+    const lowerRight = areaGridPaneAt(controller.getRoot(), 'right', 'lower');
+    expect(controller.joinAreas(upperRight, lowerRight)).toBe(true);
     expect(controller.getLeafCount()).toBe(3);
-    expect(controller.getLayoutDom().getContainer(DEFAULT_AREA_IDS.front)).toBeNull();
+    expect(controller.getLayoutDom().getContainer(lowerRight)).toBeNull();
   });
 
   it('should maximize and restore', () => {

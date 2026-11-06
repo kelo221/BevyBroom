@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
 import { ViewportBase, type ViewportBaseOptions } from './viewport_base.js';
 import { Grids, GridPlane } from '@/viewports/grid/grids.js';
 import { HandlerOrthoPan } from '@/navigation/camera/handler_ortho_pan.js';
@@ -63,6 +64,15 @@ export class Viewport2D extends ViewportBase {
     // during pane construction (workspace switch Quad↔Single) and leave solid
     // meshes wearing black outline materials until the next full multi-view pass.
     this.shadingController.setShadingMode(ShadingMode.WIREFRAME, false);
+  }
+
+  /**
+   * Returns the black background the orthographic 2D views are cleared to.
+   *
+   * @returns Hex clear color.
+   */
+  override getBackgroundColor(): number {
+    return Theme.viewport2dBackground;
   }
 
   /** Initializes the mutable state properties of this viewport. */

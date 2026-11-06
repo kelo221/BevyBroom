@@ -10,6 +10,10 @@ import { EDIT_MODE_REST_WIRE_COLOR_2D } from '@/edit/component/component_edit_se
 import { rebuildDecorativeEdges, DECORATIVE_EDGE_USERDATA_KEY } from '@/utils/mesh_edge_sync.js';
 import { SolidBrushEdgeMaterials } from '@/solid/model/solid_brush_edge_materials.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
+import { ViewportObjectWireColor } from '@/viewports/shading/viewport_object_wire_color.js';
+
+/** Palette wire color the tests request shared edge materials for. */
+const TEST_WIRE_COLOR = ViewportObjectWireColor.colorFromPaletteIndex(0);
 import { EDIT_MODE_WIREFRAME_SUPPRESSED_USERDATA_KEY } from '@/utils/edit_mode_wireframe_suppress.js';
 
 describe('edit_mode_viewport_line_style', () => {
@@ -33,7 +37,7 @@ describe('edit_mode_viewport_line_style', () => {
     setEditModeViewportLineStyleActive(true);
     applyEditModeLineStyleForOrthographicPass(world);
     expect(readLineColor(decorative!)).toBe(EDIT_MODE_REST_WIRE_COLOR_2D);
-    const brushMaterial = SolidBrushEdgeMaterials.getFrontMaterial(SolidOperation.Additive);
+    const brushMaterial = SolidBrushEdgeMaterials.getFrontMaterial(SolidOperation.Additive, TEST_WIRE_COLOR);
     expect(readBrushDiffuseHex(brushMaterial)).toBe(
       SolidBrushEdgeMaterials.edgeColorForOperation(SolidOperation.Additive),
     );

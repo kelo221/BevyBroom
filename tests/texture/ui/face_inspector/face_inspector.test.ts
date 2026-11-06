@@ -29,7 +29,6 @@ describe('FaceInspector', () => {
         onAlignEdge: vi.fn(),
         onFlip: vi.fn(),
         onRotate: vi.fn(),
-        onResetFace: vi.fn(),
         onResetWorld: vi.fn(),
         onShearCommit: vi.fn(),
       },

@@ -10,12 +10,12 @@ export function applyImportOverlayPanelStyles(panel: HTMLElement): void {
   panel.style.minWidth = '320px';
   panel.style.maxWidth = '420px';
   panel.style.padding = '20px 24px';
-  panel.style.borderRadius = '8px';
+  panel.style.borderRadius = '2px';
   panel.style.background = hexToRgb(Theme.propertiesPanelBackground);
-  panel.style.border = `1px solid ${hexToRgb(Theme.separatorColor)}`;
-  panel.style.boxShadow = '0 8px 32px rgba(0,0,0,0.45)';
+  panel.style.border = `1px solid ${Theme.chromeBorderColor}`;
+  panel.style.boxShadow = Theme.dialogShadow;
   panel.style.boxSizing = 'border-box';
-  panel.style.fontFamily = 'system-ui, sans-serif';
+  panel.style.fontFamily = Theme.uiFontFamily;
 }
 
 /**
@@ -60,7 +60,7 @@ export function buildImportOverlayTrack(barFill: HTMLElement): HTMLElement {
   barFill.style.height = '100%';
   barFill.style.width = '0%';
   barFill.style.borderRadius = '5px';
-  barFill.style.background = hexToRgb(Theme.selectionColor);
+  barFill.style.background = hexToRgb(Theme.toggleAccentColor);
   barFill.style.transition = 'width 0.08s linear';
   track.appendChild(barFill);
   return track;

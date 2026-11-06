@@ -10,6 +10,7 @@ import {
 } from '@/info_panel/issues/issues_scheduler.js';
 import { IssuesView, type IssuesViewActivateCallback } from '@/info_panel/issues/issues_view.js';
 import { ProjectIssueBoard } from '@/project/issues/project_issue_board.js';
+import { InfoPanelStripSummary } from '@/info_panel/strip/info_panel_strip_summary.js';
 
 /** Collaborators of the info panel sources. */
 export interface InfoPanelSourcesOptions {
@@ -87,6 +88,19 @@ export class InfoPanelSources {
    */
   issuesViewCreate(onIssueActivate: IssuesViewActivateCallback): IssuesView {
     return new IssuesView(this.issuesScheduler, onIssueActivate);
+  }
+
+  /**
+   * Creates the one-line strip summary of the log and the scheduler.
+   *
+   * @param ownerDocument Document that creates the elements.
+   * @param timerSource Timer that ends badge pulses; defaults to the global
+   *   timers.
+   * @returns New summary; dispose it when the strip goes away.
+   */
+  stripSummaryCreate(ownerDocument: Document, timerSource?: IssuesSchedulerTimerSource): InfoPanelStripSummary {
+    const options = { consoleLog: this.consoleLog, issuesScheduler: this.issuesScheduler };
+    return new InfoPanelStripSummary(ownerDocument, timerSource ? { ...options, timerSource } : options);
   }
 
   /** Stops validating. */

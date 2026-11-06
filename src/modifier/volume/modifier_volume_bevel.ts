@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
 import { SKIP_FACE_PICK_USERDATA_KEY } from '@/solid/model/solid_brush_visual.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
 import { ModifierVolumeBevelRegistry } from './modifier_volume_bevel_registry.js';
@@ -64,7 +65,7 @@ export interface ModifierBevelVolumeSettings {
   uvSpace: ModifierBevelUvSpace;
 }
 
-const VOLUME_COLOR = 0xe67e22;
+const VOLUME_COLOR = Theme.modifierVolumeColor;
 
 /**
  * Copies the UV placement fields out of a settings object.

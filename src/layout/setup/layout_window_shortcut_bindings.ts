@@ -9,7 +9,7 @@ export type LayoutWindowShortcutCallbacks = Partial<Record<KeyboardShortcutActio
 /** Dock commands the window shortcuts run. */
 export type LayoutWindowShortcutDockCommands = Pick<
   ShellDockCommands,
-  'inspectorTabReveal' | 'inspectorToggle' | 'infoPanelToggle' | 'toolbarToggle'
+  'inspectorReveal' | 'inspectorToggle' | 'infoPanelToggle' | 'infoPanelCollapsedToggle' | 'toolbarToggle'
 >;
 
 /**
@@ -28,8 +28,8 @@ export function layoutWindowShortcutsRegister(
 }
 
 /**
- * Builds the callbacks of the view, play, selection and paste at original
- * position shortcuts.
+ * Builds the callbacks of the view, play, selection, Object Properties and
+ * paste at original position shortcuts.
  *
  * @param windowActions Main window commands.
  * @returns Shortcut callbacks keyed by action.
@@ -47,11 +47,13 @@ export function layoutWindowShortcutsWindowActionsCreate(
     visibility_hide: () => windowActions.selectionVisibilityRead()?.hideSelected(),
     visibility_isolate: () => windowActions.selectionVisibilityRead()?.isolateSelected(),
     visibility_show_all: () => windowActions.selectionVisibilityRead()?.showAll(),
+    object_properties: () => windowActions.objectPropertiesOpen(),
   };
 }
 
 /**
- * Builds the callbacks of the inspector, info panel and toolbar shortcuts.
+ * Builds the callbacks of the inspector, info panel, info panel collapse and
+ * toolbar shortcuts.
  *
  * @param dockCommands Commands that show, hide and switch the docks.
  * @returns Shortcut callbacks keyed by action.
@@ -60,11 +62,10 @@ export function layoutWindowShortcutsDockCreate(
   dockCommands: LayoutWindowShortcutDockCommands,
 ): LayoutWindowShortcutCallbacks {
   return {
-    inspector_map: () => dockCommands.inspectorTabReveal('map'),
-    inspector_entity: () => dockCommands.inspectorTabReveal('entity'),
-    inspector_face: () => dockCommands.inspectorTabReveal('face'),
+    inspector_map: () => dockCommands.inspectorReveal(),
     inspector_toggle: () => dockCommands.inspectorToggle(),
     info_panel_toggle: () => dockCommands.infoPanelToggle(),
+    info_panel_collapse_toggle: () => dockCommands.infoPanelCollapsedToggle(),
     toolbar_toggle: () => dockCommands.toolbarToggle(),
   };
 }

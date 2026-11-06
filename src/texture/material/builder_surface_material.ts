@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import { materialIdentityWrite } from '@/materials/identity/material_identity.js';
 import { getFaceTextureMaps, getFaceTextureMapsLive, setFaceTextureMaps } from '@/texture/uv/face_texture_storage.js';
 import { countTriangles } from '@/texture/uv/planar_uv_projector.js';
@@ -545,14 +546,14 @@ function createSurfaceMaterial(color: number, textureId: string, cache: TextureM
 function extractMeshColor(mesh: THREE.Mesh): number {
   const snapshotColor = readColorFromSnapshot(mesh.uuid);
   if (snapshotColor !== null) return snapshotColor;
-  if (meshUsesShadingOverrideMaterials(mesh)) return 0xffffff;
+  if (meshUsesShadingOverrideMaterials(mesh)) return MaterialColorNeutral.white;
   const material = mesh.material;
   const first = Array.isArray(material) ? material[0] : material;
   if (first && !isShadingOverrideMaterial(first) && 'color' in first) {
     const color = (first as { color?: THREE.Color }).color;
     if (color) return color.getHex();
   }
-  return 0xffffff;
+  return MaterialColorNeutral.white;
 }
 
 /**

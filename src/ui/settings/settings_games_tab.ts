@@ -182,10 +182,8 @@ export class SettingsGamesTab {
     item.style.fontSize = '12px';
     item.style.fontWeight = '500';
     item.style.color = Theme.buttonTextColor;
-    item.style.border = isActive
-      ? `1px solid ${hexToRgb(Theme.selectionColor)}`
-      : `1px solid ${Theme.inputBorderColor}`;
-    item.style.background = isActive ? Theme.outlinerSelectedColor : hexToRgb(Theme.buttonBackground);
+    item.style.border = isActive ? `1px solid ${Theme.listSelectedBorder}` : `1px solid ${Theme.inputBorderColor}`;
+    item.style.background = isActive ? Theme.listSelectedBackground : hexToRgb(Theme.buttonBackground);
   }
 
   /** Builds the unit and coordinate space editors for the active profile. */

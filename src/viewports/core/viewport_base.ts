@@ -17,8 +17,8 @@ export interface ViewportBaseOptions {
 }
 
 /**
- * Places the pane drawable/hit target strictly below the title bar so
- * multi-view scissor and camera aspect never include chrome pixels.
+ * Makes the pane drawable/hit target fill the whole pane; the viewport chrome
+ * only overlays small corner controls.
  *
  * @param contentElement Pane content element receiving layout styles.
  */
@@ -26,7 +26,7 @@ export function applyViewportContentDrawableStyles(contentElement: HTMLElement):
   contentElement.style.position = 'absolute';
   contentElement.style.left = '0';
   contentElement.style.right = '0';
-  contentElement.style.top = `${Theme.viewportToolbarHeightPx}px`;
+  contentElement.style.top = '0';
   contentElement.style.bottom = '0';
   contentElement.style.background = 'transparent';
 }
@@ -98,10 +98,7 @@ export abstract class ViewportBase {
     );
   }
 
-  /**
-   * Configures chrome host and drawable content. Content sits strictly below
-   * the pane title bar so scissor/camera never spend pixels under the toolbar.
-   */
+  /** Configures the chrome host and the drawable content that fills the pane. */
   protected setupContainer(): void {
     this.applyContainerChromeStyles();
     this.applyContentDrawableStyles();
@@ -120,7 +117,7 @@ export abstract class ViewportBase {
     applyViewportContainerChromeStyles(this.container);
   }
 
-  /** Places the hit/scissor target in the visible region under the title bar. */
+  /** Makes the hit/scissor target fill the pane. */
   private applyContentDrawableStyles(): void {
     applyViewportContentDrawableStyles(this.contentElement);
   }
@@ -137,6 +134,16 @@ export abstract class ViewportBase {
   /** Legacy no-op render entry; the shared composer draws this pane. */
   render(): void {
     this.prepareRender();
+  }
+
+  /**
+   * Returns the hex color this pane is cleared to before it is drawn: the grey
+   * 3D view background unless a pane kind chooses its own.
+   *
+   * @returns Hex clear color.
+   */
+  getBackgroundColor(): number {
+    return Theme.viewportBackground;
   }
 
   /**

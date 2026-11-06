@@ -11,6 +11,7 @@ import type { RoomSettings } from '@/portal/model/room_settings.js';
 import type { FaceTextureMappingSerialized } from '@/texture/uv/face_texture_mapping.js';
 import type {
   PreviewAuthoredComponents,
+  PreviewAuthoredLogicOutput,
   PreviewPlaceableClass,
 } from '@/preview/protocol/preview_protocol_placeable_types.js';
 
@@ -91,6 +92,14 @@ export interface ObjectEntry {
    * (version 6+).
    */
   gameComponents?: PreviewAuthoredComponents;
+  /** Authored entity I/O output connections on this object. */
+  gameLogicOutputs?: PreviewAuthoredLogicOutput[];
+  /** Authored designer comments on this object. */
+  objectComments?: string;
+  /** User VisGroup ids this object belongs to. */
+  visGroupIds?: string[];
+  /** Re-editable 2D Polygon outline extrusion recipe on this brush or group. */
+  polygonOutline?: import('@/tools/polygon/polygon_outline_recipe.js').PolygonOutlineRecipe;
   /** Present when the mesh is a bevel volume. Distance is world units. */
   modifierBevel?: {
     distance: number;
@@ -129,6 +138,8 @@ export interface ObjectEntry {
       faceTextureIds?: (string | undefined)[];
       defaultMapping?: SerializedFaceTextureMap['mapping'];
       faceMappings?: Array<SerializedFaceTextureMap['mapping'] | undefined>;
+      /** Sparse per-face displacements; present only when a face is displaced. */
+      faceDisplacements?: Array<import('@/displacement/model/displacement_types.js').DisplacementFaceSurface | null>;
       vertices: number[];
       wingEdges: Array<{ vertexIndex: number; twinIndex: number }>;
       edgeFaceIndices: number[];

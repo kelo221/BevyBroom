@@ -1,4 +1,5 @@
 import { Theme } from '@/theme.js';
+import { hexToRgb } from '@/utils/utils_color.js';
 
 /** Themed checkbox used by inspector rows. Mixed values show as indeterminate. */
 export class InputCheckbox {
@@ -14,7 +15,7 @@ export class InputCheckbox {
     this.element = document.createElement('input');
     this.element.type = 'checkbox';
     this.element.setAttribute('aria-label', ariaLabel);
-    this.element.style.accentColor = `#${Theme.selectionColor.toString(16).padStart(6, '0')}`;
+    this.element.style.accentColor = hexToRgb(Theme.toggleAccentColor);
     this.element.style.margin = '0';
     this.element.style.cursor = 'pointer';
     this.commitHandler = null;

@@ -1,4 +1,4 @@
-import { shellStateDefaultCreate, type ShellState } from './shell_state.js';
+import { SHELL_INSPECTOR_WIDTH_PREVIOUS_DEFAULT_PX, shellStateDefaultCreate, type ShellState } from './shell_state.js';
 
 /**
  * Builds a valid shell state from parsed storage JSON, using defaults for
@@ -15,12 +15,13 @@ export function shellStateSanitize(value: unknown): ShellState {
   const record = value as Record<string, unknown>;
   return {
     inspectorVisible: shellStateBooleanRead(record['inspectorVisible'], defaults.inspectorVisible),
-    inspectorWidthPx: shellStatePixelsRead(record['inspectorWidthPx'], defaults.inspectorWidthPx),
-    inspectorTabId: shellStateStringRead(record['inspectorTabId'], defaults.inspectorTabId),
+    inspectorWidthPx: shellStateInspectorWidthRead(record['inspectorWidthPx'], defaults.inspectorWidthPx),
     infoPanelVisible: shellStateBooleanRead(record['infoPanelVisible'], defaults.infoPanelVisible),
+    infoPanelCollapsed: shellStateBooleanRead(record['infoPanelCollapsed'], defaults.infoPanelCollapsed),
     infoPanelHeightPx: shellStatePixelsRead(record['infoPanelHeightPx'], defaults.infoPanelHeightPx),
     infoPanelTabId: shellStateStringRead(record['infoPanelTabId'], defaults.infoPanelTabId),
     toolbarVisible: shellStateBooleanRead(record['toolbarVisible'], defaults.toolbarVisible),
+    toolsPaletteVisible: shellStateBooleanRead(record['toolsPaletteVisible'], defaults.toolsPaletteVisible),
     splitSizesPx: shellStateSplitSizesRead(record['splitSizesPx']),
   };
 }
@@ -46,6 +47,20 @@ function shellStateBooleanRead(value: unknown, fallback: boolean): boolean {
  */
 function shellStatePixelsRead(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+/**
+ * Reads the inspector width, replacing the width earlier versions started with
+ * by the current default.
+ *
+ * @param value Stored value.
+ * @param fallback Current default width, also used when the stored value is not
+ *   a positive finite number.
+ * @returns Inspector width in CSS pixels.
+ */
+function shellStateInspectorWidthRead(value: unknown, fallback: number): number {
+  const widthPx = shellStatePixelsRead(value, fallback);
+  return widthPx === SHELL_INSPECTOR_WIDTH_PREVIOUS_DEFAULT_PX ? fallback : widthPx;
 }
 
 /**

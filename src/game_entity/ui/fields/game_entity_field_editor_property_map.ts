@@ -72,15 +72,35 @@ export class GameEntityFieldEditorPropertyMap extends GameEntityFieldEditor {
     const row = document.createElement('div');
     row.style.display = 'flex';
     row.style.gap = '4px';
-    const nameInput = new InputText(`${this.ariaLabel()} name`);
-    const valueInput = new InputText(`${this.ariaLabel()} value`);
-    nameInput.setSharedValues([name]);
-    valueInput.setSharedValues([String(value)]);
+    const nameInput = GameEntityFieldEditorPropertyMap.inputCreate(`${this.ariaLabel()} name`, name, 'key');
+    const valueInput = GameEntityFieldEditorPropertyMap.inputCreate(
+      `${this.ariaLabel()} value`,
+      String(value),
+      'value',
+    );
     const commit = (): void => this.rowCommit(name, nameInput.getValue(), valueInput.getValue());
     nameInput.bindCommit(commit);
     valueInput.bindCommit(commit);
     row.append(nameInput.getElement(), valueInput.getElement());
     return row;
+  }
+
+  /**
+   * Creates one half-width text input of a row showing a text and a hint while
+   * it is empty.
+   *
+   * @param ariaLabel Accessible name of the input.
+   * @param text Text shown in the input.
+   * @param placeholder Hint shown while the input is empty.
+   * @returns Text input.
+   */
+  private static inputCreate(ariaLabel: string, text: string, placeholder: string): InputText {
+    const input = new InputText(ariaLabel);
+    input.setSharedValues([text]);
+    input.getElement().placeholder = placeholder;
+    input.getElement().style.flex = '1 1 0';
+    input.getElement().style.minWidth = '0';
+    return input;
   }
 
   /**

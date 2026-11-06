@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { isSolidModelObject } from './solid_model_keys.js';
+import { solidModelRootFind } from './solid_model_root_find.js';
+import { ViewportObjectWireColor } from '@/viewports/shading/viewport_object_wire_color.js';
 import { SolidBrushVisual, SOLID_BRUSH_OPERATION_USERDATA_KEY } from './solid_brush_visual.js';
 import { SolidBrushEdgeMaterials, SOLID_BRUSH_EDGE_USERDATA_KEY } from './solid_brush_edge_materials.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
@@ -279,14 +281,7 @@ export class SolidBrushEdgeBatch {
    * @returns Solid root group, or null when not under a solid model.
    */
   private static findSolidRoot(mesh: THREE.Mesh): THREE.Group | null {
-    let current: THREE.Object3D | null = mesh.parent;
-    while (current) {
-      if (current instanceof THREE.Group && isSolidModelObject(current)) {
-        return current;
-      }
-      current = current.parent;
-    }
-    return null;
+    return solidModelRootFind(mesh);
   }
 
   /**
@@ -537,8 +532,21 @@ export class SolidBrushEdgeBatch {
     if (positions.length < 6) return;
     const batch = this.getOrCreateBatch(solidRoot, operation);
     remaining.delete(batch);
+    batch.material = this.batchMaterialRead(solidRoot, operation);
     this.writeBatchGeometry(batch, positions);
     batch.visible = true;
+  }
+
+  /**
+   * Returns the shared edge material of a batch: the operation color in 3D and
+   * the stable wire color of the solid model in 2D.
+   *
+   * @param solidRoot Solid model root.
+   * @param operation CSG operation.
+   * @returns Shared edge material.
+   */
+  private static batchMaterialRead(solidRoot: THREE.Group, operation: SolidOperation): THREE.ShaderMaterial {
+    return SolidBrushEdgeMaterials.getFrontMaterial(operation, ViewportObjectWireColor.colorFromId(solidRoot.uuid));
   }
 
   /**
@@ -598,7 +606,7 @@ export class SolidBrushEdgeBatch {
    */
   private static createBatchLine(solidRoot: THREE.Group, operation: SolidOperation): THREE.LineSegments {
     const geometry = new THREE.BufferGeometry();
-    const lines = new THREE.LineSegments(geometry, SolidBrushEdgeMaterials.getFrontMaterial(operation));
+    const lines = new THREE.LineSegments(geometry, this.batchMaterialRead(solidRoot, operation));
     lines.name = `${BATCH_OBJECT_NAME_PREFIX}${operation}`;
     lines.userData[SOLID_BRUSH_EDGE_BATCH_USERDATA_KEY] = true;
     lines.userData[SOLID_BRUSH_EDGE_BATCH_OPERATION_KEY] = operation;

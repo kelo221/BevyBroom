@@ -48,5 +48,6 @@ function captureBrushTopologySnapshot(target: TopologyBrushTarget): TopologyBrus
     mesh: target.mesh,
     defaultSurface: surfaces ? surfaces.defaultSurface : null,
     faceSurfaces: surfaces ? surfaces.faceSurfaces : null,
+    faceDisplacements: surfaces ? surfaces.faceDisplacements : null,
   };
 }

@@ -81,6 +81,45 @@ describe('MenuPanel stacking', () => {
     expect(document.body.contains(menu)).toBe(false);
   });
 
+  it('keeps a menu opened under an anchor near the right window edge fully on-screen', () => {
+    const windowWidthPx = window.innerWidth;
+    const menuWidthPx = 160;
+    const anchorWidthPx = 80;
+    const anchor = document.createElement('button');
+    document.body.appendChild(anchor);
+    const anchorLeftPx = windowWidthPx - anchorWidthPx;
+    Object.defineProperty(anchor, 'getBoundingClientRect', {
+      value: () => ({
+        left: anchorLeftPx,
+        bottom: 40,
+        top: 20,
+        right: windowWidthPx,
+        width: anchorWidthPx,
+        height: 20,
+      }),
+    });
+    const panel = new PanelMenu(
+      [{ kind: 'action', label: 'Single Perspective', onClick: () => undefined }],
+      () => undefined,
+    );
+    const menu = panel.getElement();
+    Object.defineProperty(menu, 'getBoundingClientRect', {
+      value: () => ({
+        left: anchorLeftPx,
+        top: 44,
+        right: anchorLeftPx + menuWidthPx,
+        bottom: 144,
+        width: menuWidthPx,
+        height: 100,
+      }),
+    });
+    panel.open(anchor);
+    const shownLeftPx = Number.parseFloat(menu.style.left);
+    expect(shownLeftPx).toBeLessThan(anchorLeftPx);
+    expect(shownLeftPx + menuWidthPx).toBeLessThanOrEqual(windowWidthPx);
+    panel.close();
+  });
+
   it('should mount root menus on the anchor ownerDocument body for detached windows', () => {
     const popupRoot = document.createElement('div');
     document.body.appendChild(popupRoot);

@@ -13,7 +13,8 @@ describe('PropertiesPanel', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     selectionManager = new ManagerSelection();
-    panel = new PanelProperties(container, Theme, selectionManager);
+    panel = new PanelProperties(Theme, selectionManager);
+    panel.hostAttach(container);
   });
 
   afterEach(() => {
@@ -21,6 +22,36 @@ describe('PropertiesPanel', () => {
     if (container.parentNode) {
       container.parentNode.removeChild(container);
     }
+  });
+
+  it('stays detached until a host attaches it and moves between hosts', () => {
+    const detachedPanel = new PanelProperties(Theme, new ManagerSelection());
+    expect(detachedPanel.isHostAttached()).toBe(false);
+    const firstHost = document.createElement('div');
+    const secondHost = document.createElement('div');
+    detachedPanel.hostAttach(firstHost);
+    expect(firstHost.contains(detachedPanel.getContainer())).toBe(true);
+    detachedPanel.hostAttach(secondHost);
+    expect(firstHost.contains(detachedPanel.getContainer())).toBe(false);
+    expect(secondHost.contains(detachedPanel.getContainer())).toBe(true);
+    detachedPanel.hostDetach();
+    expect(detachedPanel.isHostAttached()).toBe(false);
+    detachedPanel.dispose();
+  });
+
+  it('keeps refreshing from the selection while detached and shows current values when attached', () => {
+    const detachedSelection = new ManagerSelection();
+    const detachedPanel = new PanelProperties(Theme, detachedSelection);
+    const mesh = new THREE.Mesh();
+    const movedX = mesh.position.x + 3.5;
+    detachedSelection.setSelection([mesh]);
+    mesh.position.x = movedX;
+    detachedPanel.refreshBoundObject();
+    const host = document.createElement('div');
+    detachedPanel.hostAttach(host);
+    const firstInput = host.querySelector('input');
+    expect(Number(firstInput?.value)).toBeCloseTo(movedX);
+    detachedPanel.dispose();
   });
 
   it('should return container element via getContainer', () => {

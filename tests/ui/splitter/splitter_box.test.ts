@@ -98,6 +98,24 @@ describe('SplitterBox', () => {
     splitter.dispose();
   });
 
+  it('pins the sized pane to a fixed size without the divider and returns to the remembered size', () => {
+    const splitter = splitterCreate();
+    const rememberedPx = splitter.getSizedPaneSizePx();
+    const pinnedPx = Math.floor(rememberedPx / 10);
+    const divider = splitter.getElement().querySelector<HTMLElement>('.splitter-box-divider');
+    splitter.setSizedPanePinnedPx(pinnedPx);
+    expect(splitter.getSizedPanePinnedPx()).toBe(pinnedPx);
+    expect(splitter.getSecondPane().style.flex).toBe(`0 0 ${pinnedPx}px`);
+    expect(splitter.getSecondPane().style.minWidth).toBe(`${pinnedPx}px`);
+    expect(divider?.style.display).toBe('none');
+    expect(splitter.getSizedPaneSizePx()).toBe(rememberedPx);
+    splitter.setSizedPanePinnedPx(null);
+    expect(splitter.getSizedPanePinnedPx()).toBeNull();
+    expect(splitter.getSecondPane().style.flex).toBe(`0 0 ${rememberedPx}px`);
+    expect(divider?.style.display).toBe('block');
+    splitter.dispose();
+  });
+
   it('ignores divider presses with other buttons', () => {
     const splitter = splitterCreate();
     const divider = splitter.getElement().querySelector<HTMLElement>('.splitter-box-divider');

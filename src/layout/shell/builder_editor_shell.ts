@@ -126,7 +126,7 @@ export interface EditorShellElements {
   statusBar: StatusBar;
   /** Main window skeleton with the docks. */
   frame: ShellFrame;
-  /** Right-hand Map / Entity / Face inspector. */
+  /** Right-hand Hammer bar and Map inspector. */
   inspector: ShellInspector;
   /** Bottom Console / Issues panel. */
   infoPanel: ShellInfoPanel;
@@ -134,6 +134,8 @@ export interface EditorShellElements {
   dockCommands: ShellDockCommands;
   /** Parents of the docked tool buttons and tool options. */
   toolChromeDocking: ViewportToolChromeDocking;
+  /** Main toolbar slot that receives the layout chooser. */
+  layoutChooserSlot: HTMLElement;
 }
 
 /** Scene services the shell panels bind to. */
@@ -162,9 +164,10 @@ interface EditorShellSkeleton {
 }
 
 /**
- * Builds the main window in the map editor arrangement: a menu bar, an icon
- * toolbar, the map views with a view bar above and the info panel below, the
- * inspector on the right, and the status bar.
+ * Builds the main window in the map editor arrangement: a menu bar, a single
+ * toolbar row holding the global actions, the tool options and the layout
+ * chooser, the map views with the info panel below, the inspector on the right,
+ * and the status bar.
  */
 export class BuilderEditorShell {
   /**
@@ -183,7 +186,8 @@ export class BuilderEditorShell {
     const skeleton = this.skeletonCreate(editorContainer);
     const menuBar = this.menuBarCreate(skeleton, bundles);
     const toolbar = new Toolbar(skeleton.frame.toolbarHostRead());
-    const railParent = new ShellToolBarBuilder().build(toolbar, bundles.toolbarActions, bundles.windowActions);
+    const toolbarParts = new ShellToolBarBuilder().build(toolbar, bundles.toolbarActions, bundles.windowActions);
+    const railParent = skeleton.frame.toolsPaletteHostRead();
     const viewportShell = this.createViewportShell(skeleton.frame.viewColumnRead());
     return {
       toolbarContainer: skeleton.frame.getElement(),
@@ -197,10 +201,16 @@ export class BuilderEditorShell {
         services,
         bundles.outlinerActions,
       ),
-      propertiesPanel: this.createPropertiesPanel(skeleton.inspector.slotRead('entity_properties'), services),
-      statusBar: this.createStatusBar(skeleton.frame.getElement(), services.gridSnap, services.commandStack),
+      propertiesPanel: this.createPropertiesPanel(services),
+      statusBar: this.createStatusBar(
+        skeleton.frame.getElement(),
+        services.gridSnap,
+        services.commandStack,
+        services.selectionManager,
+      ),
       ...skeleton,
-      toolChromeDocking: { railParent, optionsParent: skeleton.frame.viewBarToolSlotRead() },
+      toolChromeDocking: { railParent, optionsParent: toolbarParts.toolOptionsSlot },
+      layoutChooserSlot: toolbarParts.layoutSlot,
     };
   }
 
@@ -217,7 +227,7 @@ export class BuilderEditorShell {
     const infoPanel = new ShellInfoPanel(stateStore);
     frame.inspectorHostRead().appendChild(inspector.getElement());
     frame.infoPanelHostRead().appendChild(infoPanel.getElement());
-    return { frame, inspector, infoPanel, dockCommands: new ShellDockCommands(frame, inspector, infoPanel) };
+    return { frame, inspector, infoPanel, dockCommands: new ShellDockCommands(frame, infoPanel) };
   }
 
   /**
@@ -241,7 +251,7 @@ export class BuilderEditorShell {
    * Creates the viewport workspace host and appends the absolute pane grid
    * overlay under the view column.
    *
-   * @param viewColumn Column below the view bar that receives the host.
+   * @param viewColumn Column that receives the host.
    * @returns Host element and nested pane grid layer.
    */
   private createViewportShell(viewColumn: HTMLElement): { host: HTMLElement; paneGrid: HTMLElement } {
@@ -368,17 +378,14 @@ export class BuilderEditorShell {
   }
 
   /**
-   * Creates the properties panel filling its inspector slot and wires command
-   * stack and texture lock.
+   * Creates the detached properties panel and wires command stack and texture
+   * lock; a dialog attaches it to a host when it is shown.
    *
-   * @param slot Inspector slot that receives the panel.
    * @param services Scene services the panel binds to.
    * @returns Configured PanelProperties.
    */
-  private createPropertiesPanel(slot: HTMLElement, services: EditorShellServices): PanelProperties {
-    const propertiesPanel = new PanelProperties(slot, Theme, services.selectionManager);
-    this.dockedPanelFill(propertiesPanel.getContainer());
-    propertiesPanel.getContainer().style.overflowY = 'auto';
+  private createPropertiesPanel(services: EditorShellServices): PanelProperties {
+    const propertiesPanel = new PanelProperties(Theme, services.selectionManager);
     propertiesPanel.setCommandStack(services.commandStack);
     propertiesPanel.setTextureLockSettings(services.textureLock);
     return propertiesPanel;
@@ -399,21 +406,30 @@ export class BuilderEditorShell {
   }
 
   /**
-   * Creates the status bar and binds command stack updates to it.
+   * Creates the status bar and binds command stack and selection count updates
+   * to it.
    *
    * @param toolbarContainer Parent flex column.
    * @param gridSnap Snap source for initial status values.
    * @param commandStack Undo stack for count updates.
+   * @param selectionManager Selection manager for live selection count updates.
    * @returns Configured StatusBar.
    */
-  private createStatusBar(toolbarContainer: HTMLElement, gridSnap: GridSnap, commandStack: CommandStack): StatusBar {
+  private createStatusBar(
+    toolbarContainer: HTMLElement,
+    gridSnap: GridSnap,
+    commandStack: CommandStack,
+    selectionManager: ManagerSelection,
+  ): StatusBar {
     const statusBar = new StatusBar(toolbarContainer, Theme);
     statusBar.setUndoRedoCounts(0, 0);
     statusBar.setTransformMode('Bounds');
     statusBar.setSnapInterval(gridSnap.getInterval());
     statusBar.setSnapStatus(gridSnap.isEnabled());
-    commandStack.onStackChanged((undoCount, redoCount) => {
-      statusBar.setUndoRedoCounts(undoCount, redoCount);
+    commandStack.onStackChanged((undoCount, redoCount) => statusBar.setUndoRedoCounts(undoCount, redoCount));
+    selectionManager.onSelectionChanged((selected) => {
+      const count = selectionManager.getInspectorObjects().length || selected.size;
+      statusBar.setObjectSelectionCount(count);
     });
     return statusBar;
   }

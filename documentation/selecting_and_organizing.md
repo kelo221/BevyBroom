@@ -7,8 +7,12 @@ Selection determines what nearly every editing command will affect. The hierarch
 Use Object Select when you want to transform complete objects or scene groups.
 
 - Click an object to replace the selection.
-- `Shift+click` adds another object.
-- `Ctrl+click` toggles an object in or out.
+- `Ctrl+click` adds another object, or removes an object that is already
+  selected.
+- `Shift+click` a brush face to edit it: the editor switches to Face Select,
+  opens the Face Edit Sheet and selects exactly that face (on a displaced face,
+  click its surface). `Shift+click` on a light, entity or mesh adds it to the
+  selection.
 - Drag a selected object to move the selection; dragging elsewhere does not
   change the selection.
 - Click an item in the hierarchy when objects overlap or are difficult to reach.
@@ -19,9 +23,11 @@ Press `Tab` to return to Object Select from another selection tool. The status b
 
 Use Face Select for surface-level work such as extrusion and per-face textures.
 
-1. Press `Shift+Tab` or click the **Face Select** tool button in the toolbar.
+1. Press `Shift+Tab` or click the **Face Select** tool button in the toolbar,
+   or `Shift+click` a brush face while Object Select is active.
 2. Click a visible face.
-3. Add more faces with selection modifiers or a drag selection.
+3. Add more faces with `Shift+click`, remove faces with `Ctrl+click`, or drag
+   across faces.
 4. Watch the face count in the status bar.
 
 Face selection is separate from ordinary object selection. If an object command is unavailable, return to Object Select.

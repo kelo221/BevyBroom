@@ -1,11 +1,6 @@
 import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
-
-/** Color of switches that are on in layer rows. */
-const PANEL_LAYERS_TOGGLE_ON_COLOR = '#e0e0e0';
-
-/** Color of switches that are off in layer rows. */
-const PANEL_LAYERS_TOGGLE_OFF_COLOR = '#5a5a5a';
+import { SHELL_DOCK_COMPACT_GAP_PX } from '@/layout/shell/dock/shell_dock_compact.js';
 
 /** Inline styles of the layers panel, its rows and its bottom bar. */
 export class PanelLayersStyles {
@@ -20,10 +15,10 @@ export class PanelLayersStyles {
       flexDirection: 'column',
       height: '100%',
       minHeight: '0',
-      background: `linear-gradient(180deg, ${hexToRgb(Theme.outlinerBackground)} 0%, #14161c 100%)`,
+      background: hexToRgb(Theme.outlinerBackground),
       color: Theme.buttonTextColor,
       fontFamily: Theme.uiFontFamily,
-      fontSize: '12px',
+      fontSize: `${Theme.uiFontSizePx}px`,
       userSelect: 'none',
     });
   }
@@ -47,11 +42,12 @@ export class PanelLayersStyles {
     Object.assign(row.style, {
       display: 'flex',
       alignItems: 'center',
-      gap: '6px',
-      padding: '3px 6px',
+      gap: `${SHELL_DOCK_COMPACT_GAP_PX}px`,
+      padding: '1px 4px',
+      minWidth: '0',
       cursor: 'default',
       background: isSelected ? Theme.outlinerSelectedColor : 'transparent',
-      borderLeft: isSelected ? `2px solid ${hexToRgb(Theme.selectionColor)}` : '2px solid transparent',
+      borderLeft: isSelected ? `2px solid ${Theme.listSelectedBorder}` : '2px solid transparent',
     });
   }
 
@@ -61,7 +57,7 @@ export class PanelLayersStyles {
    * @param radio Radio input.
    */
   static radioApply(radio: HTMLInputElement): void {
-    Object.assign(radio.style, { margin: '0', accentColor: hexToRgb(Theme.selectionColor), cursor: 'pointer' });
+    Object.assign(radio.style, { margin: '0', accentColor: Theme.focusOutline, cursor: 'pointer' });
   }
 
   /**
@@ -85,7 +81,7 @@ export class PanelLayersStyles {
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
-      lineHeight: '16px',
+      lineHeight: '14px',
     });
   }
 
@@ -95,7 +91,7 @@ export class PanelLayersStyles {
    * @param count Count element.
    */
   static countApply(count: HTMLElement): void {
-    Object.assign(count.style, { color: Theme.outlinerNameIdColor, fontSize: '11px', lineHeight: '14px' });
+    Object.assign(count.style, { color: Theme.outlinerNameIdColor, fontSize: '10px', lineHeight: '12px' });
   }
 
   /**
@@ -109,13 +105,14 @@ export class PanelLayersStyles {
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      width: '20px',
-      height: '20px',
+      flex: '0 0 auto',
+      width: `${Theme.dockControlHeightPx}px`,
+      height: `${Theme.dockControlHeightPx}px`,
       padding: '0',
       border: 'none',
       borderRadius: '4px',
       background: 'transparent',
-      color: isOn ? PANEL_LAYERS_TOGGLE_ON_COLOR : PANEL_LAYERS_TOGGLE_OFF_COLOR,
+      color: isOn ? Theme.rowToggleOnColor : Theme.rowToggleOffColor,
       cursor: 'pointer',
     });
   }
@@ -128,9 +125,10 @@ export class PanelLayersStyles {
   static toolbarApply(bar: HTMLElement): void {
     Object.assign(bar.style, {
       display: 'flex',
-      gap: '4px',
-      padding: '4px 6px',
-      borderTop: '1px solid rgba(255,255,255,0.06)',
+      flexWrap: 'wrap',
+      gap: `${SHELL_DOCK_COMPACT_GAP_PX}px`,
+      padding: `${SHELL_DOCK_COMPACT_GAP_PX}px`,
+      borderTop: `1px solid ${hexToRgb(Theme.separatorColor)}`,
       background: hexToRgb(Theme.toolbarBackground),
       flex: '0 0 auto',
     });
@@ -144,10 +142,12 @@ export class PanelLayersStyles {
    */
   static toolbarButtonApply(button: HTMLButtonElement, isEnabled: boolean): void {
     Object.assign(button.style, {
-      minWidth: '26px',
-      height: '22px',
-      padding: '0 6px',
-      border: '1px solid rgba(255,255,255,0.08)',
+      minWidth: `${Theme.dockControlHeightPx}px`,
+      height: `${Theme.dockControlHeightPx}px`,
+      padding: '0 4px',
+      boxSizing: 'border-box',
+      fontSize: `${Theme.uiFontSizePx}px`,
+      border: `1px solid ${Theme.chromeBorderColor}`,
       borderRadius: '4px',
       background: hexToRgb(Theme.buttonBackground),
       color: Theme.buttonTextColor,

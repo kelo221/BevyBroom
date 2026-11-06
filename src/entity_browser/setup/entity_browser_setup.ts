@@ -7,6 +7,9 @@ import {
 } from '@/entity_browser/placement/entity_browser_placement_at_client_point.js';
 import type { EntityBrowserSettingsStore } from '@/entity_browser/state/entity_browser_settings_store.js';
 import { EntityBrowser } from '@/entity_browser/ui/entity_browser.js';
+import { EntityClassCatalogEntries } from '@/entity/class/catalog/entity_class_catalog_entries.js';
+import { EntityClassRegistry } from '@/entity/class/registry/entity_class_registry.js';
+import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js';
 
 /** What the layout hands the entity browser when mounting it. */
 export interface EntityBrowserSetupHost extends EntityBrowserPlacementHost {
@@ -38,6 +41,8 @@ export interface EntityBrowserSetupHost extends EntityBrowserPlacementHost {
  */
 export function entityBrowserSetup(host: EntityBrowserSetupHost): EntityBrowser {
   const placement = new EntityBrowserPlacementAtClientPoint(host);
+  getStateEntityPlace().placeDelegateWrite((entry, clientX, clientY) => placement.place(entry, clientX, clientY));
+  entityBrowserSetupEntityToolClassesWrite(host.addMenuActions);
   const browser = new EntityBrowser({
     worldObject: host.worldObject,
     addMenuActions: host.addMenuActions,
@@ -45,12 +50,30 @@ export function entityBrowserSetup(host: EntityBrowserSetupHost): EntityBrowser 
     placementTargetCheck: (clientX, clientY) => placement.isPlacementTarget(clientX, clientY),
     ...entityBrowserSetupOptionalFields(host),
   });
-  browser.disposeCallbackAdd(GameEntityClassRegistry.changeListenerAdd(() => browser.refresh()));
+  browser.disposeCallbackAdd(
+    GameEntityClassRegistry.changeListenerAdd(() => {
+      entityBrowserSetupEntityToolClassesWrite(host.addMenuActions);
+      browser.refresh();
+    }),
+  );
   const worldChangeUnsubscribe = host.worldChangeSubscribe?.(() => browser.usageRefresh());
   if (worldChangeUnsubscribe) {
     browser.disposeCallbackAdd(worldChangeUnsubscribe);
   }
   return browser;
+}
+
+/**
+ * Gives the Entity tool the current point classes, defaulting to the first game
+ * class or the point light.
+ *
+ * @param addMenuActions Creation callbacks that place entity owners.
+ */
+function entityBrowserSetupEntityToolClassesWrite(addMenuActions: AddMenuActions): void {
+  getStateEntityPlace().entriesWrite(
+    EntityClassCatalogEntries.pointEntriesBuild(addMenuActions),
+    EntityClassRegistry.pointClassDefault()?.id ?? null,
+  );
 }
 
 /**

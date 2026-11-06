@@ -41,6 +41,7 @@ export interface ClipToolsSetupDeps {
   onTransformMode: (mode: TransformMode) => void;
   faceInspectorReveal: () => void;
   onExtrudeFaces: () => void;
+  onStampCurrentTexture: () => void;
   editorOverlayPolicy: PolicyEditorOverlay;
   modalToolSessionRegistry: RegistryModalToolSession;
   isEditorToolBusy?: () => boolean;
@@ -157,6 +158,7 @@ function createViewportToolChromeController(
     onTransformMode: (mode) => deps.onTransformMode(mode),
     faceInspectorReveal: () => deps.faceInspectorReveal(),
     onExtrudeFaces: () => deps.onExtrudeFaces(),
+    onStampCurrentTexture: () => deps.onStampCurrentTexture(),
     ...(deps.isEditorToolBusy !== undefined ? { isEditorToolBusy: deps.isEditorToolBusy } : {}),
     ...(deps.switchToClipTool !== undefined ? { switchToClipTool: deps.switchToClipTool } : {}),
     ...(deps.switchToObjectSelect !== undefined ? { switchToObjectSelect: deps.switchToObjectSelect } : {}),

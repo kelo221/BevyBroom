@@ -35,10 +35,22 @@ export interface SolidChunkUvBakeOptions {
   brushModelMatrix?: THREE.Matrix4;
 }
 
+/** Options controlling which brush faces keep visible triangles. */
+export interface SolidChunkSurfaceOptions {
+  /**
+   * Returns true for brush faces whose triangles are written with zero area so
+   * an attached surface can show in their place while selection, texture
+   * regions and triangle sources keep addressing the face.
+   */
+  surfaceCollapsed?: (surfaceIndex: number) => boolean;
+}
+
 /** Builds and holds UV bake scratch state for chunk construction. */
 export class SolidBrushMeshChunkBuilder {
   private readonly scratchPoint = new THREE.Vector3();
   private readonly scratchInverse = new THREE.Matrix4();
+  private activeSurfaceCollapsed: ((surfaceIndex: number) => boolean) | null = null;
+  private activePolygonCollapsed = false;
 
   /**
    * Triangulates polygons and bakes UV matrices into a reusable brush chunk.
@@ -46,12 +58,34 @@ export class SolidBrushMeshChunkBuilder {
    * @param polygons Compiled polygons for one brush.
    * @param resolveSurface Maps surface index to authored face surface.
    * @param uvOptions Brush model matrix for local UV projection.
+   * @param surfaceOptions Faces whose triangles collapse to zero area.
    * @returns Mesh chunk ready for assembly.
    */
   build(
     polygons: SolidCompiledPolygon[],
     resolveSurface: (surfaceIndex: number) => FaceSurfaceDescription,
     uvOptions: SolidChunkUvBakeOptions = {},
+    surfaceOptions: SolidChunkSurfaceOptions = {},
+  ): SolidBrushMeshChunk {
+    this.activeSurfaceCollapsed = surfaceOptions.surfaceCollapsed ?? null;
+    const chunk = this.buildWithActiveOptions(polygons, resolveSurface, uvOptions);
+    this.activeSurfaceCollapsed = null;
+    this.activePolygonCollapsed = false;
+    return chunk;
+  }
+
+  /**
+   * Triangulates polygons using the collapse predicate stored for this build.
+   *
+   * @param polygons Compiled polygons for one brush.
+   * @param resolveSurface Maps surface index to authored face surface.
+   * @param uvOptions Brush model matrix for local UV projection.
+   * @returns Mesh chunk ready for assembly.
+   */
+  private buildWithActiveOptions(
+    polygons: SolidCompiledPolygon[],
+    resolveSurface: (surfaceIndex: number) => FaceSurfaceDescription,
+    uvOptions: SolidChunkUvBakeOptions,
   ): SolidBrushMeshChunk {
     const vertexCount = this.countVertices(polygons);
     const positions = new Float32Array(vertexCount * 3);
@@ -135,6 +169,7 @@ export class SolidBrushMeshChunkBuilder {
     const triangleSteps = fanIndices.length / 3;
     if (triangleSteps < 1) return triangleCount;
     const surface = resolveSurface(polygon.surfaceIndex) ?? createDefaultFaceSurface();
+    this.activePolygonCollapsed = this.activeSurfaceCollapsed?.(polygon.surfaceIndex) === true;
     const textureId = polygon.textureId || surface.textureId || DEFAULT_CHECKER_TEXTURE_ID;
     const regionIndices: number[] = [];
     for (let step = 0; step < triangleSteps; step++) {
@@ -197,7 +232,9 @@ export class SolidBrushMeshChunkBuilder {
   }
 
   /**
-   * Writes a single polygon corner into position, normal, and UV buffers.
+   * Writes a single polygon corner into position, normal, and UV buffers. A
+   * corner of a collapsed polygon takes the polygon's first vertex as position
+   * while its UV still follows the real corner.
    *
    * @param polygon Source polygon.
    * @param localIndex Local vertex index into the polygon.
@@ -218,10 +255,11 @@ export class SolidBrushMeshChunkBuilder {
     vertexWrite: number,
   ): number {
     const vertex = polygon.vertices[localIndex]!;
+    const placed = (this.activePolygonCollapsed ? polygon.vertices[0] : undefined) ?? vertex;
     const base = vertexWrite * 3;
-    positions[base] = vertex.x;
-    positions[base + 1] = vertex.y;
-    positions[base + 2] = vertex.z;
+    positions[base] = placed.x;
+    positions[base + 1] = placed.y;
+    positions[base + 2] = placed.z;
     normals[base] = polygon.normal.x;
     normals[base + 1] = polygon.normal.y;
     normals[base + 2] = polygon.normal.z;
@@ -245,7 +283,25 @@ export class SolidBrushMeshChunkBuilder {
     vertexWrite: number,
   ): void {
     this.scratchPoint.copy(modelVertex).applyMatrix4(this.scratchInverse);
-    const coords = surface.uv.project(this.scratchPoint);
+    SolidBrushMeshChunkBuilder.uvWriteFromBrushLocalPoint(this.scratchPoint, surface, uvs, vertexWrite);
+  }
+
+  /**
+   * Projects one brush-local point through a face surface's UV matrix into a UV
+   * buffer.
+   *
+   * @param brushLocalPoint Point in brush-local space.
+   * @param surface Authored face surface.
+   * @param uvs UV buffer.
+   * @param vertexWrite Vertex index to write.
+   */
+  static uvWriteFromBrushLocalPoint(
+    brushLocalPoint: THREE.Vector3,
+    surface: FaceSurfaceDescription,
+    uvs: Float32Array,
+    vertexWrite: number,
+  ): void {
+    const coords = surface.uv.project(brushLocalPoint);
     const uvBase = vertexWrite * 2;
     uvs[uvBase] = coords.u;
     uvs[uvBase + 1] = coords.v;

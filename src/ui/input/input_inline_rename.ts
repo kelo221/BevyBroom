@@ -1,3 +1,5 @@
+import { Theme } from '@/theme.js';
+
 /**
  * Callback invoked when the inline rename is confirmed.
  *
@@ -194,14 +196,14 @@ export class InputInlineRename {
    * @param input Input element to style.
    */
   private applyInputChromeStyles(input: HTMLInputElement): void {
-    input.style.border = '1px solid #e67e22';
-    input.style.borderRadius = '2px';
+    input.style.border = `1px solid ${Theme.focusOutline}`;
+    input.style.borderRadius = '0';
     input.style.padding = '0 4px';
     input.style.margin = '0';
-    input.style.background = '#2a2a2a';
-    input.style.color = '#cccccc';
-    input.style.fontFamily = 'monospace';
-    input.style.fontSize = '12px';
+    input.style.background = Theme.inputBackgroundColor;
+    input.style.color = Theme.inputTextColor;
+    input.style.fontFamily = Theme.uiFontFamily;
+    input.style.fontSize = `${Theme.uiFontSizePx}px`;
     input.style.lineHeight = '1';
     input.style.outline = 'none';
     input.style.flex = '1';

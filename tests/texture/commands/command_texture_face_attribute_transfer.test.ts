@@ -23,6 +23,21 @@ describe('CommandTextureFaceAttributeTransfer', () => {
     );
   });
 
+  it('writes a replacement material while still copying the alignment', () => {
+    const mesh = createBoxWithFaces();
+    const sourceTarget = regionTarget(mesh, faceSeed(mesh, 'top'));
+    const destinationTarget = regionTarget(mesh, faceSeed(mesh, 'bottom'));
+    paintRegion(mesh, sourceTarget, 'walls/brick.png', 3);
+    new CommandTextureFaceAttributeTransfer(sourceTarget, [destinationTarget], 'walls/replacement.png').execute();
+    const destination = regionMapping(mesh, destinationTarget);
+    expect(destination.textureId).toBe('walls/replacement.png');
+    expect(regionMapping(mesh, sourceTarget).textureId).toBe('walls/brick.png');
+    expect(getFaceTextureMappingTrs(destination, new THREE.Vector3(0, 1, 0)).scaleU).toBeCloseTo(
+      getFaceTextureMappingTrs(regionMapping(mesh, sourceTarget), new THREE.Vector3(0, 1, 0)).scaleU,
+      3,
+    );
+  });
+
   it('restores the prior mapping on undo', () => {
     const mesh = createBoxWithFaces();
     const sourceTarget = regionTarget(mesh, faceSeed(mesh, 'top'));

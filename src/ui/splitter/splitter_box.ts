@@ -40,6 +40,7 @@ export class SplitterBox {
   private readonly listeners: Set<SplitterBoxChangeListener>;
   private sizePx: number;
   private isCollapsed: boolean;
+  private pinnedSizePx: number | null;
 
   /**
    * Creates a splitter box with two empty panes.
@@ -53,6 +54,7 @@ export class SplitterBox {
     this.listeners = new Set();
     this.sizePx = Math.max(options.minSizedPx, options.initialSizePx);
     this.isCollapsed = false;
+    this.pinnedSizePx = null;
     this.root = this.rootCreate();
     this.firstPane = this.paneCreate('first');
     this.secondPane = this.paneCreate('second');
@@ -133,6 +135,27 @@ export class SplitterBox {
     this.isCollapsed = isCollapsed;
     this.sizeApply();
     this.listenersNotify();
+  }
+
+  /**
+   * Shows the sized pane at a fixed size without the divider, keeping the
+   * remembered size for when the pin is released.
+   *
+   * @param pinnedSizePx Fixed size in CSS pixels, or null to show the
+   *   remembered size with the divider again.
+   */
+  setSizedPanePinnedPx(pinnedSizePx: number | null): void {
+    this.pinnedSizePx = pinnedSizePx;
+    this.sizeApply();
+  }
+
+  /**
+   * Returns the fixed size the sized pane is pinned to.
+   *
+   * @returns Pinned size in CSS pixels, or null while not pinned.
+   */
+  getSizedPanePinnedPx(): number | null {
+    return this.pinnedSizePx;
   }
 
   /**
@@ -234,16 +257,20 @@ export class SplitterBox {
     return divider;
   }
 
-  /** Writes the sized pane size and the collapsed state into the styles. */
+  /**
+   * Writes the sized pane size, the pin and the collapsed state into the
+   * styles.
+   */
   private sizeApply(): void {
     const sized = this.sizedPaneElement();
-    sized.style.flex = `0 0 ${this.sizePx}px`;
+    const shownSizePx = this.pinnedSizePx ?? this.sizePx;
+    sized.style.flex = `0 0 ${shownSizePx}px`;
     sized.style.display = this.isCollapsed ? 'none' : 'flex';
-    this.divider.style.display = this.isCollapsed ? 'none' : 'block';
+    this.divider.style.display = this.isCollapsed || this.pinnedSizePx !== null ? 'none' : 'block';
     const flexible = this.flexiblePaneElement();
     flexible.style.flex = '1 1 0px';
     const minimumKey = this.isHorizontal() ? 'minWidth' : 'minHeight';
-    sized.style[minimumKey] = `${this.options.minSizedPx}px`;
+    sized.style[minimumKey] = `${this.pinnedSizePx ?? this.options.minSizedPx}px`;
     flexible.style[minimumKey] = `${this.options.minFlexiblePx}px`;
   }
 

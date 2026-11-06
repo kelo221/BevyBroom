@@ -3,6 +3,7 @@ import type { EditorWindow } from './editor_window.js';
 import { EditorExclusiveMouseShieldDomain } from './editor_exclusive_mouse_shield_domain.js';
 import { claimDomKeyboardFocus } from '@/utils/dom_focus.js';
 import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js';
+import { editorInputPointerEventClone, editorInputWheelEventClone } from './editor_input_event_clone.js';
 
 /**
  * Routes browser pointer events into editor mouse-down, mouse-up, mouse-move,
@@ -211,7 +212,25 @@ export class EditorInputBridge {
     this.notifyExclusiveRootHit(hitRoot);
     this.claimViewportDomKeyboardFocus(hitRoot);
     this.routeEditorMouseDown(event, true);
+    this.navigationPressStopWhenToolClaims(event);
     this.syncExclusiveShieldMount();
+  }
+
+  /**
+   * Stops a RMB/MMB press from reaching the viewport's fly/pan navigation when
+   * the active tool took it.
+   *
+   * @param event Idle document pointerdown that was routed to the tool.
+   */
+  private navigationPressStopWhenToolClaims(event: PointerEvent): void {
+    if (!this.isViewportNavigationButton(event.button)) {
+      return;
+    }
+    if (this.editor.activeTool?.claimsViewportNavigationPress(event.button) !== true) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   /**
@@ -420,33 +439,7 @@ export class EditorInputBridge {
     if (!this.isRetargetRootSameDocumentAsEvent(event, root)) {
       return;
     }
-    const retargeted = new PointerEvent(event.type, {
-      bubbles: true,
-      cancelable: true,
-      composed: true,
-      pointerId: event.pointerId,
-      pointerType: event.pointerType,
-      isPrimary: event.isPrimary,
-      button: event.button,
-      buttons: event.buttons,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      screenX: event.screenX,
-      screenY: event.screenY,
-      movementX: event.movementX,
-      movementY: event.movementY,
-      ctrlKey: event.ctrlKey,
-      shiftKey: event.shiftKey,
-      altKey: event.altKey,
-      metaKey: event.metaKey,
-      pressure: event.pressure,
-      width: event.width,
-      height: event.height,
-      tiltX: event.tiltX,
-      tiltY: event.tiltY,
-      twist: event.twist,
-    });
-    root.dispatchEvent(retargeted);
+    root.dispatchEvent(editorInputPointerEventClone(event));
   }
 
   /**
@@ -459,24 +452,7 @@ export class EditorInputBridge {
     if (!this.isRetargetRootSameDocumentAsEvent(event, root)) {
       return;
     }
-    const retargeted = new WheelEvent(event.type, {
-      bubbles: true,
-      cancelable: true,
-      composed: true,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      screenX: event.screenX,
-      screenY: event.screenY,
-      deltaX: event.deltaX,
-      deltaY: event.deltaY,
-      deltaZ: event.deltaZ,
-      deltaMode: event.deltaMode,
-      ctrlKey: event.ctrlKey,
-      shiftKey: event.shiftKey,
-      altKey: event.altKey,
-      metaKey: event.metaKey,
-    });
-    root.dispatchEvent(retargeted);
+    root.dispatchEvent(editorInputWheelEventClone(event));
   }
 
   /**

@@ -85,8 +85,6 @@ export class PanelAiCaptureDebug extends PanelFloating {
     applyFloatingPanelToolChrome(root, {
       width: '320px',
       maxHeight: '70vh',
-      borderRadiusPx: 8,
-      boxShadow: '0 10px 28px rgba(0,0,0,0.55)',
       overflowHidden: true,
     });
   }

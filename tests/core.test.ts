@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { Theme } from '@/theme.js';
+import { themeColorChannelSum } from './theme/theme_color_parse_support.js';
 import { ViewportType } from '@/types.js';
 
 describe('Theme', () => {
-  it('should use dark colors for background values', () => {
-    expect(Theme.background).toBeLessThan(0x303030);
-    expect(Theme.viewportBackground).toBeLessThan(0x303030);
+  it('should use light chrome around black 2D views and a grey 3D view', () => {
+    expect(themeColorChannelSum(Theme.background)).toBeGreaterThan(themeColorChannelSum(Theme.viewportBackground));
+    expect(themeColorChannelSum(Theme.viewportBackground)).toBeGreaterThan(
+      themeColorChannelSum(Theme.viewport2dBackground),
+    );
   });
 });
 
@@ -14,12 +17,12 @@ describe('Viewport separators', () => {
     expect(Theme.separatorGapPx).toBeGreaterThan(1);
   });
 
-  it('should use a separator color darker than the viewport background', () => {
-    expect(Theme.separatorColor).toBeLessThan(Theme.viewportBackground);
-  });
-
-  it('should have a separator color that is a dark value', () => {
-    expect(Theme.separatorColor).toBeLessThan(0x101010);
+  it('should use a separator color that stands out from both view backgrounds', () => {
+    expect(Theme.separatorColor).not.toBe(Theme.viewportBackground);
+    expect(Theme.separatorColor).not.toBe(Theme.viewport2dBackground);
+    expect(themeColorChannelSum(Theme.separatorColor)).toBeGreaterThan(
+      themeColorChannelSum(Theme.viewport2dBackground),
+    );
   });
 });
 

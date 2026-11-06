@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import {
   buildCadRulerBindingsFromViewports,
+  cadRulerSizedMeshesFilter,
   reattachCadRulersToViewports,
   refreshCadRulersFromSelection,
 } from '@/layout/setup/bridge_layout_cad_ruler.js';
+import { GameEntityOwner } from '@/game_entity/owner/game_entity_owner.js';
 import { CadRulerSystem } from '@/rulers/system/cad_ruler_system.js';
 import { ViewportKind } from '@/viewports/core/viewport_kind.js';
 import type { ViewportEditor } from '@/viewports/core/viewport_editor.js';
@@ -114,5 +116,34 @@ describe('layout_cad_ruler_bridge', () => {
     policy.enable(EditorOverlayId.CAD_BOUNDS_RULERS, 'object_tool');
     refreshCadRulersFromSelection(host as never);
     expect(setSelectionMeshes).toHaveBeenLastCalledWith([mesh]);
+  });
+
+  it('should show no size dimensions while the selection holds a point that may not be scaled', () => {
+    const brush = createBoxMesh(new THREE.Vector3(2, 1, 3));
+    const gameEntityMarker = GameEntityOwner.markerOf(GameEntityOwner.createDefault('door_main'));
+    if (!gameEntityMarker) {
+      throw new Error('game entity has no marker mesh');
+    }
+    let selection: THREE.Mesh[] = [brush, gameEntityMarker];
+    const cadRulerSystem = new CadRulerSystem();
+    const setSelectionMeshes = vi.spyOn(cadRulerSystem, 'setSelectionMeshes');
+    const policy = new PolicyEditorOverlay();
+    policy.enable(EditorOverlayId.CAD_BOUNDS_RULERS, 'object_tool');
+    const host = {
+      cadRulerSystem,
+      rulerBoundsBuilder: { buildFromMeshes: vi.fn() },
+      transformHandler: {},
+      transformGizmo: {},
+      editorOverlayPolicy: policy,
+      selectionManager: { getAllSelectedObjectsAsArray: () => selection } as unknown as ManagerSelection,
+      statusBar: null,
+    };
+    refreshCadRulersFromSelection(host as never);
+    expect(setSelectionMeshes).toHaveBeenLastCalledWith([]);
+    selection = [brush];
+    refreshCadRulersFromSelection(host as never);
+    expect(setSelectionMeshes).toHaveBeenLastCalledWith([brush]);
+    expect(cadRulerSizedMeshesFilter([gameEntityMarker])).toEqual([]);
+    cadRulerSystem.dispose();
   });
 });

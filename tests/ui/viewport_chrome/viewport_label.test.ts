@@ -1,60 +1,83 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { ViewportLabel } from '@/ui/viewport_chrome/viewport_label.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { VIEWPORT_LABEL_CLASS, ViewportLabel } from '@/ui/viewport_chrome/viewport_label.js';
 import { Theme } from '@/theme.js';
 
-describe('ViewportLabel', () => {
-  let parentElement: HTMLElement;
-
-  beforeEach(() => {
-    parentElement = document.createElement('div');
-    parentElement.style.position = 'relative';
-    parentElement.style.width = '400px';
-    parentElement.style.height = '300px';
-    document.body.appendChild(parentElement);
-  });
-
-  it('should create a non-interactive label with the provided text', () => {
-    const label = new ViewportLabel(parentElement, 'Top');
-    const labelEl = label.getLabelElement();
-    expect(parentElement.children.length).toBe(1);
-    expect(labelEl).toBe(parentElement.children[0]);
-    expect(labelEl.textContent).toBe('Top');
-    expect(labelEl.style.position).toBe('absolute');
-    expect(labelEl.style.top).toBe('8px');
-    expect(labelEl.style.left).toBe('8px');
-    expect(labelEl.style.pointerEvents).toBe('none');
-    expect(labelEl.style.userSelect).toBe('none');
-  });
-
-  it('should display each standard viewport name', () => {
-    const labelNames = ['Top', 'Front', 'Side', 'Perspective'];
-    labelNames.forEach((name) => {
-      const testParent = document.createElement('div');
-      document.body.appendChild(testParent);
-      const label = new ViewportLabel(testParent, name);
-      expect(label.getLabelElement().textContent).toBe(name);
-    });
-  });
-
-  it('should apply theme colors', () => {
-    const label = new ViewportLabel(parentElement, 'Test');
-    const labelEl = label.getLabelElement();
-    expect(labelEl.style.color).toBe(hexToRgb(Theme.viewportLabelTextColor));
-    expect(labelEl.style.background).toBe(Theme.viewportLabelBackgroundColor);
-  });
-});
+/**
+ * Creates a parent element attached to the document.
+ *
+ * @returns Parent element.
+ */
+function viewportLabelTestParentCreate(): HTMLElement {
+  const parentElement = document.createElement('div');
+  document.body.appendChild(parentElement);
+  return parentElement;
+}
 
 /**
- * Converts a hex color string to the rgb() form browsers report for inline
- * styles.
+ * Returns how the browser reports a colour once written to an inline style.
  *
- * @param hexColor Hex color like #rrggbb.
- * @returns CSS rgb() string.
+ * @param property Style property receiving the colour.
+ * @param colour Colour value written.
+ * @returns Normalised colour string.
  */
-function hexToRgb(hexColor: string): string {
-  const hex = hexColor.replace('#', '');
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  return `rgb(${r}, ${g}, ${b})`;
+function viewportLabelTestStyleColourRead(property: 'color' | 'background', colour: string): string {
+  const probe = document.createElement('span');
+  probe.style[property] = colour;
+  return probe.style[property];
 }
+
+afterEach(() => {
+  document.body.replaceChildren();
+});
+
+describe('ViewportLabel', () => {
+  it('creates a clickable menu button with the given text inside the parent', () => {
+    const parentElement = viewportLabelTestParentCreate();
+    const label = new ViewportLabel(parentElement, 'top (x/z)', () => undefined);
+    const labelElement = label.getLabelElement();
+    expect(labelElement.parentElement).toBe(parentElement);
+    expect(labelElement.tagName).toBe('BUTTON');
+    expect(labelElement.classList.contains(VIEWPORT_LABEL_CLASS)).toBe(true);
+    expect(labelElement.textContent).toBe('top (x/z)');
+    expect(labelElement.getAttribute('aria-haspopup')).toBe('menu');
+  });
+
+  it('runs the click handler without letting the click reach the viewport', () => {
+    const parentElement = viewportLabelTestParentCreate();
+    const onClick = vi.fn();
+    const onParentClick = vi.fn();
+    parentElement.addEventListener('click', onParentClick);
+    new ViewportLabel(parentElement, 'camera', onClick).getLabelElement().click();
+    expect(onClick).toHaveBeenCalledOnce();
+    expect(onParentClick).not.toHaveBeenCalled();
+  });
+
+  it('replaces its text and names the view in the tooltip', () => {
+    const label = new ViewportLabel(viewportLabelTestParentCreate(), 'camera', () => undefined);
+    label.textSet('front (x/y)', 'Front');
+    expect(label.getLabelElement().textContent).toBe('front (x/y)');
+    expect(label.getLabelElement().title).toContain('Front');
+  });
+
+  it('reports whether its menu is expanded', () => {
+    const label = new ViewportLabel(viewportLabelTestParentCreate(), 'camera', () => undefined);
+    expect(label.getLabelElement().getAttribute('aria-expanded')).toBe('false');
+    label.expandedSet(true);
+    expect(label.getLabelElement().getAttribute('aria-expanded')).toBe('true');
+    label.expandedSet(false);
+    expect(label.getLabelElement().getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('uses the theme label colours and label height', () => {
+    const labelElement = new ViewportLabel(
+      viewportLabelTestParentCreate(),
+      'camera',
+      () => undefined,
+    ).getLabelElement();
+    expect(labelElement.style.color).toBe(viewportLabelTestStyleColourRead('color', Theme.viewportLabelTextColor));
+    expect(labelElement.style.background).toBe(
+      viewportLabelTestStyleColourRead('background', Theme.viewportLabelBackgroundColor),
+    );
+    expect(labelElement.style.height).toBe(`${Theme.viewportLabelHeightPx}px`);
+  });
+});

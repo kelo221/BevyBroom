@@ -1,3 +1,5 @@
+import { Theme } from '@/theme.js';
+
 /**
  * Clean stroke SVG eye icons for outliner visibility toggles. Open eye means
  * visible; open eye with a red slash means hidden.
@@ -6,8 +8,8 @@ export class IconOutlinerVisibility {
   private static readonly strokeAttributes =
     'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
 
-  private static readonly redSlashAttributes =
-    'fill="none" stroke="#e74c3c" stroke-width="2.25" stroke-linecap="round"';
+  /** Attributes of the red slash drawn over hidden or switched-off icons. */
+  static readonly redSlashAttributes = `fill="none" stroke="${Theme.iconOffSlashColor}" stroke-width="2.25" stroke-linecap="round"`;
 
   /**
    * Returns SVG markup for a visible object (open eye with pupil).

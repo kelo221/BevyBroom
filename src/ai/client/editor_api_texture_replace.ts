@@ -1,11 +1,12 @@
 import type { EditorApiHost } from './editor_api_host.js';
 import { failResult, okResult } from './editor_api_result.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
-import { HandlerTextureReplace, type TextureReplaceScope } from '@/texture/replace/handler_texture_replace.js';
+import type { TextureReplaceScope } from '@/texture/replace/handler_texture_replace.js';
+import { TextureReplaceRunner } from '@/texture/replace/texture_replace_runner.js';
 
 /** Runs the material replacement for automation. */
 export class EditorApiTextureReplace {
-  private readonly textureReplace: HandlerTextureReplace;
+  private readonly textureReplaceRunner: TextureReplaceRunner;
 
   /**
    * Creates the material replacement tool.
@@ -13,11 +14,12 @@ export class EditorApiTextureReplace {
    * @param host Live editor systems.
    */
   constructor(host: EditorApiHost) {
-    this.textureReplace = new HandlerTextureReplace({
+    this.textureReplaceRunner = new TextureReplaceRunner({
       commandStack: host.commandStack,
       worldObject: host.worldObject,
       selectionManager: host.selectionManager,
       afterReplace: () => host.refreshAfterWorldMutation(),
+      resultReport: null,
     });
   }
 
@@ -48,8 +50,8 @@ export class EditorApiTextureReplace {
     if (scope === null) {
       return failResult('scope must be all or selection');
     }
-    const faceCount = this.textureReplace.replace(findTextureId, replaceTextureId, scope);
-    return okResult(`Replaced the material of ${faceCount} face(s)`, { faceCount, scope });
+    const result = this.textureReplaceRunner.run(findTextureId, replaceTextureId, scope);
+    return okResult(result.message, { faceCount: result.faceCount, scope });
   }
 
   /**

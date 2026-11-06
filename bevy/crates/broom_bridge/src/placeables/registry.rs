@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use bevy::prelude::*;
 use bevy::reflect::{GetTypeRegistration, TypePath};
 
-use crate::protocol::PlaceablePlacement;
+use crate::protocol::{PlaceableIoPin, PlaceablePlacement};
 
 /// The default sRGB color of editor markers.
 const DEFAULT_MARKER_COLOR: Srgba = Srgba::rgb(0.35, 0.65, 0.95);
@@ -20,6 +20,10 @@ pub struct PlaceableOptions {
     pub category: String,
     pub placement: PlaceablePlacement,
     pub marker_color: Srgba,
+    /// Declared entity I/O inputs on this class.
+    pub inputs: Vec<PlaceableIoPin>,
+    /// Declared entity I/O outputs on this class.
+    pub outputs: Vec<PlaceableIoPin>,
 }
 
 impl PlaceableOptions {
@@ -30,6 +34,8 @@ impl PlaceableOptions {
             category: "Game".into(),
             placement: PlaceablePlacement::Any,
             marker_color: DEFAULT_MARKER_COLOR,
+            inputs: Vec::new(),
+            outputs: Vec::new(),
         }
     }
 
@@ -56,6 +62,18 @@ impl PlaceableOptions {
     /// Tints the editor marker of game entities carrying this component.
     pub fn marker_color(mut self, color: Srgba) -> Self {
         self.marker_color = color;
+        self
+    }
+
+    /// Declares an entity I/O input pin on this class.
+    pub fn with_input(mut self, pin: PlaceableIoPin) -> Self {
+        self.inputs.push(pin);
+        self
+    }
+
+    /// Declares an entity I/O output pin on this class.
+    pub fn with_output(mut self, pin: PlaceableIoPin) -> Self {
+        self.outputs.push(pin);
         self
     }
 }

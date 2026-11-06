@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { TextureApplyTarget } from '@/texture/uv/face_texture_applier.js';
 import { computeRegionWorldNormal } from '@/texture/uv/planar_uv_projector.js';
-import { getTriangleVertexIndices, getVertexPosition } from '@/selection/pick/utils_triangle_geometry.js';
+import { FaceRegionWorldGeometry } from '@/selection/face/face_region_world_geometry.js';
 import { FaceUvOperationContext, type FaceUvTextureSizePixels } from './face_uv_operation_context.js';
 
 /** Camera directions a context may carry for camera-relative operations. */
@@ -18,6 +18,26 @@ export type FaceUvTargetContextFactory = (target: TextureApplyTarget) => FaceUvO
 
 /** World-distance below which two region vertices count as the same corner. */
 const VERTEX_WELD_DISTANCE = 1e-4;
+
+/**
+ * Reads world-space camera right and up directions from a camera basis.
+ *
+ * @param camera Camera, or null.
+ * @returns Unit camera directions, or null without a usable camera.
+ */
+export function faceUvCameraDirectionsFromCamera(camera: THREE.Camera | null): FaceUvCameraDirections | null {
+  if (!camera) {
+    return null;
+  }
+  camera.updateMatrixWorld();
+  const basis = camera.matrixWorld.elements;
+  const right = new THREE.Vector3(basis[0], basis[1], basis[2]);
+  const up = new THREE.Vector3(basis[4], basis[5], basis[6]);
+  if (right.lengthSq() < 1e-12 || up.lengthSq() < 1e-12) {
+    return null;
+  }
+  return { right: right.normalize(), up: up.normalize() };
+}
 
 /**
  * Creates the default target context factory: builds each region's convex world
@@ -87,29 +107,23 @@ function collectRegionWorldPolygon(
 }
 
 /**
- * Collects the welded world vertices used by a triangle region.
+ * Collects the welded world corners of a region from the shared face region
+ * resolver.
  *
  * @param mesh Region mesh.
  * @param triangleIndices Region triangles.
  * @returns Unique world vertices.
  */
 function collectUniqueWorldVertices(mesh: THREE.Mesh, triangleIndices: number[]): THREE.Vector3[] {
-  const position = mesh.geometry.getAttribute('position');
-  if (!position) {
-    return [];
-  }
   const vertices: THREE.Vector3[] = [];
   const seenKeys = new Set<string>();
-  triangleIndices.forEach((triangleIndex) => {
-    getTriangleVertexIndices(mesh.geometry, triangleIndex).forEach((vertexIndex) => {
-      const world = getVertexPosition(position, vertexIndex).applyMatrix4(mesh.matrixWorld);
-      const key = worldVertexKey(world);
-      if (seenKeys.has(key)) {
-        return;
-      }
-      seenKeys.add(key);
-      vertices.push(world);
-    });
+  FaceRegionWorldGeometry.cornersWorld(mesh, triangleIndices).forEach((world) => {
+    const key = worldVertexKey(world);
+    if (seenKeys.has(key)) {
+      return;
+    }
+    seenKeys.add(key);
+    vertices.push(world);
   });
   return vertices;
 }

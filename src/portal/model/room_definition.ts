@@ -9,10 +9,32 @@ import {
 } from '@/portal/model/room_settings.js';
 import { ROOM_GUIDE_COLOR, ROOM_ICON_NAME, RoomVisualBuilder } from '@/portal/visual/room_visual_builder.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
+import type { EntityClassPointVariant } from '@/entity/class/entity_class_point_variant.js';
+import { entityClassPointVariantSingleCreate } from '@/entity/class/entity_class_point_variant_single.js';
+
+/** The point class every room owner is. */
+const ROOM_POINT_CLASS_VARIANTS: readonly EntityClassPointVariant<RoomSettings>[] = [
+  entityClassPointVariantSingleCreate({
+    id: 'portals.room',
+    label: 'Room',
+    category: 'Portals',
+    helpText: 'A room cell for portal culling. Its box should cover one room; portals connect it to its neighbors.',
+    settingsCreateDefault: roomSettingsCreateDefault,
+  }),
+];
 
 /** Rules of authored room cells. */
 export class RoomDefinition extends EntityDefinition<RoomSettings> {
   readonly kind: EntityKind = 'room';
+
+  /**
+   * Returns the room class.
+   *
+   * @returns Room point class.
+   */
+  override pointClassVariants(): readonly EntityClassPointVariant<RoomSettings>[] {
+    return ROOM_POINT_CLASS_VARIANTS;
+  }
 
   /**
    * Returns default room settings.

@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import type { ShellInspectorTabId } from '@/layout/shell/inspector/shell_inspector.js';
+import type { ShellFloatingWindow } from '@/layout/shell/actions/shell_floating_window.js';
 import { shellTestDocksCreate, shellTestDocksDispose, type ShellTestDocks } from '../shell_test_support.js';
-
-/** Inspector tab ids the reveal command accepts. */
-const SHELL_DOCK_COMMANDS_TEST_INSPECTOR_TABS: readonly ShellInspectorTabId[] = ['map', 'entity', 'face'];
 
 /** Docks built by the running test. */
 let shellDockCommandsTestDocks: ShellTestDocks | null = null;
@@ -26,24 +23,53 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
+/**
+ * Creates a floating window stand-in that flips its open flag on toggle.
+ *
+ * @returns Floating window with a readable open flag.
+ */
+function shellDockCommandsTestFloatingWindowCreate(): ShellFloatingWindow {
+  let isOpen = false;
+  return {
+    toggle: () => {
+      isOpen = !isOpen;
+    },
+    isOpen: () => isOpen,
+  };
+}
+
 describe('ShellDockCommands', () => {
-  SHELL_DOCK_COMMANDS_TEST_INSPECTOR_TABS.forEach((tabId) => {
-    it(`reveals the ${tabId} inspector tab, showing the hidden inspector first`, () => {
-      const { frame, inspector, dockCommands } = shellDockCommandsTestDocksCreate();
-      frame.inspectorVisibleSet(false);
-      dockCommands.inspectorTabReveal(tabId);
-      expect(frame.isInspectorVisible()).toBe(true);
-      expect(inspector.activeTabIdRead()).toBe(tabId);
-      expect(dockCommands.isInspectorTabShown(tabId)).toBe(true);
-    });
+  it('reveals the hidden inspector and leaves a shown inspector shown', () => {
+    const { frame, dockCommands } = shellDockCommandsTestDocksCreate();
+    frame.inspectorVisibleSet(false);
+    dockCommands.inspectorReveal();
+    expect(frame.isInspectorVisible()).toBe(true);
+    dockCommands.inspectorReveal();
+    expect(frame.isInspectorVisible()).toBe(true);
   });
 
-  it('reports a tab as not shown while the inspector is hidden or another tab is in front', () => {
-    const { frame, dockCommands } = shellDockCommandsTestDocksCreate();
-    dockCommands.inspectorTabReveal('face');
-    expect(dockCommands.isInspectorTabShown('map')).toBe(false);
-    frame.inspectorVisibleSet(false);
-    expect(dockCommands.isInspectorTabShown('face')).toBe(false);
+  it('toggles registered floating windows and reports unregistered ones as closed', () => {
+    const { dockCommands } = shellDockCommandsTestDocksCreate();
+    expect(dockCommands.isFloatingWindowOpen('entity_browser')).toBe(false);
+    dockCommands.floatingWindowToggle('entity_browser');
+    expect(dockCommands.isFloatingWindowOpen('entity_browser')).toBe(false);
+    dockCommands.floatingWindowRegister('entity_browser', shellDockCommandsTestFloatingWindowCreate());
+    dockCommands.floatingWindowToggle('entity_browser');
+    expect(dockCommands.isFloatingWindowOpen('entity_browser')).toBe(true);
+    expect(dockCommands.isFloatingWindowOpen('texture_browser')).toBe(false);
+    dockCommands.floatingWindowToggle('entity_browser');
+    expect(dockCommands.isFloatingWindowOpen('entity_browser')).toBe(false);
+  });
+
+  it('shows and hides a registered floating window without toggling when already in that state', () => {
+    const { dockCommands } = shellDockCommandsTestDocksCreate();
+    dockCommands.floatingWindowRegister('texture_browser', shellDockCommandsTestFloatingWindowCreate());
+    dockCommands.floatingWindowVisibleSet('texture_browser', true);
+    expect(dockCommands.isFloatingWindowOpen('texture_browser')).toBe(true);
+    dockCommands.floatingWindowVisibleSet('texture_browser', true);
+    expect(dockCommands.isFloatingWindowOpen('texture_browser')).toBe(true);
+    dockCommands.floatingWindowVisibleSet('texture_browser', false);
+    expect(dockCommands.isFloatingWindowOpen('texture_browser')).toBe(false);
   });
 
   it('reveals an info panel tab, showing the hidden info panel first', () => {
@@ -52,6 +78,25 @@ describe('ShellDockCommands', () => {
     dockCommands.infoPanelTabReveal('issues');
     expect(frame.isInfoPanelVisible()).toBe(true);
     expect(infoPanel.activeTabIdRead()).toBe('issues');
+  });
+
+  it('unfolds a folded info panel when revealing a tab', () => {
+    const { frame, infoPanel, dockCommands } = shellDockCommandsTestDocksCreate();
+    frame.infoPanelCollapsedSet(true);
+    dockCommands.infoPanelTabReveal('console');
+    expect(frame.isInfoPanelCollapsed()).toBe(false);
+    expect(infoPanel.isCollapsedShown()).toBe(false);
+    expect(infoPanel.activeTabIdRead()).toBe('console');
+  });
+
+  it('folds and unfolds the info panel and reports the folded state', () => {
+    const { frame, infoPanel, dockCommands } = shellDockCommandsTestDocksCreate();
+    const collapsedBefore = dockCommands.isInfoPanelCollapsed();
+    dockCommands.infoPanelCollapsedToggle();
+    expect(frame.isInfoPanelCollapsed()).toBe(!collapsedBefore);
+    expect(infoPanel.isCollapsedShown()).toBe(!collapsedBefore);
+    dockCommands.infoPanelCollapsedToggle();
+    expect(dockCommands.isInfoPanelCollapsed()).toBe(collapsedBefore);
   });
 
   it('toggles the inspector, the info panel and the toolbar and reports their visibility', () => {

@@ -4,9 +4,9 @@ import { InputText } from '@/ui/input/input_text.js';
 import type { TextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
 import {
   FACE_INSPECTOR_METRICS,
-  faceInspectorButtonCreate,
   faceInspectorCaptionCreate,
 } from '@/texture/ui/face_inspector/face_inspector_controls.js';
+import { buttonCompactCreate } from '@/ui/button/button_compact.js';
 import type { MaterialBrowserView } from './material_browser_view.js';
 import { materialBrowserFilterEntries } from './material_browser_filter.js';
 import { materialBrowserTileCreate, materialBrowserTileSelectionPaint } from './material_browser_tile.js';
@@ -189,7 +189,7 @@ export class MaterialBrowser implements MaterialBrowserView {
    * @returns Button element.
    */
   private openFolderButtonCreate(): HTMLButtonElement {
-    const button = faceInspectorButtonCreate({
+    const button = buttonCompactCreate({
       title: 'Open Folder',
       text: 'Open Folder…',
       widthPx: null,

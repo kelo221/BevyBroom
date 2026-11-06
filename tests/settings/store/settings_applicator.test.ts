@@ -6,6 +6,8 @@ import {
   createDefaultViewSettings,
 } from '@/settings/store/settings_defaults.js';
 import type { EditorSettingsSnapshot } from '@/settings/store/settings_types.js';
+import { Theme } from '@/theme.js';
+import { hexToRgb } from '@/utils/utils_color.js';
 
 describe('SettingsApplicator', () => {
   let root: HTMLElement;
@@ -50,7 +52,7 @@ describe('SettingsApplicator', () => {
     expect(root.getAttribute('data-bevybroom-theme')).toBe('dark');
   });
 
-  it('should install the neutral light palette with a Windows-blue interaction accent', () => {
+  it('should install the classic light palette from the theme tokens', () => {
     applicator.applySnapshot({
       activeGameProfileId: null,
       gameProfiles: [],
@@ -65,11 +67,10 @@ describe('SettingsApplicator', () => {
     expect(style?.textContent).toContain('--bevybroom-viewport-brightness');
     expect(style?.textContent).toContain('--bevybroom-material-icon-scale');
     expect(style?.textContent).toContain("data-bevybroom-theme='light'");
-    expect(style?.textContent).toContain('background: #ffffff !important');
-    expect(style?.textContent).toContain('background: #f3f3f3 !important');
+    expect(style?.textContent).toContain(`background: ${Theme.panelSunkenBackground} !important`);
+    expect(style?.textContent).toContain(`background: ${Theme.panelBackground} !important`);
     expect(style?.textContent).toContain('.editor-toolbar');
     expect(style?.textContent).toContain('.editor-properties-panel');
-    expect(style?.textContent).toContain('.editor-viewport-title');
     expect(style?.textContent).toContain('.editor-status-bar *');
     expect(style?.textContent).toContain('.editor-context-menu');
     expect(style?.textContent).toContain('.editor-context-menu-item:hover');
@@ -78,11 +79,13 @@ describe('SettingsApplicator', () => {
     expect(style?.textContent).toContain('.settings-dialog-content');
     expect(style?.textContent).toContain('.settings-dialog-category');
     expect(style?.textContent).toContain("[data-settings-field='coordinate-space-summary']");
-    expect(style?.textContent).toContain('color: #424242 !important');
-    expect(style?.textContent).toContain('background: #e5e5e5 !important');
-    expect(style?.textContent).toContain('color: #0a0a0a !important');
-    expect(style?.textContent).toContain('border-color: #0078d4 !important');
-    expect(style?.textContent).toContain('background: #cce8ff !important');
+    expect(style?.textContent).toContain(`color: ${Theme.secondaryTextColor} !important`);
+    expect(style?.textContent).toContain(`background: ${hexToRgb(Theme.buttonHoverColor)} !important`);
+    expect(style?.textContent).toContain(`color: ${Theme.buttonTextColor} !important`);
+    expect(style?.textContent).toContain(`border-color: ${Theme.focusOutline} !important`);
+    expect(style?.textContent).toContain(`background: ${Theme.listSelectedBackground} !important`);
+    expect(style?.textContent).toContain(`background: ${Theme.menuHighlightBackground} !important`);
+    expect(style?.textContent).toContain(`color: ${Theme.menuHighlightTextColor} !important`);
     expect(style?.textContent).toContain('.settings-dialog-panel');
     expect(style?.textContent).not.toContain("[role='dialog']");
     expect(style?.textContent).not.toContain('.tb-browser-root');

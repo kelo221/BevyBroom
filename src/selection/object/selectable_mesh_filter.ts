@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { SELECTION_HIGHLIGHT_USERDATA_KEY } from '@/selection/object/selection_highlight.js';
 import { CLIP_PREVIEW_USERDATA_KEY } from '@/tools/clip_plane/clip_plane_preview.js';
 import { objectInUnselectableLayerIs } from '@/layer/model/layer_membership.js';
+import { entityPickMeshIs, entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
 
 /**
  * Returns whether a mesh is an editor overlay or helper rather than content the
@@ -16,6 +17,7 @@ export function selectableMeshHelperIs(mesh: THREE.Object3D): boolean {
   if (mesh.userData['isWireframeOverlay'] === true) return true;
   if (mesh.userData['isSelectionHighlight']) return true;
   if (mesh.userData['isSolidModelResult'] === true) return true;
+  if (entityVisualPartIs(mesh) && !entityPickMeshIs(mesh)) return true;
   if (mesh instanceof THREE.LineSegments && mesh.parent instanceof THREE.Mesh) {
     return true;
   }

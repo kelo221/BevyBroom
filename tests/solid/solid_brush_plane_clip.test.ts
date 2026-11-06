@@ -9,6 +9,7 @@ import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { CommandSolidBrushClip } from '@/solid/commands/brush/command_solid_brush_clip.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { createFaceTextureMappingFromTrs } from '@/texture/uv/face_texture_mapping.js';
+import { displacementSurfaceCreate } from '@/displacement/model/displacement_face_surface.js';
 
 /** Unit tests for solid brush plane clipping used by the clip tool. */
 describe('SolidBrushPlaneClip', () => {
@@ -69,5 +70,30 @@ describe('SolidBrushPlaneClip', () => {
     const afterSurface = updated.getFaceSurface(newSideIndex);
     expect(afterSurface.textureId).toBe('clip-uv.png');
     expect(afterSurface.uv.equals(beforeUv, 1e-5)).toBe(true);
+  });
+
+  it('remaps a displacement onto the matching face after clip and restores it on undo', () => {
+    const model = new SolidModel('ClipDisplacement');
+    const instance = model.addBoxBrush(2, SolidOperation.Additive);
+    const sideIndex = instance.brush.planes.findIndex((plane) => plane.normal.z > 0.9);
+    expect(sideIndex).toBeGreaterThanOrEqual(0);
+    instance.faceDisplacementWrite(sideIndex, displacementSurfaceCreate(2, 0.5));
+    const command = new CommandSolidBrushClip(
+      model,
+      instance.id,
+      new THREE.Plane(new THREE.Vector3(1, 0, 0), 0),
+      false,
+    );
+    command.execute();
+    expect(command.didClip()).toBe(true);
+    const updated = model.findBrush(instance.id);
+    expect(updated).toBeTruthy();
+    const newSideIndex = updated!.brush.planes.findIndex((plane) => plane.normal.z > 0.9);
+    expect(updated!.faceDisplacementRead(newSideIndex)?.elevation).toBe(0.5);
+    const cutFaceIndex = updated!.brush.planes.findIndex((plane) => plane.normal.x > 0.9);
+    expect(updated!.faceDisplacementRead(cutFaceIndex)).toBeUndefined();
+    command.undo();
+    const restored = model.findBrush(instance.id);
+    expect(restored?.faceDisplacementRead(sideIndex)?.elevation).toBe(0.5);
   });
 });

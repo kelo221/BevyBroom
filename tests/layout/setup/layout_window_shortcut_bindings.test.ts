@@ -80,8 +80,10 @@ function windowActionsEditSpyCreate(): Pick<
   | 'selectionHasObjectsIs'
   | 'solidBrushToolsRead'
   | 'selectionVisibilityRead'
+  | 'objectPropertiesOpen'
 > {
   return {
+    objectPropertiesOpen: vi.fn(),
     clipboardCopy: vi.fn(),
     clipboardCut: vi.fn(),
     clipboardPaste: vi.fn(),
@@ -100,7 +102,13 @@ function windowActionsEditSpyCreate(): Pick<
  * @returns Spy dock commands.
  */
 function dockCommandsSpyCreate(): LayoutWindowShortcutDockCommands {
-  return { inspectorTabReveal: vi.fn(), inspectorToggle: vi.fn(), infoPanelToggle: vi.fn(), toolbarToggle: vi.fn() };
+  return {
+    inspectorReveal: vi.fn(),
+    inspectorToggle: vi.fn(),
+    infoPanelToggle: vi.fn(),
+    infoPanelCollapsedToggle: vi.fn(),
+    toolbarToggle: vi.fn(),
+  };
 }
 
 /**
@@ -153,14 +161,14 @@ describe('layout window shortcut bindings', () => {
     handler.unregister();
   });
 
-  it('reveals each inspector tab from its shortcut', () => {
+  it('reveals the Map inspector from its shortcut and binds no removed inspector tab shortcut', () => {
     const dockCommands = dockCommandsSpyCreate();
     const handler = handlerWithWindowShortcutsCreate(windowActionsSpyCreate(), dockCommands);
     defaultShortcutPress('inspector_map');
-    defaultShortcutPress('inspector_entity');
-    defaultShortcutPress('inspector_face');
-    const revealedTabs = vi.mocked(dockCommands.inspectorTabReveal).mock.calls.map((call) => call[0]);
-    expect(revealedTabs).toEqual(['map', 'entity', 'face']);
+    expect(dockCommands.inspectorReveal).toHaveBeenCalledOnce();
+    const boundActions = Object.keys(layoutWindowShortcutsDockCreate(dockCommands));
+    expect(boundActions).not.toContain('inspector_entity');
+    expect(boundActions).not.toContain('inspector_face');
     handler.unregister();
   });
 
@@ -173,6 +181,36 @@ describe('layout window shortcut bindings', () => {
     expect(dockCommands.inspectorToggle).toHaveBeenCalledOnce();
     expect(dockCommands.infoPanelToggle).toHaveBeenCalledOnce();
     expect(dockCommands.toolbarToggle).toHaveBeenCalledOnce();
+    handler.unregister();
+  });
+
+  it('collapses and expands the info panel from its own shortcut without hiding it', () => {
+    const dockCommands = dockCommandsSpyCreate();
+    const handler = handlerWithWindowShortcutsCreate(windowActionsSpyCreate(), dockCommands);
+    defaultShortcutPress('info_panel_collapse_toggle');
+    expect(dockCommands.infoPanelCollapsedToggle).toHaveBeenCalledOnce();
+    expect(dockCommands.infoPanelToggle).not.toHaveBeenCalled();
+    handler.unregister();
+  });
+
+  it('binds the info panel collapse shortcut to a key no other default shortcut uses', () => {
+    const defaults = createDefaultKeyboardShortcutSettings();
+    const collapseShortcut = defaults.info_panel_collapse_toggle;
+    const clashingActions = (Object.keys(defaults) as KeyboardShortcutAction[]).filter(
+      (action) =>
+        action !== 'info_panel_collapse_toggle' &&
+        JSON.stringify(defaults[action]) === JSON.stringify(collapseShortcut),
+    );
+    expect(clashingActions).toEqual([]);
+  });
+
+  it('opens Object Properties from Alt+Enter', () => {
+    const windowActions = windowActionsSpyCreate();
+    const handler = handlerWithWindowShortcutsCreate(windowActions, dockCommandsSpyCreate());
+    const shortcut = createDefaultKeyboardShortcutSettings().object_properties;
+    expect(shortcut).toEqual({ code: 'Enter', ctrl: false, shift: false, alt: true, meta: false });
+    shortcutPress(shortcut);
+    expect(windowActions.objectPropertiesOpen).toHaveBeenCalledOnce();
     handler.unregister();
   });
 

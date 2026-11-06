@@ -9,6 +9,7 @@ import {
   applyTransferredSurfacesToInstance,
   captureInstanceFaceSurfaces,
 } from '@/solid/brush/solid_brush_surface_transfer.js';
+import type { DisplacementFaceSurface } from '@/displacement/model/displacement_types.js';
 import type {
   FaceSurfaceDescription,
   FaceSurfaceDescriptionSerialized,
@@ -24,6 +25,7 @@ export class CommandSolidBrushClip implements UndoCommand {
   private previousBrush: SolidBrush | null;
   private previousDefaultSurface: FaceSurfaceDescriptionSerialized | null;
   private previousFaceSurfaces: (FaceSurfaceDescriptionSerialized | undefined)[] | null;
+  private previousFaceDisplacements: (DisplacementFaceSurface | undefined)[] | null;
   private executed: boolean;
 
   /**
@@ -42,6 +44,7 @@ export class CommandSolidBrushClip implements UndoCommand {
     this.previousBrush = null;
     this.previousDefaultSurface = null;
     this.previousFaceSurfaces = null;
+    this.previousFaceDisplacements = null;
     this.executed = false;
   }
 
@@ -53,21 +56,17 @@ export class CommandSolidBrushClip implements UndoCommand {
     const localPlane = this.worldPlaneToLocal(instance, this.worldPlane);
     const clipped = SolidBrushPlaneClip.clipKeepThreeHalfSpace(instance.brush, localPlane, this.keepFront);
     if (!clipped) return;
-    this.previousBrush = instance.brush.clone();
-    const surfaceSnapshot = captureInstanceFaceSurfaces(instance);
-    this.previousDefaultSurface = surfaceSnapshot.defaultSurface;
-    this.previousFaceSurfaces = surfaceSnapshot.faceSurfaces;
+    const sourceBrush = instance.brush.clone();
+    this.snapshotPreviousState(instance);
     const sourceSurfaces = this.materializeSourceSurfaces(instance);
     this.applyBrushGeometry(instance, clipped);
     applyTransferredSurfacesToInstance(
       instance,
-      this.previousBrush,
+      sourceBrush,
       sourceSurfaces.defaultSurface,
       sourceSurfaces.faceSurfaces,
     );
-    this.model.markDirty();
-    this.model.rebuild(true);
-    this.executed = true;
+    this.finishClip();
   }
 
   /** Restores the previous brush geometry and UV surfaces. */
@@ -77,9 +76,11 @@ export class CommandSolidBrushClip implements UndoCommand {
     if (!instance) return;
     this.applyBrushGeometry(instance, this.previousBrush);
     instance.restoreFaceSurfaces(this.previousDefaultSurface ?? undefined, this.previousFaceSurfaces ?? undefined);
+    instance.restoreFaceDisplacements(this.previousFaceDisplacements ?? undefined);
     this.previousBrush = null;
     this.previousDefaultSurface = null;
     this.previousFaceSurfaces = null;
+    this.previousFaceDisplacements = null;
     this.model.markDirty();
     this.model.rebuild(true);
     this.executed = false;
@@ -92,6 +93,26 @@ export class CommandSolidBrushClip implements UndoCommand {
    */
   didClip(): boolean {
     return this.executed;
+  }
+
+  /** Marks the solid dirty and records that the clip ran. */
+  private finishClip(): void {
+    this.model.markDirty();
+    this.model.rebuild(true);
+    this.executed = true;
+  }
+
+  /**
+   * Stores the brush geometry, UV surfaces and displacements for undo.
+   *
+   * @param instance Brush instance before the clip.
+   */
+  private snapshotPreviousState(instance: SolidBrushInstance): void {
+    this.previousBrush = instance.brush.clone();
+    const surfaceSnapshot = captureInstanceFaceSurfaces(instance);
+    this.previousDefaultSurface = surfaceSnapshot.defaultSurface;
+    this.previousFaceSurfaces = surfaceSnapshot.faceSurfaces;
+    this.previousFaceDisplacements = surfaceSnapshot.faceDisplacements;
   }
 
   /**

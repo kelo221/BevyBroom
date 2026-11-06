@@ -3,6 +3,10 @@ import { pointerEventToNdc } from '@/utils/pointer_ndc.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { getOrBuildFacePickBvh } from '@/selection/pick/mesh_pick_acceleration.js';
 import { objectInHiddenLayerIs } from '@/layer/model/layer_membership.js';
+import {
+  displacementResultTriangleRead,
+  displacementSurfaceMeshesBesideResult,
+} from '@/displacement/pick/displacement_pick_mapping.js';
 
 /** Result of a face picking operation. */
 export interface FacePickResult {
@@ -13,10 +17,21 @@ export interface FacePickResult {
   faceNormal: THREE.Vector3;
 }
 
+/** Closest front-facing hit found so far during one pick. */
+interface FacePickCandidate {
+  mesh: THREE.Mesh;
+  faceIndex: number;
+  distance: number;
+  point: THREE.Vector3;
+  worldNormal: THREE.Vector3;
+}
+
 /**
  * Performs triangle-precision raycasting for face picking on meshes. Uses a
  * cached triangle BVH per geometry so large solid results stay interactive.
- * Ignores back-facing triangles. Does not touch gizmo picking.
+ * Ignores back-facing triangles. Does not touch gizmo picking. Hits on a solid
+ * result's displacement surfaces report the result triangle of the brush face
+ * the surface replaces.
  */
 export class RaycasterFaceSelection {
   private readonly helperRaycaster = new THREE.Raycaster();
@@ -52,29 +67,51 @@ export class RaycasterFaceSelection {
     if (meshes.length === 0) return null;
     camera.updateMatrixWorld(true);
     this.setRayFromEvent(event, camera, pickElement);
-    let bestMesh: THREE.Mesh | null = null;
-    let bestFaceIndex = -1;
-    let bestDistance = Infinity;
-    let bestPoint: THREE.Vector3 | null = null;
-    let bestNormal: THREE.Vector3 | null = null;
+    let best: FacePickCandidate | null = null;
     for (const mesh of meshes) {
       if (SolidBrushVisual.shouldSkipFacePick(mesh)) continue;
       if (!mesh.visible || objectInHiddenLayerIs(mesh)) continue;
-      const candidate = this.pickFrontFaceOnMesh(mesh, bestDistance);
-      if (!candidate) continue;
-      bestMesh = mesh;
-      bestFaceIndex = candidate.faceIndex;
-      bestDistance = candidate.distance;
-      bestPoint = candidate.point;
-      bestNormal = candidate.worldNormal;
+      best = this.candidateCloserOnMesh(mesh, best);
+      best = this.candidateCloserOnDisplacementSurfaces(mesh, best);
     }
-    if (!bestMesh || !bestPoint || !bestNormal || bestFaceIndex < 0) return null;
-    return {
-      mesh: bestMesh,
-      faceIndex: bestFaceIndex,
-      hitPoint: bestPoint,
-      faceNormal: bestNormal,
-    };
+    if (!best || best.faceIndex < 0) return null;
+    return { mesh: best.mesh, faceIndex: best.faceIndex, hitPoint: best.point, faceNormal: best.worldNormal };
+  }
+
+  /**
+   * Returns the closer of the current best hit and a hit on one mesh.
+   *
+   * @param mesh Candidate mesh.
+   * @param best Closest hit so far, or null.
+   * @returns New closest hit, or the previous one.
+   */
+  private candidateCloserOnMesh(mesh: THREE.Mesh, best: FacePickCandidate | null): FacePickCandidate | null {
+    const hit = this.pickFrontFaceOnMesh(mesh, best?.distance ?? Infinity);
+    return hit ? { mesh, ...hit } : best;
+  }
+
+  /**
+   * Tests the displacement surfaces beside a solid result mesh and reports a
+   * closer hit as the result triangle of the brush face the surface replaces.
+   *
+   * @param resultMesh Candidate solid result mesh.
+   * @param best Closest hit so far, or null.
+   * @returns New closest hit, or the previous one.
+   */
+  private candidateCloserOnDisplacementSurfaces(
+    resultMesh: THREE.Mesh,
+    best: FacePickCandidate | null,
+  ): FacePickCandidate | null {
+    let closest = best;
+    for (const surfaceMesh of displacementSurfaceMeshesBesideResult(resultMesh)) {
+      if (!surfaceMesh.visible) continue;
+      const hit = this.pickFrontFaceOnMesh(surfaceMesh, closest?.distance ?? Infinity);
+      const faceIndex = hit ? displacementResultTriangleRead(resultMesh, surfaceMesh) : -1;
+      if (hit && faceIndex >= 0) {
+        closest = { ...hit, mesh: resultMesh, faceIndex };
+      }
+    }
+    return closest;
   }
 
   /**

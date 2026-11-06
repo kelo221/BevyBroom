@@ -45,7 +45,7 @@ export const MCP_VIEWPORT_INPUT_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ),
   tool(
     'viewport_click',
-    'Left-button click in a view at the world point `at` (projected through that view camera) like a user mouse click: selects what is under the point (Shift adds, Ctrl toggles, empty space deselects). Returns `selection` like get_selection.',
+    'Left-button click in a view at the world point `at` (projected through that view camera) like a user mouse click: selects what is under the point (Ctrl toggles, empty space deselects). With the Object tool, Shift on a brush face (or a displaced face surface) switches to the Face tool, opens the Face Edit Sheet and selects exactly that face (check with get_face_edit_state); Shift on a light, entity or mesh adds it. Returns `selection` like get_selection.',
     {
       type: 'object',
       properties: {

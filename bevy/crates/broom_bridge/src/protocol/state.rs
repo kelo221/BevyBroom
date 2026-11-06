@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use super::hello::{MIN_PROTOCOL_VERSION, protocol_supported};
 use super::light::AuthoredLight;
-use super::placeable::{AuthoredComponents, validate_components};
+use super::placeable::{AuthoredComponents, AuthoredLogicOutput, validate_components};
 use super::portal::{AuthoredPortal, AuthoredRoom};
 
 /// The newest wire protocol version. Requests outside
@@ -79,6 +79,9 @@ pub struct AuthoredObject {
     /// Game components placed on the object, on any kind.
     #[serde(default, skip_serializing_if = "AuthoredComponents::is_empty")]
     pub components: AuthoredComponents,
+    /// Authored entity I/O output connections on the object.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub logic_outputs: Vec<AuthoredLogicOutput>,
 }
 
 /// Serde default for [`AuthoredObject::visible`].
@@ -101,6 +104,7 @@ impl Default for AuthoredObject {
             room: None,
             portal: None,
             components: AuthoredComponents::new(),
+            logic_outputs: Vec::new(),
         }
     }
 }

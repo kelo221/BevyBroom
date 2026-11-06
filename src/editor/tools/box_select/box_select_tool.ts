@@ -7,6 +7,13 @@ import {
   boxSelectPointerSampleRead,
   boxSelectPointerSampleWithKeyReleased,
 } from './box_select_pointer_sample.js';
+import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js';
+import { getStatePolygonTool } from '@/tools/polygon/state_polygon_tool.js';
+import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
+import type { EditorServices } from '@/editor/window/editor_services.js';
+
+/** Status shown when S is pressed on a selection that may not be scaled. */
+const BOX_SELECT_SCALE_NOT_ALLOWED_MESSAGE = 'Scale unavailable: point entities and lights only move and rotate';
 
 /**
  * Shape Editor BoxSelectTool: object selection on OnGlobalMouseUp, G/R/S
@@ -48,6 +55,30 @@ export class BoxSelectTool extends Tool {
 
   /** Called when the tool is rendered. */
   override onRender(): void {}
+
+  /**
+   * Returns whether the tool is idle for object double-clicks: it is no
+   * single-use launch, no object drag runs and no Entity, Polygon or Sprinkle
+   * placement takes the clicks.
+   *
+   * @returns True when a double-click may open Object Properties.
+   */
+  isObjectDoubleClickReady(): boolean {
+    return !this.isSingleUse && !this.dragGesture.isSessionActive() && !this.hammerToolActiveIs();
+  }
+
+  /**
+   * Returns whether the Entity, Polygon or Sprinkle tool takes viewport clicks.
+   *
+   * @returns True while one of those tools is active.
+   */
+  private hammerToolActiveIs(): boolean {
+    return (
+      getStateEntityPlace().toolActiveRead() ||
+      getStatePolygonTool().toolActiveRead() ||
+      getStateSprinkleTool().toolActiveRead()
+    );
+  }
 
   /**
    * Records a left-button press as a possible drag start.
@@ -111,13 +142,35 @@ export class BoxSelectTool extends Tool {
     if (this.dragGesture.isSessionActive()) {
       return this.handleDragSessionKeyDown(keyCode);
     }
-    if (this.isSingleUse) {
-      return false;
+    if (getStatePolygonTool().toolActiveRead() && this.handlePolygonToolKeyDown(keyCode)) {
+      return true;
     }
-    if (!this.editor) {
+    if (this.isSingleUse || !this.editor) {
       return false;
     }
     return this.dispatchSingleUseLaunchKeys(keyCode);
+  }
+
+  /**
+   * Handles Enter, Backspace, and Escape while the Polygon brush tool is
+   * active.
+   *
+   * @param keyCode Key code string.
+   * @returns True when consumed.
+   */
+  private handlePolygonToolKeyDown(keyCode: string): boolean {
+    if (keyCode === 'Enter' || keyCode === 'NumpadEnter') {
+      return getStatePolygonTool().commit().length > 0;
+    }
+    if (keyCode === 'Backspace') {
+      getStatePolygonTool().vertexRemoveLast();
+      return true;
+    }
+    if (keyCode === 'Escape') {
+      getStatePolygonTool().clear();
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -152,22 +205,59 @@ export class BoxSelectTool extends Tool {
     return true;
   }
 
-  /** Applies object click selection at the last editor pointer sample. */
+  /**
+   * Applies Hammer++ Entity/Polygon/Sprinkle placement, otherwise applies the
+   * object click at the last pointer position.
+   */
   private applyClickSelectionAtLastPointer(): void {
     if (!this.editor) {
       return;
     }
-    const services = this.editor.getServices();
-    if (!services) {
+    const cx = this.editor.lastPointerClientX;
+    const cy = this.editor.lastPointerClientY;
+    if (this.applyHammerToolClick(cx, cy)) {
       return;
     }
-    boxSelectApplyClickSelection(
-      services,
-      this.editor.lastPointerClientX,
-      this.editor.lastPointerClientY,
-      this.editor.isShiftPressed,
-      this.editor.isCtrlPressed,
-    );
+    const services = this.editor.getServices();
+    if (services) {
+      this.objectClickApply(services, cx, cy);
+    }
+  }
+
+  /**
+   * Lets a plain double-click on an object open Object Properties, otherwise
+   * lets a Shift+click on a brush face open the Face tool on that face,
+   * otherwise applies object click selection (Shift adds, Ctrl toggles).
+   *
+   * @param services Editor services for double-click, face edit and selection.
+   * @param clientX Release client X.
+   * @param clientY Release client Y.
+   */
+  private objectClickApply(services: EditorServices, clientX: number, clientY: number): void {
+    const isShiftPressed = this.editor?.isShiftPressed === true;
+    const isCtrlPressed = this.editor?.isCtrlPressed === true;
+    if (services.objectClickReleaseDoubleClickHandle?.(clientX, clientY, isShiftPressed || isCtrlPressed) === true) {
+      return;
+    }
+    if (isShiftPressed && !isCtrlPressed && services.objectShiftClickFaceEditApply?.(clientX, clientY) === true) {
+      return;
+    }
+    boxSelectApplyClickSelection(services, clientX, clientY, isShiftPressed, isCtrlPressed);
+  }
+
+  /**
+   * Dispatches viewport clicks to Entity, Polygon, or Sprinkle tools when
+   * active.
+   *
+   * @param clientX Viewport client X.
+   * @param clientY Viewport client Y.
+   * @returns True when a specialized tool handled the click.
+   */
+  private applyHammerToolClick(clientX: number, clientY: number): boolean {
+    if (getStateEntityPlace().toolActiveRead()) return getStateEntityPlace().placeAtClientPoint(clientX, clientY);
+    if (getStatePolygonTool().toolActiveRead()) return getStatePolygonTool().placeVertexAtClientPoint(clientX, clientY);
+    if (getStateSprinkleTool().toolActiveRead()) return getStateSprinkleTool().scatterAtClientPoint(clientX, clientY);
+    return false;
   }
 
   /**
@@ -186,7 +276,7 @@ export class BoxSelectTool extends Tool {
       return true;
     }
     if (keyCode === 'KeyS' && !editor.isModifierPressed && editor.selectedSegmentsCount > 0) {
-      editor.useSingleUseScaleTool();
+      this.singleUseScaleLaunch();
       return true;
     }
     if (keyCode === 'KeyR' && editor.selectedSegmentsCount > 0) {
@@ -194,5 +284,18 @@ export class BoxSelectTool extends Tool {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Starts the single-use scale tool, or reports that the selection only moves
+   * and rotates when one of its objects may not be scaled.
+   */
+  private singleUseScaleLaunch(): void {
+    const services = this.editor?.getServices();
+    if (services?.isSelectionScaleAllowed?.() === false) {
+      services.setStatusMessage(BOX_SELECT_SCALE_NOT_ALLOWED_MESSAGE);
+      return;
+    }
+    this.editor?.useSingleUseScaleTool();
   }
 }

@@ -64,6 +64,8 @@ export interface ShellWindowActionsLayoutSource {
    * @returns Visibility commands.
    */
   selectionVisibilityRead(): HandlerSelectionVisibility | null;
+  /** Opens the Object Properties dialog on the selection. */
+  objectPropertiesOpen(): void;
   /** Object selection the selection commands change. */
   readonly selectionManager: ManagerSelection;
   /** Scene root whose selectable objects Select All picks. */
@@ -239,6 +241,11 @@ export class ShellWindowActionsLayout implements ShellWindowActions {
    */
   selectionVisibilityRead(): HandlerSelectionVisibility | null {
     return this.source.selectionVisibilityRead();
+  }
+
+  /** Opens the Object Properties dialog on the selection. */
+  objectPropertiesOpen(): void {
+    this.source.objectPropertiesOpen();
   }
 
   /**

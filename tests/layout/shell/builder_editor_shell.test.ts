@@ -12,7 +12,11 @@ import { GridSnap } from '@/transform/snap/grid_snap.js';
 import { TextureLockSettings } from '@/texture/lock/texture_lock_settings.js';
 import { HandlerHierarchyReparent } from '@/outliner/hierarchy/handler_hierarchy_reparent.js';
 import { shellMenusBuiltinCreate } from '@/layout/shell/menubar/shell_menu_bar.js';
-import { SHELL_TOOL_BAR_TOOL_SLOT_CLASS } from '@/layout/shell/toolbar/shell_tool_bar_builder.js';
+import { SHELL_FRAME_TOOLS_PALETTE_CLASS } from '@/layout/shell/frame/shell_frame.js';
+import {
+  SHELL_TOOL_BAR_LAYOUT_SLOT_CLASS,
+  SHELL_TOOL_BAR_TOOL_OPTIONS_SLOT_CLASS,
+} from '@/layout/shell/toolbar/shell_tool_bar_builder.js';
 import { SHELL_STATE_STORAGE_KEY } from '@/layout/shell/state/shell_state_store.js';
 import { allowEditorStorageWritesForTests } from '@/settings/storage/clear_editor_storage.js';
 import { ShellTestWindowActions, shellTestToolbarActionsCreate } from './shell_test_support.js';
@@ -122,30 +126,38 @@ describe('BuilderEditorShell', () => {
     );
   });
 
-  it('docks the tool buttons into the toolbar slot and the tool options into the view bar', () => {
+  it('docks the tool buttons into the left tools palette and the tool options and layout chooser into the toolbar row', () => {
     const { shell } = builderEditorShellTestBuild();
     expect(shell.frame.toolbarHostRead().contains(shell.toolbar.getElement())).toBe(true);
-    expect(shell.toolChromeDocking.railParent.parentElement).toBe(shell.toolbar.getElement());
-    expect(shell.toolChromeDocking.railParent.classList.contains(SHELL_TOOL_BAR_TOOL_SLOT_CLASS)).toBe(true);
-    expect(shell.toolChromeDocking.optionsParent).toBe(shell.frame.viewBarToolSlotRead());
+    expect(shell.toolChromeDocking.railParent).toBe(shell.frame.toolsPaletteHostRead());
+    expect(shell.toolChromeDocking.railParent.classList.contains(SHELL_FRAME_TOOLS_PALETTE_CLASS)).toBe(true);
+    expect(shell.toolChromeDocking.optionsParent.parentElement).toBe(shell.toolbar.getElement());
+    expect(shell.toolChromeDocking.optionsParent.classList.contains(SHELL_TOOL_BAR_TOOL_OPTIONS_SLOT_CLASS)).toBe(true);
+    expect(shell.layoutChooserSlot.parentElement).toBe(shell.toolbar.getElement());
+    expect(shell.layoutChooserSlot.classList.contains(SHELL_TOOL_BAR_LAYOUT_SLOT_CLASS)).toBe(true);
   });
 
-  it('places the viewport area below the view bar with the four seed panes', () => {
+  it('places the viewport area first in the view column with the four seed panes', () => {
     const { shell } = builderEditorShellTestBuild();
     const viewColumn = shell.frame.viewColumnRead();
     const children = [...viewColumn.children];
-    expect(children.indexOf(shell.viewportArea)).toBeGreaterThan(0);
+    expect(children.indexOf(shell.viewportArea)).toBe(0);
     expect(shell.viewportArea.contains(shell.viewportPaneGrid)).toBe(true);
     expect(shell.viewports.map((pane) => pane.dataset['areaId'])).toEqual(BUILDER_EDITOR_SHELL_TEST_PANE_IDS);
     shell.viewports.forEach((pane) => expect(pane.parentElement).toBe(shell.viewportPaneGrid));
   });
 
-  it('mounts the docks into the frame and the panels into their inspector slots', () => {
+  it('mounts the docks into the frame and the outliner into the Map section', () => {
     const { shell } = builderEditorShellTestBuild();
     expect(shell.frame.inspectorHostRead().contains(shell.inspector.getElement())).toBe(true);
     expect(shell.frame.infoPanelHostRead().contains(shell.infoPanel.getElement())).toBe(true);
     expect(shell.inspector.slotRead('map_outliner').contains(shell.outlinerPanel.getElement())).toBe(true);
-    expect(shell.inspector.slotRead('entity_properties').contains(shell.propertiesPanel.getContainer())).toBe(true);
+  });
+
+  it('keeps the properties panel detached from the inspector', () => {
+    const { shell } = builderEditorShellTestBuild();
+    expect(shell.propertiesPanel.isHostAttached()).toBe(false);
+    expect(shell.inspector.getElement().contains(shell.propertiesPanel.getContainer())).toBe(false);
   });
 
   it('adds the status bar as the last row of the main window', () => {

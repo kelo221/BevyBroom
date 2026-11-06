@@ -6,6 +6,7 @@
 use bevy::app::{SceneSpawnerSystems, SpawnScene};
 use bevy::gltf::GltfExtras;
 use bevy::prelude::*;
+use serde::de::DeserializeOwned;
 
 use super::assets::PlaceableAssetTypes;
 use super::compose::ComposeContext;
@@ -36,12 +37,17 @@ struct ExtrasNode {
     components: AuthoredComponents,
 }
 
+/// The value stored under `key` in a node's extras JSON, read as `T`, or `None` when the JSON
+/// is malformed, has no such key or the value does not have the shape of `T`.
+pub(crate) fn extras_entry<T: DeserializeOwned>(json: &str, key: &str) -> Option<T> {
+    let mut value: serde_json::Value = serde_json::from_str(json).ok()?;
+    let entry = value.get_mut(key)?.take();
+    serde_json::from_value::<T>(entry).ok()
+}
+
 /// The components in a node's extras JSON, or `None` when it has none or they are malformed.
 pub(crate) fn components_from_extras(json: &str) -> Option<AuthoredComponents> {
-    let value: serde_json::Value = serde_json::from_str(json).ok()?;
-    let components = value.get(EXTRAS_COMPONENTS)?.clone();
-    serde_json::from_value::<AuthoredComponents>(components)
-        .ok()
+    extras_entry::<AuthoredComponents>(json, EXTRAS_COMPONENTS)
         .filter(|components| validate_components(components).is_ok())
 }
 

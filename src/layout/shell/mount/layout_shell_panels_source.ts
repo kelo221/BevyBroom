@@ -12,7 +12,13 @@ import type { EntityBrowserPlacementHost } from '@/entity_browser/placement/enti
 import type { EntityBrowserSetupHost } from '@/entity_browser/setup/entity_browser_setup.js';
 import type { Issue } from '@/info_panel/issues/issue.js';
 import { shellIssueObjectSelect } from '@/layout/shell/actions/shell_issue_object_select.js';
-import { LayoutShellPanels, type LayoutShellPanelsDocks } from '@/layout/shell/mount/layout_shell_panels.js';
+import {
+  LayoutShellPanels,
+  type LayoutShellPanelsDocks,
+  type LayoutShellPanelsOptions,
+} from '@/layout/shell/mount/layout_shell_panels.js';
+import { getVisGroupSharedServices } from '@/visgroup/visgroup_shared_services.js';
+import { getPrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
 
 /** Editor parts the docked panels of the main window are built from. */
 export interface LayoutShellPanelsSource extends EntityBrowserPlacementHost {
@@ -33,9 +39,9 @@ export interface LayoutShellPanelsSource extends EntityBrowserPlacementHost {
   readonly keyboardShortcutHandler?: HandlerKeyboardShortcut | null;
   /** Supplies the active viewport camera, or null. */
   readonly activeCameraRead?: (() => THREE.Camera | null) | null;
-  /** Shows the Face inspector tab when faces become selected. */
+  /** Reveals the face editing window when faces become selected. */
   readonly revealFaceInspector?: (() => void) | null;
-  /** Reads whether the Face inspector auto-reveal setting is enabled. */
+  /** Reads whether the face editing auto-reveal setting is enabled. */
   readonly isFaceInspectorAutoRevealEnabled?: (() => boolean) | null;
   /** Refreshes viewport shading after face materials changed. */
   surfaceShadingRefresh(): void;
@@ -58,11 +64,29 @@ export function layoutShellPanelsCreate(source: LayoutShellPanelsSource): Layout
     faceInspectorDependencies: faceInspectorDependenciesCreate(source),
     entityBrowserHost: entityBrowserHostCreate(source),
     dockPanels: layoutShellDockPanelsOptionsCreate(source),
+    hammerBar: layoutShellHammerBarOptionsCreate(source),
   });
 }
 
 /**
- * Builds the Face tab services from the shell source.
+ * Builds the Hammer bar services from the shell source.
+ *
+ * @param source Editor parts the panels are built from.
+ * @returns Hammer bar options without the inspector and Object Bar actions.
+ */
+function layoutShellHammerBarOptionsCreate(source: LayoutShellPanelsSource): LayoutShellPanelsOptions['hammerBar'] {
+  return {
+    worldObject: source.worldObject,
+    selectionManager: source.selectionManager,
+    visGroupServices: getVisGroupSharedServices(),
+    prefabCatalogStore: getPrefabCatalogStore(),
+    commandStack: source.commandStack,
+    afterWorldMutation: () => source.refreshAfterWorldMutation(),
+  };
+}
+
+/**
+ * Builds the face inspector services from the shell source.
  *
  * @param source Editor parts the docked panels are built from.
  * @returns Face inspector setup dependencies.
@@ -108,9 +132,7 @@ function entityBrowserHostCreate(source: LayoutShellPanelsSource): EntityBrowser
  * @param source Editor parts the panels are built from.
  * @returns Dock panel options without the docks.
  */
-function layoutShellDockPanelsOptionsCreate(
-  source: LayoutShellPanelsSource,
-): ConstructorParameters<typeof LayoutShellPanels>[0]['dockPanels'] {
+function layoutShellDockPanelsOptionsCreate(source: LayoutShellPanelsSource): LayoutShellPanelsOptions['dockPanels'] {
   return {
     layerDependencies: {
       layerManager: source.layerManager,

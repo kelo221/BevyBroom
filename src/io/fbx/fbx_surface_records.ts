@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import { isDefaultSurfaceTexture } from '@/texture/library/factory_debug_texture.js';
 import type { FbxNodeIdPool } from './fbx_node_id_pool.js';
 
@@ -160,7 +161,7 @@ function readDiffuseColor(material: THREE.Material): THREE.Color {
   if ('color' in material && material.color instanceof THREE.Color) {
     return material.color;
   }
-  return new THREE.Color(0xffffff);
+  return new THREE.Color(MaterialColorNeutral.white);
 }
 
 /**

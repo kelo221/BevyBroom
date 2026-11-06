@@ -37,6 +37,32 @@ export type PreviewPlaceableFieldKind = (typeof PREVIEW_PLACEABLE_FIELD_KINDS)[n
 /** Where a placeable component may be attached. */
 export type PreviewPlaceablePlacement = 'point' | 'any';
 
+/** Every parameter kind the game bridge reports for an entity I/O pin. */
+export const PREVIEW_PLACEABLE_IO_PARAMETER_KINDS = ['none', 'string', 'number', 'integer', 'bool'] as const;
+
+/** Parameter value kind accepted by an entity I/O input or emitted by an output. */
+export type PreviewPlaceableIoParameterKind = (typeof PREVIEW_PLACEABLE_IO_PARAMETER_KINDS)[number];
+
+/**
+ * Metadata for one declared entity I/O input or output pin on a placeable
+ * class.
+ */
+export interface PreviewPlaceableIoPin {
+  name: string;
+  description: string;
+  parameter_kind?: PreviewPlaceableIoParameterKind;
+}
+
+/** One authored entity I/O output connection row on an object. */
+export interface PreviewAuthoredLogicOutput {
+  output: string;
+  target: string;
+  input: string;
+  parameter: string;
+  delay: number;
+  times_to_fire: number;
+}
+
 /** One field of a placeable component. */
 export interface PreviewPlaceableField {
   path: string;
@@ -60,6 +86,8 @@ export interface PreviewPlaceableClass {
   placement: PreviewPlaceablePlacement;
   marker_color: [number, number, number];
   fields: PreviewPlaceableField[];
+  inputs?: PreviewPlaceableIoPin[];
+  outputs?: PreviewPlaceableIoPin[];
 }
 
 /** One asset type that asset fields may reference. */

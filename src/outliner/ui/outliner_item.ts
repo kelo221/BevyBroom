@@ -397,7 +397,7 @@ export class OutlinerItem {
       return;
     }
     this.isIntoDropHighlighted = isIntoTarget;
-    this.rowElement.style.outline = isIntoTarget ? `1px solid ${hexToRgb(Theme.selectionColor)}` : 'none';
+    this.rowElement.style.outline = isIntoTarget ? `1px solid ${Theme.listSelectedBorder}` : 'none';
   }
 
   /** Starts inline rename editing for this item. */
@@ -489,7 +489,7 @@ export class OutlinerItem {
     this.rowElement.style.paddingLeft = `${OUTLINER_BASE_PADDING_PX + this.depth * OUTLINER_INDENT_PX}px`;
     this.rowElement.style.cursor = 'pointer';
     this.rowElement.style.fontFamily = 'monospace';
-    this.rowElement.style.fontSize = '12px';
+    this.rowElement.style.fontSize = `${Theme.uiFontSizePx}px`;
     this.rowElement.style.lineHeight = '1';
     this.rowElement.style.color = Theme.buttonTextColor;
     this.rowElement.style.borderRadius = '2px';
@@ -521,7 +521,7 @@ export class OutlinerItem {
   /** Builds the expand/collapse chevron element. */
   private buildChevron(): void {
     this.styleCenteredSlot(this.chevronElement, OUTLINER_CHEVRON_WIDTH_PX);
-    this.chevronElement.style.color = '#888888';
+    this.chevronElement.style.color = Theme.treeChevronColor;
     this.chevronElement.style.fontSize = '10px';
     this.chevronElement.style.transformOrigin = 'center center';
     this.chevronElement.style.transition = 'transform 0s';
@@ -653,7 +653,7 @@ export class OutlinerItem {
     this.visibilityElement.innerHTML = this.isVisible
       ? IconOutlinerVisibility.openEye()
       : IconOutlinerVisibility.hiddenEye();
-    this.visibilityElement.style.color = this.isVisible ? '#ffffff' : '#666666';
+    this.visibilityElement.style.color = this.isVisible ? Theme.rowToggleOnColor : Theme.rowToggleOffColor;
     this.visibilityElement.title = this.isVisible ? 'Hide' : 'Show';
   }
 
@@ -679,7 +679,7 @@ export class OutlinerItem {
   /** Updates the lock icon character and color. */
   private updateLockIcon(): void {
     this.lockElement.textContent = this.isLocked ? '🔒' : '🔓';
-    this.lockElement.style.color = this.isLocked ? '#e67e22' : '#555555';
+    this.lockElement.style.color = this.isLocked ? Theme.rowLockOnColor : Theme.rowToggleOffColor;
   }
 
   /** Binds interaction events to the row element. */

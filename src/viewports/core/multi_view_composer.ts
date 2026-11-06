@@ -16,6 +16,8 @@ export interface MultiViewPanePass {
    * camera aspect use this box so GL does not draw under chrome.
    */
   contentElement: HTMLElement;
+  /** Hex color the pane is cleared to before it is drawn. */
+  clearColor: number;
   /**
    * Optional camera resize using the exact scissor pixel size (keeps grids
    * sharp by matching projection to the drawable box).
@@ -119,11 +121,13 @@ export class MultiViewComposer {
     return {
       camera: null as unknown as THREE.Camera,
       viewportRect: { x: 0, y: 0, width: 0, height: 0 },
+      clearColor: Theme.viewportBackground,
     };
   }
 
   /**
-   * Writes camera, rect, and optional hooks into a reusable surface pane.
+   * Writes camera, rect, clear color and optional hooks into a reusable surface
+   * pane.
    *
    * @param surfacePane Destination surface pane.
    * @param pane Source multi-view pass.
@@ -140,6 +144,7 @@ export class MultiViewComposer {
   ): void {
     this.measurePaneRectInto(pane.contentElement, canvas, logicalWidth, logicalHeight, surfacePane.viewportRect);
     surfacePane.camera = pane.camera;
+    surfacePane.clearColor = pane.clearColor;
     this.assignOptionalHooks(surfacePane, pane);
     const rect = surfacePane.viewportRect;
     if (rect.width > 0 && rect.height > 0) {

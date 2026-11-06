@@ -3,6 +3,10 @@ import * as THREE from 'three';
 import { selectableMeshHelperIs, selectableMeshesCollect } from '@/selection/object/selectable_mesh_filter.js';
 import { ManagerViewportSync } from '@/layout/viewport/manager_viewport_sync.js';
 import { CLIP_PREVIEW_USERDATA_KEY } from '@/tools/clip_plane/clip_plane_preview.js';
+import { LightOwner } from '@/light/model/light_owner.js';
+import { EntityVisualBillboard } from '@/entity/visual/entity_visual_billboard.js';
+import { entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
+import { entityTransformScaleAllowedAll } from '@/entity/scale/entity_scale_allowed.js';
 import {
   layerTestBoxAddToLayer,
   layerTestBoxCreate,
@@ -11,9 +15,9 @@ import {
 } from '../../layer/layer_test_world.js';
 
 /**
- * Unit tests for the selectable mesh pool: helpers and meshes in hidden or
- * locked layers are left out, and the viewport sync manager uses the same pool
- * for every viewport.
+ * Unit tests for the selectable mesh pool: helpers, entity visuals other than
+ * the clickable marker, and meshes in hidden or locked layers are left out, and
+ * the viewport sync manager uses the same pool for every viewport.
  */
 describe('selectable_mesh_filter', () => {
   it('treats overlays and clip preview parts as helpers', () => {
@@ -26,6 +30,23 @@ describe('selectable_mesh_filter', () => {
     expect(selectableMeshHelperIs(previewPart)).toBe(true);
     expect(selectableMeshHelperIs(overlay)).toBe(true);
     expect(selectableMeshHelperIs(layerTestBoxCreate('content'))).toBe(false);
+  });
+
+  it('offers only the marker of a light, never its icon or other visual parts', () => {
+    const world = new THREE.Group();
+    const light = LightOwner.createDefault('Lamp', 'point');
+    world.add(light);
+    const marker = LightOwner.markerOf(light);
+    const icon = EntityVisualBillboard.iconFind(light);
+    expect(marker).not.toBeNull();
+    expect(icon).not.toBeNull();
+    const visualMeshes: THREE.Mesh[] = [];
+    light.traverse((child) => {
+      if (child instanceof THREE.Mesh && entityVisualPartIs(child)) visualMeshes.push(child);
+    });
+    expect(visualMeshes).toContain(icon);
+    expect(selectableMeshesCollect(world)).toEqual([marker]);
+    expect(entityTransformScaleAllowedAll(selectableMeshesCollect(world))).toBe(false);
   });
 
   it.each(['hidden', 'locked'] as const)('leaves meshes of %s layers out of the pool', (flag) => {

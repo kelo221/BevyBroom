@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Theme } from '@/theme.js';
 import { GizmoAxis } from '@/types/transform_mode.js';
 
 /**
@@ -34,7 +35,7 @@ export class GizmoHandle {
   constructor(axis: GizmoAxis, color: number, visualMesh: THREE.Mesh) {
     this.axis = axis;
     this.baseColor = color;
-    this.hoverColor = 0xffffff;
+    this.hoverColor = Theme.gizmoHoverColor;
     this.visualMesh = visualMesh;
     this.isHovered = false;
     this.handleId = getNextHandleId();

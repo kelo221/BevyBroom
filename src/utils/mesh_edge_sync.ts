@@ -7,6 +7,7 @@ import {
 } from '@/solid/model/solid_brush_edge_materials.js';
 import { getOrBuildMeshDocumentOutlineEdges } from '@/mesh/convert/mesh_document_outline_edges.js';
 import { ENTITY_VISUAL_PART_USERDATA_KEY, entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
+import { displacementSurfaceMeshIs } from '@/displacement/mesh/displacement_surface_mesh_keys.js';
 
 /**
  * UserData key set on decorative edge LineSegments parented under content
@@ -84,16 +85,17 @@ function resolveDecorativeEdgeGeometry(mesh: THREE.Mesh): THREE.BufferGeometry {
 
 /**
  * Returns whether the mesh has none of the skip userData keys that exclude it
- * from content decorative edges.
+ * from content decorative edges and is no solid displacement surface.
  *
  * @param mesh Candidate mesh.
- * @returns True when no skip key is set true on mesh.userData.
+ * @returns True when no skip key is set true on mesh.userData and the mesh is
+ *   no displacement surface.
  */
 export function usesContentDecorativeEdges(mesh: THREE.Mesh): boolean {
   for (const key of SKIP_CONTENT_EDGE_MESH_KEYS) {
     if (mesh.userData[key] === true) return false;
   }
-  return true;
+  return !displacementSurfaceMeshIs(mesh);
 }
 
 /**
@@ -229,8 +231,9 @@ function isEditorOverlayChild(object: THREE.Object3D): boolean {
 /**
  * Returns true when the object is an editor overlay child or has a userData
  * flag for decorative edge, solid brush edge, bounds guide lines, gizmo
- * occluded ghost, clip plane preview, CAD ruler, solid model result, player
- * figurine, modifier volume edge, or entity visual part.
+ * occluded ghost, clip plane preview, CAD ruler, solid model result, solid
+ * displacement surface, player figurine, modifier volume edge, or entity visual
+ * part.
  *
  * @param object The object to test.
  * @returns True when any of those helper flags or overlay checks match.
@@ -244,6 +247,7 @@ export function isEditorHelperObject(object: THREE.Object3D): boolean {
   if (object.userData['isClipPlanePreview'] === true) return true;
   if (object.userData['isCadRuler'] === true) return true;
   if (object.userData['isSolidModelResult'] === true) return true;
+  if (displacementSurfaceMeshIs(object)) return true;
   if (object.userData['isPlayerFigurine'] === true) return true;
   if (object.userData['isModifierVolumeEdge'] === true) return true;
   if (entityVisualPartIs(object)) return true;

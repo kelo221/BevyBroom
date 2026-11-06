@@ -4,9 +4,10 @@ import { GameEntityClassRegistry } from '@/game_entity/class/game_entity_class_r
 import type { GameEntityClass } from '@/game_entity/class/game_entity_class_schema.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
+import { Theme } from '@/theme.js';
 
 /** Marker color of game entities whose classes the editor does not know. */
-export const GAME_ENTITY_UNKNOWN_COLOR = 0x808080;
+export const GAME_ENTITY_UNKNOWN_COLOR = Theme.gameEntityUnknownColor;
 
 /** Icon every game entity shows. */
 export const GAME_ENTITY_ICON_NAME: IconName = 'puzzle';

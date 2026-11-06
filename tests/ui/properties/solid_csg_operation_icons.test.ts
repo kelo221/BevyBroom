@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SolidCsgOperationIcons } from '@/ui/properties/solid_csg_operation_icons.js';
+import { Theme } from '@/theme.js';
 
 describe('SolidCsgOperationIcons', () => {
   it('returns SVG markup for additive, subtractive, and intersecting', () => {
@@ -14,26 +15,26 @@ describe('SolidCsgOperationIcons', () => {
     }
   });
 
-  it('draws two light squares with outlines for additive', () => {
+  it('draws two filled squares with outlines for additive', () => {
     const markup = SolidCsgOperationIcons.additive();
     expect(countFilledRects(markup)).toBe(2);
     expect(countOutlineRects(markup)).toBe(2);
-    expect(markup).not.toContain('#1a1a1a');
+    expect(markup).not.toContain(Theme.panelSunkenBackground);
     expect(markup).toContain('fill="currentColor"');
   });
 
-  it('keeps the front square dark for subtractive', () => {
+  it('keeps the front square empty for subtractive', () => {
     const markup = SolidCsgOperationIcons.subtractive();
-    expect(markup).toContain('#1a1a1a');
+    expect(markup).toContain(Theme.panelSunkenBackground);
     expect(countFilledRects(markup)).toBe(2);
     expect(countOutlineRects(markup)).toBe(2);
   });
 
-  it('lights only the overlap for intersecting and darkens the exclusive parts', () => {
+  it('lights only the overlap for intersecting and empties the exclusive parts', () => {
     const markup = SolidCsgOperationIcons.intersecting();
-    expect(markup).toContain('#1a1a1a');
+    expect(markup).toContain(Theme.panelSunkenBackground);
     expect(markup).toContain('fill="currentColor"');
-    expect(countDarkPaths(markup)).toBe(2);
+    expect(countEmptyPaths(markup)).toBe(2);
     expect(countFilledRects(markup)).toBe(1);
     expect(countOutlineRects(markup)).toBe(2);
   });
@@ -62,12 +63,11 @@ function countOutlineRects(markup: string): number {
 }
 
 /**
- * Counts dark filled path elements used for exclusive regions.
+ * Counts empty-filled path elements used for exclusive regions.
  *
  * @param markup SVG markup string.
- * @returns Number of dark path elements.
+ * @returns Number of empty-filled path elements.
  */
-function countDarkPaths(markup: string): number {
-  const matches = markup.match(/<path fill="#1a1a1a"/g);
-  return matches?.length ?? 0;
+function countEmptyPaths(markup: string): number {
+  return markup.split(`<path fill="${Theme.panelSunkenBackground}"`).length - 1;
 }

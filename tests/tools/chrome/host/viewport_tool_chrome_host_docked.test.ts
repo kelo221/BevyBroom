@@ -136,18 +136,23 @@ describe('ViewportToolChromeHost docked', () => {
     expect(pane.querySelector(`.${VIEWPORT_TOOL_CHROME_DOCKED_CLASS}`)).toBeNull();
   });
 
-  it('styles both strips as inline bar rows', () => {
+  it('styles the rail as a vertical palette column and the options strip as an inline bar row', () => {
     const docking = viewportToolChromeDockedTestDockingCreate();
     viewportToolChromeDockedTestHostCreate(docking);
-    const strips = [
-      viewportToolChromeDockedTestStripRequire(docking.railParent, VIEWPORT_TOOL_CHROME_DOCKED_TEST_RAIL_CLASS),
-      viewportToolChromeDockedTestStripRequire(docking.optionsParent, VIEWPORT_TOOL_CHROME_DOCKED_TEST_OPTIONS_CLASS),
-    ];
-    strips.forEach((strip) => {
-      expect(strip.classList.contains(VIEWPORT_TOOL_CHROME_DOCKED_CLASS)).toBe(true);
-      expect(strip.style.position).toBe('static');
-      expect(strip.style.flexDirection).toBe('row');
-    });
+    const rail = viewportToolChromeDockedTestStripRequire(
+      docking.railParent,
+      VIEWPORT_TOOL_CHROME_DOCKED_TEST_RAIL_CLASS,
+    );
+    const options = viewportToolChromeDockedTestStripRequire(
+      docking.optionsParent,
+      VIEWPORT_TOOL_CHROME_DOCKED_TEST_OPTIONS_CLASS,
+    );
+    expect(rail.classList.contains(VIEWPORT_TOOL_CHROME_DOCKED_CLASS)).toBe(true);
+    expect(rail.style.position).toBe('static');
+    expect(rail.style.flexDirection).toBe('column');
+    expect(options.classList.contains(VIEWPORT_TOOL_CHROME_DOCKED_CLASS)).toBe(true);
+    expect(options.style.position).toBe('static');
+    expect(options.style.flexDirection).toBe('row');
   });
 
   it('shows both strips right away and keeps them shown when hover ownership changes', () => {
