@@ -1,15 +1,21 @@
 import type { Vector2 } from 'three';
 import { Tool } from '../tool.js';
 
+/** Mouse button index of the left button. */
+const FACE_SELECT_TOOL_PRIMARY_BUTTON = 0;
+
 /** Mouse button index of the right button. */
 const FACE_SELECT_TOOL_SECONDARY_BUTTON = 2;
 
 /**
  * Permanent face selection tool. Owns face pick/paint/UV smear mouse input so
  * tools that do not inherit BoxSelectTool never object-select by accident.
+ * Right-button presses that start a face stroke (displacement painting) are
+ * held by this tool instead of viewport navigation.
  */
 export class FaceSelectTool extends Tool {
   private strokeActive: boolean;
+  private strokeButton: number;
   /**
    * When true, the next deactivate skips leaving face mode so a single-use UV
    * child tool can keep the face selection alive.
@@ -20,6 +26,7 @@ export class FaceSelectTool extends Tool {
   constructor() {
     super();
     this.strokeActive = false;
+    this.strokeButton = FACE_SELECT_TOOL_PRIMARY_BUTTON;
     this.preserveFaceModeForSingleUseChild = false;
   }
 
@@ -72,8 +79,20 @@ export class FaceSelectTool extends Tool {
   }
 
   /**
+   * Returns whether a right-button press started a face stroke that this tool
+   * holds.
+   *
+   * @param button Mouse button index of the press.
+   * @returns True while a stroke held by that button is active.
+   */
+  override claimsViewportNavigationPress(button: number): boolean {
+    return this.isStrokeHeldBy(button);
+  }
+
+  /**
    * Called when the tool receives a mouse down event: the left button picks or
-   * paints faces, the right button arms the texture apply click.
+   * paints faces, the right button paints displacements or arms the texture
+   * apply click.
    *
    * @param button Mouse button index.
    */
@@ -82,7 +101,7 @@ export class FaceSelectTool extends Tool {
       this.secondaryPressForward();
       return;
     }
-    if (button !== 0 || !this.editor) {
+    if (button !== FACE_SELECT_TOOL_PRIMARY_BUTTON || !this.editor) {
       return;
     }
     const services = this.editor.getServices();
@@ -95,17 +114,44 @@ export class FaceSelectTool extends Tool {
       this.editor.isShiftPressed,
       this.editor.isCtrlPressed,
     );
-    this.strokeActive = started;
+    this.strokeStateWrite(started, FACE_SELECT_TOOL_PRIMARY_BUTTON);
   }
 
-  /** Forwards a right-button press to the texture apply click. */
+  /**
+   * Forwards a right-button press to the face services and holds the stroke
+   * when it started one.
+   */
   private secondaryPressForward(): void {
     if (!this.editor) {
       return;
     }
-    this.editor
+    const started = this.editor
       .getServices()
       ?.beginFaceSelectSecondaryPress?.(this.editor.lastPointerClientX, this.editor.lastPointerClientY);
+    if (started === true) {
+      this.strokeStateWrite(true, FACE_SELECT_TOOL_SECONDARY_BUTTON);
+    }
+  }
+
+  /**
+   * Stores whether a face stroke is active and which button holds it.
+   *
+   * @param isActive True while the stroke is live.
+   * @param button Mouse button index holding the stroke.
+   */
+  private strokeStateWrite(isActive: boolean, button: number): void {
+    this.strokeActive = isActive;
+    this.strokeButton = button;
+  }
+
+  /**
+   * Returns whether an active face stroke is held by a mouse button.
+   *
+   * @param button Mouse button index.
+   * @returns True while a stroke held by that button is active.
+   */
+  private isStrokeHeldBy(button: number): boolean {
+    return this.strokeActive && this.strokeButton === button;
   }
 
   /**
@@ -144,12 +190,13 @@ export class FaceSelectTool extends Tool {
   }
 
   /**
-   * Called when the tool receives a global mouse up event.
+   * Called when the tool receives a global mouse up event: the left button, or
+   * the right button holding a stroke, ends the face stroke.
    *
    * @param button Mouse button index.
    */
   override onGlobalMouseUp(button: number): void {
-    if (button !== 0) {
+    if (button !== FACE_SELECT_TOOL_PRIMARY_BUTTON && !this.isStrokeHeldBy(button)) {
       return;
     }
     this.strokeActive = false;
@@ -205,7 +252,10 @@ export class FaceSelectTool extends Tool {
     launch();
   }
 
-  /** Forwards move samples to face paint while a stroke is active. */
+  /**
+   * Forwards move samples to face paint while a stroke is active, with the
+   * buttons bit of the button holding the stroke.
+   */
   private forwardFacePointerMoveIfStrokeActive(): void {
     if (!this.strokeActive || !this.editor) {
       return;
@@ -214,6 +264,7 @@ export class FaceSelectTool extends Tool {
     if (!services) {
       return;
     }
-    services.continueFaceSelectPointerMove(this.editor.lastPointerClientX, this.editor.lastPointerClientY, 1);
+    const buttons = this.strokeButton === FACE_SELECT_TOOL_SECONDARY_BUTTON ? 2 : 1;
+    services.continueFaceSelectPointerMove(this.editor.lastPointerClientX, this.editor.lastPointerClientY, buttons);
   }
 }

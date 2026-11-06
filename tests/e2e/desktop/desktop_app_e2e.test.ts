@@ -26,6 +26,7 @@ import {
 import { DesktopE2eAppProcess } from './desktop_e2e_app_process.js';
 import { DesktopE2eMcpClient } from './desktop_e2e_mcp_client.js';
 import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
+import { desktopE2eBoundsTopFaceGripPoint } from './desktop_e2e_bounds.js';
 import { shellMenusBuiltinCreate } from '@/layout/shell/menubar/shell_menu_bar.js';
 import type { ShellMainWindowState } from '@/layout/shell/actions/shell_main_window_control.js';
 
@@ -77,22 +78,6 @@ interface DesktopE2eIssue {
  */
 function toolDataRead<Data>(result: McpToolResult): Data {
   return result.data as Data;
-}
-
-/**
- * Returns a point on the top face of world bounds halfway between the face
- * center and its +X +Z corner. Pressing there grabs the box itself, clear of
- * the bounds resize handle at the face center.
- *
- * @param bounds World bounds of a box.
- * @returns World point on the top face.
- */
-function boundsTopFaceGripPoint(bounds: McpBounds): McpVec3 {
-  return {
-    x: (bounds.min.x + 3 * bounds.max.x) / 4,
-    y: bounds.max.y,
-    z: (bounds.min.z + 3 * bounds.max.z) / 4,
-  };
 }
 
 /**
@@ -521,7 +506,7 @@ describe.skipIf(desktopExecutable === '')('desktop app end to end', () => {
       for (const axis of ['x', 'y', 'z'] as const) {
         expect(before.worldBounds.max[axis]).toBeGreaterThan(before.worldBounds.min[axis]);
       }
-      const grip = boundsTopFaceGripPoint(before.worldBounds);
+      const grip = desktopE2eBoundsTopFaceGripPoint(before.worldBounds);
       const moveDistance = before.worldBounds.max.x - before.worldBounds.min.x;
       await client.toolCallExpectOk('viewport_drag', {
         view: 'perspective',

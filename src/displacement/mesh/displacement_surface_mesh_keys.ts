@@ -47,17 +47,6 @@ export function displacementSurfaceMeshNameBuild(identity: DisplacementSurfaceMe
 }
 
 /**
- * Builds a lookup key for one displaced brush face.
- *
- * @param brushId Brush instance id.
- * @param surfaceIndex Face index.
- * @returns Key unique per brush face.
- */
-export function displacementFaceKeyBuild(brushId: string, surfaceIndex: number): string {
-  return `${brushId}\u0000${surfaceIndex}`;
-}
-
-/**
  * Lists the displacement surface meshes that are direct children of a solid
  * model root.
  *

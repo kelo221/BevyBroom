@@ -81,6 +81,10 @@ const WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, stri
  * navigation.
  */
 const KEYBOARD_REMINDER_ROWS: ReadonlyArray<readonly [string, string, string]> = [
+  ['object-click-toggle', 'Add / Remove Object (Object Select)', 'Ctrl + Click'],
+  ['object-click-face-edit', 'Edit Clicked Brush Face (Object Select)', 'Shift + Click'],
+  ['face-click-add', 'Add Face (Face Select)', 'Shift + Click'],
+  ['face-click-remove', 'Remove Face (Face Select)', 'Ctrl + Click'],
   ['clipboard-cut', 'Cut Selected', 'Ctrl+X'],
   ['clipboard-copy', 'Copy Selected', 'Ctrl+C'],
   ['clipboard-paste', 'Paste Under Pointer', 'Ctrl+V'],

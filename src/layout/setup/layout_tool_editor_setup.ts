@@ -150,4 +150,3 @@ function cancelActiveSingleUseTool(editorWindow: EditorWindow): boolean {
   active.onKeyDown('Escape');
   return true;
 }
-

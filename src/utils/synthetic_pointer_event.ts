@@ -47,6 +47,25 @@ export function createSyntheticPointerMove(
 }
 
 /**
+ * Builds a synthetic pointermove of a drag with buttons held.
+ *
+ * @param clientX Pointer client X.
+ * @param clientY Pointer client Y.
+ * @param buttons PointerEvent.buttons bitfield of the held buttons.
+ * @returns Synthetic pointer event shaped for drag handlers.
+ */
+export function createSyntheticPointerDragMove(clientX: number, clientY: number, buttons: number): PointerEvent {
+  return createSyntheticPointerEvent(
+    'pointermove',
+    clientX,
+    clientY,
+    -1,
+    buttons,
+    SYNTHETIC_POINTER_MODIFIERS_NONE,
+  ) as PointerEvent;
+}
+
+/**
  * Builds a synthetic pointer event with fixed button state.
  *
  * @param type Event type string.

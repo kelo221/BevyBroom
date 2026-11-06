@@ -20,7 +20,10 @@ import {
   serializeFaceTextureMapping,
 } from '@/texture/uv/face_texture_mapping.js';
 import { isResultMesh } from '@/solid/model/solid_model_keys.js';
-import type { DisplacementFaceSurface } from '@/displacement/model/displacement_types.js';
+import {
+  displacementSurfaceSerialize,
+  type DisplacementFaceSurfaceSerialized,
+} from '@/displacement/model/displacement_face_surface.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
 import {
   solidSerializedTransformAssignFromMatrix,
@@ -58,7 +61,7 @@ export interface SerializedSolidBrush {
     { textureId: string; uv: { u: [number, number, number, number]; v: [number, number, number, number] } } | undefined
   >;
   /** Sparse per-face displacements; written only when a face is displaced. */
-  faceDisplacements?: Array<DisplacementFaceSurface | null>;
+  faceDisplacements?: Array<DisplacementFaceSurfaceSerialized | null>;
   vertices: number[];
   wingEdges: Array<{ vertexIndex: number; twinIndex: number }>;
   edgeFaceIndices: number[];
@@ -555,7 +558,8 @@ export class SolidModelCodec {
 
   /**
    * Encodes the face displacements of a brush, omitting the field for brushes
-   * without any displaced face.
+   * without any displaced face and the collision flags of surfaces whose flags
+   * are all off.
    *
    * @param instance Brush instance.
    * @returns Object with the sparse displacement list, or an empty object.
@@ -566,7 +570,11 @@ export class SolidModelCodec {
     if (instance.faceDisplacementIndices().length === 0) {
       return {};
     }
-    return { faceDisplacements: instance.serializeFaceDisplacements().map((entry) => entry ?? null) };
+    return {
+      faceDisplacements: instance
+        .serializeFaceDisplacements()
+        .map((entry) => (entry ? displacementSurfaceSerialize(entry) : null)),
+    };
   }
 
   /**

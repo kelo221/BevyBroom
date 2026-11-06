@@ -29,6 +29,7 @@ export class StateFaceEditSession {
   private pickMode: FaceEditPickMode;
   private treatAsOne: boolean;
   private hideMask: boolean;
+  private gridMask: boolean;
   private sheetOpen: boolean;
   private activeTabId: 'material' | 'displacement';
   private displacementNoiseSeed: number;
@@ -40,6 +41,7 @@ export class StateFaceEditSession {
     this.pickMode = 'lift_select';
     this.treatAsOne = false;
     this.hideMask = false;
+    this.gridMask = true;
     this.sheetOpen = false;
     this.activeTabId = 'material';
     this.displacementNoiseSeed = DISPLACEMENT_NOISE_SEED_DEFAULT;
@@ -118,6 +120,29 @@ export class StateFaceEditSession {
       return;
     }
     this.hideMask = hidden;
+    this.listenersNotify();
+  }
+
+  /**
+   * Returns whether the displacement grid wireframe is shown on displaced
+   * faces.
+   *
+   * @returns True when the grid mask is on.
+   */
+  gridMaskRead(): boolean {
+    return this.gridMask;
+  }
+
+  /**
+   * Sets whether the displacement grid wireframe is shown on displaced faces.
+   *
+   * @param shown True to show the grid wireframe.
+   */
+  gridMaskWrite(shown: boolean): void {
+    if (this.gridMask === shown) {
+      return;
+    }
+    this.gridMask = shown;
     this.listenersNotify();
   }
 
@@ -228,6 +253,7 @@ export class StateFaceEditSession {
     this.pickMode = 'lift_select';
     this.treatAsOne = false;
     this.hideMask = false;
+    this.gridMask = true;
     this.sheetOpen = false;
     this.activeTabId = 'material';
     this.displacementNoiseSeed = DISPLACEMENT_NOISE_SEED_DEFAULT;

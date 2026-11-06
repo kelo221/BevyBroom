@@ -35,7 +35,14 @@ export function displacementPickTestViewCreate(
   camera.updateMatrixWorld(true);
   const pickElement = document.createElement('div');
   pickElement.getBoundingClientRect = () =>
-    ({ left: 0, top: 0, width: PICK_TEST_VIEW_SIZE_PX, height: PICK_TEST_VIEW_SIZE_PX }) as DOMRect;
+    ({
+      left: 0,
+      top: 0,
+      right: PICK_TEST_VIEW_SIZE_PX,
+      bottom: PICK_TEST_VIEW_SIZE_PX,
+      width: PICK_TEST_VIEW_SIZE_PX,
+      height: PICK_TEST_VIEW_SIZE_PX,
+    }) as DOMRect;
   const center = PICK_TEST_VIEW_SIZE_PX / 2;
   const event = new MouseEvent('pointerdown', { clientX: center, clientY: center, buttons: 1 });
   return { camera, pickElement, event };

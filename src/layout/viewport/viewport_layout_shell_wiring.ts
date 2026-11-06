@@ -32,6 +32,8 @@ import { DialogObjectProperties } from '@/ui/object_properties/dialog_object_pro
 import { ObjectSelectDoubleClickProperties } from '@/tools/object_select/object_select_double_click_properties.js';
 import { ObjectSelectDoubleClickNativeListener } from '@/tools/object_select/object_select_double_click_native_listener.js';
 import { objectSelectDoubleClickToolReady } from '@/tools/object_select/object_select_double_click_tool_ready.js';
+import { FaceEditObjectShiftClick } from '@/tools/face/object_shift_click/face_edit_object_shift_click.js';
+import { EditorToolId } from '@/types/editor_tool_id.js';
 
 /**
  * Viewport layout level that wires the main window shell: File menu actions,
@@ -185,6 +187,38 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
     return (
       this.editModeCoordinator?.isActive() !== true &&
       objectSelectDoubleClickToolReady(this.toolEditorSystem?.editorWindow.activeTool)
+    );
+  }
+
+  /**
+   * Builds the object tool Shift+click handling that opens the Face tool on the
+   * brush face under the pointer.
+   *
+   * @returns Shift+click face editing bound to this layout.
+   */
+  protected objectShiftClickFaceEditCreate(): FaceEditObjectShiftClick {
+    return new FaceEditObjectShiftClick({
+      faceModeCoordinatorRead: () => this.faceModeCoordinator ?? null,
+      pickObjectStackAtClientPoint: (clientX, clientY) =>
+        this.toolEditorSystem?.editorWindow.getServices()?.pickObjectStackAtClientPoint(clientX, clientY) ?? [],
+      viewportAtClientPointResolve: (clientX, clientY) =>
+        this.toolEditorSystem?.editorWindow.getServices()?.resolveInteractiveViewportAtClientPoint(clientX, clientY) ??
+        null,
+      isShiftClickFaceEditAllowed: () => this.objectShiftClickFaceEditAllowed(),
+      faceToolActivate: () => this.toolsPaletteController?.selectTool(EditorToolId.FACE),
+    });
+  }
+
+  /**
+   * Returns whether the object select tool owns the viewport clicks outside
+   * edit mode.
+   *
+   * @returns True when a Shift+click on a brush face may open the Face tool.
+   */
+  private objectShiftClickFaceEditAllowed(): boolean {
+    return (
+      this.editModeCoordinator?.isActive() !== true &&
+      this.toolsPaletteController?.getActiveTool() === EditorToolId.OBJECT
     );
   }
 

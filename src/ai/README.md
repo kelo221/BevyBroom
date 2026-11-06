@@ -364,8 +364,15 @@ These tools need the desktop app; the browser editor answers that it cannot star
 - Both tools project the world points through the view camera and dispatch real pointer events, so the active tool reacts exactly as it does to the mouse. Both return `selection` like `get_selection`.
 - With the Object tool, dragging a selected object moves the selection (grid snapped; `shift` turns snapping off, `alt` moves vertically in the perspective view, `ctrl` duplicates first). Dragging empty space while nothing is selected draws a box brush (`shift` square, `alt` sets the height in the perspective view). Dragging empty space while something is selected does nothing.
 - Visible gizmo handles win over moving: the bounds resize arrows sit at the center of each face of the selection (arrows hidden behind the selection do not take the press), and in 2D views its outline edges resize too. To move a selected box, press on a visible face away from its center and edges (for example halfway between the face center and a corner).
-- A click selects what is under the point: `shift` adds, `ctrl` toggles, empty space deselects.
+- A click selects what is under the point: `ctrl` toggles (adds an unselected object, removes a selected one), empty space deselects.
+- With the Object tool, a `shift` click on a brush face (or on a displaced face's surface) switches to the Face tool, opens the Face Edit Sheet and selects exactly that face. A `shift` click whose nearest object is no brush (a light, an entity, a mesh) adds that object, and on empty space it changes nothing.
 - The call fails when no view of that kind is visible.
+
+## Face editing
+
+| Tool                  | What it does                                                                                                                                                      |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_face_edit_state` | `activeTool` of the tools palette (`object`, `face`, ...), `faceEditSheetOpen`, `faceEditSheetTab` (`material`, `displacement`) and the face selection as `faces` |
 
 ## Not in this build
 

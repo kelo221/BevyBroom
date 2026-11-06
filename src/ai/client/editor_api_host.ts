@@ -88,6 +88,14 @@ export interface EditorApiHost {
    * @returns Dialog control.
    */
   objectPropertiesDialogRead?: () => EditorApiObjectPropertiesDialogControl;
+  /**
+   * Returns the id of the active tools palette tool (object, face, block and so
+   * on) for get_face_edit_state. Set by layout bootstrap; unit tests may omit
+   * it.
+   *
+   * @returns Active tool id, or null before the tools palette exists.
+   */
+  activeToolRead?: () => string | null;
 }
 
 /** Object Properties dialog members the dialog tools need. */

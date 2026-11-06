@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  BUTTON_COMPACT_WRAPPED_LINE_HEIGHT,
   buttonCompactActiveRead,
   buttonCompactActiveWrite,
   buttonCompactCreate,
@@ -64,6 +65,23 @@ describe('buttonCompactCreate', () => {
     button.dispatchEvent(new MouseEvent('mouseleave'));
     expect(button.style.background).toBe(idleBackground);
     expect(buttonCompactActiveRead(button)).toBe(false);
+  });
+
+  it('keeps text on one line by default and wraps it onto centered lines when asked', () => {
+    const oneLine = buttonCompactCreate({ title: 'Paint Geometry', widthPx: 40, heightPx: 22, onClick: vi.fn() });
+    expect(oneLine.style.whiteSpace).toBe('nowrap');
+    const wrapping = buttonCompactCreate({
+      title: 'Paint Geometry',
+      widthPx: 40,
+      heightPx: 32,
+      isTextWrapping: true,
+      onClick: vi.fn(),
+    });
+    expect(wrapping.style.whiteSpace).toBe('normal');
+    expect(wrapping.style.overflowWrap).toBe('break-word');
+    expect(wrapping.style.textAlign).toBe('center');
+    expect(wrapping.style.lineHeight).toBe(BUTTON_COMPACT_WRAPPED_LINE_HEIGHT);
+    expect(Number(wrapping.style.lineHeight)).toBeGreaterThan(Number(oneLine.style.lineHeight));
   });
 
   it('keeps its own size inside a flex column instead of stretching to its width', () => {

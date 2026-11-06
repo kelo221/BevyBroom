@@ -3,6 +3,7 @@
 
 mod compose;
 mod data_assets;
+mod displacement;
 mod extras;
 mod manifest;
 mod schema;

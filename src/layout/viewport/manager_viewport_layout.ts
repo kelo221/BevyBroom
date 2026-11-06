@@ -313,6 +313,7 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
         refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
       },
       objectSelectDoubleClick: this.objectSelectDoubleClickCreate(),
+      objectShiftClickFaceEdit: this.objectShiftClickFaceEditCreate(),
     });
     this.keyboardShortcutHandler = createAndRegisterKeyboardShortcuts(
       this.inputManager,
@@ -728,6 +729,7 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
       transformHandler: this.transformHandler,
       onBeforeRender: () => {
         this.cadRulerSystem.refreshLabelProjection();
+        this.displacementOverlaySystem?.frameUpdate();
         this.toolEditorSystem?.editorWindow.onRepaint();
       },
       multiViewComposer: this.multiViewComposer,
@@ -786,6 +788,8 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
     if (this.isDisposed) return;
     this.isDisposed = true;
     this.renderLoop.dispose();
+    this.displacementOverlaySystem?.dispose();
+    this.displacementOverlaySystem = null;
     this.playerSystem?.dispose();
     this.playerSystem = null;
     this.keyboardShortcutHandler?.unregister();

@@ -15,7 +15,8 @@ import {
   meshUsesShadingOverrideMaterials,
 } from '@/viewports/shared/shared_content_material_store.js';
 import { objectInOmittedLayerIs } from '@/layer/model/layer_membership.js';
-import { DisplacementExportResultFilter } from '@/displacement/export/displacement_export_result_filter.js';
+import { DisplacementExportBrushFilter } from '@/displacement/export/displacement_export_brush_filter.js';
+import { getTriangleCount } from '@/selection/pick/utils_triangle_geometry.js';
 import { displacementSurfaceMeshesUnder } from '@/displacement/mesh/displacement_surface_mesh_keys.js';
 
 /** Export extras key that carries the stable editor identifier of a node. */
@@ -160,11 +161,13 @@ function cloneEntityOwnerForExport(owner: THREE.Object3D, options: ExportSceneOp
 
 /**
  * Clones a solid model as a group containing the compiled CSG result mesh
- * without displaced faces, plus one mesh per displacement surface.
+ * without the triangles of displaced brushes, plus one mesh per displacement
+ * surface. The result mesh is left out when displaced brushes leave it without
+ * triangles.
  *
  * @param solidRoot Solid model root group.
  * @param options Export behavior switches.
- * @returns Export group with result mesh, or null when no result exists.
+ * @returns Export group, or null when no result exists.
  */
 function cloneSolidModelForExport(solidRoot: THREE.Object3D, options: ExportSceneOptions): THREE.Group | null {
   const resultMesh = findSolidResultMesh(solidRoot);
@@ -172,8 +175,10 @@ function cloneSolidModelForExport(solidRoot: THREE.Object3D, options: ExportScen
   const group = new THREE.Group();
   copyObjectTransformAndIdentity(solidRoot, group, options);
   group.name = solidRoot.name || 'SolidModel';
-  const resultGeometry = DisplacementExportResultFilter.geometryRead(resultMesh, solidRoot);
-  group.add(cloneContentMeshForExport(resultMesh, options, resultGeometry));
+  const resultGeometry = DisplacementExportBrushFilter.geometryRead(resultMesh, solidRoot);
+  if (resultGeometry === resultMesh.geometry || getTriangleCount(resultGeometry) > 0) {
+    group.add(cloneContentMeshForExport(resultMesh, options, resultGeometry));
+  }
   displacementSurfaceMeshesUnder(solidRoot).forEach((surfaceMesh) => {
     group.add(cloneContentMeshForExport(surfaceMesh, options));
   });

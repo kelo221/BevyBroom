@@ -1,83 +1,73 @@
 import * as THREE from 'three';
+import { SolidModel } from '@/solid/model/solid_model.js';
 import { SOLID_TRIANGLE_SOURCES_USERDATA_KEY } from '@/solid/model/solid_model_keys.js';
 import type { SolidTriangleSourceRef } from '@/selection/face/solid_result_face_indices.js';
 import { getTriangleCount, getTriangleVertexIndices } from '@/selection/pick/utils_triangle_geometry.js';
-import {
-  displacementFaceKeyBuild,
-  displacementSurfaceMeshIdentityRead,
-  displacementSurfaceMeshesUnder,
-} from '@/displacement/mesh/displacement_surface_mesh_keys.js';
+import { displacementBrushDisplacedIs } from '@/displacement/brush/displacement_brush_displaced.js';
 
 /** Kept result triangles grouped by material slot, in first-seen order. */
 type DisplacementExportTriangleBuckets = Map<number, number[]>;
 
 /**
- * Builds export geometry for solid result meshes whose model carries
- * displacement surfaces: triangles of displaced brush faces are dropped so only
- * the displacement surface represents those faces.
+ * Builds export geometry for solid result meshes whose model holds displaced
+ * brushes: every triangle of a brush with at least one displaced face is
+ * dropped so only its displacement surfaces represent that brush.
  */
-export class DisplacementExportResultFilter {
+export class DisplacementExportBrushFilter {
   /**
    * Returns the geometry a solid result mesh exports with.
    *
    * @param resultMesh Live solid result mesh.
-   * @param solidRoot Solid model root owning the result and its displacement
-   *   surfaces.
-   * @returns The result's own geometry when nothing is displaced, otherwise a
-   *   new non-indexed geometry without the displaced faces' triangles.
+   * @param solidRoot Solid model root owning the result and its brushes.
+   * @returns The result's own geometry when no brush is displaced, otherwise a
+   *   new non-indexed geometry without any triangle of a displaced brush.
    */
   static geometryRead(resultMesh: THREE.Mesh, solidRoot: THREE.Object3D): THREE.BufferGeometry {
-    const displacedFaceKeys = DisplacementExportResultFilter.displacedFaceKeysRead(solidRoot);
+    const displacedBrushIds = DisplacementExportBrushFilter.displacedBrushIdsRead(solidRoot);
     const sources = resultMesh.userData[SOLID_TRIANGLE_SOURCES_USERDATA_KEY] as unknown;
-    if (displacedFaceKeys.size === 0 || !Array.isArray(sources)) {
+    if (displacedBrushIds.size === 0 || !Array.isArray(sources)) {
       return resultMesh.geometry;
     }
-    const buckets = DisplacementExportResultFilter.keptTriangleBucketsBuild(
+    const buckets = DisplacementExportBrushFilter.keptTriangleBucketsBuild(
       resultMesh.geometry,
       sources as readonly (SolidTriangleSourceRef | undefined)[],
-      displacedFaceKeys,
+      displacedBrushIds,
     );
-    return DisplacementExportResultFilter.geometryFromBuckets(resultMesh.geometry, buckets);
+    return DisplacementExportBrushFilter.geometryFromBuckets(resultMesh.geometry, buckets);
   }
 
   /**
-   * Collects the brush face keys of every displacement surface under a solid
-   * root.
+   * Collects the ids of the brushes of a solid model that are represented only
+   * by displacement surfaces.
    *
    * @param solidRoot Solid model root.
-   * @returns Set of keys built by displacementFaceKeyBuild.
+   * @returns Ids of displaced brushes; empty when the root has no model.
    */
-  static displacedFaceKeysRead(solidRoot: THREE.Object3D): Set<string> {
-    const keys = new Set<string>();
-    for (const surfaceMesh of displacementSurfaceMeshesUnder(solidRoot)) {
-      const identity = displacementSurfaceMeshIdentityRead(surfaceMesh);
-      if (identity) {
-        keys.add(displacementFaceKeyBuild(identity.brushId, identity.surfaceIndex));
-      }
-    }
-    return keys;
+  static displacedBrushIdsRead(solidRoot: THREE.Object3D): Set<string> {
+    const brushes = SolidModel.fromObject(solidRoot)?.getBrushes() ?? [];
+    return new Set(brushes.filter((brush) => displacementBrushDisplacedIs(brush)).map((brush) => brush.id));
   }
 
   /**
-   * Groups the triangles that are not part of a displaced face by material
+   * Groups the triangles that do not belong to a displaced brush by material
    * slot.
    *
    * @param geometry Result geometry.
    * @param sources Per-triangle brush face sources.
-   * @param displacedFaceKeys Keys of displaced brush faces.
+   * @param displacedBrushIds Ids of displaced brushes.
    * @returns Kept triangle indices per material slot.
    */
   private static keptTriangleBucketsBuild(
     geometry: THREE.BufferGeometry,
     sources: readonly (SolidTriangleSourceRef | undefined)[],
-    displacedFaceKeys: ReadonlySet<string>,
+    displacedBrushIds: ReadonlySet<string>,
   ): DisplacementExportTriangleBuckets {
-    const materialSlots = DisplacementExportResultFilter.triangleMaterialSlotsRead(geometry);
+    const materialSlots = DisplacementExportBrushFilter.triangleMaterialSlotsRead(geometry);
     const buckets: DisplacementExportTriangleBuckets = new Map();
     const triangleCount = getTriangleCount(geometry);
     for (let triangleIndex = 0; triangleIndex < triangleCount; triangleIndex++) {
       const source = sources[triangleIndex];
-      if (source && displacedFaceKeys.has(displacementFaceKeyBuild(source.brushId, source.surfaceIndex))) {
+      if (source && displacedBrushIds.has(source.brushId)) {
         continue;
       }
       const slot = materialSlots[triangleIndex] ?? 0;
@@ -125,9 +115,9 @@ export class DisplacementExportResultFilter {
       output.addGroup(orderedTriangles.length * 3, triangles.length * 3, slot);
       orderedTriangles.push(...triangles);
     }
-    const vertexIndices = DisplacementExportResultFilter.vertexIndicesRead(source, orderedTriangles);
+    const vertexIndices = DisplacementExportBrushFilter.vertexIndicesRead(source, orderedTriangles);
     for (const [name, attribute] of Object.entries(source.attributes)) {
-      output.setAttribute(name, DisplacementExportResultFilter.attributeGather(attribute, vertexIndices));
+      output.setAttribute(name, DisplacementExportBrushFilter.attributeGather(attribute, vertexIndices));
     }
     return output;
   }

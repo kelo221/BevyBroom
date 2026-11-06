@@ -11,7 +11,7 @@ export class DisplacementSculptBrushSmooth extends DisplacementSculptBrush {
    * @param face Sculpt face whose offsets change.
    * @param weights Per-vertex falloff weights, used as blend strength.
    */
-  protected offsetsBlend(face: DisplacementSculptFace, weights: readonly number[]): void {
+  protected verticesBlend(face: DisplacementSculptFace, weights: readonly number[]): void {
     const before = face.displacement.offsets.slice();
     const rowLength = face.rowLength();
     this.offsetsWriteWeighted(face, weights, (vertexIndex, weight) => {

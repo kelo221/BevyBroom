@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import type { SolidFaceTextureTarget } from '@/texture/commands/command_texture_solid_face_edit.js';
 import type { DisplacementFaceSurface } from '@/displacement/model/displacement_types.js';
 import {
@@ -8,11 +9,18 @@ import { DisplacementSurfacePlacement } from '@/displacement/grid/displacement_s
 import type { DisplacementFaceEdit } from '@/displacement/commands/command_displacement_edit.js';
 
 /**
+ * Smallest axis share of the face normal that still moves vertices along the
+ * axis.
+ */
+const DISPLACEMENT_SCULPT_AXIS_FACTOR_MIN = 1e-3;
+
+/**
  * Editable copy of one displaced brush face placed in world space. Sculpt
  * operations change the copy; the result is committed through a displacement
  * edit command.
  */
 export class DisplacementSculptFace {
+  private static readonly scratchPosition = new THREE.Vector3();
   readonly target: SolidFaceTextureTarget;
   readonly placement: DisplacementSurfacePlacement;
   readonly displacement: DisplacementFaceSurface;
@@ -89,7 +97,50 @@ export class DisplacementSculptFace {
   }
 
   /**
-   * Builds the edit that stores the working copy on the brush face.
+   * Returns how far a vertex moves along a paint axis per meter it moves along
+   * the face normal.
+   *
+   * @param axis Unit world axis, or null for the face normal.
+   * @returns Dot product of the axis and the face normal, 1 for the face normal
+   *   and exactly 0 for an axis (nearly) in the face plane.
+   */
+  axisFactorRead(axis: THREE.Vector3 | null): number {
+    if (!axis) {
+      return 1;
+    }
+    const factor = axis.dot(this.placement.normal);
+    return Math.abs(factor) < DISPLACEMENT_SCULPT_AXIS_FACTOR_MIN ? 0 : factor;
+  }
+
+  /**
+   * Returns where a vertex sits along a paint axis.
+   *
+   * @param axis Unit world axis, or null for the face normal.
+   * @param vertexIndex Row-major vertex index.
+   * @returns World coordinate along the axis, or the height above the flat face
+   *   (elevation included) for the face normal.
+   */
+  axisCoordinateRead(axis: THREE.Vector3 | null, vertexIndex: number): number {
+    if (!axis) {
+      return DisplacementSurfacePlacement.heightRead(this.displacement, vertexIndex);
+    }
+    const position = DisplacementSculptFace.scratchPosition;
+    return this.placement.displacedPositionWrite(this.displacement, vertexIndex, position).dot(axis);
+  }
+
+  /**
+   * Returns the offset that puts a vertex at a height above the flat face.
+   *
+   * @param height Height in meters along the face normal, elevation included.
+   * @returns Offset before scale.
+   */
+  offsetForHeight(height: number): number {
+    return this.offsetDeltaForDistance(height - this.displacement.elevation);
+  }
+
+  /**
+   * Builds the edit that stores the working copy, offsets and alphas, on the
+   * brush face.
    *
    * @returns Displacement face edit.
    */

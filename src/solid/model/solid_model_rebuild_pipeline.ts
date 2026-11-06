@@ -15,7 +15,7 @@ import { forBatchesAsync } from '@/utils/async_yield.js';
 import { SOLID_TRIANGLE_SOURCES_USERDATA_KEY } from './solid_model_keys.js';
 import { stripStaleDecorativeEdges } from './solid_model_mesh_disposal.js';
 import { DisplacementSurfacePresentation } from '@/displacement/mesh/displacement_surface_presentation.js';
-import { displacementFaceAttachedIs } from '@/displacement/model/displacement_face_eligibility.js';
+import { displacementBrushDisplacedIs } from '@/displacement/brush/displacement_brush_displaced.js';
 
 /** Host accessors the rebuild pipeline needs from SolidModel. */
 export type SolidRebuildHost = {
@@ -658,11 +658,12 @@ export class SolidModelRebuildPipeline {
     const brushModelMatrix = this.composeBrushModelMatrix(brush);
     void worldMatrix;
     const surfaceByIndex = new Map<number, FaceSurfaceDescription>();
+    const brushCollapsed = this.brushIsDisplaced(brush);
     const chunk = this.chunkBuilder.build(
       polygons,
       (surfaceIndex) => this.resolveBrushFaceSurfaceCached(brush, surfaceIndex, surfaceByIndex),
       { brushModelMatrix },
-      { surfaceCollapsed: (surfaceIndex) => this.surfaceIsDisplaced(brush, surfaceIndex) },
+      { surfaceCollapsed: () => brushCollapsed },
     );
     ModifierBevelSurfaceOverlay.remapChunkToParents(brushId, chunk);
     this.meshChunkCache.set(brushId, chunk);
@@ -670,14 +671,13 @@ export class SolidModelRebuildPipeline {
   }
 
   /**
-   * Returns whether a brush face is replaced by a displacement surface.
+   * Returns whether a brush is represented only by its displacement surfaces.
    *
-   * @param brush Owning brush, or undefined for stand-in brushes.
-   * @param surfaceIndex Face index.
-   * @returns True when the face's own triangles collapse.
+   * @param brush Brush, or undefined for stand-in brushes.
+   * @returns True when every face triangle of the brush collapses.
    */
-  private surfaceIsDisplaced(brush: SolidBrushInstance | undefined, surfaceIndex: number): boolean {
-    return brush !== undefined && displacementFaceAttachedIs(brush, surfaceIndex);
+  private brushIsDisplaced(brush: SolidBrushInstance | undefined): boolean {
+    return brush !== undefined && displacementBrushDisplacedIs(brush);
   }
 
   /**

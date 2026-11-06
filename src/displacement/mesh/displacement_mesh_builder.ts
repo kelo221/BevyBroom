@@ -3,6 +3,7 @@ import type { FaceSurfaceDescription } from '@/texture/uv_matrix/face_surface_de
 import { SolidBrushMeshChunkBuilder } from '@/solid/mesh/solid_brush_mesh_chunk.js';
 import type { DisplacementFaceSurface } from '@/displacement/model/displacement_types.js';
 import type { DisplacementSurfacePlacement } from '@/displacement/grid/displacement_surface_placement.js';
+import { displacementCellTrianglesAppend } from '@/displacement/grid/displacement_cell_diagonal.js';
 import { DisplacementMeshNormals } from './displacement_mesh_normals.js';
 
 /**
@@ -40,7 +41,8 @@ export class DisplacementMeshBuilder {
 
   /**
    * Builds the triangle index list of a row-major grid. Each cell becomes two
-   * triangles that keep the face corners' winding.
+   * triangles that keep the face corners' winding, split along alternating
+   * diagonals.
    *
    * @param rowLength Vertices per grid side.
    * @returns Index list, three entries per triangle.
@@ -49,9 +51,7 @@ export class DisplacementMeshBuilder {
     const indices: number[] = [];
     for (let row = 0; row < rowLength - 1; row++) {
       for (let column = 0; column < rowLength - 1; column++) {
-        const first = row * rowLength + column;
-        const nextRow = first + rowLength;
-        indices.push(first, first + 1, nextRow + 1, first, nextRow + 1, nextRow);
+        displacementCellTrianglesAppend(rowLength, row, column, indices);
       }
     }
     return indices;

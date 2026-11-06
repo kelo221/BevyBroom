@@ -4,6 +4,7 @@ import { PreviewGeometrySignature } from '@/preview/geometry/preview_geometry_si
 import { LightOwner } from '@/light/model/light_owner.js';
 import { lightSettingsCreateDefault } from '@/light/model/light_settings.js';
 import { materialIdentityWrite } from '@/materials/identity/material_identity.js';
+import { displacementSurfaceClone } from '@/displacement/model/displacement_face_surface.js';
 import {
   displacementTestBoxAdd,
   displacementTestCreate,
@@ -71,5 +72,19 @@ describe('PreviewGeometrySignature', () => {
     if (!surfaceMesh) throw new Error('surface mesh missing');
     surfaceMesh.geometry = surfaceMesh.geometry.clone();
     expect(PreviewGeometrySignature.compute(rig.world)).not.toBe(withDisplacement);
+  });
+
+  it('changes when only the collision flags of a displacement change', () => {
+    const rig = displacementTestRigCreate('SignatureDisplacementFlags');
+    const brush = displacementTestBoxAdd(rig, new THREE.Vector3(2, 1, 2), new THREE.Vector3(1, 0, 1));
+    const surfaceIndex = displacementTestFaceFacing(brush, new THREE.Vector3(0, 1, 0));
+    displacementTestCreate(rig, displacementTestTarget(rig, brush, surfaceIndex), 2);
+    const withoutFlags = PreviewGeometrySignature.compute(rig.world);
+    const current = brush.faceDisplacementRead(surfaceIndex);
+    if (!current) throw new Error('displacement missing');
+    const flagged = displacementSurfaceClone(current);
+    flagged.flags.noPhysicsCollision = true;
+    brush.faceDisplacementWrite(surfaceIndex, flagged);
+    expect(PreviewGeometrySignature.compute(rig.world)).not.toBe(withoutFlags);
   });
 });

@@ -8,8 +8,10 @@ import { DisplacementSewPointClusters } from './displacement_sew_point_clusters.
 const DISPLACEMENT_SEW_POSITION_TOLERANCE = 1e-3;
 
 /** One border vertex of one sculpt face. */
-interface DisplacementSewVertex {
+export interface DisplacementSewVertex {
+  /** Face owning the vertex. */
   face: DisplacementSculptFace;
+  /** Row-major vertex index. */
   vertexIndex: number;
 }
 
@@ -43,7 +45,7 @@ export class DisplacementSew {
    * @param faces Sculpt faces.
    * @returns Border vertex groups.
    */
-  private static borderGroupsCollect(faces: readonly DisplacementSculptFace[]): DisplacementSewVertex[][] {
+  static borderGroupsCollect(faces: readonly DisplacementSculptFace[]): DisplacementSewVertex[][] {
     const clusters = new DisplacementSewPointClusters<DisplacementSewVertex>(DISPLACEMENT_SEW_POSITION_TOLERANCE);
     for (const face of faces) {
       face.placement.basePositions.forEach((base, vertexIndex) => {

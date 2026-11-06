@@ -236,7 +236,7 @@ describe('SettingsDialog', () => {
     expect(clipInput.value).toBe('Enter');
   });
 
-  it('should show fixed reminders for the clipboard, UV smear and 3D fly navigation keys', () => {
+  it('should show fixed reminders for click modifiers, the clipboard, UV smear and 3D fly navigation keys', () => {
     dialog.show();
     dialog.showTab('keyboard');
     const content = dialog.getContentElement();
@@ -252,6 +252,10 @@ describe('SettingsDialog', () => {
     expect(categoryTitles).toContain('Navigation & Modifiers');
     expect(categoryTitles).not.toContain('Navigation & Modifiers (Fixed)');
     expect(reminders).toEqual([
+      { id: 'keyboard-reminder-object-click-toggle', value: 'Ctrl + Click', readOnly: true },
+      { id: 'keyboard-reminder-object-click-face-edit', value: 'Shift + Click', readOnly: true },
+      { id: 'keyboard-reminder-face-click-add', value: 'Shift + Click', readOnly: true },
+      { id: 'keyboard-reminder-face-click-remove', value: 'Ctrl + Click', readOnly: true },
       { id: 'keyboard-reminder-clipboard-cut', value: 'Ctrl+X', readOnly: true },
       { id: 'keyboard-reminder-clipboard-copy', value: 'Ctrl+C', readOnly: true },
       { id: 'keyboard-reminder-clipboard-paste', value: 'Ctrl+V', readOnly: true },

@@ -27,6 +27,13 @@ export const PREVIEW_E2E_NAME_COMPONENT = 'bevy_ecs::name::Name';
 /** Type path of the bridge's entity I/O outputs in the remote protocol. */
 export const PREVIEW_E2E_LOGIC_OUTPUTS_COMPONENT = 'broom_bridge::logic::BroomLogicOutputs';
 
+/**
+ * Type path of the bridge's displacement surface collision flags in the remote
+ * protocol.
+ */
+export const PREVIEW_E2E_DISPLACEMENT_SURFACE_COMPONENT =
+  'broom_bridge::placeables::displacement::BroomDisplacementSurface';
+
 /** One entity row of a Bevy remote protocol query. */
 export interface PreviewE2eEntityRow {
   entity: number;

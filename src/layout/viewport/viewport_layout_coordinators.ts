@@ -46,11 +46,12 @@ import {
   openLayoutAboutDialog,
 } from '@/layout/setup/layout_settings_system.js';
 import { LayoutGamePreview } from '@/preview/layout/layout_game_preview.js';
+import { DisplacementOverlaySystem } from '@/displacement/overlay/displacement_overlay_system.js';
 import { ViewportLayoutCore } from './viewport_layout_core.js';
 
 /**
- * Viewport layout level that wires handlers, coordinators, tool chrome,
- * solid models, player, AI and settings after the shell and viewports exist.
+ * Viewport layout level that wires handlers, coordinators, tool chrome, solid
+ * models, player, AI and settings after the shell and viewports exist.
  */
 export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
   /** Wires specialized handlers after viewports and shell exist. */
@@ -187,7 +188,6 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     this.setupViewportTypeMenus();
   }
 
-
   /**
    * Opens the Face Edit Sheet when face mode starts and the auto-reveal setting
    * allows it.
@@ -225,6 +225,23 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     });
     this.wireOutlinerFaceModeSelection();
     this.wireEditModeOutlinerAndDeleteGuards();
+    this.setupDisplacementOverlaySystem();
+  }
+
+  /**
+   * Creates the displacement grid wireframes, alpha tints and paint cursor in
+   * the shared scene's helper root.
+   */
+  private setupDisplacementOverlaySystem(): void {
+    this.displacementOverlaySystem = new DisplacementOverlaySystem({
+      helperParent: this.sharedWorldScene.getHelpersRoot(),
+      worldRootRead: () => this.worldObject,
+      isFaceModeActive: () => this.faceModeCoordinator.getSelectionMode() === SelectionMode.FACE,
+      viewportsRead: () => this.getAllInteractiveViewports(),
+      selectedFacesRead: () => this.faceModeCoordinator.getFaceExtrusionController().getSelectedFaces(),
+      isCtrlDown: () => this.keyboardShortcutHandler.modifiersStateRead().ctrl,
+      isShiftDown: () => this.keyboardShortcutHandler.modifiersStateRead().shift,
+    });
   }
 
   /**
@@ -634,6 +651,7 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
       mainWindowControlRead: () => new ShellMainWindowControl(this.shellElements),
       viewportsInteractiveRead: () => this.getAllInteractiveViewports(),
       objectPropertiesDialogRead: () => this.objectPropertiesDialogEnsure(),
+      activeToolRead: () => this.toolsPaletteController?.getActiveTool() ?? null,
     });
     this.setupAiCaptureDebugPanel();
   }
@@ -705,7 +723,6 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     const enabled = audioSettings.toggle();
     this.statusBar?.setLastAction(enabled ? 'Audio on' : 'Audio off');
   }
-
 
   /** Toggles the solid model floating panel. */
   protected onToggleSolidModelPanel(): void {
@@ -818,5 +835,4 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
       },
     });
   }
-
 }

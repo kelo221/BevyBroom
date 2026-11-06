@@ -49,6 +49,17 @@ export abstract class Tool implements IEditorEventReceiver {
     return false;
   }
 
+  /**
+   * Returns whether the tool took a RMB/MMB press it just received, so the
+   * press must not also start viewport fly/pan navigation.
+   *
+   * @param _button Mouse button index of the press.
+   * @returns True when the tool owns the press; false by default.
+   */
+  claimsViewportNavigationPress(_button: number): boolean {
+    return false;
+  }
+
   /** Called when the tool is activated. */
   onActivate(): void {}
 

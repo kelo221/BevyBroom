@@ -172,6 +172,8 @@ export function createEditorServices(
     },
     objectClickReleaseDoubleClickHandle: (clientX, clientY, isModifierHeld) =>
       deps.objectSelectDoubleClick?.clickRelease(clientX, clientY, isModifierHeld) === true,
+    objectShiftClickFaceEditApply: (clientX, clientY) =>
+      deps.objectShiftClickFaceEdit?.clickApply(clientX, clientY) === true,
     isSelectionScaleAllowed: () => entityTransformScaleAllowedAll(deps.selectionManager.getAllSelectedObjectsAsArray()),
     beginObjectDragAtClientPoint: (press) => objectDragController?.dragBegin(press) ?? null,
     tryBeginPermanentGizmoDragFromEditorPointer: (clientX, clientY, modifiers) => {
@@ -294,4 +296,3 @@ export function createEditorServices(
     isNavigationBlockingTools: () => getNavigationBlocks()?.() === true,
   };
 }
-

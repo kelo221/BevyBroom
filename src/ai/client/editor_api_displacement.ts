@@ -13,6 +13,8 @@ import {
 } from '@/displacement/model/displacement_face_surface.js';
 import { displacementFaceFailureRead } from '@/displacement/model/displacement_face_eligibility.js';
 import { CommandDisplacementEdit } from '@/displacement/commands/command_displacement_edit.js';
+import type { ControllerDisplacementActions } from '@/displacement/controller/controller_displacement_actions.js';
+import { displacementActionsSharedRead } from '@/displacement/controller/displacement_actions_shared.js';
 
 /** Power a created displacement gets when the call names none. */
 const EDITOR_API_DISPLACEMENT_DEFAULT_POWER = 3;
@@ -26,7 +28,10 @@ interface EditorApiDisplacementTarget {
   faceTarget: SolidFaceTextureTarget;
 }
 
-/** Creates, edits and removes the displacements of authored brush faces. */
+/**
+ * Creates, edits and removes the displacements of authored brush faces and
+ * selects adjacent displaced faces.
+ */
 export class EditorApiDisplacement {
   /**
    * Creates the displacement tools.
@@ -43,7 +48,59 @@ export class EditorApiDisplacement {
    * @returns Tool result, or null when the name is no displacement tool.
    */
   displacementToolDispatch(name: string, args: Record<string, unknown>): McpToolResult | null {
-    return name === 'set_face_displacement' ? this.faceDisplacementSet(args) : null;
+    if (name === 'set_face_displacement') {
+      return this.faceDisplacementSet(args);
+    }
+    return name === 'select_adjacent_displacements' ? this.adjacentDisplacementsSelect(args) : null;
+  }
+
+  /**
+   * Optionally replaces the face selection, then adds the displaced faces
+   * adjacent to the selected displaced faces.
+   *
+   * @param args Tool arguments with an optional faces list.
+   * @returns Result listing the face selection afterwards.
+   */
+  private adjacentDisplacementsSelect(args: Record<string, unknown>): McpToolResult {
+    const actions = displacementActionsSharedRead();
+    if (!actions) {
+      return failResult('Face tools are not available');
+    }
+    const seedFailure = this.selectionSeed(actions, args['faces']);
+    if (seedFailure) {
+      return failResult(seedFailure);
+    }
+    const countBefore = actions.selectedTargetsRead().length;
+    const result = actions.selectAdjacent();
+    const faces = actions.selectedTargetsRead().map((target) => editorApiDisplacementFaceDescribe(target));
+    return okResult(result.message, { addedCount: faces.length - countBefore, faces });
+  }
+
+  /**
+   * Replaces the face selection with the faces a call names.
+   *
+   * @param actions Installed displacement actions.
+   * @param faces Faces argument: a list of { brushId, faceIndex }, or undefined
+   *   to keep the selection.
+   * @returns Message explaining a bad argument, or null when the selection is
+   *   ready.
+   */
+  private selectionSeed(actions: ControllerDisplacementActions, faces: unknown): string | null {
+    if (faces === undefined) {
+      return null;
+    }
+    if (!Array.isArray(faces)) {
+      return 'faces must be a list of { brushId, faceIndex }';
+    }
+    const targets: SolidFaceTextureTarget[] = [];
+    for (const entry of faces) {
+      const target = this.targetResolve(entry && typeof entry === 'object' ? (entry as Record<string, unknown>) : {});
+      if (typeof target === 'string') {
+        return target;
+      }
+      targets.push(target.faceTarget);
+    }
+    return actions.selectionReplace(targets) ? null : 'The face selection cannot be changed';
   }
 
   /**
@@ -70,6 +127,7 @@ export class EditorApiDisplacement {
       displaced: displacement !== null,
       power: displacement?.power ?? null,
       vertexCount: displacement ? displacementVertexCount(displacement.power) : 0,
+      flags: displacement ? { ...displacement.flags } : null,
     });
   }
 
@@ -129,12 +187,27 @@ export class EditorApiDisplacement {
 }
 
 /**
+ * Describes one selected brush face for a tool result.
+ *
+ * @param target Brush face.
+ * @returns Brush id, face index and whether the face carries a displacement.
+ */
+export function editorApiDisplacementFaceDescribe(target: SolidFaceTextureTarget): {
+  brushId: string;
+  faceIndex: number;
+  displaced: boolean;
+} {
+  const displacement = target.model.findBrush(target.brushId)?.faceDisplacementRead(target.surfaceIndex);
+  return { brushId: target.brushId, faceIndex: target.surfaceIndex, displaced: displacement !== undefined };
+}
+
+/**
  * Applies the surface values a call names on top of a base displacement and
  * validates the result.
  *
  * @param base Displacement the call starts from.
- * @param args Tool arguments that may name power, elevation, scale, offsets and
- *   alphas.
+ * @param args Tool arguments that may name power, elevation, scale, offsets,
+ *   alphas and flags.
  * @returns Validated displacement, or a message naming the expected vertex
  *   count.
  */
@@ -142,7 +215,7 @@ function displacementWithOverrides(
   base: DisplacementFaceSurface,
   args: Record<string, unknown>,
 ): DisplacementFaceSurface | string {
-  const record: Record<string, unknown> = { ...base };
+  const record: Record<string, unknown> = { ...base, flags: displacementFlagsWithOverrides(base, args['flags']) };
   EDITOR_API_DISPLACEMENT_OVERRIDE_KEYS.forEach((key) => {
     if (args[key] !== undefined) {
       record[key] = args[key];
@@ -154,6 +227,25 @@ function displacementWithOverrides(
   }
   return (
     displacementSurfaceRead(record) ??
-    'power must be 2, 3 or 4 and offsets and alphas must hold (2^power+1)^2 finite numbers'
+    'power must be 2, 3 or 4, offsets and alphas must hold (2^power+1)^2 finite numbers and flags must be booleans'
   );
+}
+
+/**
+ * Merges the collision flags a call names over the base displacement's flags.
+ *
+ * @param base Displacement the call starts from.
+ * @param flags Flags argument: an object naming some of noPhysicsCollision,
+ *   noHullCollision, noRayCollision and seals, or undefined.
+ * @returns Merged flag record for validation, or the raw argument when it is no
+ *   object so validation rejects it.
+ */
+function displacementFlagsWithOverrides(base: DisplacementFaceSurface, flags: unknown): unknown {
+  if (flags === undefined) {
+    return base.flags;
+  }
+  if (!flags || typeof flags !== 'object' || Array.isArray(flags)) {
+    return flags;
+  }
+  return { ...base.flags, ...(flags as Record<string, unknown>) };
 }

@@ -105,5 +105,7 @@ function facesAlongAxisHaveElevation(
   const matching = instance.brush.planes
     .map((plane, index) => (plane.normal.dot(direction) > 0.9 ? index : -1))
     .filter((index) => index >= 0);
-  return matching.length > 0 && matching.every((index) => instance.faceDisplacementRead(index)?.elevation === elevation);
+  return (
+    matching.length > 0 && matching.every((index) => instance.faceDisplacementRead(index)?.elevation === elevation)
+  );
 }

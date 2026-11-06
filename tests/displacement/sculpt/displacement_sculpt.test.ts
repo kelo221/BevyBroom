@@ -21,6 +21,7 @@ import {
   displacementTestFaceFacing,
   displacementTestOffsetsRead,
   displacementTestRigCreate,
+  displacementTestStrokeSettings,
   displacementTestSurfaceMeshFind,
   displacementTestTarget,
   type DisplacementTestRig,
@@ -108,13 +109,11 @@ describe('displacement sculpting', () => {
     const center = sculptTestFaceCenter(target);
     const radius = SCULPT_TEST_BOX_EDGES.x / 4;
     const undoCountBefore = rig.commandStack.getUndoCount();
-    const stroke = new DisplacementSculptStroke(rig.commandStack, [target], {
-      tool: 'raise_lower',
-      radius,
-      distance: 0.25,
-      direction: 1,
-      seed: 1,
-    });
+    const stroke = new DisplacementSculptStroke(
+      rig.commandStack,
+      [target],
+      displacementTestStrokeSettings({ effect: 'raise_lower', radius, distance: 0.25, direction: 1 }),
+    );
     stroke.dabApply(center);
     stroke.dabApply(center);
     expect(stroke.finish()).toBe(2);
@@ -132,13 +131,16 @@ describe('displacement sculpting', () => {
     const { rig, target } = sculptTestTopFaceCreate();
     displacementTestCreate(rig, target, 2);
     const flatOffsets = displacementTestOffsetsRead(target);
-    const stroke = new DisplacementSculptStroke(rig.commandStack, [target], {
-      tool: 'raise_lower',
-      radius: SCULPT_TEST_BOX_EDGES.x,
-      distance: 0.5,
-      direction: -1,
-      seed: 1,
-    });
+    const stroke = new DisplacementSculptStroke(
+      rig.commandStack,
+      [target],
+      displacementTestStrokeSettings({
+        effect: 'raise_lower',
+        radius: SCULPT_TEST_BOX_EDGES.x,
+        distance: 0.5,
+        direction: -1,
+      }),
+    );
     stroke.dabApply(sculptTestFaceCenter(target));
     stroke.dabApply(sculptTestFaceCenter(target));
     stroke.finish();
@@ -254,7 +256,70 @@ describe('displacement sculpting', () => {
     rig.commandStack.push(new CommandDisplacementEdit(changed.map((face) => face.editBuild())));
     sculptTestSharedEdgeExpectSewn(targets);
   });
+
+  it('sews shared edges at the end of an AutoSew stroke and undoes stroke and sew as one step', () => {
+    const { rig, targets } = sculptTestNeighborTopFacesCreate('AutoSewTest');
+    const flatOffsets = targets.map((target) => displacementTestOffsetsRead(target));
+    const sharedEdgeCenter = targets
+      .map((target) => sculptTestFaceCenter(target))
+      .reduce((sum, center) => sum.add(center), new THREE.Vector3())
+      .multiplyScalar(0.5);
+    const undoCountBefore = rig.commandStack.getUndoCount();
+    const stroke = new DisplacementSculptStroke(
+      rig.commandStack,
+      targets,
+      displacementTestStrokeSettings({
+        effect: 'noise',
+        edge: 'hard',
+        radius: SCULPT_TEST_BOX_EDGES.x,
+        distance: 0.4,
+        seed: 17,
+        autoSew: true,
+      }),
+    );
+    expect(stroke.dabApply(sharedEdgeCenter)).toBe(2);
+    expect(stroke.finish()).toBe(1);
+    expect(rig.commandStack.getUndoCount()).toBe(undoCountBefore + 1);
+    sculptTestSharedEdgeExpectSewn(targets);
+    rig.commandStack.undo();
+    targets.forEach((target, index) => expect(displacementTestOffsetsRead(target)).toEqual(flatOffsets[index]));
+  });
+
+  it('leaves noisy shared edges unsewn when AutoSew is off', () => {
+    const { rig, targets } = sculptTestNeighborTopFacesCreate('NoAutoSewTest');
+    const stroke = new DisplacementSculptStroke(
+      rig.commandStack,
+      targets,
+      displacementTestStrokeSettings({ effect: 'noise', edge: 'hard', radius: SCULPT_TEST_BOX_EDGES.x * 2, seed: 17 }),
+    );
+    stroke.dabApply(sculptTestFaceCenter(targets[0] as SolidFaceTextureTarget));
+    stroke.finish();
+    expect(DisplacementSew.sewSharedEdges(DisplacementSculptFace.listFromTargets(targets)).length).toBeGreaterThan(0);
+  });
 });
+
+/**
+ * Builds two boxes side by side along X whose upward faces carry flat power 3
+ * displacements.
+ *
+ * @param name Model name.
+ * @returns Rig and the two upward face targets.
+ */
+function sculptTestNeighborTopFacesCreate(name: string): {
+  rig: DisplacementTestRig;
+  targets: SolidFaceTextureTarget[];
+} {
+  const rig = displacementTestRigCreate(name);
+  const leftCenter = new THREE.Vector3(2, -1, -3);
+  const brushes = [leftCenter, leftCenter.clone().setX(leftCenter.x + SCULPT_TEST_BOX_EDGES.x)].map((center) =>
+    displacementTestBoxAdd(rig, SCULPT_TEST_BOX_EDGES, center),
+  );
+  const targets = brushes.map((brush) =>
+    displacementTestTarget(rig, brush, displacementTestFaceFacing(brush, new THREE.Vector3(0, 1, 0))),
+  );
+  targets.forEach((target) => displacementTestCreate(rig, target, 3));
+  return { rig, targets };
+}
 
 /**
  * Applies a rotation and scale about a pivot to a brush, moving its position so

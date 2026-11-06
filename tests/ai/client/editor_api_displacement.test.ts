@@ -7,8 +7,12 @@ import type { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { displacementVertexCount } from '@/displacement/model/displacement_face_surface.js';
 import { displacementSurfaceMeshesUnder } from '@/displacement/mesh/displacement_surface_mesh_keys.js';
+import { ControllerFaceExtrusion } from '@/tools/face/controller_face_extrusion.js';
+import { GridSnap } from '@/transform/snap/grid_snap.js';
+import { DisplacementFaceTools } from '@/displacement/controller/displacement_face_tools.js';
 import { editorApiTestHostCreate } from './editor_api_test_host.js';
 import { solidBrushToolsTestBoxAdd } from '../../tools/csg/solid/solid_brush_tools_test_helpers.js';
+import { displacementTestFaceFacing } from '../../displacement/displacement_test_rig.js';
 
 /**
  * Builds an editor API over one box brush.
@@ -24,7 +28,62 @@ function displacementApiRigCreate(): { api: EditorApi; model: SolidModel; brush:
   return { api: new EditorApi(parts.host), model, brush };
 }
 
-/** Unit tests for the set_face_displacement MCP tool. */
+/**
+ * API over a world with live face tools installed as the shared displacement
+ * actions.
+ */
+interface AdjacentApiRig {
+  api: EditorApi;
+  model: SolidModel;
+  faceController: ControllerFaceExtrusion;
+  faceTools: DisplacementFaceTools;
+}
+
+/**
+ * Builds an editor API over an empty solid model with face tools installed.
+ *
+ * @returns API, model, face controller and face tools.
+ */
+function adjacentApiRigCreate(): AdjacentApiRig {
+  const parts = editorApiTestHostCreate();
+  const model = new SolidModel('DisplacementAdjacentApi');
+  parts.world.add(model.root);
+  const faceController = new ControllerFaceExtrusion(
+    new THREE.Scene(),
+    parts.host.commandStack,
+    new GridSnap(false, 1),
+    parts.world,
+  );
+  const faceTools = new DisplacementFaceTools({
+    commandStack: parts.host.commandStack,
+    faceSelection: faceController,
+    isCtrlDown: () => false,
+    isShiftDown: () => false,
+    afterDab: () => undefined,
+  });
+  return { api: new EditorApi(parts.host), model, faceController, faceTools };
+}
+
+/**
+ * Adds three boxes along X: two touching and one far away.
+ *
+ * @param model Model receiving the boxes.
+ * @returns Selected, touching neighbour and distant brush.
+ */
+function adjacentApiBoxRowAdd(model: SolidModel): [SolidBrushInstance, SolidBrushInstance, SolidBrushInstance] {
+  const edges = new THREE.Vector3(2, 1, 2);
+  const origin = new THREE.Vector3(-4, 0.5, 1);
+  const step = new THREE.Vector3(edges.x, 0, 0);
+  const brushes: [SolidBrushInstance, SolidBrushInstance, SolidBrushInstance] = [
+    solidBrushToolsTestBoxAdd(model, edges, origin),
+    solidBrushToolsTestBoxAdd(model, edges, origin.clone().add(step)),
+    solidBrushToolsTestBoxAdd(model, edges, origin.clone().addScaledVector(step, 6)),
+  ];
+  model.rebuild(true);
+  return brushes;
+}
+
+/** Unit tests for the displacement MCP tools. */
 describe('EditorApi displacement tool', () => {
   it('lists set_face_displacement in the MCP catalog', () => {
     expect(findMcpTool('set_face_displacement')).toBeDefined();
@@ -59,6 +118,82 @@ describe('EditorApi displacement tool', () => {
     );
     expect(brush.faceDisplacementRead(1)).toBeUndefined();
     expect(displacementSurfaceMeshesUnder(model.root)).toHaveLength(0);
+  });
+
+  it('sets collision flags partially, keeps unnamed flags and reports them', () => {
+    const { api, brush } = displacementApiRigCreate();
+    const created = api.invokeTool('set_face_displacement', {
+      brushId: brush.id,
+      faceIndex: 2,
+      action: 'create',
+      flags: { noHullCollision: true },
+    });
+    expect(created.ok, created.message).toBe(true);
+    expect(created.data).toMatchObject({
+      flags: { noPhysicsCollision: false, noHullCollision: true, noRayCollision: false, seals: false },
+    });
+    const edited = api.invokeTool('set_face_displacement', {
+      brushId: brush.id,
+      faceIndex: 2,
+      action: 'set',
+      flags: { seals: true },
+    });
+    expect(edited.ok, edited.message).toBe(true);
+    expect(brush.faceDisplacementRead(2)?.flags).toEqual({
+      noPhysicsCollision: false,
+      noHullCollision: true,
+      noRayCollision: false,
+      seals: true,
+    });
+    const rejected = api.invokeTool('set_face_displacement', {
+      brushId: brush.id,
+      faceIndex: 2,
+      action: 'set',
+      flags: { seals: 'on' },
+    });
+    expect(rejected.ok).toBe(false);
+    expect(brush.faceDisplacementRead(2)?.flags.seals).toBe(true);
+    api.invokeTool('undo');
+    expect(brush.faceDisplacementRead(2)?.flags.seals).toBe(false);
+  });
+
+  it('lists select_adjacent_displacements in the MCP catalog', () => {
+    expect(findMcpTool('select_adjacent_displacements')).toBeDefined();
+  });
+
+  it('selects the displaced faces adjacent to the named faces and returns the face selection', () => {
+    const { api, faceTools, faceController, model } = adjacentApiRigCreate();
+    const [selected, neighbour, distant] = adjacentApiBoxRowAdd(model);
+    const topFace = (brush: SolidBrushInstance): number =>
+      displacementTestFaceFacing(brush, new THREE.Vector3(0, 1, 0));
+    [selected, neighbour, distant].forEach((brush) => {
+      const created = api.invokeTool('set_face_displacement', {
+        brushId: brush.id,
+        faceIndex: topFace(brush),
+        action: 'create',
+      });
+      expect(created.ok, created.message).toBe(true);
+    });
+    const result = api.invokeTool('select_adjacent_displacements', {
+      faces: [{ brushId: selected.id, faceIndex: topFace(selected) }],
+    });
+    expect(result.ok, result.message).toBe(true);
+    expect(result.data).toEqual({
+      addedCount: 1,
+      faces: [
+        { brushId: selected.id, faceIndex: topFace(selected), displaced: true },
+        { brushId: neighbour.id, faceIndex: topFace(neighbour), displaced: true },
+      ],
+    });
+    expect(faceController.getSelectedFaceCount()).toBe(2);
+    const again = api.invokeTool('select_adjacent_displacements', {});
+    expect(again.ok).toBe(true);
+    expect(again.data).toMatchObject({ addedCount: 0 });
+    expect(api.invokeTool('select_adjacent_displacements', { faces: [{ brushId: 'missing', faceIndex: 0 }] }).ok).toBe(
+      false,
+    );
+    faceTools.dispose();
+    expect(api.invokeTool('select_adjacent_displacements', {}).ok).toBe(false);
   });
 
   it('rejects bad offsets, missing displacements, bad faces and subtractive brushes', () => {

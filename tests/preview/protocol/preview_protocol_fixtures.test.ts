@@ -15,6 +15,10 @@ import {
   LIGHT_EXPORT_SETTINGS_EXTRAS_KEY,
   LightExportNodeBuilder,
 } from '@/light/export/light_export_node_builder.js';
+import {
+  DISPLACEMENT_EXPORT_COLLISION_EXTRAS_KEY,
+  DisplacementExportCollisionExtrasBuilder,
+} from '@/displacement/export/displacement_export_collision_extras.js';
 
 /** Wire fixtures of the game bridge workspace, parsed by its Rust tests too. */
 const FIXTURE_BRIDGE_DIRECTORY = resolve(__dirname, '../../../bevy/fixtures');
@@ -124,6 +128,15 @@ describe('preview protocol fixtures', () => {
     const written: Record<string, unknown> = {};
     LightExportNodeBuilder.extrasWrite(light, written);
     LightExportNodeBuilder.identityExtrasWrite(light, ownerIdentifier, written);
+    expect(JSON.parse(JSON.stringify(written))).toEqual(sample);
+  });
+
+  it('writes exactly the displacement collision extras the bridge sample reads', () => {
+    const sample = fixtureBridgeRead<Record<string, unknown>>('displacement_extras_sample.json');
+    const flags = { noPhysicsCollision: true, noHullCollision: false, noRayCollision: true, seals: false };
+    const written = {
+      [DISPLACEMENT_EXPORT_COLLISION_EXTRAS_KEY]: DisplacementExportCollisionExtrasBuilder.extrasFromFlags(flags),
+    };
     expect(JSON.parse(JSON.stringify(written))).toEqual(sample);
   });
 });

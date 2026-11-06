@@ -4,6 +4,9 @@ import { hexToRgb } from '@/utils/utils_color.js';
 /** Font size of the text inside a compact button. */
 export const BUTTON_COMPACT_FONT_SIZE = '11px';
 
+/** Line height, as a multiple of the font size, of wrapping compact button text. */
+export const BUTTON_COMPACT_WRAPPED_LINE_HEIGHT = '1.2';
+
 /** Background tint of a compact button in its active (on or satisfied) state. */
 export const BUTTON_COMPACT_ACTIVE_BACKGROUND = 'rgba(232, 106, 23, 0.22)';
 
@@ -25,6 +28,11 @@ export interface ButtonCompactOptions {
   widthPx: number | null;
   /** Height in pixels. */
   heightPx: number;
+  /**
+   * True to wrap text that does not fit onto centered lines instead of keeping
+   * one line; off when omitted.
+   */
+  isTextWrapping?: boolean;
   /** Click handler. */
   onClick: () => void;
 }
@@ -44,6 +52,9 @@ export function buttonCompactCreate(options: ButtonCompactOptions): HTMLButtonEl
   buttonCompactContentWrite(button, options);
   buttonCompactSizeApply(button, options.widthPx, options.heightPx);
   buttonCompactColorsApply(button);
+  if (options.isTextWrapping === true) {
+    buttonCompactTextWrapApply(button);
+  }
   buttonCompactHoverBind(button);
   button.addEventListener('click', (event) => {
     event.stopPropagation();
@@ -159,6 +170,19 @@ function buttonCompactColorsApply(button: HTMLButtonElement): void {
   button.style.lineHeight = '1';
   button.style.cursor = 'pointer';
   button.style.overflow = 'hidden';
+}
+
+/**
+ * Lets the text of a compact button wrap at spaces, and inside words too long
+ * for one line, onto centered lines spaced for reading.
+ *
+ * @param button Button element.
+ */
+function buttonCompactTextWrapApply(button: HTMLButtonElement): void {
+  button.style.whiteSpace = 'normal';
+  button.style.overflowWrap = 'break-word';
+  button.style.textAlign = 'center';
+  button.style.lineHeight = BUTTON_COMPACT_WRAPPED_LINE_HEIGHT;
 }
 
 /**

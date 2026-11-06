@@ -62,6 +62,19 @@ describe('StateFaceEditSession and StateTexturePaint', () => {
     expect(session.moreToolsExpandedRead()).toBe(false);
   });
 
+  it('shows the displacement grid mask by default, notifies once per change and resets it', () => {
+    const session = new StateFaceEditSession();
+    const listener = vi.fn();
+    session.changeListenerAdd(listener);
+    expect(session.gridMaskRead()).toBe(true);
+    session.gridMaskWrite(false);
+    session.gridMaskWrite(false);
+    expect(session.gridMaskRead()).toBe(false);
+    expect(listener).toHaveBeenCalledTimes(1);
+    session.reset();
+    expect(session.gridMaskRead()).toBe(true);
+  });
+
   it('notifies StateTexturePaint listeners when texture id changes', () => {
     const paint = new StateTexturePaint();
     const seen: string[] = [];

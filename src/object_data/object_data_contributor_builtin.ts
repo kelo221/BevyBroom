@@ -1,3 +1,4 @@
+import { ObjectDataContributorDisplacementCollision } from '@/displacement/export/object_data_contributor_displacement_collision.js';
 import { ObjectDataContributorGameComponents } from '@/game_entity/contributors/object_data_contributor_game_components.js';
 import { ObjectDataContributorGameLogic } from '@/game_entity/contributors/object_data_contributor_game_logic.js';
 import { ObjectDataContributorLightNodes } from '@/light/export/object_data_contributor_light_nodes.js';
@@ -24,5 +25,6 @@ export function objectDataContributorsBuiltinCreate(): readonly ObjectDataContri
     new ObjectDataContributorPolygonOutline(),
     new ObjectDataContributorLayers(),
     new ObjectDataContributorProjectLink(),
+    new ObjectDataContributorDisplacementCollision(),
   ];
 }

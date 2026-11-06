@@ -39,8 +39,9 @@ pub mod prelude {
     pub use crate::materials::{CatalogResolver, CatalogResolvers, CatalogState};
     pub use crate::placeables::{
         AppDataAssetExt, AppPlaceableAssetExt, AppPlaceableExt, AuthoredGameEntity,
-        BroomGltfComponentsPlugin, BroomProperties, FieldHidden, FieldLabel, FieldRange, FieldStep,
-        PlaceableOptions, PropertyValue,
+        BroomDisplacementSurface, BroomGltfComponentsPlugin, BroomGltfDisplacementPlugin,
+        BroomProperties, FieldHidden, FieldLabel, FieldRange, FieldStep, PlaceableOptions,
+        PropertyValue,
     };
     pub use crate::project::{PROJECT_FILE_NAME, ProjectPaths};
     pub use crate::{BroomBridgePlugin, BroomLevelPlugin};

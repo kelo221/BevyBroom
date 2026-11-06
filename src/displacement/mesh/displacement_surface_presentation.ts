@@ -8,6 +8,7 @@ import { Theme } from '@/theme.js';
 import { displacementFaceAttachedIs } from '@/displacement/model/displacement_face_eligibility.js';
 import { DisplacementSurfacePlacement } from '@/displacement/grid/displacement_surface_placement.js';
 import { DisplacementMeshBuilder } from './displacement_mesh_builder.js';
+import { DisplacementSurfaceChangeNotifier } from './displacement_surface_change_notifier.js';
 import {
   DISPLACEMENT_SURFACE_MESH_USERDATA_KEY,
   displacementSurfaceMeshFind,
@@ -24,8 +25,9 @@ import {
  */
 export class DisplacementSurfacePresentation {
   /**
-   * Rebuilds the displacement surface meshes of one brush and removes meshes of
-   * faces that are no longer displaced.
+   * Rebuilds the displacement surface meshes of one brush, removes meshes of
+   * faces that are no longer displaced and notifies displacement surface change
+   * listeners when any mesh was rebuilt or removed.
    *
    * @param brushId Brush id the meshes belong to.
    * @param brush Brush instance, or undefined when it no longer exists.
@@ -38,18 +40,21 @@ export class DisplacementSurfacePresentation {
     const attached = brush
       ? brush.faceDisplacementIndices().filter((index) => displacementFaceAttachedIs(brush, index))
       : [];
-    this.staleMeshesRemove(
+    const removedCount = this.staleMeshesRemove(
       solidRoot,
       (identity) => identity.brushId === brushId && !attached.includes(identity.surfaceIndex),
     );
-    if (!brush) {
-      return;
+    if (brush) {
+      attached.forEach((surfaceIndex) => this.faceMeshUpsert(brush, surfaceIndex, solidRoot));
     }
-    attached.forEach((surfaceIndex) => this.faceMeshUpsert(brush, surfaceIndex, solidRoot));
+    if (removedCount > 0 || attached.length > 0) {
+      DisplacementSurfaceChangeNotifier.notify(solidRoot);
+    }
   }
 
   /**
-   * Removes the displacement surface meshes of brushes outside a set.
+   * Removes the displacement surface meshes of brushes outside a set and
+   * notifies displacement surface change listeners when any mesh was removed.
    *
    * @param brushIds Brush ids whose meshes stay.
    * @param solidRoot Solid model root owning the meshes, or undefined.
@@ -58,7 +63,9 @@ export class DisplacementSurfacePresentation {
     if (!solidRoot) {
       return;
     }
-    this.staleMeshesRemove(solidRoot, (identity) => !brushIds.has(identity.brushId));
+    if (this.staleMeshesRemove(solidRoot, (identity) => !brushIds.has(identity.brushId)) > 0) {
+      DisplacementSurfaceChangeNotifier.notify(solidRoot);
+    }
   }
 
   /**
@@ -66,11 +73,13 @@ export class DisplacementSurfacePresentation {
    *
    * @param solidRoot Solid model root.
    * @param isStale Returns true for identities whose mesh must go.
+   * @returns Number of removed meshes.
    */
   private staleMeshesRemove(
     solidRoot: THREE.Object3D,
     isStale: (identity: DisplacementSurfaceMeshIdentity) => boolean,
-  ): void {
+  ): number {
+    let removedCount = 0;
     for (const mesh of displacementSurfaceMeshesUnder(solidRoot)) {
       const identity = displacementSurfaceMeshIdentityRead(mesh);
       if (!identity || !isStale(identity)) {
@@ -78,7 +87,9 @@ export class DisplacementSurfacePresentation {
       }
       mesh.removeFromParent();
       disposeBrushPreviewResources(mesh);
+      removedCount += 1;
     }
+    return removedCount;
   }
 
   /**

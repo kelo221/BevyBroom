@@ -179,6 +179,9 @@ export abstract class ViewportLayoutCore {
   protected alignmentHandler!: HandlerAlignment;
   protected sceneIOHandler!: HandlerSceneIo;
   protected faceModeCoordinator!: CoordinatorFaceMode;
+  /** Displacement grid wireframes, alpha tints and paint cursor. */
+  protected displacementOverlaySystem:
+    import('@/displacement/overlay/displacement_overlay_system.js').DisplacementOverlaySystem | null = null;
   protected snapSettingsController!: ControllerSnapSettings;
   protected cameraFitCoordinator!: CoordinatorCameraFit;
   protected shadingModeCoordinator!: CoordinatorShadingMode;

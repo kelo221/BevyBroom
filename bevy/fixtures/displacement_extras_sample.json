@@ -1,0 +1,8 @@
+{
+  "broom_displacement": {
+    "no_physics_collision": true,
+    "no_hull_collision": false,
+    "no_ray_collision": true,
+    "seals": false
+  }
+}

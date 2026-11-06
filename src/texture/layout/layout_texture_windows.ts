@@ -16,7 +16,11 @@ import { FaceAttributesViewGroup } from '@/texture/ui/face_attributes/face_attri
 import type { FaceAttributesView } from '@/texture/ui/face_attributes/face_attributes_view.js';
 import type { FaceInspectorSetupResult } from './layout_face_inspector_setup.js';
 import { PanelDisplacementTab } from '@/displacement/ui/panel_displacement_tab.js';
-import { displacementActionsSharedRead } from '@/displacement/controller/displacement_actions_shared.js';
+import {
+  displacementActionsSharedChangeListenerAdd,
+  displacementActionsSharedRead,
+} from '@/displacement/controller/displacement_actions_shared.js';
+import { DisplacementPaintWindows } from '@/displacement/ui/paint/displacement_paint_windows.js';
 
 /** Editor services the floating texture windows are built from. */
 export interface LayoutTextureWindowsDeps {
@@ -38,9 +42,9 @@ export interface LayoutTextureWindowsDeps {
 
 /**
  * Floating texture windows of the main window: the texture browser holding the
- * face inspector, the Face Edit Sheet with its Displacement tab and the Replace
- * Textures window. The face inspector refreshes while the texture browser or
- * the sheet is open.
+ * face inspector, the Face Edit Sheet with its Displacement tab and paint
+ * windows, and the Replace Textures window. The face inspector refreshes while
+ * the texture browser or the sheet is open.
  */
 export class LayoutTextureWindows {
   /** Floating texture browser holding the face inspector. */
@@ -51,6 +55,8 @@ export class LayoutTextureWindows {
   readonly faceEditSheet: DialogFaceEditSheet;
   /** Displacement tab shown inside the Face Edit Sheet. */
   readonly displacementTab: PanelDisplacementTab;
+  /** Paint Geometry and Paint Alpha windows of the Displacement tab. */
+  readonly displacementPaintWindows: DisplacementPaintWindows;
   private readonly deps: LayoutTextureWindowsDeps;
   private readonly unsubscribers: Array<() => void>;
 
@@ -65,6 +71,10 @@ export class LayoutTextureWindows {
     this.textureReplaceDialog = this.textureReplaceDialogCreate();
     this.faceEditSheet = new DialogFaceEditSheet(deps.host, this.faceEditSheetHandlersBuild());
     this.displacementTab = this.displacementTabMount();
+    this.displacementPaintWindows = new DisplacementPaintWindows(deps.host, {
+      besideElementRead: () => this.faceEditSheet.getRootElement(),
+      statusReport: (message) => deps.statusBar?.setLastAction(message),
+    });
     this.faceAttributesViewsWire();
     this.unsubscribers = [
       this.textureBrowser.openChangeListenerAdd(() => this.faceInspectorVisibilityRefresh()),
@@ -97,6 +107,7 @@ export class LayoutTextureWindows {
   dispose(): void {
     this.unsubscribers.forEach((unsubscribe) => unsubscribe());
     this.unsubscribers.length = 0;
+    this.displacementPaintWindows.dispose();
     this.displacementTab.dispose();
     this.faceEditSheet.dispose();
     this.textureReplaceDialog.dispose();
@@ -119,6 +130,8 @@ export class LayoutTextureWindows {
   private displacementTabMount(): PanelDisplacementTab {
     const tab = new PanelDisplacementTab({
       actionsRead: () => displacementActionsSharedRead(),
+      changeListenerAdd: (listener) => displacementActionsSharedChangeListenerAdd(listener),
+      floatingHost: this.deps.host,
       statusReport: (message) => this.deps.statusBar?.setLastAction(message),
       afterChange: () => this.deps.afterSurfaceChange(),
     });

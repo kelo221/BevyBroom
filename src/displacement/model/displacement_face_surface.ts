@@ -4,6 +4,20 @@ import {
   type DisplacementFaceSurface,
   type DisplacementPower,
 } from './displacement_types.js';
+import {
+  displacementCollisionFlagsAnySet,
+  displacementCollisionFlagsClone,
+  displacementCollisionFlagsDefault,
+  displacementCollisionFlagsRead,
+} from './displacement_collision_flags.js';
+
+/**
+ * Saved form of a displacement surface: flags are present only when at least
+ * one flag is on.
+ */
+export type DisplacementFaceSurfaceSerialized = Omit<DisplacementFaceSurface, 'flags'> & {
+  flags?: DisplacementFaceSurface['flags'];
+};
 
 /**
  * Returns how many vertices one side of a displacement grid has.
@@ -51,6 +65,7 @@ export function displacementSurfaceCreate(power: DisplacementPower, elevation: n
     scale: 1,
     offsets: new Array<number>(vertexCount).fill(0),
     alphas: new Array<number>(vertexCount).fill(0),
+    flags: displacementCollisionFlagsDefault(),
   };
 }
 
@@ -76,19 +91,35 @@ export function displacementOffsetDeltaForDistance(
  * @param surface Source surface.
  * @returns Independent copy.
  */
-export function displacementSurfaceClone(surface: DisplacementFaceSurface): DisplacementFaceSurface {
+export function displacementSurfaceClone(surface: Readonly<DisplacementFaceSurface>): DisplacementFaceSurface {
   return {
     power: surface.power,
     elevation: surface.elevation,
     scale: surface.scale,
     offsets: surface.offsets.slice(),
     alphas: surface.alphas.slice(),
+    flags: displacementCollisionFlagsClone(surface.flags),
   };
 }
 
 /**
+ * Builds the saved form of a displacement surface, leaving out the collision
+ * flags when every flag is off.
+ *
+ * @param surface Source surface.
+ * @returns Independent serializable copy.
+ */
+export function displacementSurfaceSerialize(
+  surface: Readonly<DisplacementFaceSurface>,
+): DisplacementFaceSurfaceSerialized {
+  const { flags, ...rest } = displacementSurfaceClone(surface);
+  return displacementCollisionFlagsAnySet(flags) ? { ...rest, flags } : rest;
+}
+
+/**
  * Reads a displacement surface from untrusted JSON, filling missing alphas with
- * zero and rejecting wrong vertex counts.
+ * zero and missing collision flags with false, and rejecting wrong vertex
+ * counts and non-boolean flags.
  *
  * @param value Candidate JSON value.
  * @returns Validated copy, or null when the value is no displacement.
@@ -111,7 +142,8 @@ export function displacementSurfaceRead(value: unknown): DisplacementFaceSurface
  *
  * @param record JSON record.
  * @param power Validated subdivision power.
- * @returns Validated copy, or null when a vertex list has the wrong shape.
+ * @returns Validated copy, or null when a vertex list has the wrong shape or a
+ *   flag is no boolean.
  */
 function displacementSurfaceReadWithPower(
   record: Record<string, unknown>,
@@ -120,7 +152,8 @@ function displacementSurfaceReadWithPower(
   const vertexCount = displacementVertexCount(power);
   const offsets = displacementNumberListRead(record['offsets'], vertexCount, 0);
   const alphas = displacementNumberListRead(record['alphas'], vertexCount, 0);
-  if (!offsets || !alphas) {
+  const flags = displacementCollisionFlagsRead(record['flags']);
+  if (!offsets || !alphas || !flags) {
     return null;
   }
   return {
@@ -129,6 +162,7 @@ function displacementSurfaceReadWithPower(
     scale: displacementFiniteNumberRead(record['scale'], 1),
     offsets,
     alphas: alphas.map((alpha) => Math.min(DISPLACEMENT_ALPHA_MAX, Math.max(0, alpha))),
+    flags,
   };
 }
 

@@ -69,6 +69,8 @@ export type McpToolName =
   | 'set_face_uv'
   | 'transform_face_uv'
   | 'set_face_displacement'
+  | 'select_adjacent_displacements'
+  | 'get_face_edit_state'
   | 'select_by_query'
   | 'set_selection_visibility'
   | 'reorder_brushes'

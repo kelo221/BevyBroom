@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { DISPLACEMENT_ALPHA_MAX, DISPLACEMENT_POWERS } from '@/displacement/model/displacement_types.js';
+import {
+  DISPLACEMENT_ALPHA_MAX,
+  DISPLACEMENT_COLLISION_FLAG_KEYS,
+  DISPLACEMENT_POWERS,
+} from '@/displacement/model/displacement_types.js';
 import {
   displacementOffsetDeltaForDistance,
   displacementPowerIs,
   displacementSurfaceClone,
   displacementSurfaceCreate,
   displacementSurfaceRead,
+  displacementSurfaceSerialize,
   displacementVertexCount,
 } from '@/displacement/model/displacement_face_surface.js';
 import {
@@ -53,6 +58,37 @@ describe('displacement face surface', () => {
     expect(displacementOffsetDeltaForDistance(surface, 1)).toBe(0.5);
     surface.scale = 0;
     expect(displacementOffsetDeltaForDistance(surface, 1)).toBe(1);
+  });
+
+  it('creates surfaces with every collision flag off and clones flags independently', () => {
+    const surface = displacementSurfaceCreate(2);
+    DISPLACEMENT_COLLISION_FLAG_KEYS.forEach((key) => expect(surface.flags[key]).toBe(false));
+    const copy = displacementSurfaceClone(surface);
+    copy.flags.seals = true;
+    expect(surface.flags.seals).toBe(false);
+  });
+
+  it('reads collision flags, treating missing flags as off and rejecting non-boolean flags', () => {
+    const withoutFlags = displacementSurfaceRead({ power: 2 });
+    DISPLACEMENT_COLLISION_FLAG_KEYS.forEach((key) => expect(withoutFlags?.flags[key]).toBe(false));
+    const partial = displacementSurfaceRead({ power: 2, flags: { noHullCollision: true } });
+    expect(partial?.flags).toEqual({
+      noPhysicsCollision: false,
+      noHullCollision: true,
+      noRayCollision: false,
+      seals: false,
+    });
+    expect(displacementSurfaceRead({ power: 2, flags: { seals: 'yes' } })).toBeNull();
+    expect(displacementSurfaceRead({ power: 2, flags: true })).toBeNull();
+  });
+
+  it('serializes flags only when at least one flag is on', () => {
+    const surface = displacementSurfaceCreate(2);
+    expect('flags' in displacementSurfaceSerialize(surface)).toBe(false);
+    surface.flags.noRayCollision = true;
+    const serialized = displacementSurfaceSerialize(surface);
+    expect(serialized.flags?.noRayCollision).toBe(true);
+    expect(displacementSurfaceRead(serialized)).toEqual(surface);
   });
 
   it('keeps a face displacement when the face texture or UV mapping changes', () => {

@@ -24,7 +24,7 @@ export class DisplacementSculptBrushNoise extends DisplacementSculptBrush {
    * @param weights Per-vertex falloff weights.
    * @param dab Dab parameters.
    */
-  protected offsetsBlend(face: DisplacementSculptFace, weights: readonly number[], dab: DisplacementSculptDab): void {
+  protected verticesBlend(face: DisplacementSculptFace, weights: readonly number[], dab: DisplacementSculptDab): void {
     const offsets = face.displacement.offsets;
     this.offsetsWriteWeighted(face, weights, (vertexIndex, weight) => {
       const bump = this.random.range(-dab.distance, dab.distance) * weight;

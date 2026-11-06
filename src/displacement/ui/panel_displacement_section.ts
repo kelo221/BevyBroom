@@ -1,20 +1,39 @@
-import {
-  getStateDisplacementSculpt,
-  type DisplacementSculptSettings,
-} from '@/displacement/state/state_displacement_sculpt.js';
-import type { InputNumeric } from '@/ui/input/input_numeric.js';
+import type { DisplacementSculptSettings } from '@/displacement/state/state_displacement_sculpt.js';
+import type {
+  ControllerDisplacementActions,
+  DisplacementActionResult,
+} from '@/displacement/controller/controller_displacement_actions.js';
+import { faceEditSheetGroupBoxCreate } from '@/texture/ui/face_edit_sheet/widgets/face_edit_sheet_widget_group_box.js';
 
 /**
- * One group of Displacement tab controls bound to the shared displacement
- * sculpt settings.
+ * Runs one displacement action on the selected faces.
+ *
+ * @param action Action to run with the installed actions.
+ */
+export type PanelDisplacementActionRun = (
+  action: (actions: ControllerDisplacementActions) => DisplacementActionResult,
+) => void;
+
+/** Height in pixels of the Displacement tab buttons. */
+export const PANEL_DISPLACEMENT_BUTTON_HEIGHT_PX = 22;
+
+/**
+ * One titled group box of Displacement tab controls. Shows the shared
+ * displacement sculpt settings and the selected faces; owns cleanup functions
+ * its subclasses register.
  */
 export abstract class PanelDisplacementSection {
   protected readonly element: HTMLElement;
-  private readonly numericInputs: InputNumeric[] = [];
+  private readonly disposers: Array<() => void> = [];
 
-  /** Creates the section container. */
-  constructor() {
-    this.element = document.createElement('div');
+  /**
+   * Creates the section group box.
+   *
+   * @param title Group box title.
+   * @param className Class name of the group box.
+   */
+  constructor(title: string, className: string) {
+    this.element = faceEditSheetGroupBoxCreate(title, className);
     this.element.style.display = 'flex';
     this.element.style.flexDirection = 'column';
     this.element.style.gap = '4px';
@@ -30,41 +49,33 @@ export abstract class PanelDisplacementSection {
   }
 
   /**
-   * Shows the given settings in the section's fields.
+   * Shows the given settings in the section's fields. Sections without setting
+   * fields keep this empty implementation.
    *
-   * @param settings Current displacement sculpt settings.
+   * @param _settings Current displacement sculpt settings.
    */
-  abstract settingsShow(settings: Readonly<DisplacementSculptSettings>): void;
+  settingsShow(_settings: Readonly<DisplacementSculptSettings>): void {}
 
-  /** Removes the listeners of the section's numeric fields. */
+  /**
+   * Shows the state of the selected faces in the section's fields. Sections
+   * that do not depend on the selection keep this empty implementation.
+   *
+   * @param _actions Installed actions over the selected faces, or null when
+   *   none are installed.
+   */
+  selectionShow(_actions: ControllerDisplacementActions | null): void {}
+
+  /** Runs every registered cleanup function. */
   dispose(): void {
-    this.numericInputs.forEach((input) => input.dispose());
-    this.numericInputs.length = 0;
+    this.disposers.splice(0).forEach((disposer) => disposer());
   }
 
   /**
-   * Registers a numeric field so dispose releases it.
+   * Registers a cleanup function run once by dispose.
    *
-   * @param input Numeric field owned by the section.
-   * @returns The same field.
+   * @param disposer Cleanup function, for example a listener removal.
    */
-  protected numericInputOwn(input: InputNumeric): InputNumeric {
-    this.numericInputs.push(input);
-    return input;
-  }
-
-  /**
-   * Stores a positive number typed into a field in the shared settings.
-   *
-   * @param input Numeric field.
-   * @param key Settings entry the field edits.
-   */
-  protected positiveSettingCommit(input: InputNumeric, key: 'radius' | 'distance'): void {
-    const value = input.parseNumberOrNull();
-    if (value === null || value <= 0) {
-      this.settingsShow(getStateDisplacementSculpt().settingsRead());
-      return;
-    }
-    getStateDisplacementSculpt().settingsWrite(key === 'radius' ? { radius: value } : { distance: value });
+  protected disposerAdd(disposer: () => void): void {
+    this.disposers.push(disposer);
   }
 }

@@ -7,6 +7,12 @@ import type { DisplacementPower } from '@/displacement/model/displacement_types.
 import { displacementSurfaceCreate } from '@/displacement/model/displacement_face_surface.js';
 import { CommandDisplacementEdit } from '@/displacement/commands/command_displacement_edit.js';
 import { displacementSurfaceMeshFind } from '@/displacement/mesh/displacement_surface_mesh_keys.js';
+import { StateDisplacementSculpt } from '@/displacement/state/state_displacement_sculpt.js';
+import {
+  displacementSculptStrokeSettingsFromShared,
+  type DisplacementSculptStrokeSettings,
+} from '@/displacement/sculpt/displacement_sculpt_stroke_settings.js';
+import { DisplacementSculptFace } from '@/displacement/sculpt/displacement_sculpt_face.js';
 import { solidBrushToolsTestBoxAdd } from '../tools/csg/solid/solid_brush_tools_test_helpers.js';
 
 /** World, model and undo stack shared by displacement tests. */
@@ -123,4 +129,41 @@ export function displacementTestSurfaceMeshFind(
  */
 export function displacementTestOffsetsRead(target: SolidFaceTextureTarget): number[] {
   return target.model.findBrush(target.brushId)?.faceDisplacementRead(target.surfaceIndex)?.offsets.slice() ?? [];
+}
+
+/**
+ * Builds stroke settings from the default Displacement tab settings with some
+ * fields replaced.
+ *
+ * @param overrides Stroke settings to replace.
+ * @returns Raising stroke settings with seed 1 and the overrides applied.
+ */
+export function displacementTestStrokeSettings(
+  overrides: Partial<DisplacementSculptStrokeSettings>,
+): DisplacementSculptStrokeSettings {
+  const defaults = displacementSculptStrokeSettingsFromShared(new StateDisplacementSculpt().settingsRead(), 1, 1);
+  return { ...defaults, ...overrides };
+}
+
+/**
+ * Returns the stored alphas of a displaced face.
+ *
+ * @param target Displaced face.
+ * @returns Copy of the alphas, empty when the face has no displacement.
+ */
+export function displacementTestAlphasRead(target: SolidFaceTextureTarget): number[] {
+  return target.model.findBrush(target.brushId)?.faceDisplacementRead(target.surfaceIndex)?.alphas.slice() ?? [];
+}
+
+/**
+ * Returns the world center of the flat grid of a displaced face.
+ *
+ * @param target Displaced face.
+ * @returns World-space center.
+ */
+export function displacementTestFaceCenter(target: SolidFaceTextureTarget): THREE.Vector3 {
+  const face = DisplacementSculptFace.fromTarget(target);
+  if (!face) throw new Error('face has no displacement');
+  const sum = face.placement.basePositions.reduce((total, point) => total.add(point), new THREE.Vector3());
+  return sum.multiplyScalar(1 / face.placement.basePositions.length);
 }

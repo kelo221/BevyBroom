@@ -10,10 +10,17 @@ import {
 import { DisplacementSculptOps } from '@/displacement/sculpt/displacement_sculpt_ops.js';
 import { DisplacementSculptFace } from '@/displacement/sculpt/displacement_sculpt_face.js';
 import { DisplacementSew } from '@/displacement/sculpt/displacement_sew.js';
+import { DisplacementAdjacentFaces } from '@/displacement/pick/displacement_adjacent_faces.js';
+import {
+  displacementAttributesApplyTo,
+  displacementAttributesSharedRead,
+  type DisplacementAttributeChanges,
+  type DisplacementAttributesShared,
+} from './displacement_attributes.js';
 
 /** Outcome of one displacement action. */
 export interface DisplacementActionResult {
-  /** True when at least one face changed. */
+  /** True when the action changed at least one face or the face selection. */
   ok: boolean;
   /** Status line describing the outcome. */
   message: string;
@@ -22,9 +29,25 @@ export interface DisplacementActionResult {
 }
 
 /**
+ * Selects brush faces in the face selection the actions read.
+ *
+ * @param targets Brush faces to select.
+ * @param addToSelection When false, the current selection is replaced.
+ */
+export type DisplacementTargetsSelect = (targets: readonly SolidFaceTextureTarget[], addToSelection: boolean) => void;
+
+/** Counts of the brush faces the actions apply to. */
+export interface DisplacementSelectionSummary {
+  /** Number of selected brush faces. */
+  faceCount: number;
+  /** Number of selected brush faces that carry a displacement. */
+  displacedCount: number;
+}
+
+/**
  * Runs the Displacement tab actions (Create, Destroy, Subdivide, Invert Alpha,
- * Sew, Noise, Smooth, Elevation, Scale) on the brush faces a target source
- * returns. Each action is one undo step.
+ * Sew, Noise, Smooth, Attributes Apply, Select Adjacent) on the brush faces a
+ * target source returns. Each editing action is one undo step.
  */
 export class ControllerDisplacementActions {
   /**
@@ -32,11 +55,66 @@ export class ControllerDisplacementActions {
    *
    * @param commandStack Stack receiving one command per action.
    * @param targetsRead Returns the brush faces the actions apply to.
+   * @param targetsSelect Selects brush faces in the selection targetsRead
+   *   reads, or null when the selection cannot be changed.
    */
   constructor(
     private readonly commandStack: CommandStack,
     private readonly targetsRead: () => SolidFaceTextureTarget[],
+    private readonly targetsSelect: DisplacementTargetsSelect | null = null,
   ) {}
+
+  /**
+   * Returns the brush faces the actions apply to.
+   *
+   * @returns Selected brush faces.
+   */
+  selectedTargetsRead(): SolidFaceTextureTarget[] {
+    return this.targetsRead();
+  }
+
+  /**
+   * Counts the selected brush faces and the displaced ones among them.
+   *
+   * @returns Face counts.
+   */
+  selectionSummaryRead(): DisplacementSelectionSummary {
+    const targets = this.targetsRead();
+    const displacedCount = targets.filter((target) => this.storedDisplacementRead(target) !== undefined).length;
+    return { faceCount: targets.length, displacedCount };
+  }
+
+  /**
+   * Replaces the face selection with brush faces.
+   *
+   * @param targets Brush faces to select.
+   * @returns True when the selection could be changed.
+   */
+  selectionReplace(targets: readonly SolidFaceTextureTarget[]): boolean {
+    if (!this.targetsSelect) {
+      return false;
+    }
+    this.targetsSelect(targets, false);
+    return true;
+  }
+
+  /**
+   * Adds the displaced faces adjacent to the selected displaced faces to the
+   * face selection.
+   *
+   * @returns Action outcome; editedFaceCount stays 0 because no face changes.
+   */
+  selectAdjacent(): DisplacementActionResult {
+    if (!this.targetsSelect) {
+      return { ok: false, message: 'The face selection cannot be changed', editedFaceCount: 0 };
+    }
+    const adjacent = DisplacementAdjacentFaces.adjacentTargetsFind(this.displacedTargets());
+    if (adjacent.length === 0) {
+      return { ok: false, message: 'No adjacent displaced faces', editedFaceCount: 0 };
+    }
+    this.targetsSelect(adjacent, true);
+    return { ok: true, message: `Selected ${adjacent.length} adjacent displacement(s)`, editedFaceCount: 0 };
+  }
 
   /**
    * Gives every eligible target face a new flat displacement.
@@ -116,23 +194,28 @@ export class ControllerDisplacementActions {
   }
 
   /**
-   * Sets the elevation of every displaced target face.
+   * Writes power, elevation, scale and collision flags to every displaced
+   * target face as one undo step.
    *
-   * @param elevation Elevation in meters.
+   * @param changes Attribute values to write; missing fields stay unchanged.
    * @returns Action outcome.
    */
-  elevationSet(elevation: number): DisplacementActionResult {
-    return this.displacedEditsRun('Set elevation on', (copy) => ({ ...copy, elevation }));
+  attributesApply(changes: DisplacementAttributeChanges): DisplacementActionResult {
+    return this.displacedEditsRun('Applied attributes to', (copy) => displacementAttributesApplyTo(copy, changes));
   }
 
   /**
-   * Sets the offset scale of every displaced target face.
+   * Reads the attribute values the displaced target faces share.
    *
-   * @param scale Offset multiplier.
-   * @returns Action outcome.
+   * @returns Shared power, elevation, scale and flags, null where they differ.
    */
-  scaleSet(scale: number): DisplacementActionResult {
-    return this.displacedEditsRun('Set scale on', (copy) => ({ ...copy, scale }));
+  attributesSharedRead(): DisplacementAttributesShared {
+    return displacementAttributesSharedRead(
+      this.displacedTargets().flatMap((target) => {
+        const stored = this.storedDisplacementRead(target);
+        return stored ? [stored] : [];
+      }),
+    );
   }
 
   /**
@@ -163,7 +246,7 @@ export class ControllerDisplacementActions {
     transform: (copy: DisplacementFaceSurface) => DisplacementFaceSurface | undefined,
   ): DisplacementActionResult {
     const edits = this.displacedTargets().flatMap((target) => {
-      const stored = target.model.findBrush(target.brushId)?.faceDisplacementRead(target.surfaceIndex);
+      const stored = this.storedDisplacementRead(target);
       const next = stored ? transform(displacementSurfaceClone(stored)) : undefined;
       return next ? [{ target, displacement: next }] : [];
     });
@@ -176,9 +259,17 @@ export class ControllerDisplacementActions {
    * @returns Displaced brush faces.
    */
   private displacedTargets(): SolidFaceTextureTarget[] {
-    return this.targetsRead().filter(
-      (target) => target.model.findBrush(target.brushId)?.faceDisplacementRead(target.surfaceIndex) !== undefined,
-    );
+    return this.targetsRead().filter((target) => this.storedDisplacementRead(target) !== undefined);
+  }
+
+  /**
+   * Returns the displacement a target face stores.
+   *
+   * @param target Brush face.
+   * @returns Stored displacement, or undefined when the face is flat or gone.
+   */
+  private storedDisplacementRead(target: SolidFaceTextureTarget): Readonly<DisplacementFaceSurface> | undefined {
+    return target.model.findBrush(target.brushId)?.faceDisplacementRead(target.surfaceIndex);
   }
 
   /**

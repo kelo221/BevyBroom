@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
 import { EditorWindow } from '@/editor/window/editor_window.js';
 import { FaceSelectTool } from '@/editor/tools/face_select/face_select_tool.js';
+import { EditorInputBridge } from '@/editor/window/editor_input_bridge.js';
 import type { EditorServices } from '@/editor/window/editor_services.js';
 import { TransformMode } from '@/types/transform_mode.js';
 
@@ -159,6 +160,96 @@ describe('FaceSelectTool editor integration', () => {
     expect(beginSecondary).toHaveBeenCalledWith(31, 47);
     expect(beginFace).not.toHaveBeenCalled();
   });
+
+  it('holds a right-button face stroke: claims the press, forwards right-button moves and ends on right release', () => {
+    let strokeLive = false;
+    const continueFace = vi.fn();
+    const endFace = vi.fn(() => {
+      strokeLive = false;
+    });
+    const editor = new EditorWindow();
+    editor.setServices(
+      createStubServices({
+        beginFaceSelectSecondaryPress: () => (strokeLive = true),
+        continueFaceSelectPointerMove: continueFace,
+        endFaceSelectPointerUp: endFace,
+        isFaceSelectStrokeActive: () => strokeLive,
+      }),
+    );
+    editor.validateTools();
+    editor.userSwitchToFaceSelectTool();
+    const tool = editor.activeTool;
+    tool?.onMouseDown(2);
+    expect(tool?.claimsViewportNavigationPress(2)).toBe(true);
+    expect(tool?.claimsViewportNavigationPress(1)).toBe(false);
+    expect(tool?.isBusy()).toBe(true);
+    editor.lastPointerClientX = 64;
+    editor.lastPointerClientY = 12;
+    tool?.onMouseMove(new THREE.Vector2(1, 0), new THREE.Vector2(0, 0));
+    expect(continueFace).toHaveBeenCalledWith(64, 12, 2);
+    tool?.onGlobalMouseUp(2);
+    expect(endFace).toHaveBeenCalledTimes(1);
+    expect(tool?.claimsViewportNavigationPress(2)).toBe(false);
+  });
+
+  it('leaves a right-button press that started no stroke to viewport navigation', () => {
+    const endFace = vi.fn();
+    const editor = new EditorWindow();
+    editor.setServices(
+      createStubServices({ beginFaceSelectSecondaryPress: () => false, endFaceSelectPointerUp: endFace }),
+    );
+    editor.validateTools();
+    editor.userSwitchToFaceSelectTool();
+    editor.activeTool?.onMouseDown(2);
+    expect(editor.activeTool?.claimsViewportNavigationPress(2)).toBe(false);
+    editor.activeTool?.onGlobalMouseUp(2);
+    expect(endFace).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [true, 0],
+    [false, 1],
+  ] as const)(
+    'keeps a right press from the viewport navigation when it started a face stroke (%s)',
+    (strokeStarts, expectedArrivals) => {
+      const host = document.createElement('div');
+      const viewportContent = document.createElement('div');
+      document.body.append(host, viewportContent);
+      const contentSize = 300;
+      viewportContent.getBoundingClientRect = () =>
+        ({
+          left: 0,
+          top: 0,
+          right: contentSize,
+          bottom: contentSize,
+          width: contentSize,
+          height: contentSize,
+        }) as DOMRect;
+      const editor = new EditorWindow();
+      editor.setServices(createStubServices({ beginFaceSelectSecondaryPress: () => strokeStarts }));
+      editor.validateTools();
+      editor.userSwitchToFaceSelectTool();
+      const bridge = new EditorInputBridge(editor);
+      bridge.install(host);
+      bridge.setExclusiveViewportRoots([viewportContent]);
+      let navigationArrivals = 0;
+      viewportContent.addEventListener('pointerdown', () => navigationArrivals++);
+      const press = new PointerEvent('pointerdown', {
+        bubbles: true,
+        cancelable: true,
+        clientX: contentSize / 2,
+        clientY: contentSize / 2,
+        button: 2,
+        buttons: 2,
+      });
+      viewportContent.dispatchEvent(press);
+      expect(navigationArrivals).toBe(expectedArrivals);
+      expect(press.defaultPrevented).toBe(strokeStarts);
+      bridge.uninstall();
+      host.remove();
+      viewportContent.remove();
+    },
+  );
 
   it('leaving face tool restores object mode services', () => {
     const leaveFace = vi.fn();

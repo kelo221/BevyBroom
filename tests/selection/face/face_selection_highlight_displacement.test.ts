@@ -5,12 +5,18 @@ import { findFirstTriangleForBrushSurface } from '@/selection/face/solid_triangl
 import type { FaceSelection } from '@/selection/face/manager_face_selection.js';
 import { CommandDisplacementEdit } from '@/displacement/commands/command_displacement_edit.js';
 import { displacementSurfaceCreate } from '@/displacement/model/displacement_face_surface.js';
+import { DisplacementSculptStroke } from '@/displacement/sculpt/displacement_sculpt_stroke.js';
+import type { SolidFaceTextureTarget } from '@/texture/commands/command_texture_solid_face_edit.js';
 import {
   displacementTestBoxAdd,
   displacementTestCreate,
+  displacementTestFaceCenter,
   displacementTestFaceFacing,
   displacementTestRigCreate,
+  displacementTestStrokeSettings,
+  displacementTestSurfaceMeshFind,
   displacementTestTarget,
+  type DisplacementTestRig,
 } from '../../displacement/displacement_test_rig.js';
 
 /**
@@ -81,4 +87,112 @@ describe('FaceSelectionHighlight displaced faces', () => {
     expect(raisedTop.max.y - flatTop.max.y).toBeCloseTo(elevation, 4);
     highlight.dispose();
   });
+
+  it('follows the displacement surface through undo and redo of a sculpt stroke without reselecting', () => {
+    const parts = highlightTestSelectedDisplacedFaceCreate();
+    const flatPositions = highlightTestSurfaceWorldPositions(parts);
+    highlightTestRaiseStroke(parts);
+    const sculptedPositions = highlightTestSurfaceWorldPositions(parts);
+    expect(highlightTestLargestDifference(sculptedPositions, flatPositions)).toBeGreaterThan(1e-3);
+    expect(highlightTestLargestDifference(highlightTestPositionsFlush(parts), sculptedPositions)).toBeLessThan(1e-5);
+    parts.rig.commandStack.undo();
+    const undonePositions = highlightTestPositionsFlush(parts);
+    const restoredSurface = highlightTestSurfaceWorldPositions(parts);
+    expect(highlightTestLargestDifference(undonePositions, restoredSurface)).toBeLessThan(1e-5);
+    expect(highlightTestLargestDifference(undonePositions, sculptedPositions)).toBeGreaterThan(1e-3);
+    parts.rig.commandStack.redo();
+    expect(highlightTestLargestDifference(highlightTestPositionsFlush(parts), sculptedPositions)).toBeLessThan(1e-5);
+    parts.highlight.dispose();
+  });
 });
+
+/** Rig, selected displaced face and the highlight showing it. */
+interface HighlightTestParts {
+  rig: DisplacementTestRig;
+  target: SolidFaceTextureTarget;
+  scene: THREE.Scene;
+  highlight: FaceSelectionHighlight;
+  edges: THREE.Vector3;
+}
+
+/**
+ * Builds a box whose top face is displaced and selected in a face highlight.
+ *
+ * @returns Test parts with the highlight already applied.
+ */
+function highlightTestSelectedDisplacedFaceCreate(): HighlightTestParts {
+  const rig = displacementTestRigCreate('HighlightDisplacedUndo');
+  const edges = new THREE.Vector3(3, 1, 3);
+  const brush = displacementTestBoxAdd(rig, edges, new THREE.Vector3(-2, 1, 4));
+  const target = displacementTestTarget(rig, brush, displacementTestFaceFacing(brush, new THREE.Vector3(0, 1, 0)));
+  displacementTestCreate(rig, target, 3);
+  const resultMesh = rig.model.getResultMesh();
+  const faceIndex = findFirstTriangleForBrushSurface(resultMesh, target.brushId, target.surfaceIndex);
+  const scene = new THREE.Scene();
+  const highlight = new FaceSelectionHighlight(scene);
+  highlight.setSelectedFaces([{ mesh: resultMesh, faceIndex }]);
+  highlight.flushPendingHighlights();
+  return { rig, target, scene, highlight, edges };
+}
+
+/**
+ * Paints one raising Paint Geometry stroke at the center of the displaced face.
+ *
+ * @param parts Test parts whose undo stack receives the stroke.
+ */
+function highlightTestRaiseStroke(parts: HighlightTestParts): void {
+  const radius = parts.edges.x / 2;
+  const stroke = new DisplacementSculptStroke(
+    parts.rig.commandStack,
+    [parts.target],
+    displacementTestStrokeSettings({ effect: 'raise_lower', radius, distance: radius / 2, direction: 1 }),
+  );
+  stroke.dabApply(displacementTestFaceCenter(parts.target));
+  stroke.finish();
+}
+
+/**
+ * Lists the world triangle corners of the face's current displacement surface
+ * mesh, three per triangle in index order, as flat coordinates.
+ *
+ * @param parts Test parts.
+ * @returns World corner coordinates.
+ */
+function highlightTestSurfaceWorldPositions(parts: HighlightTestParts): number[] {
+  const surfaceMesh = displacementTestSurfaceMeshFind(parts.rig, parts.target);
+  if (!surfaceMesh) throw new Error('target face has no surface mesh');
+  surfaceMesh.updateWorldMatrix(true, false);
+  const triangles = surfaceMesh.geometry.index ? surfaceMesh.geometry.toNonIndexed() : surfaceMesh.geometry;
+  const position = triangles.getAttribute('position');
+  const corner = new THREE.Vector3();
+  return Array.from({ length: position.count }, (_unused, vertex) =>
+    corner.fromBufferAttribute(position, vertex).applyMatrix4(surfaceMesh.matrixWorld).toArray(),
+  ).flat();
+}
+
+/**
+ * Applies any highlight update the surface change scheduled, without passing a
+ * new selection, and reads the front-pass highlight corner coordinates.
+ *
+ * @param parts Test parts.
+ * @returns Flat corner coordinates.
+ */
+function highlightTestPositionsFlush(parts: HighlightTestParts): number[] {
+  parts.highlight.flushPendingHighlights();
+  return Array.from(highlightFrontGeometryRead(parts.scene).getAttribute('position').array);
+}
+
+/**
+ * Returns the largest coordinate difference of two equally long coordinate
+ * lists, or infinity when their lengths differ.
+ *
+ * @param first First coordinate list.
+ * @param second Second coordinate list.
+ * @returns Largest absolute difference.
+ */
+function highlightTestLargestDifference(first: readonly number[], second: readonly number[]): number {
+  if (first.length !== second.length) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return first.reduce((largest, value, index) => Math.max(largest, Math.abs(value - (second[index] ?? 0))), 0);
+}

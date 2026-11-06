@@ -37,6 +37,49 @@ describe('SolidModelCodec displacements', () => {
     expect(surfaceMeshes[0]?.geometry.getAttribute('position').count).toBe(displacementVertexCount(3));
   });
 
+  it('round-trips collision flags, writing them only for surfaces with a flag on', () => {
+    const rig = displacementTestRigCreate('CodecFlags');
+    const brush = displacementTestBoxAdd(rig, new THREE.Vector3(2, 1, 2), new THREE.Vector3(3, 0, -2));
+    const flaggedIndex = displacementTestFaceFacing(brush, new THREE.Vector3(0, 1, 0));
+    const plainIndex = displacementTestFaceFacing(brush, new THREE.Vector3(0, -1, 0));
+    const flagged = displacementSurfaceCreate(2);
+    flagged.flags = { noPhysicsCollision: true, noHullCollision: false, noRayCollision: true, seals: true };
+    rig.commandStack.push(
+      new CommandDisplacementEdit([
+        { target: displacementTestTarget(rig, brush, flaggedIndex), displacement: flagged },
+        { target: displacementTestTarget(rig, brush, plainIndex), displacement: displacementSurfaceCreate(2) },
+      ]),
+    );
+    const encoded = JSON.parse(JSON.stringify(SolidModelCodec.encode(rig.model))) as ReturnType<
+      typeof SolidModelCodec.encode
+    >;
+    const serializedDisplacements = encoded.brushes[0]?.faceDisplacements ?? [];
+    expect(serializedDisplacements[flaggedIndex]?.flags).toEqual(flagged.flags);
+    expect(serializedDisplacements[plainIndex]).toBeDefined();
+    expect(serializedDisplacements[plainIndex]?.flags).toBeUndefined();
+    const restoredBrush = SolidModelCodec.decode(encoded, 'CodecFlagsRestored').getBrushes()[0];
+    expect(restoredBrush?.faceDisplacementRead(flaggedIndex)?.flags).toEqual(flagged.flags);
+    expect(restoredBrush?.faceDisplacementRead(plainIndex)?.flags).toEqual(displacementSurfaceCreate(2).flags);
+  });
+
+  it('loads saved displacements written before collision flags existed with every flag off', () => {
+    const rig = displacementTestRigCreate('CodecLegacyFlags');
+    const brush = displacementTestBoxAdd(rig, new THREE.Vector3(2, 2, 2), new THREE.Vector3(-2, 1, 1));
+    const encoded = SolidModelCodec.encode(rig.model);
+    const serializedBrush = encoded.brushes[0];
+    if (!serializedBrush) throw new Error('brush missing from encoding');
+    const { flags: _unusedFlags, ...legacyEntry } = displacementSurfaceCreate(3, 0.2);
+    serializedBrush.faceDisplacements = brush.brush.faces.map((_face, index) => (index === 0 ? legacyEntry : null));
+    const restored = SolidModelCodec.decode(encoded, 'CodecLegacyFlagsRestored').getBrushes()[0];
+    expect(restored?.faceDisplacementRead(0)?.elevation).toBe(0.2);
+    expect(restored?.faceDisplacementRead(0)?.flags).toEqual({
+      noPhysicsCollision: false,
+      noHullCollision: false,
+      noRayCollision: false,
+      seals: false,
+    });
+  });
+
   it('writes no displacement list for brushes without displacements', () => {
     const rig = displacementTestRigCreate('CodecFlat');
     displacementTestBoxAdd(rig, new THREE.Vector3(1, 1, 1), new THREE.Vector3(0, 0, 0));

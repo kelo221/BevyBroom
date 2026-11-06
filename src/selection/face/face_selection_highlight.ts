@@ -7,6 +7,7 @@ import { FaceRegionWorldGeometry } from './face_region_world_geometry.js';
 import { GizmoVisualStyle } from '@/transform/gizmo/gizmo_visual_style.js';
 import { isResultMesh, SOLID_TRIANGLE_SOURCES_USERDATA_KEY } from '@/solid/model/solid_model_keys.js';
 import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
+import { DisplacementSurfaceChangeNotifier } from '@/displacement/mesh/displacement_surface_change_notifier.js';
 
 /**
  * Face-fill opacities for ordinary content meshes (light underlays like default
@@ -33,7 +34,8 @@ interface FaceHighlightMaterials {
  * Renders orange face-selection overlays with gizmo-style depth treatment.
  * Content and solid meshes use different opacities so the fill reads equally
  * strong over light primitives and dark brush surfaces. Geometry updates are
- * per-region and incremental.
+ * per-region and incremental, and regions over displaced faces rebuild whenever
+ * their displacement surface mesh changes.
  */
 export class FaceSelectionHighlight {
   private scene: THREE.Scene;
@@ -49,6 +51,7 @@ export class FaceSelectionHighlight {
   /** Overlay geometry identity each active region group was built from. */
   private regionSourceIds: Map<string, string>;
   private readonly unsubscribeFaceEditSession: () => void;
+  private readonly unsubscribeSurfaceChange: () => void;
 
   /**
    * Creates a new face highlight renderer and adds it to the scene.
@@ -69,7 +72,23 @@ export class FaceSelectionHighlight {
     this.unsubscribeFaceEditSession = getStateFaceEditSession().changeListenerAdd(() => {
       this.highlightGroup.visible = !getStateFaceEditSession().hideMaskRead();
     });
+    this.unsubscribeSurfaceChange = DisplacementSurfaceChangeNotifier.listenerAdd(() =>
+      this.surfaceChangeRefreshSchedule(),
+    );
     this.scene.add(this.highlightGroup);
+  }
+
+  /**
+   * Schedules a coalesced re-apply of the current selection so regions whose
+   * displacement surface geometry was rebuilt, restored or removed get new
+   * highlight geometry. Does nothing while no region is highlighted or
+   * pending.
+   */
+  private surfaceChangeRefreshSchedule(): void {
+    if (this.pendingFaces === null && this.regionSeeds.size === 0) {
+      return;
+    }
+    this.setSelectedFaces(this.pendingFaces ?? Array.from(this.regionSeeds.values()));
   }
 
   /**
@@ -344,6 +363,7 @@ export class FaceSelectionHighlight {
   /** Disposes all highlight resources and removes the group from the scene. */
   dispose(): void {
     this.unsubscribeFaceEditSession();
+    this.unsubscribeSurfaceChange();
     if (this.coalesceFrame !== 0) {
       cancelAnimationFrame(this.coalesceFrame);
       this.coalesceFrame = 0;

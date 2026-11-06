@@ -26,9 +26,16 @@ import {
   faceModeStatusLabelUvTransform,
 } from './face_mode_status_labels.js';
 import { DisplacementFaceTools } from '@/displacement/controller/displacement_face_tools.js';
+import { createSyntheticPointerDown, createSyntheticPointerDragMove } from '@/utils/synthetic_pointer_event.js';
 
 /** Keyboard code that enables continuous UV smear while held. */
 const UV_SMEAR_KEY_CODE = 'KeyM';
+
+/** PointerEvent.buttons bit of the left button. */
+const FACE_MODE_PRIMARY_BUTTON_MASK = 1;
+
+/** PointerEvent.buttons bit of the right button. */
+const FACE_MODE_SECONDARY_BUTTON_MASK = 2;
 
 /** Screen-space distance before an armed UV move becomes a drag. */
 const UV_MOVE_DRAG_THRESHOLD_PX = 4;
@@ -68,6 +75,7 @@ export class CoordinatorFaceMode {
   private uvTransformController: ControllerUvTransform;
   private selectionMode: SelectionMode;
   private activeDragViewport: Viewport3D | Viewport2D | null = null;
+  private dragButtonMask: number = FACE_MODE_PRIMARY_BUTTON_MASK;
   private dragOwnerWindow: Window | null = null;
   private windowPointerMoveListener: ((event: PointerEvent) => void) | null = null;
   private windowPointerUpListener: ((event: PointerEvent) => void) | null = null;
@@ -134,8 +142,9 @@ export class CoordinatorFaceMode {
   private displacementToolsCreate(): DisplacementFaceTools {
     return new DisplacementFaceTools({
       commandStack: this.deps.commandStack,
-      selectedFacesRead: () => this.faceExtrusionController.getSelectedFaces(),
+      faceSelection: this.faceExtrusionController,
       isCtrlDown: () => this.deps.keyboardShortcutHandler.modifiersStateRead().ctrl,
+      isShiftDown: () => this.deps.keyboardShortcutHandler.modifiersStateRead().shift,
       afterDab: () => this.displacementDabRefresh(),
     });
   }
@@ -189,33 +198,49 @@ export class CoordinatorFaceMode {
     isCtrlPressed: boolean,
     ownerDocument: Document | null = null,
   ): boolean {
-    if (this.faceExtrusionController.getSelectionMode() !== SelectionMode.FACE) {
-      return false;
-    }
-    const viewport = this.findViewportAtClientPoint(clientX, clientY, ownerDocument);
-    if (!viewport) {
-      return false;
-    }
-    const event = this.createSyntheticMouseEvent(clientX, clientY);
-    return this.onViewportFacePointerDown(event, viewport, isShiftPressed, isCtrlPressed);
+    const viewport = this.faceModeViewportAtClientPoint(clientX, clientY, ownerDocument);
+    const event = createSyntheticPointerDown(clientX, clientY);
+    return viewport !== null && this.onViewportFacePointerDown(event, viewport, isShiftPressed, isCtrlPressed);
   }
 
   /**
-   * Arms the right-button texture apply click at a client point in face mode.
+   * Starts a right-button displacement paint stroke or brush resize when the
+   * press hits a selected displaced face while a paint tool is active;
+   * otherwise arms the right-button texture apply click. Face mode only.
    *
    * @param clientX Pointer client X.
    * @param clientY Pointer client Y.
    * @param ownerDocument Document that owns the client coordinates, or null.
+   * @returns True when displacement painting took the press.
    */
-  beginFaceSelectSecondaryPress(clientX: number, clientY: number, ownerDocument: Document | null = null): void {
-    if (this.faceExtrusionController.getSelectionMode() !== SelectionMode.FACE) {
-      return;
+  beginFaceSelectSecondaryPress(clientX: number, clientY: number, ownerDocument: Document | null = null): boolean {
+    const viewport = this.faceModeViewportAtClientPoint(clientX, clientY, ownerDocument);
+    if (!viewport) return false;
+    const pressed = { camera: viewport.getCamera(), pickElement: viewport.getContentElement() };
+    const event = createSyntheticPointerDown(clientX, clientY);
+    if (this.displacementTools.sculptRouter.strokeTryBegin(event, pressed.camera, pressed.pickElement, 'secondary')) {
+      this.beginWindowDragTracking(viewport, FACE_MODE_SECONDARY_BUTTON_MASK);
+      return true;
     }
-    const viewport = this.findViewportAtClientPoint(clientX, clientY, ownerDocument);
-    if (viewport) {
-      const pressedViewport = { camera: viewport.getCamera(), pickElement: viewport.getContentElement() };
-      this.textureApplyCoordinator.secondaryPressBegin(pressedViewport, clientX, clientY);
-    }
+    this.textureApplyCoordinator.secondaryPressBegin(pressed, clientX, clientY);
+    return false;
+  }
+
+  /**
+   * Finds the viewport under a client point while face mode is active.
+   *
+   * @param clientX Pointer client X.
+   * @param clientY Pointer client Y.
+   * @param ownerDocument Document that owns the client coordinates, or null.
+   * @returns Viewport, or null outside face mode or any viewport.
+   */
+  private faceModeViewportAtClientPoint(
+    clientX: number,
+    clientY: number,
+    ownerDocument: Document | null,
+  ): Viewport3D | Viewport2D | null {
+    const isFaceMode = this.faceExtrusionController.getSelectionMode() === SelectionMode.FACE;
+    return isFaceMode ? this.findViewportAtClientPoint(clientX, clientY, ownerDocument) : null;
   }
 
   /** Paints the current texture onto the selected faces or objects. */
@@ -234,8 +259,7 @@ export class CoordinatorFaceMode {
     if (!this.activeDragViewport) {
       return;
     }
-    const event = this.createSyntheticPointerMove(clientX, clientY, buttons);
-    this.onWindowPointerMove(event);
+    this.onWindowPointerMove(createSyntheticPointerDragMove(clientX, clientY, buttons));
   }
 
   /** Ends face paint, UV smear, or UV transform. */
@@ -601,10 +625,13 @@ export class CoordinatorFaceMode {
    * Registers window listeners so face drag continues outside the canvas.
    *
    * @param viewport Viewport that started the drag.
+   * @param buttonMask PointerEvent.buttons bit of the button that holds the
+   *   drag.
    */
-  private beginWindowDragTracking(viewport: Viewport3D | Viewport2D): void {
+  private beginWindowDragTracking(viewport: Viewport3D | Viewport2D, buttonMask = FACE_MODE_PRIMARY_BUTTON_MASK): void {
     this.endWindowDragTracking();
     this.activeDragViewport = viewport;
+    this.dragButtonMask = buttonMask;
     this.windowPointerMoveListener = (event) => {
       this.onWindowPointerMove(event);
     };
@@ -642,7 +669,7 @@ export class CoordinatorFaceMode {
    * @param event Window pointer move event.
    */
   private onWindowPointerMove(event: PointerEvent): void {
-    if ((event.buttons & 1) === 0) {
+    if ((event.buttons & this.dragButtonMask) === 0) {
       this.onWindowPointerUp();
       return;
     }
@@ -660,7 +687,7 @@ export class CoordinatorFaceMode {
     const event = this.pendingDragEvent;
     this.pendingDragEvent = null;
     if (!viewport || !event) return;
-    if ((event.buttons & 1) === 0) {
+    if ((event.buttons & this.dragButtonMask) === 0) {
       this.onWindowPointerUp();
       return;
     }
@@ -837,7 +864,7 @@ export class CoordinatorFaceMode {
     camera: THREE.Camera,
     pickElement: HTMLElement,
   ): { worldStart: THREE.Vector3; planeNormal: THREE.Vector3 } | null {
-    const event = this.createSyntheticMouseEvent(clientX, clientY);
+    const event = createSyntheticPointerDown(clientX, clientY);
     const pick = this.faceExtrusionController.pickFaceAtPointer(event, camera, pickElement);
     if (pick && this.faceExtrusionController.isFaceSelected(pick.mesh, pick.faceIndex)) {
       return {
@@ -890,42 +917,6 @@ export class CoordinatorFaceMode {
       clientY,
       ownerDocument,
     );
-  }
-
-  /**
-   * Builds a synthetic mouse event for face pick helpers.
-   *
-   * @param clientX Pointer client X.
-   * @param clientY Pointer client Y.
-   * @returns Synthetic mouse event.
-   */
-  private createSyntheticMouseEvent(clientX: number, clientY: number): MouseEvent {
-    return {
-      clientX,
-      clientY,
-      button: 0,
-      buttons: 1,
-      preventDefault: () => {},
-      stopPropagation: () => {},
-    } as unknown as MouseEvent;
-  }
-
-  /**
-   * Builds a synthetic pointer move for face drag paint.
-   *
-   * @param clientX Pointer client X.
-   * @param clientY Pointer client Y.
-   * @param buttons Pointer buttons bitfield.
-   * @returns Synthetic pointer event.
-   */
-  private createSyntheticPointerMove(clientX: number, clientY: number, buttons: number): PointerEvent {
-    return {
-      clientX,
-      clientY,
-      buttons,
-      preventDefault: () => {},
-      stopPropagation: () => {},
-    } as unknown as PointerEvent;
   }
 
   /**

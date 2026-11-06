@@ -10,6 +10,7 @@ import {
 import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js';
 import { getStatePolygonTool } from '@/tools/polygon/state_polygon_tool.js';
 import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
+import type { EditorServices } from '@/editor/window/editor_services.js';
 
 /** Status shown when S is pressed on a selection that may not be scaled. */
 const BOX_SELECT_SCALE_NOT_ALLOWED_MESSAGE = 'Scale unavailable: point entities and lights only move and rotate';
@@ -205,9 +206,8 @@ export class BoxSelectTool extends Tool {
   }
 
   /**
-   * Applies Hammer++ Entity/Polygon/Sprinkle placement, otherwise lets a
-   * double-click on an object open Object Properties, otherwise applies object
-   * click selection.
+   * Applies Hammer++ Entity/Polygon/Sprinkle placement, otherwise applies the
+   * object click at the last pointer position.
    */
   private applyClickSelectionAtLastPointer(): void {
     if (!this.editor) {
@@ -219,15 +219,30 @@ export class BoxSelectTool extends Tool {
       return;
     }
     const services = this.editor.getServices();
-    if (!services) {
+    if (services) {
+      this.objectClickApply(services, cx, cy);
+    }
+  }
+
+  /**
+   * Lets a plain double-click on an object open Object Properties, otherwise
+   * lets a Shift+click on a brush face open the Face tool on that face,
+   * otherwise applies object click selection (Shift adds, Ctrl toggles).
+   *
+   * @param services Editor services for double-click, face edit and selection.
+   * @param clientX Release client X.
+   * @param clientY Release client Y.
+   */
+  private objectClickApply(services: EditorServices, clientX: number, clientY: number): void {
+    const isShiftPressed = this.editor?.isShiftPressed === true;
+    const isCtrlPressed = this.editor?.isCtrlPressed === true;
+    if (services.objectClickReleaseDoubleClickHandle?.(clientX, clientY, isShiftPressed || isCtrlPressed) === true) {
       return;
     }
-    const isShiftPressed = this.editor.isShiftPressed;
-    const isCtrlPressed = this.editor.isCtrlPressed;
-    if (services.objectClickReleaseDoubleClickHandle?.(cx, cy, isShiftPressed || isCtrlPressed) === true) {
+    if (isShiftPressed && !isCtrlPressed && services.objectShiftClickFaceEditApply?.(clientX, clientY) === true) {
       return;
     }
-    boxSelectApplyClickSelection(services, cx, cy, isShiftPressed, isCtrlPressed);
+    boxSelectApplyClickSelection(services, clientX, clientY, isShiftPressed, isCtrlPressed);
   }
 
   /**

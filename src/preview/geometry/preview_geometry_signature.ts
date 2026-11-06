@@ -4,6 +4,7 @@ import { SolidModel } from '@/solid/model/solid_model.js';
 import { CLIP_PREVIEW_USERDATA_KEY } from '@/tools/clip_plane/clip_plane_preview.js';
 import { objectInOmittedLayerIs } from '@/layer/model/layer_membership.js';
 import { displacementSurfaceMeshIs } from '@/displacement/mesh/displacement_surface_mesh_keys.js';
+import { DisplacementExportCollisionExtrasBuilder } from '@/displacement/export/displacement_export_collision_extras.js';
 
 /**
  * Builds a cheap text signature of everything that ends up inside exported
@@ -66,11 +67,26 @@ export class PreviewGeometrySignature {
   private static solidAppend(solidRoot: THREE.Object3D, parts: string[]): void {
     parts.push(`s:${solidRoot.uuid}[`);
     for (const child of solidRoot.children) {
-      if (child instanceof THREE.Mesh && (SolidModel.isResultMesh(child) || displacementSurfaceMeshIs(child))) {
+      if (child instanceof THREE.Mesh && SolidModel.isResultMesh(child)) {
         PreviewGeometrySignature.meshAppend(child, parts);
+      }
+      if (child instanceof THREE.Mesh && displacementSurfaceMeshIs(child)) {
+        PreviewGeometrySignature.displacementSurfaceAppend(child, parts);
       }
     }
     parts.push(']');
+  }
+
+  /**
+   * Appends a displacement surface mesh and the collision extras it exports
+   * with.
+   *
+   * @param surfaceMesh Displacement surface mesh.
+   * @param parts Output signature parts.
+   */
+  private static displacementSurfaceAppend(surfaceMesh: THREE.Mesh, parts: string[]): void {
+    PreviewGeometrySignature.meshAppend(surfaceMesh, parts);
+    parts.push(JSON.stringify(DisplacementExportCollisionExtrasBuilder.extrasOfSurfaceMesh(surfaceMesh)));
   }
 
   /**

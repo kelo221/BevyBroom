@@ -5,13 +5,22 @@ import type {
   DisplacementActionResult,
 } from '@/displacement/controller/controller_displacement_actions.js';
 import type { PanelDisplacementSection } from './panel_displacement_section.js';
-import { PanelDisplacementActionsSection } from './panel_displacement_actions_section.js';
-import { PanelDisplacementPaintSection } from './panel_displacement_paint_section.js';
+import { PanelDisplacementToolsSection } from './panel_displacement_tools_section.js';
+import { PanelDisplacementAttributesSection } from './panel_displacement_attributes_section.js';
+import { PanelDisplacementMasksSection } from './panel_displacement_masks_section.js';
+import { DialogDisplacementNoise } from './noise/dialog_displacement_noise.js';
 
 /** Services the Displacement tab runs its actions through. */
 export interface PanelDisplacementTabDeps {
   /** Returns the actions bound to the face selection, or null when unavailable. */
   readonly actionsRead: () => ControllerDisplacementActions | null;
+  /**
+   * Subscribes to changes of the installed actions, the selected faces or their
+   * displacements.
+   */
+  readonly changeListenerAdd: (listener: () => void) => () => void;
+  /** Parent element hosting the tab's floating windows. */
+  readonly floatingHost: HTMLElement;
   /** Reports an action outcome, for example on the status bar. */
   readonly statusReport: (message: string) => void;
   /** Refreshes the viewport after an action changed faces. */
@@ -19,33 +28,39 @@ export interface PanelDisplacementTabDeps {
 }
 
 /**
- * Hammer++ style Displacement tab: Create, Destroy, Subdivide, Invert Alpha,
- * Sew, Smooth, Noise, Elevation, Scale and the Paint Geometry settings.
+ * Hammer++ style Displacement tab: the Tools, Attributes and Masks groups, the
+ * Noise window and the outcome of the last action.
  */
 export class PanelDisplacementTab {
+  /** Noise window opened by the Noise tool. */
+  readonly noiseDialog: DialogDisplacementNoise;
   private readonly element: HTMLElement;
   private readonly statusLine: HTMLElement;
   private readonly sections: readonly PanelDisplacementSection[];
-  private readonly unsubscribeSettings: () => void;
+  private readonly unsubscribers: ReadonlyArray<() => void>;
 
   /**
-   * Builds the tab and shows the shared settings.
+   * Builds the tab and shows the shared settings and the selected faces.
    *
    * @param deps Action services.
    */
   constructor(private readonly deps: PanelDisplacementTabDeps) {
-    this.element = document.createElement('div');
-    this.element.className = 'panel-displacement-tab';
-    this.element.style.display = 'flex';
-    this.element.style.flexDirection = 'column';
-    this.element.style.gap = '6px';
+    this.element = this.rootCreate();
     this.statusLine = this.statusLineCreate();
+    const actionRun = (action: (actions: ControllerDisplacementActions) => DisplacementActionResult): void =>
+      this.actionRun(action);
+    this.noiseDialog = new DialogDisplacementNoise(deps.floatingHost, actionRun);
     this.sections = [
-      new PanelDisplacementActionsSection((action) => this.actionRun(action)),
-      new PanelDisplacementPaintSection(),
+      new PanelDisplacementToolsSection(actionRun, () => this.noiseDialog.show()),
+      new PanelDisplacementAttributesSection(actionRun),
+      new PanelDisplacementMasksSection(actionRun),
     ];
     this.element.append(...this.sections.map((section) => section.getElement()), this.statusLine);
-    this.unsubscribeSettings = getStateDisplacementSculpt().changeListenerAdd(() => this.settingsShow());
+    this.unsubscribers = [
+      getStateDisplacementSculpt().changeListenerAdd(() => this.settingsShow()),
+      deps.changeListenerAdd(() => this.selectionShow()),
+    ];
+    this.selectionShow();
     this.settingsShow();
   }
 
@@ -67,15 +82,17 @@ export class PanelDisplacementTab {
     return this.statusLine.textContent ?? '';
   }
 
-  /** Removes listeners and the tab element. */
+  /** Removes listeners, the Noise window and the tab element. */
   dispose(): void {
-    this.unsubscribeSettings();
+    this.unsubscribers.forEach((unsubscribe) => unsubscribe());
     this.sections.forEach((section) => section.dispose());
+    this.noiseDialog.dispose();
     this.element.remove();
   }
 
   /**
-   * Runs one action on the selected faces and reports its outcome.
+   * Runs one action on the selected faces, reports its outcome and shows the
+   * selection afterwards.
    *
    * @param action Action to run with the installed actions.
    */
@@ -90,6 +107,7 @@ export class PanelDisplacementTab {
     if (result.ok) {
       this.deps.afterChange();
     }
+    this.selectionShow();
   }
 
   /**
@@ -106,6 +124,26 @@ export class PanelDisplacementTab {
   private settingsShow(): void {
     const settings = getStateDisplacementSculpt().settingsRead();
     this.sections.forEach((section) => section.settingsShow(settings));
+  }
+
+  /** Shows the selected faces in every section. */
+  private selectionShow(): void {
+    const actions = this.deps.actionsRead();
+    this.sections.forEach((section) => section.selectionShow(actions));
+  }
+
+  /**
+   * Creates the tab root column.
+   *
+   * @returns Root element.
+   */
+  private rootCreate(): HTMLElement {
+    const element = document.createElement('div');
+    element.className = 'panel-displacement-tab';
+    element.style.display = 'flex';
+    element.style.flexDirection = 'column';
+    element.style.gap = '6px';
+    return element;
   }
 
   /**

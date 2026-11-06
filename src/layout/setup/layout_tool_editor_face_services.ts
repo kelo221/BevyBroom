@@ -61,7 +61,7 @@ function layoutToolEditorFacePointerServicesCreate(
     beginFaceSelectPointerDown: (clientX, clientY, isShiftPressed, isCtrlPressed) =>
       read()?.beginFaceSelectPointerDown(clientX, clientY, isShiftPressed, isCtrlPressed, ownerDocumentRead()) === true,
     beginFaceSelectSecondaryPress: (clientX, clientY) =>
-      read()?.beginFaceSelectSecondaryPress(clientX, clientY, ownerDocumentRead()),
+      read()?.beginFaceSelectSecondaryPress(clientX, clientY, ownerDocumentRead()) === true,
     continueFaceSelectPointerMove: (clientX, clientY, buttons) =>
       read()?.continueFaceSelectPointerMove(clientX, clientY, buttons),
     endFaceSelectPointerUp: () => read()?.endFaceSelectPointerUp(),

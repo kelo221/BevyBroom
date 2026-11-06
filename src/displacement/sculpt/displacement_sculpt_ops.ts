@@ -10,8 +10,9 @@ import {
   displacementRowLength,
 } from '@/displacement/model/displacement_face_surface.js';
 import { displacementNeighborhoodAverage } from '@/displacement/grid/displacement_grid_neighborhood.js';
-import { displacementGridResample } from '@/displacement/grid/displacement_grid_resample.js';
+import { displacementPowerChange } from '@/displacement/grid/displacement_grid_power_change.js';
 import type { DisplacementSculptBrush, DisplacementSculptDab } from './brushes/displacement_sculpt_brush.js';
+import { displacementSculptNearestFaceRead } from './brushes/displacement_sculpt_weights.js';
 import type { DisplacementSculptFace } from './displacement_sculpt_face.js';
 
 /**
@@ -20,19 +21,36 @@ import type { DisplacementSculptFace } from './displacement_sculpt_face.js';
  */
 export class DisplacementSculptOps {
   /**
-   * Applies one paint dab to every face it reaches.
+   * Applies one paint dab to every face it reaches. A dab that is not spatial
+   * only reaches the face holding the vertex nearest its center.
    *
    * @param faces Sculpt faces under the stroke.
-   * @param dab Dab center, radius and strength.
-   * @param brush Paint brush deciding how offsets move.
+   * @param dab Dab center, radius, strength, falloff and axis.
+   * @param brush Paint brush deciding how offsets or alphas move.
    * @returns Faces that changed.
    */
-  static paintGeometry(
+  static paintDab(
     faces: readonly DisplacementSculptFace[],
     dab: DisplacementSculptDab,
     brush: DisplacementSculptBrush,
   ): DisplacementSculptFace[] {
-    return faces.filter((face) => brush.dabApply(face, dab));
+    const reached = dab.spatial ? faces : DisplacementSculptOps.nearestFaceList(faces, dab);
+    return reached.filter((face) => brush.dabApply(face, dab));
+  }
+
+  /**
+   * Lists the face holding the vertex nearest a dab center.
+   *
+   * @param faces Candidate sculpt faces.
+   * @param dab Dab whose center decides.
+   * @returns List with the nearest face, empty when there are no faces.
+   */
+  private static nearestFaceList(
+    faces: readonly DisplacementSculptFace[],
+    dab: DisplacementSculptDab,
+  ): DisplacementSculptFace[] {
+    const nearest = displacementSculptNearestFaceRead(faces, dab.center);
+    return nearest ? [nearest] : [];
   }
 
   /**
@@ -71,7 +89,7 @@ export class DisplacementSculptOps {
   }
 
   /**
-   * Doubles the grid resolution, keeping the sculpted shape and alphas.
+   * Doubles the grid resolution, keeping the sculpted shape, alphas and flags.
    *
    * @param displacement Displacement to subdivide.
    * @returns Displacement one power higher, or null at the highest power.
@@ -81,15 +99,7 @@ export class DisplacementSculptOps {
     if (nextPower === null) {
       return null;
     }
-    const sourceRowLength = displacementRowLength(displacement.power);
-    const targetRowLength = displacementRowLength(nextPower);
-    return {
-      power: nextPower,
-      elevation: displacement.elevation,
-      scale: displacement.scale,
-      offsets: displacementGridResample(displacement.offsets, sourceRowLength, targetRowLength),
-      alphas: displacementGridResample(displacement.alphas, sourceRowLength, targetRowLength),
-    };
+    return displacementPowerChange(displacement, nextPower);
   }
 
   /**

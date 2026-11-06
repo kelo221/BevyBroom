@@ -49,6 +49,7 @@ export class ControllerFaceExtrusion {
   private currentMode: SelectionMode;
   private modeChangedCallback: SelectionModeCallback | null;
   private faceSelectionChangedCallback: FaceSelectionChangedListener | null;
+  private readonly faceSelectionListeners = new Set<FaceSelectionChangedListener>();
   private availableMeshes: THREE.Mesh[];
   private extrudeCounter: number;
   private lastCreatedMeshes: THREE.Mesh[];
@@ -120,20 +121,53 @@ export class ControllerFaceExtrusion {
     if (this.highlight) {
       this.highlight.setSelectedFaces(faces);
     }
-    if (!this.faceSelectionChangedCallback) return;
     if (this.isFaceDragActive) {
       this.externalSelectionNotifyPending = true;
       return;
     }
-    this.faceSelectionChangedCallback(faces);
+    this.externalSelectionListenersNotify(faces);
   }
 
   /** Notifies deferred external selection listeners after a drag ends. */
   private flushExternalSelectionNotify(): void {
     if (!this.externalSelectionNotifyPending) return;
     this.externalSelectionNotifyPending = false;
-    if (!this.faceSelectionChangedCallback) return;
-    this.faceSelectionChangedCallback(this.selectionManager.getSelectedFaces());
+    this.externalSelectionListenersNotify(this.selectionManager.getSelectedFaces());
+  }
+
+  /**
+   * Calls the registered face selection callback and every added face selection
+   * listener.
+   *
+   * @param faces The current set of selected faces.
+   */
+  private externalSelectionListenersNotify(faces: FaceSelection[]): void {
+    this.faceSelectionChangedCallback?.(faces);
+    this.faceSelectionListeners.forEach((listener) => listener(faces));
+  }
+
+  /**
+   * Adds a listener for face selection changes next to the registered callback.
+   * Like the callback, it is deferred while drag-painting.
+   *
+   * @param listener Invoked with the current face list.
+   * @returns Function that removes the listener.
+   */
+  faceSelectionListenerAdd(listener: FaceSelectionChangedListener): () => void {
+    this.faceSelectionListeners.add(listener);
+    return () => {
+      this.faceSelectionListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Selects face seeds in one batch, notifying listeners once.
+   *
+   * @param seeds Face seeds to select.
+   * @param addToSelection When false, the current selection is replaced.
+   */
+  selectFaceSeeds(seeds: FaceSelection[], addToSelection: boolean): void {
+    this.selectionManager.selectFaceSeeds(seeds, addToSelection);
   }
 
   /**
@@ -283,6 +317,20 @@ export class ControllerFaceExtrusion {
    */
   pickFaceAtPointer(event: MouseEvent, camera: THREE.Camera, pickElement: HTMLElement): FacePickResult | null {
     if (this.currentMode !== SelectionMode.FACE) return null;
+    return this.pickFaceUnderPointer(event, camera, pickElement);
+  }
+
+  /**
+   * Picks a face of the face-pickable meshes at the pointer in any selection
+   * mode without changing selection. Displacement surfaces report the brush
+   * face they cover.
+   *
+   * @param event The pointer event.
+   * @param camera The viewport camera.
+   * @param pickElement DOM pick target for NDC.
+   * @returns Pick result, or null when nothing was hit.
+   */
+  pickFaceUnderPointer(event: MouseEvent, camera: THREE.Camera, pickElement: HTMLElement): FacePickResult | null {
     return this.raycaster.pickFace(event, camera, pickElement, this.availableMeshes);
   }
 

@@ -59,11 +59,7 @@ function faceIndexAlongAxis(instance: SolidBrushInstance, direction: THREE.Vecto
  * @param elevation Expected elevation.
  * @returns True when that face carries the elevation.
  */
-function pieceHasElevationOnAxis(
-  instance: SolidBrushInstance,
-  direction: THREE.Vector3,
-  elevation: number,
-): boolean {
+function pieceHasElevationOnAxis(instance: SolidBrushInstance, direction: THREE.Vector3, elevation: number): boolean {
   const faceIndex = faceIndexAlongAxis(instance, direction);
   return instance.faceDisplacementRead(faceIndex)?.elevation === elevation;
 }

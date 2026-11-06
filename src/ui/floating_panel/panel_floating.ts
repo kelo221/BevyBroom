@@ -1,10 +1,11 @@
 import { Theme } from '@/theme.js';
 import { FloatingPanelStack, type FloatingPanelStackLayer } from './panel_floating_stack.js';
+import { clampFloatingPanelRectToScreen, FLOATING_PANEL_SCREEN_PADDING_PX } from './panel_floating_screen_bounds.js';
 import {
-  clampFloatingPanelRectToScreen,
-  floatingPanelCenterInBounds,
-  FLOATING_PANEL_SCREEN_PADDING_PX,
-} from './panel_floating_screen_bounds.js';
+  floatingPanelBesidePlacementCompute,
+  floatingPanelBesideRectRead,
+  FLOATING_PANEL_BESIDE_GAP_PX,
+} from './panel_floating_beside_placement.js';
 import {
   buildFloatingPanelTitleBar,
   type FloatingPanelTitleBarOptions,
@@ -39,6 +40,14 @@ export interface FloatingPanelOptions {
    * screen. The corner option is ignored for centered panels.
    */
   centered?: boolean;
+  /**
+   * Returns the element a non-modal panel opens beside. On its first open the
+   * panel sits flush right of that element (left when the right does not fit),
+   * top-aligned, or centered in the placement anchor when neither fits or the
+   * element is missing or hidden; later opens keep the (dragged) position,
+   * clamped to the screen. The corner and centered options are ignored then.
+   */
+  besideResolver?: () => HTMLElement | null;
   /** When true and modal, backdrop pointer-down outside the panel closes it. */
   closeOnBackdropClick?: boolean;
   /** When true, Escape hides the panel while it is open. */
@@ -81,7 +90,8 @@ export abstract class PanelFloating {
   private dragOffsetY: number;
   private isDragging: boolean;
   private isShellMounted: boolean;
-  private hasFreeCenteredPlacement: boolean;
+  private hasFreeFirstPlacement: boolean;
+  private besideResolver: (() => HTMLElement | null) | null;
   private readonly boundDocumentKeyDown: (event: KeyboardEvent) => void;
 
   /**
@@ -108,7 +118,8 @@ export abstract class PanelFloating {
     this.isVisible = false;
     this.isDragging = false;
     this.isShellMounted = false;
-    this.hasFreeCenteredPlacement = false;
+    this.hasFreeFirstPlacement = false;
+    this.besideResolver = options.besideResolver ?? null;
     this.dragOffsetX = 0;
     this.dragOffsetY = 0;
     this.boundDocumentKeyDown = (event) => this.onDocumentKeyDown(event);
@@ -134,6 +145,17 @@ export abstract class PanelFloating {
    */
   setDefaultAnchorResolver(resolver: (() => HTMLElement | null) | null): void {
     this.defaultAnchorResolver = resolver;
+  }
+
+  /**
+   * Sets the resolver of the element a non-modal panel opens beside on its
+   * first open.
+   *
+   * @param resolver Callback returning that element, or null to use the corner
+   *   or centered placement again.
+   */
+  setBesideResolver(resolver: (() => HTMLElement | null) | null): void {
+    this.besideResolver = resolver;
   }
 
   /**
@@ -385,33 +407,43 @@ export abstract class PanelFloating {
   }
 
   /**
-   * Positions a corner panel at its corner, centers a free centered panel on
-   * its first placement only, and leaves flex-centered modal panels alone.
+   * Positions a corner panel at its corner, places a free beside or centered
+   * panel on its first placement only, and leaves flex-centered modal panels
+   * alone.
    */
   private positionDefaultIfNeeded(): void {
     if (this.centered && this.modal) {
       return;
     }
-    if (this.centered) {
-      this.positionFreeCenteredOnFirstPlacement();
+    if (this.besideResolver || this.centered) {
+      this.positionFreeOnFirstPlacement();
       return;
     }
     this.positionDefault();
   }
 
   /**
-   * Centers a non-modal centered panel in its placement anchor the first time
-   * it is placed, keeping any later (dragged) position afterwards.
+   * Places a free panel beside its element, or centers it in its placement
+   * anchor, the first time it is placed, keeping any later (dragged) position
+   * afterwards.
    */
-  private positionFreeCenteredOnFirstPlacement(): void {
-    if (this.hasFreeCenteredPlacement) {
+  private positionFreeOnFirstPlacement(): void {
+    if (this.hasFreeFirstPlacement) {
       return;
     }
     const bounds = this.resolvePlacementAnchor().getBoundingClientRect();
     const size = this.resolvePanelSizeForPlacement();
-    const centered = floatingPanelCenterInBounds(bounds, size.width, size.height);
-    this.setTopLeftPosition(centered.left, centered.top);
-    this.hasFreeCenteredPlacement = true;
+    const placed = floatingPanelBesidePlacementCompute({
+      besideRect: floatingPanelBesideRectRead(this.besideResolver?.() ?? null),
+      fallbackBounds: bounds,
+      panelWidth: size.width,
+      panelHeight: size.height,
+      screenWidth: window.innerWidth,
+      screenPaddingPx: this.paddingPx,
+      gapPx: FLOATING_PANEL_BESIDE_GAP_PX,
+    });
+    this.setTopLeftPosition(placed.left, placed.top);
+    this.hasFreeFirstPlacement = true;
   }
 
   /** Clamps free-positioned panels into the screen. */
