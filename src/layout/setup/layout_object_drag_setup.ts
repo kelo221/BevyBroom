@@ -17,7 +17,7 @@ import { PolygonBrushCommitter } from '@/tools/polygon/polygon_brush_committer.j
 import { getStatePolygonTool } from '@/tools/polygon/state_polygon_tool.js';
 import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
 import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js';
-import type { LayoutToolEditorSetupDeps } from './layout_tool_editor_setup.js';
+import type { LayoutToolEditorSetupDeps } from './layout_tool_editor_types.js';
 
 /** Layout systems object dragging needs beyond the tool editor dependencies. */
 export interface LayoutObjectDragHost {

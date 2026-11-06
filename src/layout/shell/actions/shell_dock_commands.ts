@@ -52,6 +52,18 @@ export class ShellDockCommands {
     return this.floatingWindows.get(windowId)?.isOpen() ?? false;
   }
 
+  /**
+   * Shows or hides a registered floating window.
+   *
+   * @param windowId Floating window id.
+   * @param visible True to show, false to hide.
+   */
+  floatingWindowVisibleSet(windowId: ShellFloatingWindowId, visible: boolean): void {
+    if (this.isFloatingWindowOpen(windowId) !== visible) {
+      this.floatingWindowToggle(windowId);
+    }
+  }
+
   /** Shows the inspector when it is hidden. */
   inspectorReveal(): void {
     if (!this.frame.isInspectorVisible()) {

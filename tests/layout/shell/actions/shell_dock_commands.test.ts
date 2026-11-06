@@ -61,6 +61,17 @@ describe('ShellDockCommands', () => {
     expect(dockCommands.isFloatingWindowOpen('entity_browser')).toBe(false);
   });
 
+  it('shows and hides a registered floating window without toggling when already in that state', () => {
+    const { dockCommands } = shellDockCommandsTestDocksCreate();
+    dockCommands.floatingWindowRegister('texture_browser', shellDockCommandsTestFloatingWindowCreate());
+    dockCommands.floatingWindowVisibleSet('texture_browser', true);
+    expect(dockCommands.isFloatingWindowOpen('texture_browser')).toBe(true);
+    dockCommands.floatingWindowVisibleSet('texture_browser', true);
+    expect(dockCommands.isFloatingWindowOpen('texture_browser')).toBe(true);
+    dockCommands.floatingWindowVisibleSet('texture_browser', false);
+    expect(dockCommands.isFloatingWindowOpen('texture_browser')).toBe(false);
+  });
+
   it('reveals an info panel tab, showing the hidden info panel first', () => {
     const { frame, infoPanel, dockCommands } = shellDockCommandsTestDocksCreate();
     frame.infoPanelVisibleSet(false);

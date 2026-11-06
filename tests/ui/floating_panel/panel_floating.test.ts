@@ -3,6 +3,19 @@ import { PanelFloating } from '@/ui/floating_panel/panel_floating.js';
 import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js';
 
 /** Minimal concrete FloatingPanel for unit tests. */
+class TestCenteredFloatingPanel extends PanelFloating {
+  /**
+   * Creates a centered test panel without a corner.
+   *
+   * @param host Host element.
+   */
+  constructor(host: HTMLElement) {
+    super(host, { centered: true, paddingPx: 8 });
+    this.root.style.width = '120px';
+    this.root.style.height = '80px';
+  }
+}
+
 class TestFloatingPanel extends PanelFloating {
   /**
    * Creates a test panel with a simple title bar and body.
@@ -112,6 +125,16 @@ describe('FloatingPanel', () => {
     panel.toggle();
     expect(panel.isOpen()).toBe(false);
     expect(host.contains(panel.getRootElement())).toBe(false);
+  });
+
+  it('opens a centered panel when the corner option is omitted', () => {
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    const centered = new TestCenteredFloatingPanel(host);
+    centered.show();
+    expect(centered.isOpen()).toBe(true);
+    expect(host.contains(centered.getRootElement())).toBe(true);
+    centered.dispose();
   });
 
   it('places bottom-left of the anchor with padding on first show', () => {

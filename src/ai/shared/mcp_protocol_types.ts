@@ -100,6 +100,7 @@ export type McpToolName =
   | 'set_main_window'
   | 'get_object_properties_dialog'
   | 'set_object_properties_dialog'
+  | 'set_object_class'
   | 'copy_selection'
   | 'paste_objects'
   | 'list_layers'

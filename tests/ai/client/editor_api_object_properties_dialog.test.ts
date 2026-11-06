@@ -91,6 +91,22 @@ describe('EditorApiObjectPropertiesDialog', () => {
     expect(rig.api.invokeTool('set_object_properties_dialog', { action: 'open' }).ok).toBe(false);
   });
 
+  it('writes comments as a session edit that cancel discards and apply keeps', () => {
+    const rig = dialogToolsRigCreate();
+    const undoCountBefore = rig.commandStack.getUndoCount();
+    expect(rig.api.invokeTool('set_object_properties_dialog', { comments: 'note' }).ok).toBe(false);
+    rig.api.invokeTool('set_object_properties_dialog', { action: 'open' });
+    expect(rig.api.invokeTool('set_object_properties_dialog', { comments: 'Hall note' }).ok).toBe(true);
+    expect(GameEntityLogicStore.commentsRead(rig.scene.button)).toBe('Hall note');
+    rig.api.invokeTool('set_object_properties_dialog', { action: 'cancel' });
+    expect(GameEntityLogicStore.commentsRead(rig.scene.button)).toBe('');
+    expect(rig.commandStack.getUndoCount()).toBe(undoCountBefore);
+    rig.api.invokeTool('set_object_properties_dialog', { action: 'open', comments: 'Kept note' });
+    rig.api.invokeTool('set_object_properties_dialog', { action: 'apply' });
+    expect(GameEntityLogicStore.commentsRead(rig.scene.button)).toBe('Kept note');
+    expect(rig.commandStack.getUndoCount()).toBe(undoCountBefore + 1);
+  });
+
   it('fails when the editor has no dialog', () => {
     const api = new EditorApi(editorApiTestHostCreate().host);
     expect(api.invokeTool('get_object_properties_dialog').ok).toBe(false);

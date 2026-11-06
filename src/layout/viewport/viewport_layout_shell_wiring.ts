@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import { ViewportLayoutCore } from './viewport_layout_core.js';
+import { ViewportLayoutCoordinators } from './viewport_layout_coordinators.js';
 import {
   layoutWindowShortcutsDockCreate,
   layoutWindowShortcutsRegister,
@@ -37,7 +37,7 @@ import { objectSelectDoubleClickToolReady } from '@/tools/object_select/object_s
  * Viewport layout level that wires the main window shell: File menu actions,
  * window shortcuts, the clipboard and the docked inspector and info panels.
  */
-export abstract class ViewportLayoutShellWiring extends ViewportLayoutCore {
+export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinators {
   protected readonly fileActions = new LayoutViewportFileActions(() => this.fileActionsContextRead());
   private solidBrushTools: HandlerSolidBrushTools | null = null;
   private selectionVisibility: HandlerSelectionVisibility | null = null;

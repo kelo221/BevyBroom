@@ -1,6 +1,7 @@
 import type { EditorApiHost } from './editor_api_host.js';
 import { EditorApiLayers } from './editor_api_layers.js';
 import { EditorApiMainWindow } from './editor_api_main_window.js';
+import { EditorApiObjectClass } from './editor_api_object_class.js';
 import { EditorApiObjectPropertiesDialog } from './editor_api_object_properties_dialog.js';
 import { EditorApiClipboard } from './editor_api_clipboard.js';
 import { EditorApiBrushTools } from './editor_api_brush_tools.js';
@@ -21,6 +22,7 @@ import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 export class EditorApiToolGroups {
   private readonly layers: EditorApiLayers;
   private readonly mainWindow: EditorApiMainWindow;
+  private readonly objectClass: EditorApiObjectClass;
   private readonly objectPropertiesDialog: EditorApiObjectPropertiesDialog;
   private readonly clipboard: EditorApiClipboard;
   private readonly brushTools: EditorApiBrushTools;
@@ -41,6 +43,7 @@ export class EditorApiToolGroups {
   constructor(host: EditorApiHost, selectionRead: () => McpToolResult) {
     this.layers = new EditorApiLayers(host);
     this.mainWindow = new EditorApiMainWindow(host);
+    this.objectClass = new EditorApiObjectClass(host);
     this.objectPropertiesDialog = new EditorApiObjectPropertiesDialog(host);
     this.clipboard = new EditorApiClipboard(host);
     this.brushTools = new EditorApiBrushTools(host);
@@ -63,6 +66,7 @@ export class EditorApiToolGroups {
     return (
       this.layers.layerToolDispatch(name, args) ??
       this.mainWindow.mainWindowToolDispatch(name, args) ??
+      this.objectClass.objectClassToolDispatch(name, args) ??
       this.objectPropertiesDialog.objectPropertiesDialogToolDispatch(name, args) ??
       this.clipboard.clipboardToolDispatch(name, args) ??
       this.brushTools.brushToolDispatch(name, args) ??

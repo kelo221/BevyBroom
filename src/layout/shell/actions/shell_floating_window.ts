@@ -1,5 +1,8 @@
 /** Ids of the floating windows the main window menus open and close. */
-export type ShellFloatingWindowId = 'texture_browser' | 'entity_browser';
+export const SHELL_FLOATING_WINDOW_IDS = ['texture_browser', 'entity_browser'] as const;
+
+/** Ids of the floating windows the main window menus open and close. */
+export type ShellFloatingWindowId = (typeof SHELL_FLOATING_WINDOW_IDS)[number];
 
 /** Floating window the main window menus open and close. */
 export interface ShellFloatingWindow {

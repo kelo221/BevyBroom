@@ -16,8 +16,11 @@ export type FloatingPanelCorner = 'top-left' | 'bottom-left' | 'bottom-right';
 
 /** Construction options for a floating tool window or modal dialog. */
 export interface FloatingPanelOptions {
-  /** Corner of the anchor used for the first open position. */
-  corner: FloatingPanelCorner;
+  /**
+   * Corner of the anchor used for the first open position; top-left when
+   * omitted.
+   */
+  corner?: FloatingPanelCorner;
   /**
    * When true, top-left placement sits below the viewport title bar strip. Only
    * applies to top-left corners.
@@ -93,7 +96,7 @@ export abstract class PanelFloating {
     this.host = host;
     this.defaultAnchor = defaultAnchor;
     this.defaultAnchorResolver = null;
-    this.corner = options.corner;
+    this.corner = options.corner ?? 'top-left';
     this.insetBelowViewportToolbar = options.insetBelowViewportToolbar === true;
     this.paddingPx = options.paddingPx ?? FLOATING_PANEL_SCREEN_PADDING_PX;
     this.draggable = options.draggable !== false;

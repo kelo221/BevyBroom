@@ -47,7 +47,6 @@ const DIALOG_TEXTURE_REPLACE_HOST_OPTIONS: PanelFloatingContentHostOptions = {
   className: 'dialog-texture-replace',
   width: '300px',
   height: 'auto',
-  corner: 'top-left',
   centered: true,
   closeOnEscape: true,
 };

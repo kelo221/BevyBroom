@@ -11,6 +11,7 @@ import {
   getRegistryObjectPropertiesTab,
   type ObjectPropertiesTabRegistration,
 } from '@/ui/object_properties/registry/registry_object_properties_tab.js';
+import { CommandObjectComments } from './commands/command_object_comments.js';
 import { ObjectPropertiesObjectPicker } from './picking/object_properties_object_picker.js';
 import { ObjectPropertiesSession } from './session/object_properties_session.js';
 import {
@@ -66,7 +67,7 @@ export class DialogObjectProperties extends PanelFloating {
    * @param dependencies Editor services the dialog edits through.
    */
   constructor(host: HTMLElement, dependencies: DialogObjectPropertiesDependencies) {
-    super(host, { corner: 'top-left', centered: true, draggable: true, closeOnEscape: true });
+    super(host, { centered: true, draggable: true, closeOnEscape: true });
     this.dependencies = dependencies;
     this.editedObjects = [];
     this.session = new ObjectPropertiesSession(dependencies.commandStack, () => dependencies.afterWorldMutation());
@@ -158,6 +159,26 @@ export class DialogObjectProperties extends PanelFloating {
    */
   tabIdsRead(): string[] {
     return this.tabHost.tabBookRead().tabIdsList();
+  }
+
+  /**
+   * Writes designer comments onto every edited object as one session edit.
+   *
+   * @param comments Comments every edited object receives.
+   * @returns True when the dialog is open and the comments changed.
+   */
+  commentsWrite(comments: string): boolean {
+    if (!this.isOpen()) {
+      return false;
+    }
+    const command = new CommandObjectComments(this.editedObjects, comments);
+    if (!command.hasChanges()) {
+      return false;
+    }
+    this.session.commandStackRead().push(command);
+    this.dependencies.afterWorldMutation();
+    this.refresh();
+    return true;
   }
 
   /** Cancels any open session, disposes the tabs and removes the window. */

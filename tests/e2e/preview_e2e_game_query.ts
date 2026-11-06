@@ -21,6 +21,12 @@ export const PREVIEW_E2E_VOLUMETRIC_LIGHT_COMPONENT = 'dynlight::fog::volumetric
 /** Type path of DynLight's spot light cookie in Bevy's remote protocol. */
 export const PREVIEW_E2E_LIGHT_COOKIE_COMPONENT = 'dynlight::cookies::LightCookie';
 
+/** Type path of Bevy's Name component in the remote protocol. */
+export const PREVIEW_E2E_NAME_COMPONENT = 'bevy_ecs::name::Name';
+
+/** Type path of the bridge's entity I/O outputs in the remote protocol. */
+export const PREVIEW_E2E_LOGIC_OUTPUTS_COMPONENT = 'broom_bridge::logic::BroomLogicOutputs';
+
 /** One entity row of a Bevy remote protocol query. */
 export interface PreviewE2eEntityRow {
   entity: number;
@@ -44,6 +50,26 @@ export function previewE2eEntityRowsQuery(
 ): Promise<PreviewE2eEntityRow[]> {
   const params = { data: { components, has: hasComponents }, filter: {} };
   return transport.call<PreviewE2eEntityRow[]>('world.query', params, 5000);
+}
+
+/**
+ * Reads a Bevy Name as the remote protocol serializes it.
+ *
+ * @param value Serialized Name component.
+ * @returns The name string, or an empty string when the shape is not
+ *   recognized.
+ */
+export function previewE2eNameRead(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (value && typeof value === 'object' && typeof (value as { name?: unknown }).name === 'string') {
+    return (value as { name: string }).name;
+  }
+  if (Array.isArray(value) && typeof value[0] === 'string') {
+    return value[0];
+  }
+  return '';
 }
 
 /**

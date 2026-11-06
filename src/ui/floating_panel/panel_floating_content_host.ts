@@ -1,4 +1,4 @@
-import { PanelFloating, type FloatingPanelCorner } from './panel_floating.js';
+import { PanelFloating, type FloatingPanelCorner, type FloatingPanelOptions } from './panel_floating.js';
 import { applyFloatingPanelToolChrome } from './panel_floating_tool_chrome.js';
 
 /** Title, size and placement of a floating window that hosts one element. */
@@ -11,8 +11,11 @@ export interface PanelFloatingContentHostOptions {
   readonly width: string;
   /** Outer height CSS value. */
   readonly height: string;
-  /** Corner of the anchor used for the first open position. */
-  readonly corner: FloatingPanelCorner;
+  /**
+   * Corner of the anchor used for the first open position; top-left when
+   * omitted.
+   */
+  readonly corner?: FloatingPanelCorner;
   /**
    * True to center the window on its first open and keep its dragged position
    * on later opens; it opens at the corner when omitted.
@@ -20,6 +23,25 @@ export interface PanelFloatingContentHostOptions {
   readonly centered?: boolean;
   /** True to close the window on Escape; stays open on Escape when omitted. */
   readonly closeOnEscape?: boolean;
+}
+
+/**
+ * Builds panel options, omitting `corner` when the host did not set one.
+ *
+ * @param options Title, size and placement.
+ * @returns Options passed to the floating panel.
+ */
+function hostOptionsBuild(options: PanelFloatingContentHostOptions): FloatingPanelOptions {
+  const hostOptions: FloatingPanelOptions = {
+    insetBelowViewportToolbar: true,
+    draggable: true,
+    centered: options.centered === true,
+    closeOnEscape: options.closeOnEscape ?? false,
+  };
+  if (options.corner) {
+    hostOptions.corner = options.corner;
+  }
+  return hostOptions;
 }
 
 /**
@@ -38,13 +60,7 @@ export class PanelFloatingContentHost extends PanelFloating {
    * @param content Element shown in the window body.
    */
   constructor(host: HTMLElement, options: PanelFloatingContentHostOptions, content: HTMLElement) {
-    super(host, {
-      corner: options.corner,
-      insetBelowViewportToolbar: true,
-      draggable: true,
-      centered: options.centered === true,
-      closeOnEscape: options.closeOnEscape ?? false,
-    });
+    super(host, hostOptionsBuild(options));
     this.openChangeListeners = new Set();
     this.body = this.bodyCreate();
     this.shellBuild(options);

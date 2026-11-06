@@ -45,6 +45,24 @@ describe('EditorApi main window tools', () => {
     expect(state.inspectorVisible).toBe(docks.frame.isInspectorVisible());
     expect(Object.keys(state)).not.toContain('inspectorTab');
     expect(state.menus).toEqual(['File']);
+    expect(state.floatingWindows).toEqual({ texture_browser: false, entity_browser: false });
+  });
+
+  it('shows and hides a registered floating window', () => {
+    let textureBrowserOpen = false;
+    docks.dockCommands.floatingWindowRegister('texture_browser', {
+      toggle: () => {
+        textureBrowserOpen = !textureBrowserOpen;
+      },
+      isOpen: () => textureBrowserOpen,
+    });
+    const opened = api.invokeTool('set_main_window', { floatingWindows: { texture_browser: true } });
+    expect(opened.ok).toBe(true);
+    expect((opened.data as ShellMainWindowState).floatingWindows.texture_browser).toBe(true);
+    expect(textureBrowserOpen).toBe(true);
+    const closed = api.invokeTool('set_main_window', { floatingWindows: { texture_browser: false } });
+    expect((closed.data as ShellMainWindowState).floatingWindows.texture_browser).toBe(false);
+    expect(api.invokeTool('set_main_window', { floatingWindows: { face_edit: true } }).ok).toBe(false);
   });
 
   it('switches the info panel tab and hides the info panel', () => {

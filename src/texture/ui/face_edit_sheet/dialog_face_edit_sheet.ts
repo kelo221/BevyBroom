@@ -28,7 +28,7 @@ export class DialogFaceEditSheet extends PanelFloating {
    * @param handlers UV and material action callbacks.
    */
   constructor(host: HTMLElement, handlers: DialogFaceEditSheetHandlers) {
-    super(host, { corner: 'top-left', centered: true, draggable: true, closeOnEscape: true });
+    super(host, { centered: true, draggable: true, closeOnEscape: true });
     this.tabBook = this.tabBookCreate(host.ownerDocument);
     this.materialTab = new FaceEditSheetMaterialTab(handlers);
     this.displacementBody = this.displacementBodyCreate(host.ownerDocument);

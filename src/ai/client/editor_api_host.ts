@@ -100,6 +100,7 @@ export interface EditorApiObjectPropertiesDialogControl {
   tabActiveRead(): string | null;
   tabIdsRead(): string[];
   editedObjectsRead(): readonly THREE.Object3D[];
+  commentsWrite(comments: string): boolean;
 }
 
 /** View members the viewport input tools need (2D and 3D panes satisfy it). */

@@ -101,8 +101,21 @@ describe('EditorApiGameEntities', () => {
     expect(GameEntityOwner.isOwner(owner)).toBe(true);
     expect(GameEntityComponentStore.read(owner)).toEqual({ [TEST_DOOR_TYPE_PATH]: { speed } });
     expect(owner.position.toArray()).toEqual([position.x, position.y, position.z]);
+    expect(owner.scale.toArray()).toEqual([1, 1, 1]);
     rig.commandStack.undo();
     expect(rig.world.getObjectByProperty('uuid', id)).toBeUndefined();
+  });
+
+  it('keeps an added game entity at scale one when a scale is given', () => {
+    cleanups.push(testClassesInstall().uninstall);
+    const rig = rigCreate();
+    const id = createdIdRead(
+      rig.api.invokeTool('add_game_entity', {
+        class: TEST_DOOR_TYPE_PATH,
+        scale: { x: 4, y: 4, z: 4 },
+      }),
+    );
+    expect(objectFind(rig.world, id).scale.toArray()).toEqual([1, 1, 1]);
   });
 
   it('refuses unknown classes and values that do not fit', () => {

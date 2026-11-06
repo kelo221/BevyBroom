@@ -6,6 +6,7 @@ import {
   type ShellMainWindowChanges,
   type ShellMainWindowControl,
 } from '@/layout/shell/actions/shell_main_window_control.js';
+import { SHELL_FLOATING_WINDOW_IDS, type ShellFloatingWindowId } from '@/layout/shell/actions/shell_floating_window.js';
 
 /** Fields of set_main_window that take true or false. */
 const EDITOR_API_MAIN_WINDOW_FLAG_FIELDS = ['inspectorVisible', 'infoPanelVisible', 'toolbarVisible'] as const;
@@ -73,7 +74,42 @@ export class EditorApiMainWindow {
     const invalidFlag = EDITOR_API_MAIN_WINDOW_FLAG_FIELDS.find(
       (field) => args[field] !== undefined && typeof args[field] !== 'boolean',
     );
-    return invalidFlag === undefined ? null : `${invalidFlag} must be true or false`;
+    if (invalidFlag !== undefined) {
+      return `${invalidFlag} must be true or false`;
+    }
+    return this.floatingWindowsArgProblemFind(args['floatingWindows']);
+  }
+
+  /**
+   * Finds the first invalid floatingWindows field.
+   *
+   * @param value Argument value.
+   * @returns Problem description, or null when omitted or valid.
+   */
+  private floatingWindowsArgProblemFind(value: unknown): string | null {
+    if (value === undefined) {
+      return null;
+    }
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return 'floatingWindows must be an object of window ids to true or false';
+    }
+    const record = value as Record<string, unknown>;
+    const unknownId = Object.keys(record).find((windowId) => !this.floatingWindowIdIs(windowId));
+    if (unknownId !== undefined) {
+      return `floatingWindows ids must be ${SHELL_FLOATING_WINDOW_IDS.join(', ')}`;
+    }
+    const invalidFlag = Object.keys(record).find((windowId) => typeof record[windowId] !== 'boolean');
+    return invalidFlag === undefined ? null : `floatingWindows.${invalidFlag} must be true or false`;
+  }
+
+  /**
+   * Returns whether a string is a floating window id.
+   *
+   * @param windowId Candidate id.
+   * @returns True when the id is known.
+   */
+  private floatingWindowIdIs(windowId: string): windowId is ShellFloatingWindowId {
+    return SHELL_FLOATING_WINDOW_IDS.some((known) => known === windowId);
   }
 
   /**

@@ -72,6 +72,10 @@ export class EditorApiObjectPropertiesDialog {
     if (typeof tab === 'string') {
       dialog.tabShow(tab);
     }
+    const commentsProblem = this.commentsApply(dialog, args['comments']);
+    if (commentsProblem !== null) {
+      return failResult(commentsProblem);
+    }
     return okResult('Object Properties dialog changed', this.stateRead(dialog));
   }
 
@@ -95,6 +99,27 @@ export class EditorApiObjectPropertiesDialog {
       dialog.cancel();
     }
     return true;
+  }
+
+  /**
+   * Writes designer comments onto the edited objects as a session edit.
+   *
+   * @param dialog Dialog control.
+   * @param comments Comments argument.
+   * @returns Problem description, or null when omitted or written.
+   */
+  private commentsApply(dialog: EditorApiObjectPropertiesDialogControl, comments: unknown): string | null {
+    if (comments === undefined) {
+      return null;
+    }
+    if (typeof comments !== 'string') {
+      return 'comments must be a string';
+    }
+    if (!dialog.isOpen()) {
+      return 'Open Object Properties before setting comments';
+    }
+    dialog.commentsWrite(comments);
+    return null;
   }
 
   /**

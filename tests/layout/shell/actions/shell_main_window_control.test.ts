@@ -42,6 +42,22 @@ describe('ShellMainWindowControl', () => {
     expect(state.infoPanelTab).toBe(docks.infoPanel.activeTabIdRead());
     expect(state.toolbarVisible).toBe(docks.frame.isToolbarVisible());
     expect(state.menus).toEqual(SHELL_MAIN_WINDOW_TEST_MENUS);
+    expect(state.floatingWindows).toEqual({ texture_browser: false, entity_browser: false });
+  });
+
+  it('shows a registered floating window and leaves omitted windows alone', () => {
+    let textureBrowserOpen = false;
+    docks.dockCommands.floatingWindowRegister('texture_browser', {
+      toggle: () => {
+        textureBrowserOpen = !textureBrowserOpen;
+      },
+      isOpen: () => textureBrowserOpen,
+    });
+    control = new ShellMainWindowControl({ ...docks, menuBar });
+    const opened = control.changesApply({ floatingWindows: { texture_browser: true } });
+    expect(opened.floatingWindows.texture_browser).toBe(true);
+    expect(opened.floatingWindows.entity_browser).toBe(false);
+    expect(textureBrowserOpen).toBe(true);
   });
 
   it('switches tabs and hides docks, leaving omitted fields alone', () => {

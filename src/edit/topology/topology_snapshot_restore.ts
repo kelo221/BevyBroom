@@ -55,6 +55,7 @@ function restoreBrushSnapshotSurfaces(snapshot: TopologyBrushSnapshot): void {
     return;
   }
   instance.restoreFaceSurfaces(snapshot.defaultSurface ?? undefined, snapshot.faceSurfaces ?? undefined);
+  instance.restoreFaceDisplacements(snapshot.faceDisplacements ?? undefined);
 }
 
 /**

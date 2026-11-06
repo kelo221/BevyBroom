@@ -10,6 +10,7 @@ import {
   applyTransferredSurfacesToInstance,
   captureInstanceFaceSurfaces,
 } from '@/solid/brush/solid_brush_surface_transfer.js';
+import type { DisplacementFaceSurface } from '@/displacement/model/displacement_types.js';
 import type {
   FaceSurfaceDescription,
   FaceSurfaceDescriptionSerialized,
@@ -29,6 +30,7 @@ export class CommandSolidBrushSplit implements UndoCommand {
   private previousName: string;
   private previousDefaultSurface: FaceSurfaceDescriptionSerialized | null;
   private previousFaceSurfaces: (FaceSurfaceDescriptionSerialized | undefined)[] | null;
+  private previousFaceDisplacements: (DisplacementFaceSurface | undefined)[] | null;
   private frontBrushId: string | null;
   private backBrushId: string | null;
   private executed: boolean;
@@ -52,6 +54,7 @@ export class CommandSolidBrushSplit implements UndoCommand {
     this.previousName = '';
     this.previousDefaultSurface = null;
     this.previousFaceSurfaces = null;
+    this.previousFaceDisplacements = null;
     this.frontBrushId = null;
     this.backBrushId = null;
     this.executed = false;
@@ -107,6 +110,7 @@ export class CommandSolidBrushSplit implements UndoCommand {
     restored.rotation.copy(this.previousRotation);
     restored.scale.copy(this.previousScale);
     restored.restoreFaceSurfaces(this.previousDefaultSurface ?? undefined, this.previousFaceSurfaces ?? undefined);
+    restored.restoreFaceDisplacements(this.previousFaceDisplacements ?? undefined);
     const preview = SolidBrushVisual.createHullPreview(this.previousName, this.previousBrush, this.previousOperation);
     restored.attachMesh(preview);
     this.model.addBrushInstance(restored);
@@ -115,6 +119,7 @@ export class CommandSolidBrushSplit implements UndoCommand {
     this.previousBrush = null;
     this.previousDefaultSurface = null;
     this.previousFaceSurfaces = null;
+    this.previousFaceDisplacements = null;
     this.executed = false;
   }
 
@@ -160,6 +165,7 @@ export class CommandSolidBrushSplit implements UndoCommand {
     const surfaces = captureInstanceFaceSurfaces(source);
     this.previousDefaultSurface = surfaces.defaultSurface;
     this.previousFaceSurfaces = surfaces.faceSurfaces;
+    this.previousFaceDisplacements = surfaces.faceDisplacements;
   }
 
   /**

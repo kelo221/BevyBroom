@@ -264,7 +264,7 @@ Solid mutations (including hierarchy create/reparent/rename/ungroup) are **undoa
   - **Fog:** `fogEnabled`, `fogShape` (`sphere`, `box`, `cone_z`, `cone_y`, `frustum`), `fogRadius`, `fogThickness`, `fogIntensity`, `fogVisibility`.
   - **Shimmer:** `shimmer` (`none`, `water`, `random`), `shimmerScale`, `shimmerModifier`.
   - **Baking:** `illumination` (`direct`, `single_bounce`), `transparency` (`disabled`, `enabled`, `enabled_max`), `bounceColorHex`, `bounceColorAlpha`, `bounceModifier`, `bounceIntensity`, `bounceSamples`, `bounceCompression` (`default`, `bits8`, `bits6`, `bits5`, `bits4`).
-  - Lights ignore `scale`; set `radius` instead.
+  - Lights ignore `scale`; set `radius` instead. Game entities ignore `scale` too.
   - A `radius` given to `set_light_settings` without `fogRadius` changes the fog radius by the same factor.
 - **Room settings:** `halfSizeX`, `halfSizeY`, `halfSizeZ` in meters; the box is centered on the room and follows its rotation and scale.
 - **Portal settings:** `width`, `height`, `closed`. The portal is a rectangle in its local XY plane facing local +Z. Closing it (a door) hides what is behind it in the game.
@@ -325,18 +325,23 @@ These tools need the desktop app; the browser editor answers that it cannot star
 
 ## Main window
 
-| Tool              | What it does                                                                                                            |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `get_main_window` | `inspectorVisible`, `infoPanelVisible`, `infoPanelTab` (`console`, `issues`), `toolbarVisible` and the menu bar `menus` |
-| `set_main_window` | Change any of those fields except `menus`; returns the arrangement afterwards                                           |
+| Tool              | What it does                                                                                                                                                                      |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_main_window` | `inspectorVisible`, `infoPanelVisible`, `infoPanelTab` (`console`, `issues`), `toolbarVisible`, the menu bar `menus`, and `floatingWindows` (`texture_browser`, `entity_browser`) |
+| `set_main_window` | Change any of those fields except `menus`; `floatingWindows` shows or hides each named window. Returns the arrangement afterwards                                                 |
 
 - Choosing a tab does not show a hidden dock; set `inspectorVisible` or `infoPanelVisible` too.
 - The arrangement is remembered between sessions, the same as when it is changed from the View menu.
 
-| Tool                           | What it does                                                                                       |
-| ------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `get_object_properties_dialog` | `open`, the visible `tab`, the `tabs` in order and the `editedIds` of the Object Properties dialog |
-| `set_object_properties_dialog` | `action` `open` (needs a selection), `apply` (one undo step) or `cancel`, and/or switch to `tab`   |
+| Tool                           | What it does                                                                                                                                                       |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `get_object_properties_dialog` | `open`, the visible `tab`, the `tabs` in order and the `editedIds` of the Object Properties dialog                                                                 |
+| `set_object_properties_dialog` | `action` `open` (needs a selection), `apply` (one undo step) or `cancel`, switch to `tab`, and/or write `comments` as a session edit                               |
+| `set_object_class`             | Convert objects `ids` in place to `class` (label, class id or game type path) on the editor stack. Each object keeps its id, name, transform, comments and outputs |
+
+- Object Properties edits (the Class combo, comments, Outputs and Inputs tabs) go on a private session stack while the dialog is open. `apply` records them as one editor undo step; `cancel` discards them.
+- `set_logic_outputs` and `set_object_class` use the editor stack. If the dialog is open they first keep the session edits so far as one undo step, then land on top. `cancel` does not revert those foreign commands.
+- `comments` needs the dialog open and is a session edit: send it before `apply` or `cancel`, not in the same call that closes the dialog.
 
 ## Clipboard
 

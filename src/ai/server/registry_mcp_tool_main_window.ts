@@ -7,12 +7,12 @@ import { emptySchema, tool, type McpToolDefinition } from './registry_mcp_tool_h
 export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(
     'get_main_window',
-    'The main window arrangement: inspectorVisible, infoPanelVisible and infoPanelTab (console or issues), toolbarVisible, and the menu bar titles in order.',
+    'The main window arrangement: inspectorVisible, infoPanelVisible and infoPanelTab (console or issues), toolbarVisible, the menu bar titles in order, and floatingWindows (texture_browser, entity_browser) as true while shown.',
     emptySchema(),
   ),
   tool(
     'set_main_window',
-    'Show or hide the inspector, info panel and toolbar, and switch the info panel tab. Omitted fields stay as they are. Returns the new arrangement like get_main_window.',
+    'Show or hide the inspector, info panel and toolbar, switch the info panel tab, and show or hide floating windows. Omitted fields stay as they are. Returns the new arrangement like get_main_window.',
     {
       type: 'object',
       properties: {
@@ -20,6 +20,15 @@ export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
         infoPanelTab: { type: 'string', enum: ['console', 'issues'], description: 'Info panel tab to show.' },
         infoPanelVisible: { type: 'boolean', description: 'Show or hide the info panel below the views.' },
         toolbarVisible: { type: 'boolean', description: 'Show or hide the icon toolbar.' },
+        floatingWindows: {
+          type: 'object',
+          description:
+            'Show or hide floating windows by id (texture_browser, entity_browser). True shows, false hides. Omitted ids stay as they are.',
+          properties: {
+            texture_browser: { type: 'boolean' },
+            entity_browser: { type: 'boolean' },
+          },
+        },
       },
     },
   ),
@@ -30,7 +39,7 @@ export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ),
   tool(
     'set_object_properties_dialog',
-    'Open the Object Properties dialog on the selection (like Alt+Enter), Apply its edits as one undo step or Cancel them, and switch its tab. Returns the state like get_object_properties_dialog.',
+    'Open the Object Properties dialog on the selection (like Alt+Enter), Apply its edits as one undo step or Cancel them, switch its tab, and optionally write comments as a session edit. Returns the state like get_object_properties_dialog.',
     {
       type: 'object',
       properties: {
@@ -41,7 +50,31 @@ export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
             'open needs a selection; apply keeps the edits as one undo step; cancel restores the state from before opening.',
         },
         tab: { type: 'string', description: 'Tab id to show, from get_object_properties_dialog.' },
+        comments: {
+          type: 'string',
+          description:
+            'Designer comments written onto every edited object as a session edit. Needs the dialog open. Apply keeps them; Cancel discards them.',
+        },
       },
+    },
+  ),
+  tool(
+    'set_object_class',
+    'Convert objects in place to another class (undoable on the editor stack, not the Object Properties session). Each object keeps its id, name, transform, layers, VisGroups, comments and outputs. class is a label, class id or game type path from the Class combo. Returns classId, classLabel and ids.',
+    {
+      type: 'object',
+      properties: {
+        ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Object ids (uuids) to convert.',
+        },
+        class: {
+          type: 'string',
+          description: 'Class label, class id (for example lights.point) or game type path.',
+        },
+      },
+      required: ['ids', 'class'],
     },
   ),
 ];
