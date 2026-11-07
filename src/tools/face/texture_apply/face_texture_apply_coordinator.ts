@@ -65,7 +65,7 @@ export class FaceTextureApplyCoordinator {
    *
    * @param event Press event carrying the client point.
    * @param viewport Pressed viewport.
-   * @param isCtrlPressed True while the subtractive selection modifier is held.
+   * @param isCtrlPressed True while the toggle selection modifier is held.
    * @returns True when the press is consumed; false lets selection continue.
    */
   primaryPressTryHandle(event: MouseEvent, viewport: FaceTextureApplyViewport, isCtrlPressed: boolean): boolean {

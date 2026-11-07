@@ -1,4 +1,5 @@
 import { WindowPointerDragSession } from '@/utils/session_window_pointer_drag.js';
+import { WindowContextMenuSuppressSession } from '@/utils/session_window_context_menu_suppress.js';
 
 /** Pointer travel in pixels below which a right-button press counts as a click. */
 export const FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX = 4;
@@ -24,29 +25,31 @@ export type FaceSecondaryDragHandler = (event: PointerEvent) => void;
  * Tells a right-button click from a right-button drag. A press arms the
  * gesture; the release fires the click handler only when the pointer travelled
  * less than {@link FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX}, counting both client
- * movement and the relative movement reported under pointer lock. While armed,
- * the browser context menu of the owner window is suppressed.
+ * movement and the relative movement reported under pointer lock. Crossing the
+ * threshold hands the press to the drag handler and leaves the gesture awaiting
+ * the release. From the press until just after the release, the browser context
+ * menu of the owner window is suppressed.
  */
 export class FaceSecondaryClickGesture {
   private readonly dragSession: WindowPointerDragSession;
-  private readonly contextMenuSuppressListener: (event: Event) => void;
-  private contextMenuWindow: Window | null;
+  private readonly contextMenuSuppressSession: WindowContextMenuSuppressSession;
   private pressClientX: number;
   private pressClientY: number;
   private relativeTravelPx: number;
   private furthestClientTravelPx: number;
+  private isHandedOffToDrag: boolean;
   private clickHandler: FaceSecondaryClickHandler | null;
   private dragHandler: FaceSecondaryDragHandler | null;
 
   /** Creates an idle gesture. */
   constructor() {
     this.dragSession = new WindowPointerDragSession();
-    this.contextMenuSuppressListener = (event) => event.preventDefault();
-    this.contextMenuWindow = null;
+    this.contextMenuSuppressSession = new WindowContextMenuSuppressSession();
     this.pressClientX = 0;
     this.pressClientY = 0;
     this.relativeTravelPx = 0;
     this.furthestClientTravelPx = 0;
+    this.isHandedOffToDrag = false;
     this.clickHandler = null;
     this.dragHandler = null;
   }
@@ -71,7 +74,7 @@ export class FaceSecondaryClickGesture {
     this.travelReset(clientX, clientY);
     this.clickHandler = clickHandler;
     this.dragHandler = dragHandler;
-    this.contextMenuSuppressInstall(ownerWindow);
+    this.contextMenuSuppressSession.install(ownerWindow);
     this.dragSession.begin(
       (event) => this.travelRecord(event),
       (releaseEvent) => this.releaseFinish(releaseEvent),
@@ -80,20 +83,29 @@ export class FaceSecondaryClickGesture {
   }
 
   /**
-   * Returns whether a press is armed and waiting for its release.
+   * Returns whether a press is armed and may still become a click or a drag.
    *
-   * @returns True while armed.
+   * @returns True while armed and not yet handed to the drag handler.
    */
   isArmed(): boolean {
-    return this.dragSession.isActive();
+    return this.dragSession.isActive() && !this.isHandedOffToDrag;
   }
 
-  /** Disarms the gesture without firing the click or drag handler. */
+  /**
+   * Disarms the gesture without firing the click or drag handler; the context
+   * menu suppression ends after the current task.
+   */
   cancel(): void {
+    this.handlersClear();
+    this.dragSession.end();
+    this.contextMenuSuppressSession.removeAfterRelease();
+  }
+
+  /** Forgets both handlers and leaves the handed-off phase. */
+  private handlersClear(): void {
     this.clickHandler = null;
     this.dragHandler = null;
-    this.dragSession.end();
-    this.contextMenuSuppressRemove();
+    this.isHandedOffToDrag = false;
   }
 
   /**
@@ -115,6 +127,9 @@ export class FaceSecondaryClickGesture {
    * @param event Window pointer move event.
    */
   private travelRecord(event: PointerEvent): void {
+    if (this.isHandedOffToDrag) {
+      return;
+    }
     this.relativeTravelPx += Math.hypot(event.movementX || 0, event.movementY || 0);
     const clientTravel = Math.hypot(event.clientX - this.pressClientX, event.clientY - this.pressClientY);
     this.furthestClientTravelPx = Math.max(this.furthestClientTravelPx, clientTravel);
@@ -122,7 +137,8 @@ export class FaceSecondaryClickGesture {
   }
 
   /**
-   * Fires the drag handler once when travel first exceeds the click threshold.
+   * Fires the drag handler once when travel first exceeds the click threshold
+   * and keeps the release tracking alive in the handed-off phase.
    *
    * @param event Move that may have crossed the threshold.
    */
@@ -131,11 +147,15 @@ export class FaceSecondaryClickGesture {
       return;
     }
     const handler = this.dragHandler;
+    this.handOffPhaseEnter();
+    handler(event);
+  }
+
+  /** Drops the click and drag handlers and marks the press as handed off. */
+  private handOffPhaseEnter(): void {
     this.clickHandler = null;
     this.dragHandler = null;
-    this.dragSession.end();
-    this.contextMenuSuppressRemove();
-    handler(event);
+    this.isHandedOffToDrag = true;
   }
 
   /**
@@ -149,14 +169,15 @@ export class FaceSecondaryClickGesture {
   }
 
   /**
-   * Ends the gesture at its release and fires the click handler for a click.
+   * Ends the gesture at its release, fires the click handler for a click and
+   * ends the context menu suppression after the release's own menu event.
    *
    * @param releaseEvent Release event, or null when blur ended the press.
    */
   private releaseFinish(releaseEvent: PointerEvent | null): void {
     const handler = this.clickHandler;
-    this.clickHandler = null;
-    this.contextMenuSuppressRemoveAfterRelease();
+    this.handlersClear();
+    this.contextMenuSuppressSession.removeAfterRelease();
     if (!handler || !releaseEvent || releaseEvent.type !== 'pointerup') {
       return;
     }
@@ -164,37 +185,5 @@ export class FaceSecondaryClickGesture {
       return;
     }
     handler(releaseEvent.altKey === true);
-  }
-
-  /**
-   * Starts suppressing the browser context menu in a window.
-   *
-   * @param ownerWindow Window whose context menu is suppressed.
-   */
-  private contextMenuSuppressInstall(ownerWindow: Window): void {
-    this.contextMenuWindow = ownerWindow;
-    ownerWindow.addEventListener('contextmenu', this.contextMenuSuppressListener, true);
-  }
-
-  /**
-   * Stops suppressing the context menu once the release's own context menu
-   * event had its turn.
-   */
-  private contextMenuSuppressRemoveAfterRelease(): void {
-    const ownerWindow = this.contextMenuWindow;
-    if (!ownerWindow) {
-      return;
-    }
-    ownerWindow.setTimeout(() => {
-      if (this.contextMenuWindow === ownerWindow && !this.isArmed()) {
-        this.contextMenuSuppressRemove();
-      }
-    }, 0);
-  }
-
-  /** Stops suppressing the context menu right away. */
-  private contextMenuSuppressRemove(): void {
-    this.contextMenuWindow?.removeEventListener('contextmenu', this.contextMenuSuppressListener, true);
-    this.contextMenuWindow = null;
   }
 }

@@ -25,7 +25,7 @@ const TOOL_INSTRUCTIONS_BY_ID: Readonly<Record<EditorToolId, ToolInstruction>> =
     title: 'Face Select',
     shortcut: 'Shift+Tab',
     description:
-      'Select individual faces on content meshes and solid results. Use Shift or Ctrl to extend the selection. Right-click a face to apply the current texture, Alt+right-click to apply it with the lifted alignment. Open the Face Edit Sheet or Extrude from the tool options bar.',
+      'Select individual faces on content meshes and solid results. Click selects one face, Ctrl+click toggles a face, Shift+click selects the whole brush and Ctrl+Shift+click adds the whole brush. Right-drag looks around (2D: pans) and the wheel changes fly speed while right-dragging in 3D. Right-click a face to apply the current texture, Alt+right-click to apply it with the lifted alignment. Open the Face Edit Sheet or Extrude from the tool options bar.',
   },
   [EditorToolId.STAMP]: {
     title: 'Apply Current Texture',

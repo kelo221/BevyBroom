@@ -80,6 +80,15 @@ export interface DisplacementFaceSurface {
   scale: number;
   /** Per-vertex distance in meters along the face normal, before scale. */
   offsets: number[];
+  /**
+   * Per-vertex 3D offset added after the normal offset, so sewn border vertices
+   * of faces with different normals can meet exactly. Three numbers per vertex,
+   * row-major, in the face frame: the share of the edge from the first corner
+   * to the second, the share of the edge from the first corner to the fourth,
+   * and meters along the face normal. The frame follows the face through every
+   * brush transform. Absent when every seam offset is zero.
+   */
+  seamOffsets?: number[];
   /** Per-vertex texture blend alpha from 0 to DISPLACEMENT_ALPHA_MAX. */
   alphas: number[];
   /** Collision behavior the game gives the surface. */

@@ -107,6 +107,23 @@ export class DisplacementGrid {
   }
 
   /**
+   * Writes the brush-local edge vector from the first face corner to another
+   * corner.
+   *
+   * @param cornerIndex Corner index 0 to 3 the edge ends at.
+   * @param target Vector receiving the edge.
+   * @returns The target vector, zero when a corner is missing.
+   */
+  cornerEdgeFromFirstWrite(cornerIndex: number, target: THREE.Vector3): THREE.Vector3 {
+    const first = this.corners[0];
+    const corner = this.corners[cornerIndex];
+    if (!first || !corner) {
+      return target.set(0, 0, 0);
+    }
+    return target.subVectors(corner, first);
+  }
+
+  /**
    * Adds one weighted corner to an accumulating position.
    *
    * @param cornerIndex Corner index 0 to 3.

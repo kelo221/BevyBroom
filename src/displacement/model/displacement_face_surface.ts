@@ -10,6 +10,7 @@ import {
   displacementCollisionFlagsDefault,
   displacementCollisionFlagsRead,
 } from './displacement_collision_flags.js';
+import { displacementSeamOffsetsAnyNonZero, displacementSeamOffsetsReadJson } from './displacement_seam_offsets.js';
 
 /**
  * Saved form of a displacement surface: flags are present only when at least
@@ -92,7 +93,7 @@ export function displacementOffsetDeltaForDistance(
  * @returns Independent copy.
  */
 export function displacementSurfaceClone(surface: Readonly<DisplacementFaceSurface>): DisplacementFaceSurface {
-  return {
+  const copy: DisplacementFaceSurface = {
     power: surface.power,
     elevation: surface.elevation,
     scale: surface.scale,
@@ -100,11 +101,15 @@ export function displacementSurfaceClone(surface: Readonly<DisplacementFaceSurfa
     alphas: surface.alphas.slice(),
     flags: displacementCollisionFlagsClone(surface.flags),
   };
+  if (surface.seamOffsets) {
+    copy.seamOffsets = surface.seamOffsets.slice();
+  }
+  return copy;
 }
 
 /**
  * Builds the saved form of a displacement surface, leaving out the collision
- * flags when every flag is off.
+ * flags when every flag is off and the seam offsets when every one is zero.
  *
  * @param surface Source surface.
  * @returns Independent serializable copy.
@@ -112,14 +117,20 @@ export function displacementSurfaceClone(surface: Readonly<DisplacementFaceSurfa
 export function displacementSurfaceSerialize(
   surface: Readonly<DisplacementFaceSurface>,
 ): DisplacementFaceSurfaceSerialized {
-  const { flags, ...rest } = displacementSurfaceClone(surface);
-  return displacementCollisionFlagsAnySet(flags) ? { ...rest, flags } : rest;
+  const { flags, seamOffsets, ...rest } = displacementSurfaceClone(surface);
+  const serialized: DisplacementFaceSurfaceSerialized = displacementCollisionFlagsAnySet(flags)
+    ? { ...rest, flags }
+    : rest;
+  if (seamOffsets && displacementSeamOffsetsAnyNonZero(seamOffsets)) {
+    serialized.seamOffsets = seamOffsets;
+  }
+  return serialized;
 }
 
 /**
  * Reads a displacement surface from untrusted JSON, filling missing alphas with
- * zero and missing collision flags with false, and rejecting wrong vertex
- * counts and non-boolean flags.
+ * zero and missing collision flags with false, rejecting wrong vertex counts
+ * and non-boolean flags, and dropping malformed or all-zero seam offsets.
  *
  * @param value Candidate JSON value.
  * @returns Validated copy, or null when the value is no displacement.
@@ -156,7 +167,7 @@ function displacementSurfaceReadWithPower(
   if (!offsets || !alphas || !flags) {
     return null;
   }
-  return {
+  const surface: DisplacementFaceSurface = {
     power,
     elevation: displacementFiniteNumberRead(record['elevation'], 0),
     scale: displacementFiniteNumberRead(record['scale'], 1),
@@ -164,6 +175,26 @@ function displacementSurfaceReadWithPower(
     alphas: alphas.map((alpha) => Math.min(DISPLACEMENT_ALPHA_MAX, Math.max(0, alpha))),
     flags,
   };
+  return displacementSurfaceSeamOffsetsAttach(surface, record['seamOffsets']);
+}
+
+/**
+ * Attaches the seam offsets of a JSON record to a surface read from it, leaving
+ * them out when they are missing, malformed or all zero.
+ *
+ * @param surface Surface read from the record, changed in place.
+ * @param value Candidate seam offset list of the record.
+ * @returns The surface.
+ */
+function displacementSurfaceSeamOffsetsAttach(
+  surface: DisplacementFaceSurface,
+  value: unknown,
+): DisplacementFaceSurface {
+  const seamOffsets = displacementSeamOffsetsReadJson(value, displacementVertexCount(surface.power));
+  if (seamOffsets) {
+    surface.seamOffsets = seamOffsets;
+  }
+  return surface;
 }
 
 /**

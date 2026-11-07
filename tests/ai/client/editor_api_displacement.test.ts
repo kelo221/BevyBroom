@@ -10,6 +10,8 @@ import { displacementSurfaceMeshesUnder } from '@/displacement/mesh/displacement
 import { ControllerFaceExtrusion } from '@/tools/face/controller_face_extrusion.js';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
 import { DisplacementFaceTools } from '@/displacement/controller/displacement_face_tools.js';
+import { DisplacementSculptFace } from '@/displacement/sculpt/displacement_sculpt_face.js';
+import type { SolidFaceTextureTarget } from '@/texture/commands/command_texture_solid_face_edit.js';
 import { editorApiTestHostCreate } from './editor_api_test_host.js';
 import { solidBrushToolsTestBoxAdd } from '../../tools/csg/solid/solid_brush_tools_test_helpers.js';
 import { displacementTestFaceFacing } from '../../displacement/displacement_test_rig.js';
@@ -81,6 +83,40 @@ function adjacentApiBoxRowAdd(model: SolidModel): [SolidBrushInstance, SolidBrus
   ];
   model.rebuild(true);
   return brushes;
+}
+
+/**
+ * Builds the edit target of one face of a brush.
+ *
+ * @param brush Brush owning the face; it must belong to a solid model.
+ * @param surfaceIndex Face index.
+ * @returns Face target.
+ */
+function displacementApiFaceTarget(brush: SolidBrushInstance, surfaceIndex: number): SolidFaceTextureTarget {
+  const model = brush.mesh ? SolidModel.fromObject(brush.mesh) : null;
+  if (!model) throw new Error('brush has no solid model');
+  return { model, brushId: brush.id, surfaceIndex };
+}
+
+/**
+ * Returns the largest distance between displaced border vertices of two faces
+ * whose flat positions coincide.
+ *
+ * @param targets The two displaced faces.
+ * @returns Largest gap in meters; fails when the faces share no border point.
+ */
+function displacementApiSharedEdgeGapRead(targets: readonly SolidFaceTextureTarget[]): number {
+  const [first, second] = targets.map((target) => DisplacementSculptFace.fromTarget(target));
+  if (!first || !second) throw new Error('faces have no displacement');
+  const secondPositions = second.placement.displacedPositions(second.displacement);
+  const gaps = first.placement.displacedPositions(first.displacement).flatMap((position, vertexIndex) => {
+    const base = first.placement.basePositions[vertexIndex];
+    const partnerIndex = second.placement.basePositions.findIndex((other) => base && other.distanceTo(base) < 1e-4);
+    const partner = secondPositions[partnerIndex];
+    return partner ? [position.distanceTo(partner)] : [];
+  });
+  expect(gaps.length).toBeGreaterThan(0);
+  return Math.max(...gaps);
 }
 
 /** Unit tests for the displacement MCP tools. */
@@ -194,6 +230,40 @@ describe('EditorApi displacement tool', () => {
     );
     faceTools.dispose();
     expect(api.invokeTool('select_adjacent_displacements', {}).ok).toBe(false);
+  });
+
+  it('lists sew_displacements in the MCP catalog', () => {
+    expect(findMcpTool('sew_displacements')).toBeDefined();
+  });
+
+  it('sews the shared edge of perpendicular displaced faces exactly as one undo step', () => {
+    const { api, brush } = displacementApiRigCreate();
+    const faces = [new THREE.Vector3(0, 1, 0), new THREE.Vector3(-1, 0, 0)].map((direction) => ({
+      brushId: brush.id,
+      faceIndex: displacementTestFaceFacing(brush, direction),
+    }));
+    faces.forEach((face, faceOrder) => {
+      const offsets = Array.from({ length: displacementVertexCount(2) }, (_unused, index) =>
+        Math.sin(index * 1.3 + faceOrder),
+      );
+      const created = api.invokeTool('set_face_displacement', { ...face, action: 'create', power: 2, offsets });
+      expect(created.ok, created.message).toBe(true);
+    });
+    const targets = faces.map((face) => displacementApiFaceTarget(brush, face.faceIndex));
+    expect(displacementApiSharedEdgeGapRead(targets)).toBeGreaterThan(1e-3);
+    const sewn = api.invokeTool('sew_displacements', { faces });
+    expect(sewn.ok, sewn.message).toBe(true);
+    expect(sewn.data).toEqual({ sewnCount: 2 });
+    expect(displacementApiSharedEdgeGapRead(targets)).toBeLessThan(1e-5);
+    faces.forEach((face) => expect(brush.faceDisplacementRead(face.faceIndex)?.seamOffsets).toBeDefined());
+    const resampled = api.invokeTool('set_face_displacement', { ...faces[0], action: 'set', power: 3 });
+    expect(resampled.ok, resampled.message).toBe(true);
+    expect(brush.faceDisplacementRead(faces[0]?.faceIndex ?? -1)?.seamOffsets).toBeUndefined();
+    api.invokeTool('undo');
+    api.invokeTool('undo');
+    expect(displacementApiSharedEdgeGapRead(targets)).toBeGreaterThan(1e-3);
+    expect(api.invokeTool('sew_displacements', { faces: [{ brushId: 'missing', faceIndex: 0 }] }).ok).toBe(false);
+    expect(api.invokeTool('sew_displacements', {}).ok).toBe(false);
   });
 
   it('rejects bad offsets, missing displacements, bad faces and subtractive brushes', () => {

@@ -357,6 +357,16 @@ export class Viewport2D extends ViewportBase {
   }
 
   /**
+   * Sets the fraction of the pointer travel that middle-button and right-button
+   * pan move the view by.
+   *
+   * @param factor Pan speed factor; 1 keeps the world under the cursor.
+   */
+  setPanSpeedFactor(factor: number): void {
+    this.panHandler?.setPanSpeedFactor(factor);
+  }
+
+  /**
    * Reorients this Top / Front / Side camera and grid lattice to the working
    * grid frame while preserving the world point under the view center.
    *

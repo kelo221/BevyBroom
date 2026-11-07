@@ -184,8 +184,8 @@ export class CoordinatorFaceMode {
    *
    * @param clientX Pointer client X.
    * @param clientY Pointer client Y.
-   * @param isShiftPressed True for additive selection.
-   * @param isCtrlPressed True for subtractive selection.
+   * @param isShiftPressed True to select the whole brush.
+   * @param isCtrlPressed True to toggle faces, or to add the brush with Shift.
    * @param ownerDocument Document that owns the client coordinates, or null.
    * @returns True when face mode consumed the press.
    */
@@ -552,8 +552,8 @@ export class CoordinatorFaceMode {
    *
    * @param event The pointer event (coordinates only; modifiers are explicit).
    * @param viewport The viewport that received the event.
-   * @param isShiftPressed True for additive selection.
-   * @param isCtrlPressed True for subtractive selection.
+   * @param isShiftPressed True to select the whole brush.
+   * @param isCtrlPressed True to toggle faces, or to add the brush with Shift.
    * @returns True if the event was consumed by face selection.
    */
   private onViewportFacePointerDown(
@@ -589,8 +589,8 @@ export class CoordinatorFaceMode {
    * @param viewport Owning viewport.
    * @param camera Viewport camera.
    * @param pickElement Pick element.
-   * @param isShiftPressed Additive modifier.
-   * @param isCtrlPressed Subtractive modifier.
+   * @param isShiftPressed Whole-brush selection modifier.
+   * @param isCtrlPressed Face toggle selection modifier.
    * @returns True when UV move was armed.
    */
   private tryArmUvMoveOnSelectedFace(
@@ -627,8 +627,8 @@ export class CoordinatorFaceMode {
    * @param viewport Owning viewport.
    * @param camera Viewport camera.
    * @param pickElement Pick element.
-   * @param isShiftPressed Additive selection.
-   * @param isCtrlPressed Subtractive selection.
+   * @param isShiftPressed True to select the whole brush.
+   * @param isCtrlPressed True to toggle faces, or to add the brush with Shift.
    * @returns True when consumed.
    */
   private beginPaintOrSmearStroke(

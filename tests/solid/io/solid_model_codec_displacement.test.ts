@@ -5,6 +5,8 @@ import { displacementSurfaceCreate, displacementVertexCount } from '@/displaceme
 import { DisplacementSculptOps } from '@/displacement/sculpt/displacement_sculpt_ops.js';
 import { CommandDisplacementEdit } from '@/displacement/commands/command_displacement_edit.js';
 import { displacementSurfaceMeshesUnder } from '@/displacement/mesh/displacement_surface_mesh_keys.js';
+import { DisplacementSew } from '@/displacement/sculpt/displacement_sew.js';
+import { DisplacementSculptFace } from '@/displacement/sculpt/displacement_sculpt_face.js';
 import {
   displacementTestBoxAdd,
   displacementTestFaceFacing,
@@ -35,6 +37,31 @@ describe('SolidModelCodec displacements', () => {
     const surfaceMeshes = displacementSurfaceMeshesUnder(restored.root);
     expect(surfaceMeshes).toHaveLength(1);
     expect(surfaceMeshes[0]?.geometry.getAttribute('position').count).toBe(displacementVertexCount(3));
+  });
+
+  it('round-trips the seam offsets of a sew between perpendicular faces', () => {
+    const rig = displacementTestRigCreate('CodecSeams');
+    const brush = displacementTestBoxAdd(rig, new THREE.Vector3(2, 3, 2), new THREE.Vector3(1, -1, 2));
+    const targets = [new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, -1)].map((direction) =>
+      displacementTestTarget(rig, brush, displacementTestFaceFacing(brush, direction)),
+    );
+    const edits = targets.map((target, index) => {
+      const displacement = displacementSurfaceCreate(2);
+      DisplacementSculptOps.applyNoise(displacement, -0.4, 0.4, 13 + index);
+      return { target, displacement };
+    });
+    rig.commandStack.push(new CommandDisplacementEdit(edits));
+    const sewn = DisplacementSew.sewSharedEdges(DisplacementSculptFace.listFromTargets(targets));
+    rig.commandStack.push(new CommandDisplacementEdit(sewn.map((face) => face.editBuild())));
+    const encoded = JSON.parse(JSON.stringify(SolidModelCodec.encode(rig.model))) as ReturnType<
+      typeof SolidModelCodec.encode
+    >;
+    const restoredBrush = SolidModelCodec.decode(encoded, 'CodecSeamsRestored').getBrushes()[0];
+    targets.forEach((target) => {
+      const stored = brush.faceDisplacementRead(target.surfaceIndex);
+      expect(stored?.seamOffsets).toBeDefined();
+      expect(restoredBrush?.faceDisplacementRead(target.surfaceIndex)).toEqual(stored);
+    });
   });
 
   it('round-trips collision flags, writing them only for surfaces with a flag on', () => {

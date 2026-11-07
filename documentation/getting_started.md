@@ -64,6 +64,7 @@ In the Perspective view:
 - Hold the right mouse button and move the mouse to look around.
 - While holding the right mouse button, use `W`, `A`, `S`, and `D` to fly horizontally and `Q` and `E` to move down and up.
 - Hold `Shift` while flying to move faster.
+- Turn the mouse wheel while holding the right mouse button to change the fly speed.
 - Drag with the middle mouse button to pan.
 - Use the mouse wheel to move forward or backward.
 

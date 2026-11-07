@@ -89,7 +89,9 @@ From top to bottom:
 - **Block Tool** (`Shift+B`) draws a new convex brush in the active shape:
   Cuboid, Stairs, Arch, Cylinder, Cone, Spheroid (UV), or Spheroid (Icosahedron).
 - **Face Select** (`Shift+Tab`) selects faces for texturing and opens the Face
-  Edit Sheet. **Textures** on the view bar reopens it.
+  Edit Sheet. **Textures** on the view bar reopens it. A click selects one
+  face, `Ctrl`+click toggles a face, `Shift`+click selects the whole brush, and
+  `Ctrl`+`Shift`+click adds the whole brush.
 - **Apply Current Texture** (`Shift+T`) paints the current texture onto the
   selection, then stamps it onto the faces you click.
 - **Clip Plane** (`Shift+X`) cuts brushes along a plane you place.

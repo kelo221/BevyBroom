@@ -6,7 +6,16 @@ Face tools let you work with visible surface regions rather than whole objects. 
 
 Press `Shift+Tab` or click the **Face Select** tool button in the tools palette. The status bar changes to Face selection and reports how many faces are selected.
 
-Click a surface to select its face region. Selection modifiers and drag selection can add more regions. Work from a clear view so you do not accidentally select a front-facing surface when you intended one behind it.
+Click a surface to select its face region. The selection modifiers work like Hammer:
+
+- Click selects only that face.
+- `Ctrl`+click toggles the face: it adds an unselected face and removes a selected one. A `Ctrl` drag keeps the choice of the first face it touches, so it either adds or removes every face it crosses.
+- `Shift`+click selects only the whole brush the face belongs to.
+- `Ctrl`+`Shift`+click adds the whole brush to the selection.
+- Double-click expands the click to the whole brush and adds it, or removes it again when it is already selected.
+- A plain drag paints more faces into the selection.
+
+Right-click a face to apply the current texture. A right drag looks around in Perspective and pans the 2D views instead, without applying a texture. Work from a clear view so you do not accidentally select a front-facing surface when you intended one behind it.
 
 Press `Tab` to return to Object Select.
 

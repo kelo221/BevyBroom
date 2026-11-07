@@ -91,6 +91,45 @@ describe('displacement face surface', () => {
     expect(displacementSurfaceRead(serialized)).toEqual(surface);
   });
 
+  it('round trips seam offsets through clone, serialize and read, and leaves them out when absent', () => {
+    const surface = displacementSurfaceCreate(2);
+    expect('seamOffsets' in surface).toBe(false);
+    expect('seamOffsets' in displacementSurfaceClone(surface)).toBe(false);
+    const seamOffsets = Array.from({ length: surface.offsets.length * 3 }, (_unused, index) => (index % 7) * 0.05);
+    surface.seamOffsets = seamOffsets.slice();
+    const copy = displacementSurfaceClone(surface);
+    copy.seamOffsets?.fill(0);
+    expect(surface.seamOffsets).toEqual(seamOffsets);
+    const serialized = displacementSurfaceSerialize(surface);
+    expect(serialized.seamOffsets).toEqual(seamOffsets);
+    expect(displacementSurfaceRead(JSON.parse(JSON.stringify(serialized)))).toEqual(surface);
+  });
+
+  it('does not write all-zero seam offsets', () => {
+    const surface = displacementSurfaceCreate(3);
+    surface.seamOffsets = new Array<number>(surface.offsets.length * 3).fill(0);
+    expect('seamOffsets' in displacementSurfaceSerialize(surface)).toBe(false);
+    expect(displacementSurfaceRead({ ...surface })?.seamOffsets).toBeUndefined();
+  });
+
+  it('drops malformed seam offsets and keeps the rest of the surface', () => {
+    const vertexCount = displacementVertexCount(2);
+    const offsets = Array.from({ length: vertexCount }, (_unused, index) => index * 0.01);
+    const valid = new Array<number>(vertexCount * 3).fill(0.25);
+    const malformedLists: unknown[] = [
+      valid.slice(1),
+      valid.map((value, index) => (index === 4 ? 'x' : value)),
+      [...valid.slice(1), Number.NaN],
+      'seams',
+    ];
+    malformedLists.forEach((seamOffsets) => {
+      const read = displacementSurfaceRead({ power: 2, offsets, seamOffsets });
+      expect(read?.offsets).toEqual(offsets);
+      expect(read && 'seamOffsets' in read).toBe(false);
+    });
+    expect(displacementSurfaceRead({ power: 2, offsets, seamOffsets: valid })?.seamOffsets).toEqual(valid);
+  });
+
   it('keeps a face displacement when the face texture or UV mapping changes', () => {
     const rig = displacementTestRigCreate('StorageTest');
     const brush = displacementTestBoxAdd(rig, new THREE.Vector3(2, 2, 2), new THREE.Vector3(0, 0, 0));

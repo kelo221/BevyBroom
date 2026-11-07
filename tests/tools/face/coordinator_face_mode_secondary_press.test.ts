@@ -102,4 +102,18 @@ describe('CoordinatorFaceModeSecondaryPress', () => {
     expect(textureApply.dispose).toHaveBeenCalledTimes(1);
     expect(viewport.beginSecondaryButtonNavigation).not.toHaveBeenCalled();
   });
+
+  it('cancels the press instead of navigating when a second drag notice arrives without a viewport', () => {
+    const textureApply = textureApplyStubCreate();
+    const secondary = new CoordinatorFaceModeSecondaryPress(textureApply.coordinator, () => false);
+    secondary.pressBegin(viewport as never, 12, 18);
+    const dragHandler = textureApply.secondaryPressBegin.mock.calls[0]?.[3] as
+      ((event: PointerEvent) => void) | undefined;
+    const move = new PointerEvent('pointermove', { clientX: 20, clientY: 18 });
+    dragHandler?.(move);
+    const disposeCallsAfterHandOff = textureApply.dispose.mock.calls.length;
+    dragHandler?.(move);
+    expect(viewport.beginSecondaryButtonNavigation).toHaveBeenCalledTimes(1);
+    expect(textureApply.dispose.mock.calls.length).toBe(disposeCallsAfterHandOff + 1);
+  });
 });

@@ -421,9 +421,9 @@ export interface EditorServices {
    *
    * @param clientX Pointer client X.
    * @param clientY Pointer client Y.
-   * @param isShiftPressed True when Shift is held for additive selection.
-   * @param isCtrlPressed True when Ctrl or Meta is held for subtractive
-   *   selection.
+   * @param isShiftPressed True when Shift is held to select the whole brush.
+   * @param isCtrlPressed True when Ctrl or Meta is held to toggle faces (or to
+   *   add the whole brush together with Shift).
    * @returns True when face mode consumed the press.
    */
   beginFaceSelectPointerDown(

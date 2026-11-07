@@ -16,6 +16,7 @@ import { findFirstTriangleForBrushSurface } from '@/selection/face/solid_triangl
 import { expandFaceSelectionIndices } from '@/selection/face/solid_result_face_indices.js';
 import { FaceRegionWorldGeometry } from '@/selection/face/face_region_world_geometry.js';
 import type { FaceSelection } from '@/selection/face/manager_face_selection.js';
+import { collectFaceSelectionSeedsFromFacePick } from '@/selection/face/face_selection_hierarchy_targets.js';
 import type { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import type { SolidFaceTextureTarget } from '@/texture/commands/command_texture_solid_face_edit.js';
 import { pointerEventToNdc } from '@/utils/pointer_ndc.js';
@@ -319,8 +320,27 @@ describe('FaceEditObjectShiftClick', () => {
     scene.coordinator.dispose();
   });
 
-  it('keeps Shift+click adding faces once the Face tool is active', () => {
+  it('adds faces with Ctrl+click once the Face tool is active', () => {
     const scene = shiftClickTestSceneCreate('ShiftClickFaceModeAdd');
+    const first = shiftClickTestFaceTarget(scene, SHIFT_CLICK_TEST_UP);
+    const firstPoint = shiftClickTestViewAim(scene, shiftClickTestFlatFaceCenter(scene, first), SHIFT_CLICK_TEST_UP);
+    expect(scene.shiftClick.clickApply(firstPoint.clientX, firstPoint.clientY)).toBe(true);
+    const sideDirection = new THREE.Vector3(1, 0, 0);
+    const second = shiftClickTestFaceTarget(scene, sideDirection);
+    const secondPoint = shiftClickTestViewAim(scene, shiftClickTestFlatFaceCenter(scene, second), sideDirection);
+    expect(scene.coordinator.beginFaceSelectPointerDown(secondPoint.clientX, secondPoint.clientY, false, true)).toBe(
+      true,
+    );
+    scene.coordinator.endFaceSelectPointerUp();
+    expect(shiftClickTestSelectedFacesRead()).toEqual(
+      expect.arrayContaining([shiftClickTestFaceEntry(first), shiftClickTestFaceEntry(second)]),
+    );
+    expect(shiftClickTestSelectedFacesRead()).toHaveLength(2);
+    scene.coordinator.dispose();
+  });
+
+  it('selects the whole brush with Shift+click once the Face tool is active', () => {
+    const scene = shiftClickTestSceneCreate('ShiftClickFaceModeBrush');
     const first = shiftClickTestFaceTarget(scene, SHIFT_CLICK_TEST_UP);
     const firstPoint = shiftClickTestViewAim(scene, shiftClickTestFlatFaceCenter(scene, first), SHIFT_CLICK_TEST_UP);
     expect(scene.shiftClick.clickApply(firstPoint.clientX, firstPoint.clientY)).toBe(true);
@@ -331,10 +351,12 @@ describe('FaceEditObjectShiftClick', () => {
       true,
     );
     scene.coordinator.endFaceSelectPointerUp();
+    const brushSurfaceCount = collectFaceSelectionSeedsFromFacePick(scene.rig.model.getResultMesh(), 0).length;
+    expect(brushSurfaceCount).toBeGreaterThan(2);
     expect(shiftClickTestSelectedFacesRead()).toEqual(
       expect.arrayContaining([shiftClickTestFaceEntry(first), shiftClickTestFaceEntry(second)]),
     );
-    expect(shiftClickTestSelectedFacesRead()).toHaveLength(2);
+    expect(shiftClickTestSelectedFacesRead()).toHaveLength(brushSurfaceCount);
     scene.coordinator.dispose();
   });
 });

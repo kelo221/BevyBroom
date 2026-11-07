@@ -3,6 +3,10 @@ import { managerPointerLock } from '@/input/manager_pointer_lock.js';
 import { blurActiveFormField } from '@/utils/dom_focus.js';
 import { SelectionClickThrough } from '@/selection/object/selection_click_through.js';
 import { pointerCaptureTry } from '@/utils/pointer_capture.js';
+import { NAVIGATION_BUTTON_MIDDLE, NAVIGATION_BUTTON_SECONDARY } from './navigation_buttons.js';
+
+/** Fraction of the pointer travel the view pans by default (half speed). */
+export const ORTHO_PAN_SPEED_FACTOR_DEFAULT = 0.5;
 
 /**
  * Invoked when the user scrolls to zoom an orthographic viewport toward the
@@ -15,18 +19,13 @@ import { pointerCaptureTry } from '@/utils/pointer_capture.js';
  */
 type ZoomCallback = (factor: number, pointerU: number, pointerV: number) => void;
 
-/** Mouse button index of the middle (wheel) button. */
-const ORTHO_PAN_BUTTON_MIDDLE = 1;
-
-/** Mouse button index of the secondary (right) button. */
-const ORTHO_PAN_BUTTON_SECONDARY = 2;
-
 /**
  * Middle-button and right-button pan plus wheel zoom for orthographic 2D
  * viewports. Uses the shared pointer-lock counter while a pan button is held
  * for continuous pan.
  */
 export class HandlerOrthoPan {
+  private panSpeedFactor: number = ORTHO_PAN_SPEED_FACTOR_DEFAULT;
   private isPanning: boolean;
   private readonly heldPanButtons: Set<number>;
   private holdsPointerLock: boolean;
@@ -118,7 +117,7 @@ export class HandlerOrthoPan {
    * @returns True for the middle and the right button.
    */
   private static panButtonIs(button: number): boolean {
-    return button === ORTHO_PAN_BUTTON_MIDDLE || button === ORTHO_PAN_BUTTON_SECONDARY;
+    return button === NAVIGATION_BUTTON_MIDDLE || button === NAVIGATION_BUTTON_SECONDARY;
   }
 
   /**
@@ -128,7 +127,7 @@ export class HandlerOrthoPan {
    */
   private onPointerDown(event: PointerEvent): void {
     if (!HandlerOrthoPan.panButtonIs(event.button)) return;
-    if (event.button === ORTHO_PAN_BUTTON_MIDDLE) event.preventDefault();
+    if (event.button === NAVIGATION_BUTTON_MIDDLE) event.preventDefault();
     blurActiveFormField();
     this.heldPanButtons.add(event.button);
     this.panStateBegin();
@@ -143,7 +142,7 @@ export class HandlerOrthoPan {
    */
   beginSecondaryButtonPan(event?: PointerEvent): void {
     pointerCaptureTry(this.canvas, event?.pointerId);
-    this.heldPanButtons.add(ORTHO_PAN_BUTTON_SECONDARY);
+    this.heldPanButtons.add(NAVIGATION_BUTTON_SECONDARY);
     this.panStateBegin();
   }
 
@@ -161,7 +160,7 @@ export class HandlerOrthoPan {
    * @param event Auxiliary click event from the canvas.
    */
   private onAuxClick(event: MouseEvent): void {
-    if (event.button === ORTHO_PAN_BUTTON_MIDDLE) event.preventDefault();
+    if (event.button === NAVIGATION_BUTTON_MIDDLE) event.preventDefault();
   }
 
   /**
@@ -172,6 +171,17 @@ export class HandlerOrthoPan {
   private onPointerMove(event: PointerEvent): void {
     if (!this.isPanning) return;
     this.applyPan(event.movementX, event.movementY);
+  }
+
+  /**
+   * Sets the fraction of the pointer travel the view pans by.
+   *
+   * @param factor Pan speed factor; 1 keeps the world under the cursor, 0.5
+   *   pans half as far. Non-finite or negative values are ignored.
+   */
+  setPanSpeedFactor(factor: number): void {
+    if (!Number.isFinite(factor) || factor < 0) return;
+    this.panSpeedFactor = factor;
   }
 
   /**
@@ -263,7 +273,8 @@ export class HandlerOrthoPan {
   }
 
   /**
-   * Pans the camera in view space from screen-pixel movement.
+   * Pans the camera in view space from screen-pixel movement scaled by the pan
+   * speed factor.
    *
    * @param screenDeltaX Horizontal pointer movement in CSS pixels.
    * @param screenDeltaY Vertical pointer movement in CSS pixels.
@@ -273,8 +284,8 @@ export class HandlerOrthoPan {
     const frustumHeight = this.camera.top - this.camera.bottom;
     const canvasWidth = this.canvas.clientWidth || 1;
     const canvasHeight = this.canvas.clientHeight || 1;
-    const worldX = (screenDeltaX * frustumWidth) / canvasWidth;
-    const worldY = (screenDeltaY * frustumHeight) / canvasHeight;
+    const worldX = (screenDeltaX * frustumWidth * this.panSpeedFactor) / canvasWidth;
+    const worldY = (screenDeltaY * frustumHeight * this.panSpeedFactor) / canvasHeight;
     this.camera.getWorldDirection(this.tempForward);
     this.tempRight.crossVectors(this.tempForward, this.camera.up).normalize();
     if (this.tempRight.lengthSq() < 1e-10) {

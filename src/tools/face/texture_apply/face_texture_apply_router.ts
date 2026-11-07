@@ -10,7 +10,7 @@ export interface FaceTextureApplyPrimaryPress {
   readonly pick: FacePickResult;
   /** Camera of the pressed viewport. */
   readonly camera: THREE.Camera;
-  /** True while the subtractive selection modifier is held. */
+  /** True while the toggle selection modifier is held. */
   readonly isCtrlPressed: boolean;
 }
 
@@ -105,8 +105,8 @@ export class FaceTextureApplyRouter {
   }
 
   /**
-   * Lifts the pressed face before it gets selected; a subtractive press only
-   * deselects and lifts nothing.
+   * Lifts the pressed face before it gets selected; a toggle press only toggles
+   * the selection and lifts nothing.
    *
    * @param press Pressed face, camera and modifiers.
    */

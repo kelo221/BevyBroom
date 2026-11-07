@@ -1,6 +1,6 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
-import { HandlerOrthoPan } from '@/navigation/camera/handler_ortho_pan.js';
+import { HandlerOrthoPan, ORTHO_PAN_SPEED_FACTOR_DEFAULT } from '@/navigation/camera/handler_ortho_pan.js';
 import { managerPointerLock } from '@/input/manager_pointer_lock.js';
 
 /** Canvas, camera and handler used by one pan scenario. */
@@ -28,16 +28,32 @@ function orthoPanRigCreate(): OrthoPanRig {
   return { canvas, camera, handler };
 }
 
+/** PointerEvent.buttons bit for each mouse button index used by pan. */
+const ORTHO_PAN_TEST_BUTTON_MASKS: Readonly<Record<number, number>> = { 1: 4, 2: 2 };
+
 /**
- * Presses one button, drags diagonally and releases it.
+ * Presses one button, drags diagonally with it held and releases it.
  *
  * @param rig Rig whose canvas receives the events.
  * @param button Mouse button index to drag with.
  */
 function orthoPanDragApply(rig: OrthoPanRig, button: number): void {
-  rig.canvas.dispatchEvent(new PointerEvent('pointerdown', { button, pointerId: 1 }));
-  rig.canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 15, movementY: -7, pointerId: 1 }));
+  const buttons = ORTHO_PAN_TEST_BUTTON_MASKS[button] ?? 0;
+  rig.canvas.dispatchEvent(new PointerEvent('pointerdown', { button, buttons, pointerId: 1 }));
+  rig.canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 15, movementY: -7, buttons, pointerId: 1 }));
   rig.canvas.dispatchEvent(new PointerEvent('pointerup', { button, pointerId: 1 }));
+}
+
+/**
+ * Drags the rig with the right button and returns how far the camera moved.
+ *
+ * @param rig Rig whose canvas receives the drag.
+ * @returns Camera travel distance in world units.
+ */
+function orthoPanRightDragDistance(rig: OrthoPanRig): number {
+  const before = rig.camera.position.clone();
+  orthoPanDragApply(rig, 2);
+  return rig.camera.position.distanceTo(before);
 }
 
 describe('OrthoPanHandler', () => {
@@ -194,14 +210,52 @@ describe('OrthoPanHandler', () => {
       Object.defineProperty(document, 'pointerLockElement', { value: canvas, configurable: true });
     };
     new HandlerOrthoPan(canvas, camera, zoomCallback);
-    canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 2, pointerId: 1 }));
+    canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 2, buttons: 2, pointerId: 1 }));
     const initialPosition = camera.position.clone();
-    canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 10, movementY: 0, pointerId: 1 }));
+    canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 10, movementY: 0, buttons: 2, pointerId: 1 }));
     expect(camera.position.distanceTo(initialPosition)).toBeGreaterThan(0.001);
     Object.defineProperty(document, 'pointerLockElement', { value: null, configurable: true });
     document.dispatchEvent(new Event('pointerlockchange'));
     const positionAfterLockLoss = camera.position.clone();
-    canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 10, movementY: 0, pointerId: 1 }));
+    canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 10, movementY: 0, buttons: 2, pointerId: 1 }));
     expect(camera.position.distanceTo(positionAfterLockLoss)).toBeLessThan(0.001);
+  });
+
+  it('pans half as far at the default speed factor as at full speed', () => {
+    const defaultRig = orthoPanRigCreate();
+    const fullSpeedRig = orthoPanRigCreate();
+    fullSpeedRig.handler.setPanSpeedFactor(1);
+    const defaultDistance = orthoPanRightDragDistance(defaultRig);
+    const fullSpeedDistance = orthoPanRightDragDistance(fullSpeedRig);
+    expect(fullSpeedDistance).toBeGreaterThan(1e-4);
+    expect(ORTHO_PAN_SPEED_FACTOR_DEFAULT).toBe(0.5);
+    expect(defaultDistance).toBeCloseTo(fullSpeedDistance * ORTHO_PAN_SPEED_FACTOR_DEFAULT, 9);
+  });
+
+  it('scales the pan distance linearly with the speed factor and ignores invalid factors', () => {
+    const quarterRig = orthoPanRigCreate();
+    const fullSpeedRig = orthoPanRigCreate();
+    quarterRig.handler.setPanSpeedFactor(0.25);
+    quarterRig.handler.setPanSpeedFactor(Number.NaN);
+    quarterRig.handler.setPanSpeedFactor(-1);
+    fullSpeedRig.handler.setPanSpeedFactor(1);
+    expect(orthoPanRightDragDistance(quarterRig)).toBeCloseTo(orthoPanRightDragDistance(fullSpeedRig) * 0.25, 9);
+  });
+
+  it('keeps a middle-button pan when the right button bit is clear', () => {
+    const rig = orthoPanRigCreate();
+    rig.canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 1, buttons: 4, pointerId: 1 }));
+    rig.canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 4, buttons: 4, pointerId: 1 }));
+    expect(rig.handler.isNavigating()).toBe(true);
+  });
+
+  it('keeps a right-button pan through moves and capture losses that report no buttons until the release', () => {
+    const rig = orthoPanRigCreate();
+    rig.canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 2, buttons: 2, pointerId: 1 }));
+    rig.canvas.dispatchEvent(new PointerEvent('lostpointercapture', { pointerId: 1, buttons: 0 }));
+    rig.canvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, buttons: 0 }));
+    expect(rig.handler.isNavigating()).toBe(true);
+    rig.canvas.dispatchEvent(new PointerEvent('pointerup', { button: 2, buttons: 0, pointerId: 1 }));
+    expect(rig.handler.isNavigating()).toBe(false);
   });
 });

@@ -95,13 +95,17 @@ export class CoordinatorFaceModeSecondaryPress {
 
   /**
    * Hands a right-button apply press that became a drag to the pressed
-   * viewport's look or pan.
+   * viewport's look or pan, or cancels the press when no viewport is known.
    *
    * @param event Move that crossed the click threshold.
    */
   private dragNavigationBegin(event: PointerEvent): void {
     const viewport = this.secondaryApplyViewport;
     this.secondaryApplyViewport = null;
-    viewport?.beginSecondaryButtonNavigation(event);
+    if (!viewport) {
+      this.applyClickCancel();
+      return;
+    }
+    viewport.beginSecondaryButtonNavigation(event);
   }
 }

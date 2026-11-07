@@ -66,8 +66,7 @@ export type OutlinerReparentCallback = (
 
 /**
  * Face-mode outliner pick handler. When it returns true, the outliner does not
- * object-select; Shift adds and Ctrl removes faces (same as viewport face
- * paint).
+ * object-select; Shift adds and Ctrl removes faces.
  *
  * @param hierarchyObject Clicked outliner object.
  * @param isShiftPressed Additive when true.

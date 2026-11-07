@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Viewport3D } from '@/viewports/core/viewport_3d.js';
+import { Viewport2D } from '@/viewports/core/viewport_2d.js';
 import { SelectionMode } from '@/types/selection_mode.js';
 import { ControllerSelectionVisual } from '@/selection/object/controller_selection_visual.js';
 import { HandlerPrimitiveCreation } from '@/tools/creation/handler_primitive_creation.js';
@@ -48,6 +49,7 @@ import {
   createLayoutSettingsDialog,
   createLayoutSettingsSystem,
   openLayoutAboutDialog,
+  type LayoutSettingsCreateDeps,
 } from '@/layout/setup/layout_settings_system.js';
 import { LayoutGamePreview } from '@/preview/layout/layout_game_preview.js';
 import { DisplacementOverlaySystem } from '@/displacement/overlay/displacement_overlay_system.js';
@@ -860,13 +862,28 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     if (this.settingsStore) {
       return;
     }
-    const parts = createLayoutSettingsSystem({
+    const parts = createLayoutSettingsSystem(this.settingsSystemDepsCreate());
+    this.settingsStore = parts.settingsStore;
+    this.settingsApplicator = parts.settingsApplicator;
+    this.settingsUnsubscribe = parts.settingsUnsubscribe;
+  }
+
+  /**
+   * Builds the viewport, layout and toolbar access the settings subsystem
+   * applies preferences through.
+   *
+   * @returns Settings subsystem dependencies.
+   */
+  private settingsSystemDepsCreate(): LayoutSettingsCreateDeps {
+    return {
       getPerspectiveViewport: () => this.getPrimaryPerspectiveViewport(),
       getRendererHost: () =>
         this.getPrimaryPerspectiveViewport() ??
         this.getAllLiveViewports()[0] ??
         this.getAllInteractiveViewports()[0] ??
         null,
+      getOrthographicViewports: () =>
+        this.getAllInteractiveViewports().filter((viewport): viewport is Viewport2D => viewport instanceof Viewport2D),
       viewportPaneLayout: this.viewportPaneLayout,
       toolbar: this.toolbar,
       resizeAll: () => this.resizeAll(),
@@ -875,10 +892,7 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
         this.workspaceController?.applyPaneCountMigration(paneCount);
         this.refreshWorkspaceSwitcher();
       },
-    });
-    this.settingsStore = parts.settingsStore;
-    this.settingsApplicator = parts.settingsApplicator;
-    this.settingsUnsubscribe = parts.settingsUnsubscribe;
+    };
   }
 
   /**
