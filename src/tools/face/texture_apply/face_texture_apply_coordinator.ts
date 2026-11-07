@@ -7,7 +7,7 @@ import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import { getStateTextureStampTool } from '@/tools/texture_stamp/state_texture_stamp_tool.js';
 import { FaceAttributeTransferHandler } from '@/tools/face/face_attribute_transfer_handler.js';
 import { FaceLiftedSurfaceStore } from './face_lifted_surface_store.js';
-import { FaceSecondaryClickGesture } from './face_secondary_click_gesture.js';
+import { FaceSecondaryClickGesture, type FaceSecondaryDragHandler } from './face_secondary_click_gesture.js';
 import { FaceTextureApplyActions } from './face_texture_apply_actions.js';
 import { FaceTextureApplyRouter } from './face_texture_apply_router.js';
 
@@ -65,7 +65,7 @@ export class FaceTextureApplyCoordinator {
    *
    * @param event Press event carrying the client point.
    * @param viewport Pressed viewport.
-   * @param isCtrlPressed True while the subtractive selection modifier is held.
+   * @param isCtrlPressed True while the toggle selection modifier is held.
    * @returns True when the press is consumed; false lets selection continue.
    */
   primaryPressTryHandle(event: MouseEvent, viewport: FaceTextureApplyViewport, isCtrlPressed: boolean): boolean {
@@ -86,12 +86,31 @@ export class FaceTextureApplyCoordinator {
    * @param viewport Pressed viewport.
    * @param clientX Press client X.
    * @param clientY Press client Y.
+   * @param dragHandler Runs once when the press becomes a camera drag.
    */
-  secondaryPressBegin(viewport: FaceTextureApplyViewport, clientX: number, clientY: number): void {
+  secondaryPressBegin(
+    viewport: FaceTextureApplyViewport,
+    clientX: number,
+    clientY: number,
+    dragHandler: FaceSecondaryDragHandler | null = null,
+  ): void {
     const ownerWindow = viewport.pickElement.ownerDocument.defaultView ?? window;
-    this.secondaryClickGesture.begin(ownerWindow, clientX, clientY, (isAltHeld) =>
-      this.secondaryClickApply(viewport, clientX, clientY, isAltHeld || this.deps.isAltDown()),
+    this.secondaryClickGesture.begin(
+      ownerWindow,
+      clientX,
+      clientY,
+      (isAltHeld) => this.secondaryClickApply(viewport, clientX, clientY, isAltHeld || this.deps.isAltDown()),
+      dragHandler,
     );
+  }
+
+  /**
+   * Returns whether a right-button texture apply click is armed.
+   *
+   * @returns True while waiting for a click or a drag.
+   */
+  secondaryPressIsArmed(): boolean {
+    return this.secondaryClickGesture.isArmed();
   }
 
   /** Paints the current texture onto the selected faces or objects. */

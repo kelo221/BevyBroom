@@ -4,6 +4,8 @@ import { EditorExclusiveMouseShieldDomain } from './editor_exclusive_mouse_shiel
 import { claimDomKeyboardFocus } from '@/utils/dom_focus.js';
 import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js';
 import { editorInputPointerEventClone, editorInputWheelEventClone } from './editor_input_event_clone.js';
+import { EditorInputIdleDocumentListeners } from './editor_input_idle_document_listeners.js';
+import { EditorInputSecondaryPressGuard } from './editor_input_secondary_press_guard.js';
 
 /**
  * Routes browser pointer events into editor mouse-down, mouse-up, mouse-move,
@@ -22,18 +24,11 @@ export class EditorInputBridge {
   private readonly editor: EditorWindow;
   private readonly exclusiveShieldDomain: EditorExclusiveMouseShieldDomain;
   private ownerDocument: Document | null;
-  private boundPointerDown: ((event: PointerEvent) => void) | null;
-  private boundPointerUp: ((event: PointerEvent) => void) | null;
-  private boundPointerMove: ((event: PointerEvent) => void) | null;
   private previousMousePosition: Vector2;
   private previousMouseGridPosition: Vector2;
   private exclusiveViewportRoots: HTMLElement[];
-  /**
-   * Documents that currently have idle capture-phase pointer listeners.
-   * Includes the main install document and every detached popup that owns a
-   * pinned root.
-   */
-  private idleListenerDocuments: Set<Document>;
+  private readonly idleDocumentListeners: EditorInputIdleDocumentListeners;
+  private readonly secondaryPressGuard: EditorInputSecondaryPressGuard;
   /**
    * True while RMB/MMB navigation was started through the shield and should
    * keep receiving retargeted move/up until release.
@@ -59,13 +54,11 @@ export class EditorInputBridge {
     this.editor = editor;
     this.exclusiveShieldDomain = new EditorExclusiveMouseShieldDomain();
     this.ownerDocument = null;
-    this.boundPointerDown = null;
-    this.boundPointerUp = null;
-    this.boundPointerMove = null;
     this.previousMousePosition = new Vector2();
     this.previousMouseGridPosition = new Vector2();
     this.exclusiveViewportRoots = [];
-    this.idleListenerDocuments = new Set();
+    this.idleDocumentListeners = new EditorInputIdleDocumentListeners();
+    this.secondaryPressGuard = new EditorInputSecondaryPressGuard();
     this.navigationPassThroughActive = false;
     this.navigationPassThroughRoot = null;
     this.navigationPassThroughDocument = null;
@@ -159,9 +152,11 @@ export class EditorInputBridge {
   install(hostElement: HTMLElement): void {
     this.uninstall();
     this.ownerDocument = hostElement.ownerDocument;
-    this.boundPointerDown = (event) => this.handleDocumentPointerDown(event);
-    this.boundPointerUp = (event) => this.handleDocumentPointerUp(event);
-    this.boundPointerMove = (event) => this.handleDocumentPointerMove(event);
+    this.idleDocumentListeners.handlersWrite({
+      pointerDown: (event) => this.handleDocumentPointerDown(event),
+      pointerUp: (event) => this.handleDocumentPointerUp(event),
+      pointerMove: (event) => this.handleDocumentPointerMove(event),
+    });
     this.exclusiveShieldDomain.setListeners({
       onPointerDown: (event) => this.handleShieldPointerDown(event),
       onPointerUp: (event) => this.handleShieldPointerUp(event),
@@ -169,20 +164,19 @@ export class EditorInputBridge {
       onContextMenu: (event) => this.handleShieldContextMenu(event),
       onWheel: (event) => this.handleShieldWheel(event),
     });
-    this.attachDocumentListeners();
+    this.syncIdleDocumentListeners();
     this.syncExclusiveShieldMount();
   }
 
   /** Removes listeners and the exclusive shields. */
   uninstall(): void {
     this.endNavigationPassThrough();
-    this.detachDocumentListeners();
+    this.idleDocumentListeners.detachAll();
+    this.idleDocumentListeners.handlersWrite(null);
+    this.secondaryPressGuard.dispose();
     this.exclusiveShieldDomain.setListeners(null);
     this.exclusiveShieldDomain.unmountAll();
     this.ownerDocument = null;
-    this.boundPointerDown = null;
-    this.boundPointerUp = null;
-    this.boundPointerMove = null;
   }
 
   /**
@@ -211,6 +205,7 @@ export class EditorInputBridge {
     }
     this.notifyExclusiveRootHit(hitRoot);
     this.claimViewportDomKeyboardFocus(hitRoot);
+    this.secondaryPressGuard.pressBegin(event.button, this.resolveEventDocument(event)?.defaultView ?? null);
     this.routeEditorMouseDown(event, true);
     this.navigationPressStopWhenToolClaims(event);
     this.syncExclusiveShieldMount();
@@ -244,13 +239,23 @@ export class EditorInputBridge {
     if (this.isEventTargetExclusiveShield(event)) {
       return;
     }
-    if (!this.editor.isLeftMousePressed && !this.editor.isRightMousePressed) {
+    if (!this.isAnyEditorButtonHeld()) {
       this.syncExclusiveShieldMount();
       return;
     }
     const hitRoot = this.findExclusiveRootAtClientPoint(event.clientX, event.clientY, event);
     this.routeEditorMouseUp(event, hitRoot !== null);
     this.syncExclusiveShieldMount();
+  }
+
+  /**
+   * Returns whether an editor button press or a guarded right-button press is
+   * waiting for its release.
+   *
+   * @returns True while any tracked press is held.
+   */
+  private isAnyEditorButtonHeld(): boolean {
+    return this.editor.isLeftMousePressed || this.editor.isRightMousePressed || this.secondaryPressGuard.isHeld();
   }
 
   /**
@@ -265,22 +270,31 @@ export class EditorInputBridge {
       return;
     }
     if (!this.editor.isLeftMousePressed && !this.editor.isRightMousePressed) {
-      if (this.isExclusiveShieldMounted()) {
-        return;
-      }
-      if (this.exclusiveViewportRoots.length === 0) {
-        this.updateMousePositionOnly(event);
-        return;
-      }
-      this.routeEditorMouseMove(
-        event,
-        this.findExclusiveRootAtClientPoint(event.clientX, event.clientY, event) !== null,
-      );
+      this.handleDocumentHoverMove(event);
       return;
     }
     const hitRoot = this.findExclusiveRootAtClientPoint(event.clientX, event.clientY, event);
     this.routeEditorMouseMove(event, hitRoot !== null);
     this.syncExclusiveShieldMount();
+  }
+
+  /**
+   * Routes an idle document pointermove made with no editor button held: the
+   * busy shield owns hover while mounted, and without pinned viewports only the
+   * pointer position is stored.
+   *
+   * @param event Browser pointer event.
+   */
+  private handleDocumentHoverMove(event: PointerEvent): void {
+    if (this.isExclusiveShieldMounted()) {
+      return;
+    }
+    if (this.exclusiveViewportRoots.length === 0) {
+      this.updateMousePositionOnly(event);
+      return;
+    }
+    const hitRoot = this.findExclusiveRootAtClientPoint(event.clientX, event.clientY, event);
+    this.routeEditorMouseMove(event, hitRoot !== null);
   }
 
   /**
@@ -500,26 +514,28 @@ export class EditorInputBridge {
   }
 
   /**
-   * Updates mouse state from the pointer, always raises global mouse-up, and
-   * raises mouse-up when the release is over the viewport.
+   * Updates mouse state from the pointer, ends a guarded right-button press,
+   * always raises global mouse-up, and raises mouse-up when the release is over
+   * the viewport.
    *
-   * @param event Pointer event that supplies position, button, target, and
-   *   modifiers.
+   * @param event Pointer event that supplies position, target, and modifiers.
    * @param inViewport Whether the release is over the viewport.
+   * @param button Released mouse button index; defaults to the event's button.
    */
-  private routeEditorMouseUp(event: PointerEvent, inViewport: boolean): void {
+  private routeEditorMouseUp(event: PointerEvent, inViewport: boolean, button: number = event.button): void {
+    this.secondaryPressGuard.releaseObserve(button);
     this.editor.updateMouseStateFromPointer(
       event.clientX,
       event.clientY,
       this.resolveEventTargetNode(event.target),
-      event.button,
+      button,
       false,
       this.resolveEventDocument(event),
       this.resolveModifierFlagsFromEvent(event),
     );
-    this.editor.onGlobalMouseUp(event.button);
+    this.editor.onGlobalMouseUp(button);
     if (inViewport) {
-      this.editor.onMouseUp(event.button);
+      this.editor.onMouseUp(button);
     }
   }
 
@@ -875,86 +891,10 @@ export class EditorInputBridge {
   }
 
   /**
-   * Attaches idle capture-phase listeners on the main install document and
-   * every detached popup document that owns a pinned exclusive root.
-   */
-  private attachDocumentListeners(): void {
-    this.syncIdleDocumentListeners();
-  }
-
-  /** Removes idle document listeners from every document that still has them. */
-  private detachDocumentListeners(): void {
-    for (const doc of this.idleListenerDocuments) {
-      this.removeIdleListenersFromDocument(doc);
-    }
-    this.idleListenerDocuments.clear();
-  }
-
-  /**
    * Keeps idle pointer listeners in sync with the main install document and the
    * owner documents of pinned exclusive roots so detached popups receive LMB.
    */
   private syncIdleDocumentListeners(): void {
-    if (!this.boundPointerDown || !this.boundPointerUp || !this.boundPointerMove) {
-      return;
-    }
-    const desiredDocuments = new Set(this.collectExclusiveShieldDocuments());
-    for (const doc of this.idleListenerDocuments) {
-      if (!desiredDocuments.has(doc)) {
-        this.removeIdleListenersFromDocument(doc);
-        this.idleListenerDocuments.delete(doc);
-      }
-    }
-    for (const doc of desiredDocuments) {
-      if (this.idleListenerDocuments.has(doc)) {
-        continue;
-      }
-      if (!this.canAttachIdleListenersToDocument(doc)) {
-        continue;
-      }
-      this.addIdleListenersToDocument(doc);
-      this.idleListenerDocuments.add(doc);
-    }
-  }
-
-  /**
-   * Returns whether a document can host capture-phase idle pointer listeners.
-   *
-   * @param doc Candidate document (main or detached popup).
-   * @returns True when add/removeEventListener are available.
-   */
-  private canAttachIdleListenersToDocument(doc: Document): boolean {
-    return typeof doc.addEventListener === 'function' && typeof doc.removeEventListener === 'function';
-  }
-
-  /**
-   * Attaches idle capture-phase pointer listeners to one document.
-   *
-   * @param doc Document that should receive idle pointer routing.
-   */
-  private addIdleListenersToDocument(doc: Document): void {
-    if (!this.boundPointerDown || !this.boundPointerUp || !this.boundPointerMove) {
-      return;
-    }
-    doc.addEventListener('pointerdown', this.boundPointerDown, true);
-    doc.addEventListener('pointerup', this.boundPointerUp, true);
-    doc.addEventListener('pointermove', this.boundPointerMove, true);
-  }
-
-  /**
-   * Removes idle capture-phase pointer listeners from one document.
-   *
-   * @param doc Document that previously hosted idle pointer routing.
-   */
-  private removeIdleListenersFromDocument(doc: Document): void {
-    if (this.boundPointerDown) {
-      doc.removeEventListener('pointerdown', this.boundPointerDown, true);
-    }
-    if (this.boundPointerUp) {
-      doc.removeEventListener('pointerup', this.boundPointerUp, true);
-    }
-    if (this.boundPointerMove) {
-      doc.removeEventListener('pointermove', this.boundPointerMove, true);
-    }
+    this.idleDocumentListeners.sync(this.collectExclusiveShieldDocuments());
   }
 }

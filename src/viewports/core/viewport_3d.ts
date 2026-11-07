@@ -3,7 +3,7 @@ import { Theme } from '@/theme.js';
 import { ViewportBase, type ViewportBaseOptions } from './viewport_base.js';
 import { Grids } from '@/viewports/grid/grids.js';
 import { ManagerInput } from '@/input/manager_input.js';
-import { CameraFlying } from '@/navigation/camera/camera_flying.js';
+import { CameraFlying, type CameraFlyingMoveSpeedChangedListener } from '@/navigation/camera/camera_flying.js';
 import type { EditorOrientation } from '@/navigation/orientation/editor_orientation.js';
 import type { EditorPlaneFrame } from '@/navigation/orientation/editor_orientation_basis.js';
 import { CameraWidget } from '@/ui/camera/camera_widget.js';
@@ -123,6 +123,16 @@ export class Viewport3D extends ViewportBase {
    */
   setFlyingCameraMoveSpeed(speed: number): void {
     this.flyingCamera.setMoveSpeed(speed);
+  }
+
+  /**
+   * Sets the single listener told when the wheel changes the fly speed during
+   * right-button look.
+   *
+   * @param listener Receives the new speed, or null to stop listening.
+   */
+  setFlyingCameraMoveSpeedChangedListener(listener: CameraFlyingMoveSpeedChangedListener | null): void {
+    this.flyingCamera.setMoveSpeedChangedListener(listener);
   }
 
   /**
@@ -267,6 +277,15 @@ export class Viewport3D extends ViewportBase {
    */
   isCameraNavigating(): boolean {
     return this.flyingCamera.isNavigating();
+  }
+
+  /**
+   * Starts right-button look after a Face Select apply click became a drag.
+   *
+   * @param event Move that crossed the click threshold.
+   */
+  beginSecondaryButtonNavigation(event?: PointerEvent): void {
+    this.flyingCamera.beginSecondaryButtonLook(event);
   }
 
   /**

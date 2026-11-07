@@ -1,9 +1,11 @@
+import { expect } from 'vitest';
 import * as THREE from 'three';
 import { CommandStack } from '@/commands/command_stack.js';
+import { displacementVertexOnBorderIs } from '@/displacement/grid/displacement_grid_neighborhood.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import type { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import type { SolidFaceTextureTarget } from '@/texture/commands/command_texture_solid_face_edit.js';
-import type { DisplacementPower } from '@/displacement/model/displacement_types.js';
+import type { DisplacementFaceSurface, DisplacementPower } from '@/displacement/model/displacement_types.js';
 import { displacementSurfaceCreate } from '@/displacement/model/displacement_face_surface.js';
 import { CommandDisplacementEdit } from '@/displacement/commands/command_displacement_edit.js';
 import { displacementSurfaceMeshFind } from '@/displacement/mesh/displacement_surface_mesh_keys.js';
@@ -153,6 +155,56 @@ export function displacementTestStrokeSettings(
  */
 export function displacementTestAlphasRead(target: SolidFaceTextureTarget): number[] {
   return target.model.findBrush(target.brushId)?.faceDisplacementRead(target.surfaceIndex)?.alphas.slice() ?? [];
+}
+
+/**
+ * Stores a displacement on a face through the undo stack.
+ *
+ * @param rig Test rig.
+ * @param target Face.
+ * @param displacement Displacement to store.
+ */
+export function displacementTestStore(
+  rig: DisplacementTestRig,
+  target: SolidFaceTextureTarget,
+  displacement: DisplacementFaceSurface,
+): void {
+  rig.commandStack.push(new CommandDisplacementEdit([{ target, displacement }]));
+}
+
+/**
+ * Returns the world displaced positions of a face.
+ *
+ * @param target Displaced face.
+ * @returns Row-major world positions.
+ */
+export function displacementTestWorldPositions(target: SolidFaceTextureTarget): THREE.Vector3[] {
+  const face = DisplacementSculptFace.fromTarget(target);
+  if (!face) throw new Error('face has no displacement');
+  return face.placement.displacedPositions(face.displacement);
+}
+
+/**
+ * Checks that the two faces share a full border edge and that every vertex on
+ * it sits at the same displaced position as its partner on the other face.
+ *
+ * @param targets The two sewn faces.
+ */
+export function displacementTestSharedEdgeExpectSewn(targets: readonly SolidFaceTextureTarget[]): void {
+  const [first, second] = targets.map((target) => DisplacementSculptFace.fromTarget(target));
+  if (!first || !second) throw new Error('sewn faces lost their displacement');
+  const secondPositions = second.placement.displacedPositions(second.displacement);
+  let matchedCount = 0;
+  first.placement.basePositions.forEach((base, vertexIndex) => {
+    if (!displacementVertexOnBorderIs(first.rowLength(), vertexIndex)) return;
+    const partnerIndex = second.placement.basePositions.findIndex((other) => other.distanceTo(base) < 1e-4);
+    const partner = secondPositions[partnerIndex];
+    if (!partner) return;
+    const position = first.placement.displacedPositionWrite(first.displacement, vertexIndex, new THREE.Vector3());
+    expect(position.distanceTo(partner)).toBeLessThan(1e-5);
+    matchedCount += 1;
+  });
+  expect(matchedCount).toBe(first.rowLength());
 }
 
 /**

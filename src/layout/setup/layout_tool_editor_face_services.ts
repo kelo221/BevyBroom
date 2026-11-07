@@ -1,5 +1,6 @@
 import type { EditorServices } from '@/editor/window/editor_services.js';
 import type { CoordinatorFaceMode } from '@/tools/face/coordinator_face_mode.js';
+import { faceSelectSecondaryPressResultMiss } from '@/editor/tools/face_select/face_select_secondary_press_result.js';
 
 /** Reads the face mode coordinator, or null before it exists. */
 export type LayoutToolEditorFaceCoordinatorRead = () => CoordinatorFaceMode | null;
@@ -11,6 +12,7 @@ export type LayoutToolEditorFacePointerServices = Pick<
   | 'leaveFaceSelectionMode'
   | 'beginFaceSelectPointerDown'
   | 'beginFaceSelectSecondaryPress'
+  | 'isFaceSelectSecondaryApplyArmed'
   | 'continueFaceSelectPointerMove'
   | 'endFaceSelectPointerUp'
   | 'isFaceSelectStrokeActive'
@@ -61,7 +63,9 @@ function layoutToolEditorFacePointerServicesCreate(
     beginFaceSelectPointerDown: (clientX, clientY, isShiftPressed, isCtrlPressed) =>
       read()?.beginFaceSelectPointerDown(clientX, clientY, isShiftPressed, isCtrlPressed, ownerDocumentRead()) === true,
     beginFaceSelectSecondaryPress: (clientX, clientY) =>
-      read()?.beginFaceSelectSecondaryPress(clientX, clientY, ownerDocumentRead()) === true,
+      read()?.beginFaceSelectSecondaryPress(clientX, clientY, ownerDocumentRead()) ??
+      faceSelectSecondaryPressResultMiss(),
+    isFaceSelectSecondaryApplyArmed: () => read()?.isFaceSelectSecondaryApplyArmed() === true,
     continueFaceSelectPointerMove: (clientX, clientY, buttons) =>
       read()?.continueFaceSelectPointerMove(clientX, clientY, buttons),
     endFaceSelectPointerUp: () => read()?.endFaceSelectPointerUp(),

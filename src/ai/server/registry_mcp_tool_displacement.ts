@@ -7,7 +7,20 @@ const displacementVertexListSchema = {
   description: '(2^power+1)^2 numbers, row by row from the face corner 0.',
 };
 
-/** Tools that create, edit and remove displacements of brush faces. */
+/** List of brush faces a displacement tool names. */
+const displacementFaceListSchema = {
+  type: 'array',
+  items: {
+    type: 'object',
+    properties: {
+      brushId: { type: 'string', description: 'Brush id owning the face.' },
+      faceIndex: { type: 'integer', description: 'Brush face index.' },
+    },
+    required: ['brushId', 'faceIndex'],
+  },
+};
+
+/** Tools that create, edit, sew and remove displacements of brush faces. */
 export const MCP_DISPLACEMENT_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(
     'set_face_displacement',
@@ -43,19 +56,19 @@ export const MCP_DISPLACEMENT_TOOL_DEFINITIONS: McpToolDefinition[] = [
     {
       type: 'object',
       properties: {
-        faces: {
-          type: 'array',
-          description: 'Brush faces to select before adding the adjacent ones.',
-          items: {
-            type: 'object',
-            properties: {
-              brushId: { type: 'string', description: 'Brush id owning the face.' },
-              faceIndex: { type: 'integer', description: 'Brush face index.' },
-            },
-            required: ['brushId', 'faceIndex'],
-          },
-        },
+        faces: { ...displacementFaceListSchema, description: 'Brush faces to select before adding the adjacent ones.' },
       },
+    },
+  ),
+  tool(
+    'sew_displacements',
+    "Sews the shared edges of the named displaced faces (any brush, any solid model) as one undo step, like the Displacement tab's Sew: border vertices of different faces that share a flat world-space point move exactly onto their averaged displaced position, also when the faces have different normals. Faces without a displacement are ignored. Returns { sewnCount } counting the faces that changed.",
+    {
+      type: 'object',
+      properties: {
+        faces: { ...displacementFaceListSchema, description: 'Displaced brush faces to sew together.' },
+      },
+      required: ['faces'],
     },
   ),
 ];

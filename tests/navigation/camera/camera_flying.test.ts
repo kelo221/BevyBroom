@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as THREE from 'three';
-import { CameraFlying } from '@/navigation/camera/camera_flying.js';
+import { CAMERA_FLYING_WHEEL_SPEED_STEP, CameraFlying } from '@/navigation/camera/camera_flying.js';
 import { ManagerInput } from '@/input/manager_input.js';
 import { managerPointerLock } from '@/input/manager_pointer_lock.js';
+import { MOUSE_MOVE_SPEED_MAX, MOUSE_MOVE_SPEED_MIN } from '@/settings/store/settings_types.js';
 
 /**
  * Marks right-mouse fly mode active without a pointer event.
@@ -53,6 +54,26 @@ describe('FlyingCamera', () => {
       configurable: true,
       value: null,
     });
+  });
+
+  it('starts look from a delayed Face Select drag and stops on release', () => {
+    const mockInputManager = {
+      keyStates: new Map(),
+      setupKeyboardListeners: () => {},
+      isKeyDown: () => false,
+      isPhysicalKeyDown: () => false,
+      isShiftDown: () => false,
+      reset: () => {},
+    };
+    const canvas = document.createElement('canvas');
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+    const flyingCamera = new CameraFlying(canvas, camera, mockInputManager as any, 0, 0);
+    expect(flyingCamera.isNavigating()).toBe(false);
+    flyingCamera.beginSecondaryButtonLook(new PointerEvent('pointermove', { pointerId: 1, button: 2 }));
+    expect(flyingCamera.isNavigating()).toBe(true);
+    canvas.dispatchEvent(new PointerEvent('pointerup', { button: 2, pointerId: 1 }));
+    expect(flyingCamera.isNavigating()).toBe(false);
+    flyingCamera.dispose();
   });
 
   it('should initialize with given yaw and pitch values', () => {
@@ -438,12 +459,14 @@ describe('FlyingCamera', () => {
       Object.defineProperty(document, 'pointerLockElement', { value: canvas, configurable: true });
     };
     const flyingCamera = new CameraFlying(canvas, camera, mockInputManager as any, 0, 0);
-    canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 2, pointerId: 1 }));
-    canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 100, movementY: 0, pointerId: 1 }));
+    const yawBeforeMove = flyingCamera.getYaw();
+    canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 2, buttons: 2, pointerId: 1 }));
+    canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 100, movementY: 0, buttons: 2, pointerId: 1 }));
     const yawAfterMove = flyingCamera.getYaw();
+    expect(yawAfterMove).not.toBe(yawBeforeMove);
     Object.defineProperty(document, 'pointerLockElement', { value: null, configurable: true });
     document.dispatchEvent(new Event('pointerlockchange'));
-    canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 100, movementY: 0, pointerId: 1 }));
+    canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 100, movementY: 0, buttons: 2, pointerId: 1 }));
     expect(flyingCamera.getYaw()).toBe(yawAfterMove);
   });
 
@@ -480,5 +503,137 @@ describe('FlyingCamera', () => {
     // Looking toward -Z from +Z maps to yaw of ±π with zero pitch.
     expect(Math.abs(flyingCamera.getYaw())).toBeCloseTo(Math.PI, 2);
     expect(flyingCamera.getPitch()).toBeCloseTo(0, 2);
+  });
+});
+
+/** Canvas, camera and flying controller used by one look scenario. */
+interface FlyingCameraRig {
+  canvas: HTMLCanvasElement;
+  camera: THREE.PerspectiveCamera;
+  flyingCamera: CameraFlying;
+}
+
+/**
+ * Builds a flying camera whose input manager reports no keys held.
+ *
+ * @returns Rig ready to receive pointer and wheel events.
+ */
+function flyingCameraRigCreate(): FlyingCameraRig {
+  const idleInputManager = {
+    isKeyDown: () => false,
+    isPhysicalKeyDown: () => false,
+    isShiftDown: () => false,
+    reset: () => {},
+  };
+  const canvas = document.createElement('canvas');
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+  const flyingCamera = new CameraFlying(canvas, camera, idleInputManager as unknown as ManagerInput, 0, 0);
+  return { canvas, camera, flyingCamera };
+}
+
+/**
+ * Presses the right button on the rig canvas to start look.
+ *
+ * @param rig Rig whose canvas receives the press.
+ */
+function flyingCameraRightPress(rig: FlyingCameraRig): void {
+  rig.canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 2, buttons: 2, pointerId: 1 }));
+}
+
+/**
+ * Dispatches one wheel notch on the rig canvas.
+ *
+ * @param rig Rig whose canvas receives the wheel.
+ * @param deltaY Wheel delta; negative scrolls away from the user.
+ */
+function flyingCameraWheel(rig: FlyingCameraRig, deltaY: number): void {
+  rig.canvas.dispatchEvent(new WheelEvent('wheel', { deltaY, cancelable: true }));
+}
+
+describe('FlyingCamera navigation release', () => {
+  afterEach(() => {
+    managerPointerLock.reset();
+  });
+
+  it('keeps a middle-button pan through buttonless moves', () => {
+    const rig = flyingCameraRigCreate();
+    rig.canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 1, buttons: 4, pointerId: 1 }));
+    rig.canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 3, buttons: 0, pointerId: 1 }));
+    expect(rig.flyingCamera.isNavigating()).toBe(true);
+    rig.flyingCamera.dispose();
+  });
+
+  it('keeps a right-button look through moves and capture losses that report no buttons until the release', () => {
+    const rig = flyingCameraRigCreate();
+    flyingCameraRightPress(rig);
+    rig.canvas.dispatchEvent(new PointerEvent('lostpointercapture', { pointerId: 1, buttons: 0 }));
+    rig.canvas.dispatchEvent(new PointerEvent('pointermove', { buttons: 0, pointerId: 1 }));
+    expect(rig.flyingCamera.isNavigating()).toBe(true);
+    expect(managerPointerLock.getLockCount()).toBe(1);
+    rig.canvas.dispatchEvent(new PointerEvent('pointerup', { button: 2, buttons: 0, pointerId: 1 }));
+    expect(rig.flyingCamera.isNavigating()).toBe(false);
+    expect(managerPointerLock.getLockCount()).toBe(0);
+    rig.flyingCamera.dispose();
+  });
+});
+
+describe('FlyingCamera wheel fly speed', () => {
+  afterEach(() => {
+    managerPointerLock.reset();
+  });
+
+  it('steps the fly speed by the wheel step while looking and leaves the camera in place', () => {
+    const rig = flyingCameraRigCreate();
+    rig.flyingCamera.setMoveSpeed((MOUSE_MOVE_SPEED_MIN + MOUSE_MOVE_SPEED_MAX) / 2);
+    const speedBefore = rig.flyingCamera.getMoveSpeed();
+    const positionBefore = rig.camera.position.clone();
+    flyingCameraRightPress(rig);
+    flyingCameraWheel(rig, -1);
+    expect(rig.flyingCamera.getMoveSpeed()).toBeCloseTo(speedBefore * CAMERA_FLYING_WHEEL_SPEED_STEP, 9);
+    flyingCameraWheel(rig, 1);
+    flyingCameraWheel(rig, 1);
+    expect(rig.flyingCamera.getMoveSpeed()).toBeCloseTo(speedBefore / CAMERA_FLYING_WHEEL_SPEED_STEP, 9);
+    expect(rig.camera.position.distanceTo(positionBefore)).toBe(0);
+    rig.flyingCamera.dispose();
+  });
+
+  it('still dollies along the view direction and keeps the speed when not looking', () => {
+    const rig = flyingCameraRigCreate();
+    const speedBefore = rig.flyingCamera.getMoveSpeed();
+    const positionBefore = rig.camera.position.clone();
+    const forward = rig.flyingCamera.getForwardDirection();
+    flyingCameraWheel(rig, -1);
+    const travel = rig.camera.position.clone().sub(positionBefore);
+    expect(travel.dot(forward)).toBeGreaterThan(0);
+    expect(rig.flyingCamera.getMoveSpeed()).toBe(speedBefore);
+    rig.flyingCamera.dispose();
+  });
+
+  it('clamps the wheel fly speed to the mouse move speed range', () => {
+    const rig = flyingCameraRigCreate();
+    flyingCameraRightPress(rig);
+    rig.flyingCamera.setMoveSpeed(MOUSE_MOVE_SPEED_MAX);
+    flyingCameraWheel(rig, -1);
+    expect(rig.flyingCamera.getMoveSpeed()).toBe(MOUSE_MOVE_SPEED_MAX);
+    rig.flyingCamera.setMoveSpeed(MOUSE_MOVE_SPEED_MIN);
+    flyingCameraWheel(rig, 1);
+    expect(rig.flyingCamera.getMoveSpeed()).toBe(MOUSE_MOVE_SPEED_MIN);
+    rig.flyingCamera.setMoveSpeed(MOUSE_MOVE_SPEED_MAX * 2);
+    expect(rig.flyingCamera.getMoveSpeed()).toBe(MOUSE_MOVE_SPEED_MAX);
+    rig.flyingCamera.dispose();
+  });
+
+  it('tells the listener about wheel speed changes only, not about set speeds or clamped notches', () => {
+    const rig = flyingCameraRigCreate();
+    const listener = vi.fn();
+    rig.flyingCamera.setMoveSpeedChangedListener(listener);
+    rig.flyingCamera.setMoveSpeed(MOUSE_MOVE_SPEED_MIN);
+    expect(listener).not.toHaveBeenCalled();
+    flyingCameraRightPress(rig);
+    flyingCameraWheel(rig, 1);
+    expect(listener).not.toHaveBeenCalled();
+    flyingCameraWheel(rig, -1);
+    expect(listener.mock.calls).toEqual([[rig.flyingCamera.getMoveSpeed()]]);
+    rig.flyingCamera.dispose();
   });
 });

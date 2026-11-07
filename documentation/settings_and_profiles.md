@@ -26,9 +26,9 @@ The Mouse tab controls camera behavior:
 
 - Look sensitivity.
 - Invert look X or Y.
-- Pan sensitivity.
+- Pan sensitivity, which sets how far a middle or right drag pans the Top, Front, and Side views. The default of 50 pans half as far as the mouse moves; 100 keeps the grid under the cursor.
 - Invert pan X or Y.
-- Fly movement speed.
+- Fly movement speed. The mouse wheel also changes it while you hold the right mouse button in Perspective.
 - Movement sensitivity.
 - Invert the mouse wheel.
 - **Alt + middle mouse drag to move camera**, which makes Alt + middle-mouse drag move the Perspective camera forward and back instead of panning, and **Invert Z axis in Alt + middle mouse drag**, which reverses that direction. Both are off by default.

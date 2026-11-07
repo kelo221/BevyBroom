@@ -6,6 +6,7 @@ import {
   displacementVertexCount,
 } from '@/displacement/model/displacement_face_surface.js';
 import { displacementPowerChange } from '@/displacement/grid/displacement_grid_power_change.js';
+import { displacementSeamOffsetsComponentsSplit } from '@/displacement/model/displacement_seam_offsets.js';
 import { DisplacementSculptOps } from '@/displacement/sculpt/displacement_sculpt_ops.js';
 
 /**
@@ -58,5 +59,30 @@ describe('displacementPowerChange', () => {
     expect(source.flags.noRayCollision).toBe(false);
     displacementPowerChange(source, 4);
     expect(source.power).toBe(2);
+  });
+
+  it('resamples every seam offset component like the offsets and keeps absent seam offsets absent', () => {
+    const source = displacementSurfaceCreate(3);
+    source.seamOffsets = Array.from({ length: source.offsets.length * 3 }, (_unused, index) => Math.sin(index * 0.7));
+    const sourceComponents = displacementSeamOffsetsComponentsSplit(source.seamOffsets);
+    const sourceRowLength = displacementRowLength(source.power);
+    DISPLACEMENT_POWERS.forEach((power) => {
+      const changed = displacementPowerChange(source, power);
+      const rowLength = displacementRowLength(power);
+      expect(changed.seamOffsets).toHaveLength(displacementVertexCount(power) * 3);
+      const changedComponents = displacementSeamOffsetsComponentsSplit(changed.seamOffsets ?? []);
+      const coarserSide = Math.min(rowLength, sourceRowLength) - 1;
+      sourceComponents.forEach((component, axis) => {
+        for (let step = 0; step <= coarserSide; step++) {
+          const share = step / coarserSide;
+          expect(powerTestValueAt(changedComponents[axis] ?? [], rowLength, share, 1 - share)).toBeCloseTo(
+            powerTestValueAt(component, sourceRowLength, share, 1 - share),
+            9,
+          );
+        }
+      });
+    });
+    const plain = displacementPowerChange(displacementSurfaceCreate(2), 4);
+    expect('seamOffsets' in plain).toBe(false);
   });
 });

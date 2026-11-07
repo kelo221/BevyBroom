@@ -4,6 +4,22 @@ import { managerPointerLock } from '@/input/manager_pointer_lock.js';
 import { blurActiveFormField } from '@/utils/dom_focus.js';
 import { SelectionClickThrough } from '@/selection/object/selection_click_through.js';
 import { EditorOrientation } from '@/navigation/orientation/editor_orientation.js';
+import { pointerCaptureTry } from '@/utils/pointer_capture.js';
+import { MOUSE_MOVE_SPEED_MAX, MOUSE_MOVE_SPEED_MIN } from '@/settings/store/settings_types.js';
+import { NAVIGATION_BUTTON_MIDDLE, NAVIGATION_BUTTON_SECONDARY } from './navigation_buttons.js';
+
+/**
+ * Factor one wheel notch applies to the fly speed while right-button look is
+ * held.
+ */
+export const CAMERA_FLYING_WHEEL_SPEED_STEP = 1.25;
+
+/**
+ * Receives the fly speed after the wheel changed it during right-button look.
+ *
+ * @param moveSpeed New base fly speed in world units per second.
+ */
+export type CameraFlyingMoveSpeedChangedListener = (moveSpeed: number) => void;
 
 /**
  * First-person flying camera for the 3D viewport. Look and WASD/QE movement
@@ -24,6 +40,7 @@ export class CameraFlying {
   private yaw: number;
   private pitch: number;
   private moveSpeed: number;
+  private moveSpeedChangedListener: CameraFlyingMoveSpeedChangedListener | null = null;
   /** Multiplier applied to fly speed while Shift is held. */
   private readonly shiftSpeedMultiplier: number;
   private mouseSensitivity: number;
@@ -190,28 +207,47 @@ export class CameraFlying {
       return;
     }
     event.preventDefault();
-    if (typeof this.canvas.setPointerCapture === 'function') {
-      try {
-        this.canvas.setPointerCapture(event.pointerId);
-      } catch {
-        // Ignore capture failures in locked or cross-window edge cases.
-      }
-    }
+    pointerCaptureTry(this.canvas, event.pointerId);
     if (event.button === 1) {
-      blurActiveFormField();
-      this.beginPan();
-      this.activeButtons.add(event.button);
-      this.takePointerLock();
-      SelectionClickThrough.resetClickThrough();
+      this.beginMiddleButtonPan();
     }
     if (event.button === 2) {
-      blurActiveFormField();
-      this.syncOrientationFromCamera();
-      this.isRotating = true;
-      this.activeButtons.add(event.button);
-      this.takePointerLock();
-      SelectionClickThrough.resetClickThrough();
+      this.beginSecondaryButtonLook(event);
     }
+  }
+
+  /** Starts middle-button pan and pointer lock from a canvas press. */
+  private beginMiddleButtonPan(): void {
+    blurActiveFormField();
+    this.beginPan();
+    this.activeButtons.add(1);
+    this.takePointerLock();
+    SelectionClickThrough.resetClickThrough();
+  }
+
+  /**
+   * Starts right-button look and pointer lock without a pointerdown on the
+   * canvas, so a Face Select apply click can hand the press to the camera after
+   * a drag.
+   *
+   * @param event Move that crossed the click threshold, or the original press.
+   */
+  beginSecondaryButtonLook(event?: PointerEvent): void {
+    if (!this.isEnabled) {
+      return;
+    }
+    pointerCaptureTry(this.canvas, event?.pointerId);
+    this.beginSecondaryButtonLookStateWrite();
+  }
+
+  /** Writes the rotating state of a right-button look and takes pointer lock. */
+  private beginSecondaryButtonLookStateWrite(): void {
+    blurActiveFormField();
+    this.syncOrientationFromCamera();
+    this.isRotating = true;
+    this.activeButtons.add(2);
+    this.takePointerLock();
+    SelectionClickThrough.resetClickThrough();
   }
 
   /** Begins middle-mouse pan by capturing the look target distance. */
@@ -314,11 +350,11 @@ export class CameraFlying {
    * @param button Mouse button index.
    */
   private endNavigationButton(button: number): void {
-    if (button === 1) {
+    if (button === NAVIGATION_BUTTON_MIDDLE) {
       this.isPanning = false;
       this.activeButtons.delete(button);
     }
-    if (button === 2) {
+    if (button === NAVIGATION_BUTTON_SECONDARY) {
       this.isRotating = false;
       this.activeButtons.delete(button);
     }
@@ -328,7 +364,8 @@ export class CameraFlying {
   }
 
   /**
-   * Zooms the camera along its look direction.
+   * Changes the fly speed while right-button look is held, otherwise zooms the
+   * camera along its look direction.
    *
    * @param event The wheel event.
    */
@@ -337,10 +374,42 @@ export class CameraFlying {
       return;
     }
     event.preventDefault();
+    if (this.isRotating) {
+      this.moveSpeedStepFromWheel(event.deltaY);
+      return;
+    }
+    this.dollyFromWheel(event.deltaY);
+  }
+
+  /**
+   * Moves the camera a fixed step along its look direction for one wheel notch.
+   *
+   * @param deltaY Wheel delta; positive scrolls toward the user and moves back.
+   */
+  private dollyFromWheel(deltaY: number): void {
     const forward = this.getForward();
-    const zoomAmount = event.deltaY > 0 ? -1 : 1;
+    const zoomAmount = deltaY > 0 ? -1 : 1;
     this.camera.position.addScaledVector(forward, zoomAmount * 0.5);
     SelectionClickThrough.resetClickThrough();
+  }
+
+  /**
+   * Multiplies or divides the fly speed by one wheel step, clamped to the
+   * allowed range, and reports a changed speed to the listener.
+   *
+   * @param deltaY Wheel delta; negative speeds up, positive slows down, zero
+   *   changes nothing.
+   */
+  private moveSpeedStepFromWheel(deltaY: number): void {
+    if (deltaY === 0) {
+      return;
+    }
+    const speedBefore = this.moveSpeed;
+    const factor = deltaY < 0 ? CAMERA_FLYING_WHEEL_SPEED_STEP : 1 / CAMERA_FLYING_WHEEL_SPEED_STEP;
+    this.setMoveSpeed(speedBefore * factor);
+    if (this.moveSpeed !== speedBefore) {
+      this.moveSpeedChangedListener?.(this.moveSpeed);
+    }
   }
 
   /**
@@ -557,12 +626,31 @@ export class CameraFlying {
   }
 
   /**
-   * Sets the base speed used for 3D fly movement.
+   * Sets the base speed used for 3D fly movement, clamped to the mouse move
+   * speed range. Does not notify the move speed listener.
    *
    * @param speed World units moved per second before Shift boost.
    */
   setMoveSpeed(speed: number): void {
-    this.moveSpeed = Math.max(1, Math.min(20, speed));
+    this.moveSpeed = THREE.MathUtils.clamp(speed, MOUSE_MOVE_SPEED_MIN, MOUSE_MOVE_SPEED_MAX);
+  }
+
+  /**
+   * Returns the base speed used for 3D fly movement.
+   *
+   * @returns World units moved per second before Shift boost.
+   */
+  getMoveSpeed(): number {
+    return this.moveSpeed;
+  }
+
+  /**
+   * Sets the single listener told when the wheel changes the fly speed.
+   *
+   * @param listener Receives the new speed, or null to stop listening.
+   */
+  setMoveSpeedChangedListener(listener: CameraFlyingMoveSpeedChangedListener | null): void {
+    this.moveSpeedChangedListener = listener;
   }
 
   /**

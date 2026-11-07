@@ -13,7 +13,7 @@ import {
 } from '@/displacement/model/displacement_face_surface.js';
 import { displacementFaceFailureRead } from '@/displacement/model/displacement_face_eligibility.js';
 import { CommandDisplacementEdit } from '@/displacement/commands/command_displacement_edit.js';
-import type { ControllerDisplacementActions } from '@/displacement/controller/controller_displacement_actions.js';
+import { ControllerDisplacementActions } from '@/displacement/controller/controller_displacement_actions.js';
 import { displacementActionsSharedRead } from '@/displacement/controller/displacement_actions_shared.js';
 
 /** Power a created displacement gets when the call names none. */
@@ -29,8 +29,8 @@ interface EditorApiDisplacementTarget {
 }
 
 /**
- * Creates, edits and removes the displacements of authored brush faces and
- * selects adjacent displaced faces.
+ * Creates, edits, sews and removes the displacements of authored brush faces
+ * and selects adjacent displaced faces.
  */
 export class EditorApiDisplacement {
   /**
@@ -51,7 +51,26 @@ export class EditorApiDisplacement {
     if (name === 'set_face_displacement') {
       return this.faceDisplacementSet(args);
     }
+    if (name === 'sew_displacements') {
+      return this.displacementsSew(args);
+    }
     return name === 'select_adjacent_displacements' ? this.adjacentDisplacementsSelect(args) : null;
+  }
+
+  /**
+   * Sews the shared edges of the faces a call names as one undo step.
+   *
+   * @param args Tool arguments with a faces list.
+   * @returns Result counting the faces that changed.
+   */
+  private displacementsSew(args: Record<string, unknown>): McpToolResult {
+    const targets = this.faceTargetsResolve(args['faces']);
+    if (typeof targets === 'string') {
+      return failResult(targets);
+    }
+    const result = new ControllerDisplacementActions(this.host.commandStack, () => targets).sew();
+    this.host.refreshAfterWorldMutation();
+    return okResult(result.message, { sewnCount: result.editedFaceCount });
   }
 
   /**
@@ -89,6 +108,20 @@ export class EditorApiDisplacement {
     if (faces === undefined) {
       return null;
     }
+    const targets = this.faceTargetsResolve(faces);
+    if (typeof targets === 'string') {
+      return targets;
+    }
+    return actions.selectionReplace(targets) ? null : 'The face selection cannot be changed';
+  }
+
+  /**
+   * Resolves the brush faces of a faces argument.
+   *
+   * @param faces Faces argument: a list of { brushId, faceIndex }.
+   * @returns Brush faces, or a message explaining the bad argument.
+   */
+  private faceTargetsResolve(faces: unknown): SolidFaceTextureTarget[] | string {
     if (!Array.isArray(faces)) {
       return 'faces must be a list of { brushId, faceIndex }';
     }
@@ -100,7 +133,7 @@ export class EditorApiDisplacement {
       }
       targets.push(target.faceTarget);
     }
-    return actions.selectionReplace(targets) ? null : 'The face selection cannot be changed';
+    return targets;
   }
 
   /**
@@ -203,7 +236,8 @@ export function editorApiDisplacementFaceDescribe(target: SolidFaceTextureTarget
 
 /**
  * Applies the surface values a call names on top of a base displacement and
- * validates the result.
+ * validates the result. A power change drops the base's seam offsets and keeps
+ * only the offsets and alphas the call names, so unnamed lists start at zero.
  *
  * @param base Displacement the call starts from.
  * @param args Tool arguments that may name power, elevation, scale, offsets,
@@ -221,8 +255,9 @@ function displacementWithOverrides(
       record[key] = args[key];
     }
   });
-  if (args['power'] !== undefined && args['power'] !== base.power && args['offsets'] === undefined) {
-    record['offsets'] = undefined;
+  if (args['power'] !== undefined && args['power'] !== base.power) {
+    record['seamOffsets'] = undefined;
+    record['offsets'] = args['offsets'];
     record['alphas'] = args['alphas'];
   }
   return (

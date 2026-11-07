@@ -1,21 +1,32 @@
 import type { Vector2 } from 'three';
 import { Tool } from '../tool.js';
+import {
+  faceSelectSecondaryPressResultMiss,
+  type FaceSelectSecondaryPressResult,
+} from './face_select_secondary_press_result.js';
 
 /** Mouse button index of the left button. */
 const FACE_SELECT_TOOL_PRIMARY_BUTTON = 0;
 
+/** PointerEvent.buttons bit of the left button. */
+const FACE_SELECT_TOOL_PRIMARY_BUTTON_MASK = 1;
+
 /** Mouse button index of the right button. */
 const FACE_SELECT_TOOL_SECONDARY_BUTTON = 2;
+
+/** PointerEvent.buttons bit of the right button. */
+const FACE_SELECT_TOOL_SECONDARY_BUTTON_MASK = 2;
 
 /**
  * Permanent face selection tool. Owns face pick/paint/UV smear mouse input so
  * tools that do not inherit BoxSelectTool never object-select by accident.
- * Right-button presses that start a face stroke (displacement painting) are
- * held by this tool instead of viewport navigation.
+ * Right-button presses that start a face stroke (displacement painting) or arm
+ * a texture apply click are held by this tool instead of viewport navigation.
  */
 export class FaceSelectTool extends Tool {
   private strokeActive: boolean;
   private strokeButton: number;
+  private secondaryApplyClaimed: boolean;
   /**
    * When true, the next deactivate skips leaving face mode so a single-use UV
    * child tool can keep the face selection alive.
@@ -27,6 +38,7 @@ export class FaceSelectTool extends Tool {
     super();
     this.strokeActive = false;
     this.strokeButton = FACE_SELECT_TOOL_PRIMARY_BUTTON;
+    this.secondaryApplyClaimed = false;
     this.preserveFaceModeForSingleUseChild = false;
   }
 
@@ -50,6 +62,7 @@ export class FaceSelectTool extends Tool {
   /** Called when the tool is activated. */
   override onActivate(): void {
     this.strokeActive = false;
+    this.secondaryApplyClaimed = false;
     this.preserveFaceModeForSingleUseChild = false;
     this.editor?.getServices()?.enterFaceSelectionMode();
     this.editor?.getServices()?.setStatusMessage('Face select');
@@ -58,6 +71,7 @@ export class FaceSelectTool extends Tool {
   /** Called when the tool is deactivated. */
   override onDeactivate(): void {
     this.strokeActive = false;
+    this.secondaryApplyClaimed = false;
     this.editor?.getServices()?.endFaceSelectPointerUp();
     if (this.consumePreserveFaceModeForSingleUseChild()) {
       return;
@@ -79,14 +93,14 @@ export class FaceSelectTool extends Tool {
   }
 
   /**
-   * Returns whether a right-button press started a face stroke that this tool
-   * holds.
+   * Returns whether a right-button press started a face stroke or armed a
+   * texture apply click that this tool holds.
    *
    * @param button Mouse button index of the press.
-   * @returns True while a stroke held by that button is active.
+   * @returns True while a stroke or apply click held by that button is active.
    */
   override claimsViewportNavigationPress(button: number): boolean {
-    return this.isStrokeHeldBy(button);
+    return this.isStrokeHeldBy(button) || this.isSecondaryApplyClaimed(button);
   }
 
   /**
@@ -118,17 +132,29 @@ export class FaceSelectTool extends Tool {
   }
 
   /**
-   * Forwards a right-button press to the face services and holds the stroke
-   * when it started one.
+   * Forwards a right-button press to the face services and holds the stroke or
+   * the apply click when the press hit a viewport.
    */
   private secondaryPressForward(): void {
     if (!this.editor) {
       return;
     }
-    const started = this.editor
-      .getServices()
-      ?.beginFaceSelectSecondaryPress?.(this.editor.lastPointerClientX, this.editor.lastPointerClientY);
-    if (started === true) {
+    const result =
+      this.editor
+        .getServices()
+        ?.beginFaceSelectSecondaryPress?.(this.editor.lastPointerClientX, this.editor.lastPointerClientY) ??
+      faceSelectSecondaryPressResultMiss();
+    this.secondaryPressResultApply(result);
+  }
+
+  /**
+   * Stores the stroke or apply-click claim of a right-button press.
+   *
+   * @param result Press result from the face services.
+   */
+  private secondaryPressResultApply(result: FaceSelectSecondaryPressResult): void {
+    this.secondaryApplyClaimed = result.viewportHit && !result.strokeStarted;
+    if (result.strokeStarted) {
       this.strokeStateWrite(true, FACE_SELECT_TOOL_SECONDARY_BUTTON);
     }
   }
@@ -152,6 +178,19 @@ export class FaceSelectTool extends Tool {
    */
   private isStrokeHeldBy(button: number): boolean {
     return this.strokeActive && this.strokeButton === button;
+  }
+
+  /**
+   * Returns whether an armed texture apply click claims the right button.
+   *
+   * @param button Mouse button index.
+   * @returns True while the apply click is armed on that button.
+   */
+  private isSecondaryApplyClaimed(button: number): boolean {
+    if (button !== FACE_SELECT_TOOL_SECONDARY_BUTTON || !this.secondaryApplyClaimed) {
+      return false;
+    }
+    return this.editor?.getServices()?.isFaceSelectSecondaryApplyArmed?.() === true;
   }
 
   /**
@@ -196,6 +235,9 @@ export class FaceSelectTool extends Tool {
    * @param button Mouse button index.
    */
   override onGlobalMouseUp(button: number): void {
+    if (button === FACE_SELECT_TOOL_SECONDARY_BUTTON) {
+      this.secondaryApplyClaimed = false;
+    }
     if (button !== FACE_SELECT_TOOL_PRIMARY_BUTTON && !this.isStrokeHeldBy(button)) {
       return;
     }
@@ -264,7 +306,10 @@ export class FaceSelectTool extends Tool {
     if (!services) {
       return;
     }
-    const buttons = this.strokeButton === FACE_SELECT_TOOL_SECONDARY_BUTTON ? 2 : 1;
+    const buttons =
+      this.strokeButton === FACE_SELECT_TOOL_SECONDARY_BUTTON
+        ? FACE_SELECT_TOOL_SECONDARY_BUTTON_MASK
+        : FACE_SELECT_TOOL_PRIMARY_BUTTON_MASK;
     services.continueFaceSelectPointerMove(this.editor.lastPointerClientX, this.editor.lastPointerClientY, buttons);
   }
 }

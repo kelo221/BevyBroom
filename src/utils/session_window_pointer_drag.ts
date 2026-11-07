@@ -1,3 +1,5 @@
+import { pointerCaptureTry } from './pointer_capture.js';
+
 /**
  * Captures pointer move and release on window for a drag that began on a
  * specific element. Releasing over toolbars or other UI still ends the drag.
@@ -128,20 +130,13 @@ export class WindowPointerDragSession {
    * @param pointerCapture Element and pointer id from the starting pointerdown.
    */
   private applyPointerCapture(pointerCapture: { element: HTMLElement; pointerId: number } | null): void {
-    if (!pointerCapture) {
-      return;
-    }
-    if (typeof pointerCapture.element.setPointerCapture !== 'function') {
-      return;
-    }
-    try {
-      pointerCapture.element.setPointerCapture(pointerCapture.pointerId);
-      this.captureElement = pointerCapture.element;
-      this.capturePointerId = pointerCapture.pointerId;
-    } catch {
+    if (!pointerCapture || !pointerCaptureTry(pointerCapture.element, pointerCapture.pointerId)) {
       this.captureElement = null;
       this.capturePointerId = null;
+      return;
     }
+    this.captureElement = pointerCapture.element;
+    this.capturePointerId = pointerCapture.pointerId;
   }
 
   /** Releases element pointer capture if this session holds it. */
