@@ -8,7 +8,7 @@ Every finished milestone passed: `bun run testrun`, `bun run build`, `bun run ty
 
 Done:
 
-- `broom.hello` handshake (protocol 4, accepts 3 to 4): protocol range, capabilities, project id and process id. The editor publishes nothing into a game that does not accept its protocol, lacks a required capability or belongs to another project, and shows **incompatible** with the reason.
+- `broom.hello` handshake (protocol 4, accepts 3 to 4): protocol range, capabilities, project id and process id. The editor publishes nothing into a game that does not accept its protocol, lacks a required capability or belongs to another project, and shows **incompatible** with the reason. A game whose bridge is built without the `dynlight` feature leaves out the optional `lights` capability; the editor still connects and writes the console notice "This game does not render editor lights".
 - Shared wire fixtures in `bevy/fixtures/`, parsed by the Rust tests and by `tests/preview/protocol/preview_protocol_fixtures.test.ts` straight from the same files (no mirror). `bevy/` is excluded from Prettier.
 - `compatibility.json` pins protocol, Bevy and the DynLight commit; a test checks it against the editor and `bevy/`.
 - CI on `master`, strict type check required; a **Bevy workspace** job runs `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` on `bevy/` for every pull request, with the renderer checked out at the pinned commit; a manual **Game integration** workflow builds the programs and runs `bun run e2e` with `BROOM_E2E_REQUIRED=1`.

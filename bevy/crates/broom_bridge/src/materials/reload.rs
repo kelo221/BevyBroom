@@ -2,14 +2,13 @@
 
 use std::path::Path;
 
-use bevy::asset::RenderAssetUsages;
+use bevy::asset::{AssetMut, RenderAssetUsages};
 use bevy::ecs::system::SystemParam;
 use bevy::image::{CompressedImageFormats, ImageType};
 use bevy::prelude::*;
-use dynlight::surface::DynLitMaterial;
 
 use super::build::CatalogResolvers;
-use super::{CatalogState, FileStamp, WatchedTexture};
+use super::{CatalogMaterialKind, CatalogMaterials, CatalogState, FileStamp, WatchedTexture};
 use crate::project::ProjectPaths;
 use crate::protocol::{CatalogMaterial, MaterialCatalog};
 use crate::status::BridgeStatus;
@@ -35,22 +34,24 @@ fn file_stamp(path: &Path) -> Option<FileStamp> {
     Some((meta.modified().ok()?, meta.len()))
 }
 
-/// The asset stores catalog reloads write into.
+/// The catalog's materials of type `M` and the asset stores catalog reloads write into.
 #[derive(SystemParam)]
-pub(super) struct CatalogAssets<'w> {
+pub(super) struct CatalogAssets<'w, M: CatalogMaterialKind> {
     assets: Res<'w, AssetServer>,
-    materials: ResMut<'w, Assets<DynLitMaterial>>,
+    handles: ResMut<'w, CatalogMaterials<M>>,
+    materials: ResMut<'w, Assets<M>>,
     images: ResMut<'w, Assets<Image>>,
 }
 
-/// Reloads the catalog when its file changed and replaces textures whose files changed.
-pub(super) fn poll_catalog_files(
+/// Reloads the catalog when its file changed and replaces textures whose files changed,
+/// marking the materials of type `M` modified when a texture was replaced.
+pub(super) fn poll_catalog_files<M: CatalogMaterialKind>(
     time: Res<Time<Real>>,
     mut timer: ResMut<CatalogPollTimer>,
     mut state: ResMut<CatalogState>,
     paths: Res<ProjectPaths>,
-    resolvers: Res<CatalogResolvers>,
-    mut stores: CatalogAssets,
+    resolvers: Res<CatalogResolvers<M>>,
+    mut stores: CatalogAssets<M>,
     mut status: ResMut<BridgeStatus>,
 ) {
     if !timer.0.tick(time.delta()).just_finished() {
@@ -59,28 +60,31 @@ pub(super) fn poll_catalog_files(
     let catalog_stamp = file_stamp(&paths.catalog_file);
     if catalog_stamp != state.catalog_stamp {
         state.catalog_stamp = catalog_stamp;
-        let CatalogAssets {
-            assets, materials, ..
-        } = &mut stores;
-        reload_catalog(&mut state, &paths, &resolvers, assets, materials);
+        reload_catalog(&mut state, &paths, &resolvers, &mut stores);
         status.catalog_material_count = state.catalog.materials.len();
         status.catalog_error.clone_from(&state.error);
         if let Some(error) = &state.error {
             status.report_error(format!("material catalog: {error}"));
         }
     }
-    let CatalogAssets { assets, images, .. } = &mut stores;
-    reload_changed_textures(&mut state, &paths, assets, images, &mut status);
+    let CatalogAssets {
+        assets,
+        handles,
+        materials,
+        images,
+    } = &mut stores;
+    if reload_changed_textures(&mut state, &paths, assets, images, &mut status) {
+        materials_mark_modified(handles, materials);
+    }
 }
 
 /// Parses the catalog file; on success rebuilds every material in place and replaces the
 /// catalog, on failure keeps the previous catalog and records why.
-fn reload_catalog(
+fn reload_catalog<M: CatalogMaterialKind>(
     state: &mut CatalogState,
     paths: &ProjectPaths,
-    resolvers: &CatalogResolvers,
-    assets: &AssetServer,
-    materials: &mut Assets<DynLitMaterial>,
+    resolvers: &CatalogResolvers<M>,
+    stores: &mut CatalogAssets<M>,
 ) {
     let parsed = std::fs::read_to_string(&paths.catalog_file)
         .map_err(|error| format!("cannot read {}: {error}", paths.catalog_file.display()))
@@ -94,8 +98,8 @@ fn reload_catalog(
     };
     let mut errors = Vec::new();
     for entry in &catalog.materials {
-        match resolvers.build(entry, assets) {
-            Ok(material) => store_material(state, entry, material, materials),
+        match resolvers.build(entry, &stores.assets) {
+            Ok(material) => store_material(state, entry, material, stores),
             Err(error) => errors.push(error),
         }
     }
@@ -110,25 +114,36 @@ fn reload_catalog(
 }
 
 /// Writes `material` into the id's existing asset, or adds one for a new id.
-fn store_material(
+fn store_material<M: CatalogMaterialKind>(
     state: &mut CatalogState,
     entry: &CatalogMaterial,
-    material: DynLitMaterial,
-    materials: &mut Assets<DynLitMaterial>,
+    material: M,
+    stores: &mut CatalogAssets<M>,
 ) {
     if entry.normal_texture.is_some() {
         state.needs_tangents.insert(entry.id.clone());
     } else {
         state.needs_tangents.remove(&entry.id);
     }
-    match state.handles.get(&entry.id) {
+    match stores.handles.handles.get(&entry.id) {
         Some(handle) => {
-            let _ = materials.insert(handle.id(), material);
+            let _ = stores.materials.insert(handle.id(), material);
         }
         None => {
-            let handle = materials.add(material);
-            state.handles.insert(entry.id.clone(), handle);
+            let handle = stores.materials.add(material);
+            stores.handles.handles.insert(entry.id.clone(), handle);
         }
+    }
+}
+
+/// Marks every material in `handles` modified, so the renderer rebuilds what it prepared from
+/// the textures that were just replaced in place.
+fn materials_mark_modified<M: CatalogMaterialKind>(
+    handles: &CatalogMaterials<M>,
+    materials: &mut Assets<M>,
+) {
+    for handle in handles.handles.values() {
+        let _ = materials.get_mut(handle).map(AssetMut::into_inner);
     }
 }
 
@@ -154,14 +169,14 @@ fn watch_textures(state: &mut CatalogState, catalog: &MaterialCatalog, paths: &P
 }
 
 /// Decodes textures whose files changed straight into their existing image assets, keeping the
-/// sRGB flag and the repeating sampler the catalog loads them with.
+/// sRGB flag and the repeating sampler the catalog loads them with. Whether any was reloaded.
 fn reload_changed_textures(
     state: &mut CatalogState,
     paths: &ProjectPaths,
     assets: &AssetServer,
     images: &mut Assets<Image>,
     status: &mut BridgeStatus,
-) {
+) -> bool {
     let mut reloaded = 0;
     for (path, texture) in &mut state.textures {
         let file = paths.asset_root.join(path);
@@ -185,6 +200,7 @@ fn reload_changed_textures(
     if reloaded > 0 {
         state.texture_generation += 1;
     }
+    reloaded > 0
 }
 
 /// Reads and decodes the image file at `file`.

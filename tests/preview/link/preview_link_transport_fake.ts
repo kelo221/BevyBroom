@@ -1,5 +1,9 @@
 import { PreviewLinkTransport, PreviewLinkTransportError } from '@/preview/link/preview_link_transport.js';
-import { PREVIEW_METHOD, PREVIEW_PROTOCOL_VERSION } from '@/preview/protocol/preview_protocol_types.js';
+import {
+  PREVIEW_CAPABILITY_LIGHTS,
+  PREVIEW_METHOD,
+  PREVIEW_PROTOCOL_VERSION,
+} from '@/preview/protocol/preview_protocol_types.js';
 
 /** One call received by the fake transport. */
 export interface PreviewFakeCall {
@@ -29,7 +33,16 @@ export class PreviewLinkTransportFake extends PreviewLinkTransport {
   dataAssetGeneration = 0;
   projectIdentifier = 'project-test';
   helloProtocolRange: [number, number] = [PREVIEW_PROTOCOL_VERSION, PREVIEW_PROTOCOL_VERSION];
-  helloCapabilities: string[] = ['state', 'geometry', 'catalog', 'placeables', 'data_assets', 'bake_preview'];
+  helloCapabilities: string[] = [
+    'state',
+    'geometry',
+    'catalog',
+    'placeables',
+    'data_assets',
+    'bake_preview',
+    'load_level',
+    PREVIEW_CAPABILITY_LIGHTS,
+  ];
   isHelloSupported = true;
 
   /**

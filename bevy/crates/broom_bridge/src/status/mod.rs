@@ -1,7 +1,11 @@
 //! What the bridge reports to the editor: which revisions arrived and which are shown, what is
-//! loading, the bake state, budgets and recent errors.
+//! loading, the bake state, budgets and recent errors. The light, room, portal and bake fields
+//! are only filled with the `dynlight` feature; without it they keep their defaults, so the
+//! wire shape never changes.
 
 mod refresh;
+#[cfg(feature = "dynlight")]
+mod refresh_dynlight;
 #[cfg(test)]
 mod tests;
 
@@ -131,7 +135,16 @@ impl Plugin for StatusPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (refresh::refresh_status, refresh::refresh_portal_status).after(BroomSystems::Geometry),
+            refresh::refresh_status.after(BroomSystems::Geometry),
+        );
+        #[cfg(feature = "dynlight")]
+        app.add_systems(
+            Update,
+            (
+                refresh_dynlight::refresh_light_status,
+                refresh_dynlight::refresh_portal_status,
+            )
+                .after(BroomSystems::Geometry),
         );
     }
 }

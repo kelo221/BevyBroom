@@ -17,19 +17,21 @@ use crate::protocol::ProtocolRange;
 /// The default port, Bevy's own remote default.
 pub const DEFAULT_PORT: u16 = 15702;
 
-/// Every method the bridge adds, by name.
-pub const METHODS: [&str; 11] = [
+/// Every method the bridge adds, by name. `broom.bake_preview` comes last and only with the
+/// `dynlight` feature.
+pub const METHODS: &[&str] = &[
     "broom.apply_state",
     "broom.publish_geometry",
     "broom.status",
     "broom.catalog",
     "broom.read_asset",
-    "broom.bake_preview",
     "broom.load_level",
     "broom.placeable_classes",
     "broom.data_asset_read",
     "broom.data_asset_write",
     "broom.hello",
+    #[cfg(feature = "dynlight")]
+    "broom.bake_preview",
 ];
 
 /// The protocol range `broom.hello` advertises.
@@ -46,12 +48,13 @@ pub fn add_remote(app: &mut App, port: u16, protocol: ProtocolRange) {
         .with_method_main(METHODS[2], handlers::status)
         .with_method_main(METHODS[3], handlers::catalog)
         .with_method_main(METHODS[4], handlers::read_asset)
-        .with_method_main(METHODS[5], handlers::bake_preview)
-        .with_method_main(METHODS[6], handlers::load_level)
-        .with_method_main(METHODS[7], handlers::placeable_classes)
-        .with_method_main(METHODS[8], handlers::data_asset_read)
-        .with_method_main(METHODS[9], handlers::data_asset_write)
-        .with_method_main(METHODS[10], handlers::hello);
+        .with_method_main(METHODS[5], handlers::load_level)
+        .with_method_main(METHODS[6], handlers::placeable_classes)
+        .with_method_main(METHODS[7], handlers::data_asset_read)
+        .with_method_main(METHODS[8], handlers::data_asset_write)
+        .with_method_main(METHODS[9], handlers::hello);
+    #[cfg(feature = "dynlight")]
+    let remote = remote.with_method_main(METHODS[10], handlers::bake_preview);
     let headers = Headers::new()
         .insert("Access-Control-Allow-Origin", "*")
         .insert("Access-Control-Allow-Headers", "Content-Type");

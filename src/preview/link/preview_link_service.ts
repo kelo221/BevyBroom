@@ -3,6 +3,7 @@ import { PreviewLinkController } from '@/preview/link/preview_link_controller.js
 import { PreviewLinkTransportHttp } from '@/preview/link/preview_link_transport.js';
 import { PreviewLinkPointerTracker } from '@/preview/link/preview_link_pointer_tracker.js';
 import { PreviewLinkConsoleReporter } from '@/preview/link/preview_link_console_reporter.js';
+import { PreviewLinkCapabilityNoticeReporter } from '@/preview/link/preview_link_capability_notice_reporter.js';
 import type { PreviewCatalogLoadedCallback } from '@/preview/link/preview_link_catalog_channel.js';
 import { previewGeometryEncodeGlb } from '@/preview/geometry/preview_geometry_encoder_glb.js';
 import { PREVIEW_DEFAULT_ENDPOINT } from '@/preview/protocol/preview_protocol_types.js';
@@ -36,6 +37,7 @@ export class PreviewLinkService {
   private tickTimer: ReturnType<typeof setInterval> | null = null;
   private removeControllerListener: (() => void) | null = null;
   private consoleReporter: PreviewLinkConsoleReporter | null = null;
+  private capabilityNoticeReporter: PreviewLinkCapabilityNoticeReporter | null = null;
   private endpoint: string | null = null;
 
   /**
@@ -79,6 +81,7 @@ export class PreviewLinkService {
     this.controller = this.controllerCreate();
     this.removeControllerListener = this.controller.changeListenerAdd(() => this.changeNotify());
     this.consoleReporter = new PreviewLinkConsoleReporter(this.controller, this.endpointRead());
+    this.capabilityNoticeReporter = new PreviewLinkCapabilityNoticeReporter(this.controller);
     this.pointerTracker = new PreviewLinkPointerTracker(window);
     this.tickTimer = setInterval(() => this.controller?.tick(), PREVIEW_TICK_INTERVAL_MILLISECONDS);
     this.controller.connect();
@@ -95,6 +98,8 @@ export class PreviewLinkService {
     this.controller?.disconnect();
     this.consoleReporter?.dispose();
     this.consoleReporter = null;
+    this.capabilityNoticeReporter?.dispose();
+    this.capabilityNoticeReporter = null;
     this.removeControllerListener?.();
     this.removeControllerListener = null;
     this.changeNotify();

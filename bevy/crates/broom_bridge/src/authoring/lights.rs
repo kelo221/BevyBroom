@@ -12,16 +12,10 @@ use super::AppliedAuthoring;
 use super::light_companions::{
     CookieLoader, CurrentCompanions, LightCompanions, companions_insert, companions_sync,
 };
+use super::markers::AuthoredLightEntity;
 use super::ownership::{authored_unchanged, previous_of_same_document};
 use crate::protocol::{AuthoredHierarchy, AuthoredObjectKind, AuthoredState};
 use crate::status::BridgeStatus;
-
-/// A light owned by an editor document.
-#[derive(Component, Clone, Debug, PartialEq, Eq)]
-pub struct AuthoredLightEntity {
-    pub id: String,
-    pub document_id: String,
-}
 
 /// What one authored light should look like in the world.
 #[derive(Clone, Debug, PartialEq)]

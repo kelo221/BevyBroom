@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use super::*;
-use crate::protocol::{CAPABILITIES, HelloReply, PROTOCOL_VERSION};
+use crate::protocol::{CAPABILITIES, CAPABILITY_LIGHTS, HelloReply, PROTOCOL_VERSION};
 use crate::status::BridgeStatus;
 
 /// Runs `broom.hello` in a world advertising `range` for project `project_id`.
@@ -26,6 +26,20 @@ fn hello_reports_the_advertised_range_project_instance_and_capabilities() {
     assert_eq!(hello.instance_id, status.instance_id);
     assert_eq!(hello.capabilities.len(), CAPABILITIES.len());
     assert!(hello.capabilities.iter().any(|name| name == "state"));
+}
+
+/// The handshake names `lights` and the bridge serves `broom.bake_preview` exactly when it is
+/// built with the `dynlight` feature.
+#[test]
+fn lights_and_preview_bakes_are_served_with_the_dynlight_feature_only() {
+    let (hello, _) = hello_in_world(ProtocolRange::default(), "game-under-test");
+    let lights_served = hello
+        .capabilities
+        .iter()
+        .any(|name| name == CAPABILITY_LIGHTS);
+    assert_eq!(lights_served, cfg!(feature = "dynlight"));
+    let bakes_served = METHODS.contains(&"broom.bake_preview");
+    assert_eq!(bakes_served, cfg!(feature = "dynlight"));
 }
 
 #[test]

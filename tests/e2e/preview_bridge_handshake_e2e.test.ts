@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as THREE from 'three';
 import { documentIdentityEnsure } from '@/io/document/document_identity.js';
-import { PREVIEW_PROTOCOL_VERSION } from '@/preview/protocol/preview_protocol_types.js';
+import { PREVIEW_CAPABILITY_LIGHTS, PREVIEW_PROTOCOL_VERSION } from '@/preview/protocol/preview_protocol_types.js';
 import {
   PREVIEW_E2E_PROJECT_FILE_NAME,
   PreviewE2eGameProcess,
@@ -17,9 +17,10 @@ import { previewE2eGameMaterialBoxCreate } from './preview_e2e_scene_parts.js';
 /**
  * End-to-end acceptance of the handshake: the editor publishes nothing into a
  * game that speaks another protocol or belongs to another project, explains
- * why, and publishes normally into a matching game. Skipped unless
- * BROOM_E2E_PREVIEW_EXE and BROOM_E2E_PROJECT_DIR are set; its games listen
- * eight and nine ports above BROOM_E2E_PORT.
+ * why, and publishes normally into a matching game, whose DynLight bridge names
+ * the lights capability. Skipped unless BROOM_E2E_PREVIEW_EXE and
+ * BROOM_E2E_PROJECT_DIR are set; its games listen eight and nine ports above
+ * BROOM_E2E_PORT.
  */
 const mismatchEnvironment = previewE2eEnvironmentRead(8);
 const matchingEnvironment = previewE2eEnvironmentRead(9);
@@ -149,6 +150,7 @@ describe.skipIf(!mismatchEnvironment.isConfigured)('preview handshake end to end
       );
       expect(rightProject.controller.connectionStateRead()).toBe('connected');
       expect(view.status.project_id).toBe(projectIdentifier);
+      expect(rightProject.controller.gameHelloRead()?.capabilities).toContain(PREVIEW_CAPABILITY_LIGHTS);
     },
     STEP_TIMEOUT_MILLISECONDS * 3,
   );

@@ -1,7 +1,6 @@
-//! Room cells and portals as the editor authors them, and their DynLight equivalent.
+//! Room cells and portals as the editor authors them. Their DynLight equivalent is in
+//! `light_dynlight`.
 
-use bevy::prelude::*;
-use dynlight::portals::{Portal, Room};
 use serde::{Deserialize, Serialize};
 
 /// One authored room cell: a box of these half sizes, in local units, under the object's full
@@ -37,23 +36,11 @@ impl AuthoredRoom {
     pub fn validate(&self) -> Result<(), String> {
         validate_sizes(&self.half_size)
     }
-
-    /// The DynLight component for this definition.
-    pub fn to_room(&self) -> Room {
-        Room {
-            half_size: Vec3::from_array(self.half_size),
-        }
-    }
 }
 
 impl AuthoredPortal {
     /// Explains the first extent DynLight would treat as a flat or broken opening.
     pub fn validate(&self) -> Result<(), String> {
         validate_sizes(&self.size)
-    }
-
-    /// The DynLight component for this definition, linked automatically on both sides.
-    pub fn to_portal(&self) -> Portal {
-        Portal::new(Vec2::from_array(self.size))
     }
 }
