@@ -47,6 +47,7 @@ export class ProjectWorkbench {
   private readonly changeListeners = new Set<() => void>();
   private status: GameProcessStatus | null = null;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private projectOpenCount = 0;
 
   /**
    * Creates a workbench without an open project.
@@ -148,6 +149,16 @@ export class ProjectWorkbench {
   }
 
   /**
+   * Returns how many times a project was opened, so callers can tell a fresh
+   * open of the same project file apart.
+   *
+   * @returns Number of successful opens.
+   */
+  projectOpenCountRead(): number {
+    return this.projectOpenCount;
+  }
+
+  /**
    * Returns the project the connected game must belong to: the document's
    * project, else the open project.
    *
@@ -210,6 +221,7 @@ export class ProjectWorkbench {
     if (project !== null && project.endpoint !== '') {
       this.hosts.link.endpointWrite(project.endpoint);
     }
+    this.projectOpenCount += 1;
     this.statusAccept(status);
     this.linkRestartWhenActive();
     this.pollStart();

@@ -93,4 +93,29 @@ describe('ProjectDefinitionParser', () => {
     ).toThrow(/level_directory/);
     expect(() => ProjectDefinitionParser.parse('{ not json', '/g/broom.project.json')).toThrow(/not valid JSON/);
   });
+
+  it('reads texture directories relative to the asset root and defaults to none', () => {
+    const absent = ProjectDefinitionParser.parse(projectJsonCreate(), '/g/broom.project.json');
+    expect(absent.textureDirectories).toEqual([]);
+    const listed = ProjectDefinitionParser.parse(
+      projectJsonCreate({ texture_directories: ['textures', 'walls\\stone/'] }),
+      '/g/broom.project.json',
+    );
+    expect(listed.textureDirectories).toEqual(['textures', 'walls/stone']);
+  });
+
+  it('rejects texture directories that escape the asset root or are not strings', () => {
+    const rejectedEntries: unknown[] = ['../outside', 'textures/../../outside', '/absolute', 'C:/absolute', '', 7];
+    for (const rejectedEntry of rejectedEntries) {
+      expect(() =>
+        ProjectDefinitionParser.parse(
+          projectJsonCreate({ texture_directories: ['textures', rejectedEntry] }),
+          '/g/broom.project.json',
+        ),
+      ).toThrow(/texture_directories/);
+    }
+    expect(() =>
+      ProjectDefinitionParser.parse(projectJsonCreate({ texture_directories: 'textures' }), '/g/broom.project.json'),
+    ).toThrow(/texture_directories/);
+  });
 });

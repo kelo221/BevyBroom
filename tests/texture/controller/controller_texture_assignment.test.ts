@@ -19,6 +19,7 @@ import { setTextureMapCacheForTests, TextureMapCache } from '@/texture/library/t
 import { createTextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
 import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js';
 import { mockObjectUrlApis } from '../../texture/library/utils_object_url_test.js';
+import { TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER } from '@/texture/library/texture_library_source.js';
 
 describe('TextureAssignmentController', () => {
   let scene: THREE.Scene;
@@ -62,7 +63,11 @@ describe('TextureAssignmentController', () => {
     initializeMeshTextureUVs(mesh, DEFAULT_CHECKER_TEXTURE_ID);
     world.add(mesh);
     selection.selectObject(mesh);
-    const entry = createTextureBrowserEntry(new File(['x'], 'rock.png', { type: 'image/png' }), 'rock.png');
+    const entry = createTextureBrowserEntry(
+      new File(['x'], 'rock.png', { type: 'image/png' }),
+      'rock.png',
+      TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER,
+    );
     controller.onTextureSelected(entry);
     expect(getFaceTextureMaps(mesh)[0]!.mapping.textureId).toBe('rock.png');
     expect(commandStack.getUndoCount()).toBe(1);
@@ -77,7 +82,11 @@ describe('TextureAssignmentController', () => {
     const before = getFaceTextureMaps(volume);
     world.add(volume);
     selection.selectObject(volume);
-    const entry = createTextureBrowserEntry(new File(['x'], 'rock.png', { type: 'image/png' }), 'rock.png');
+    const entry = createTextureBrowserEntry(
+      new File(['x'], 'rock.png', { type: 'image/png' }),
+      'rock.png',
+      TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER,
+    );
     controller.onTextureSelected(entry);
     expect(commandStack.getUndoCount()).toBe(0);
     expect(getFaceTextureMaps(volume)).toEqual(before);

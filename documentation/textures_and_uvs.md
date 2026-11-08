@@ -17,6 +17,18 @@ For manageable projects, keep related textures in a dedicated folder with clear 
 
 When a game preview is connected, the browser also lists the game's material catalog as **Game materials**. Assigning one of them to a face stores the game material id, and the game uses its own material for that face.
 
+## Project texture folders
+
+In the desktop app, a game project can name texture folders in its `broom.project.json`:
+
+```json
+"texture_directories": ["textures", "decals"]
+```
+
+Each entry is a folder relative to the project's `asset_root`. When the project opens, the browser loads every supported image in those folders and their subfolders as **Project textures**. The id of a project texture is its path relative to the asset root, for example `textures/walls/brick.png`, so faces that use it find it again the next time the project opens. Open the project again to pick up new images. A folder that does not exist shows a warning when the project opens.
+
+The browser groups its tiles under a header per source, in this order: the built-in checker, **Game materials**, **Project textures**, then the folder opened with **Open Folder…**. Opening a folder adds its textures next to the game and project textures. When two sources list the same id, the browser shows only the one from the earlier source.
+
 ## Apply a texture
 
 For an entire ordinary mesh:

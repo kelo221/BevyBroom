@@ -4,6 +4,7 @@ import {
   extractFileExtension,
   getTextureDisplayName,
   getAcceptedImageExtensions,
+  imageFileMimeType,
 } from '@/texture/library/image_file_filter.js';
 
 describe('image_file_filter', () => {
@@ -27,6 +28,17 @@ describe('image_file_filter', () => {
   it('should build display names from file stems', () => {
     expect(getTextureDisplayName('metal_plate.jpeg')).toBe('metal_plate');
     expect(getTextureDisplayName('sub/folder/wood.tga')).toBe('wood');
+  });
+
+  it('should name the MIME type of every accepted extension and fall back to PNG', () => {
+    expect(imageFileMimeType('a/Floor.JPG')).toBe('image/jpeg');
+    expect(imageFileMimeType('b.jpeg')).toBe('image/jpeg');
+    expect(imageFileMimeType('icon.svg')).toBe('image/svg+xml');
+    expect(imageFileMimeType('sky.webp')).toBe('image/webp');
+    expect(imageFileMimeType('mesh.obj')).toBe('image/png');
+    getAcceptedImageExtensions().forEach((extension) =>
+      expect(imageFileMimeType(`x.${extension}`)).toMatch(/^image\//),
+    );
   });
 
   it('should expose a sorted extension list for UI hints', () => {

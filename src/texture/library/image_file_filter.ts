@@ -1,6 +1,23 @@
 /** Image extensions accepted by the texture browser folder scan. */
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg']);
 
+/** MIME types of the accepted image extensions that are not image/<extension>. */
+const IMAGE_MIME_TYPE_OVERRIDES: Readonly<Record<string, string>> = { jpg: 'image/jpeg', svg: 'image/svg+xml' };
+
+/**
+ * Returns the MIME type of an image file name.
+ *
+ * @param fileName File name or path with extension (case-insensitive).
+ * @returns MIME type of an accepted image extension, image/png otherwise.
+ */
+export function imageFileMimeType(fileName: string): string {
+  const extension = extractFileExtension(fileName);
+  if (!IMAGE_EXTENSIONS.has(extension)) {
+    return 'image/png';
+  }
+  return IMAGE_MIME_TYPE_OVERRIDES[extension] ?? `image/${extension}`;
+}
+
 /**
  * Returns whether a file name looks like a supported image texture.
  *

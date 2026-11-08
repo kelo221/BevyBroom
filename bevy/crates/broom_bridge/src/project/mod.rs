@@ -77,6 +77,9 @@ pub struct ProjectConfig {
     /// The editor's coordinate profile; `bevy_meters` is Y up, right-handed, 1 unit = 1 m.
     #[serde(default = "default_coordinate_profile")]
     pub coordinate_profile: String,
+    /// Relative to the asset root: folders whose images the editor's Texture Browser loads.
+    #[serde(default)]
+    pub texture_directories: Vec<String>,
 }
 
 /// Serde default for [`ProjectConfig::document_directory`].
@@ -108,15 +111,25 @@ impl ProjectConfig {
             ("level_directory", &config.level_directory),
             ("document_directory", &config.document_directory),
         ];
-        for (field, path) in paths {
-            if path != "." && !is_contained_path(path) {
-                return Err(format!(
-                    "{field} {path:?} must be a relative path inside the project"
-                ));
-            }
+        let texture_paths = config
+            .texture_directories
+            .iter()
+            .map(|path| ("texture_directories", path));
+        for (field, path) in paths.into_iter().chain(texture_paths) {
+            check_contained(field, path)?;
         }
         Ok(config)
     }
+}
+
+/// Fails when `path` (named by `field`) is neither `.` nor a relative path inside the project.
+fn check_contained(field: &str, path: &str) -> Result<(), String> {
+    if path != "." && !is_contained_path(path) {
+        return Err(format!(
+            "{field} {path:?} must be a relative path inside the project"
+        ));
+    }
+    Ok(())
 }
 
 /// Resolved project locations. Asset paths use `/` and are relative to the asset root, the way

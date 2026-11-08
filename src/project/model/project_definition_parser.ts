@@ -42,6 +42,7 @@ export class ProjectDefinitionParser {
       name: previewLaunchOptionalStringRead(project, 'name', PROJECT_SECTION_PATH) ?? projectIdentifier,
       assetRoot,
       levelDirectory: ProjectDefinitionParser.levelDirectoryRead(project, assetRoot),
+      textureDirectories: ProjectDefinitionParser.textureDirectoriesRead(project),
       launch,
       build: ProjectBuildCommandResolver.resolve(preview, launch, projectDirectory),
     };
@@ -80,12 +81,47 @@ export class ProjectDefinitionParser {
   }
 
   /**
+   * Reads the optional texture directories, each of which must stay inside the
+   * asset root.
+   *
+   * @param project Parsed project object.
+   * @returns Asset-root-relative directories with forward slashes, empty when
+   *   the field is absent.
+   */
+  private static textureDirectoriesRead(project: Record<string, unknown>): string[] {
+    const value = project['texture_directories'] ?? [];
+    if (!Array.isArray(value)) {
+      throw new PreviewLaunchCommandError('project.texture_directories must be a list of strings');
+    }
+    return value.map((directory: unknown) => ProjectDefinitionParser.textureDirectoryRead(directory));
+  }
+
+  /**
+   * Checks and normalizes one entry of the texture directories.
+   *
+   * @param directory Entry from the project file.
+   * @returns Asset-root-relative directory with forward slashes and no trailing
+   *   slash.
+   */
+  private static textureDirectoryRead(directory: unknown): string {
+    if (typeof directory !== 'string' || directory.trim() === '') {
+      throw new PreviewLaunchCommandError('project.texture_directories must be a list of non-empty strings');
+    }
+    if (!ProjectDefinitionParser.isContainedRelativePath(directory)) {
+      throw new PreviewLaunchCommandError(
+        `project.texture_directories entry "${directory}" must be a path inside the asset root`,
+      );
+    }
+    return directory.replace(/\\/g, '/').replace(/\/+$/, '') || '.';
+  }
+
+  /**
    * Returns whether a path is relative and never climbs out of its base.
    *
    * @param path Path from the project file.
    * @returns True for contained relative paths.
    */
-  private static isContainedRelativePath(path: string): boolean {
+  static isContainedRelativePath(path: string): boolean {
     const normalized = path.replace(/\\/g, '/');
     const isAbsolute = /^([a-zA-Z]:)?\//.test(normalized);
     return !isAbsolute && !normalized.split('/').includes('..');

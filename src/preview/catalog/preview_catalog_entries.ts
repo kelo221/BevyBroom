@@ -7,6 +7,8 @@ import {
   type PreviewCatalogReply,
 } from '@/preview/protocol/preview_protocol_types.js';
 import { base64ToBytes } from '@/utils/utils_base64.js';
+import { imageFileMimeType } from '@/texture/library/image_file_filter.js';
+import { TEXTURE_LIBRARY_SOURCE_GAME_MATERIALS } from '@/texture/library/texture_library_source.js';
 
 /** Time a catalog or asset request may take. */
 const PREVIEW_CATALOG_TIMEOUT_MILLISECONDS = 10000;
@@ -82,7 +84,7 @@ export class PreviewCatalogEntryLoader {
     const file = material.base_color_texture
       ? await PreviewCatalogEntryLoader.textureFileRead(transport, material.base_color_texture)
       : PreviewCatalogEntryLoader.swatchFileCreate(material);
-    const entry = createTextureBrowserEntry(file, material.id);
+    const entry = createTextureBrowserEntry(file, material.id, TEXTURE_LIBRARY_SOURCE_GAME_MATERIALS);
     entry.displayName = material.label || material.id;
     return entry;
   }
@@ -101,7 +103,7 @@ export class PreviewCatalogEntryLoader {
       PREVIEW_CATALOG_TIMEOUT_MILLISECONDS,
     );
     const fileName = assetPath.split('/').pop() ?? assetPath;
-    return new File([base64ToBytes(reply.base64)], fileName, { type: previewCatalogMimeType(fileName) });
+    return new File([base64ToBytes(reply.base64)], fileName, { type: imageFileMimeType(fileName) });
   }
 
   /**
@@ -117,21 +119,4 @@ export class PreviewCatalogEntryLoader {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="rgb(${red},${green},${blue})"/></svg>`;
     return new File([svg], `${material.id.replaceAll('/', '_')}.svg`, { type: 'image/svg+xml' });
   }
-}
-
-/**
- * Returns the MIME type of an image file name.
- *
- * @param fileName File name with extension.
- * @returns MIME type, defaulting to PNG.
- */
-export function previewCatalogMimeType(fileName: string): string {
-  const lowerName = fileName.toLowerCase();
-  if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
-    return 'image/jpeg';
-  }
-  if (lowerName.endsWith('.webp')) {
-    return 'image/webp';
-  }
-  return 'image/png';
 }

@@ -11,6 +11,7 @@ import type {
   LevelBuildPublishRequest,
   LevelBuildPublishResult,
 } from '@/level_build/publish/level_build_publish_types.js';
+import type { TextureProjectListResult, TextureProjectReadResult } from '@/texture/project/texture_project_types.js';
 import { ProjectRecentStore } from '@/project/recent/project_recent_store.js';
 import { ProjectWorkbench, type ProjectWorkbenchLink } from '@/project/workbench/project_workbench.js';
 import { ProjectWorkbenchConsoleReporter } from '@/project/workbench/project_workbench_console_reporter.js';
@@ -24,6 +25,13 @@ export class GameProcessControlFake extends GameProcessControl {
   nextStatus: GameProcessStatus | null = null;
   readonly publishedLevels: LevelBuildPublishRequest[] = [];
   nextPublishResult: LevelBuildPublishResult | null = null;
+  /** Base64 image bytes by asset-relative path, per project file. */
+  readonly projectTextureFiles = new Map<string, Map<string, string>>();
+  /**
+   * Settles before every project texture read answers; replace it to hold reads
+   * back.
+   */
+  projectTextureReadGate: Promise<void> = Promise.resolve();
 
   /** @inheritdoc */
   async projectChooseFile(): Promise<string | null> {
@@ -62,6 +70,34 @@ export class GameProcessControlFake extends GameProcessControl {
         removedGeometryFiles: [],
       }
     );
+  }
+
+  /** @inheritdoc */
+  async projectTextureList(): Promise<TextureProjectListResult> {
+    const projectFile = this.nextStatus?.project?.projectFile ?? null;
+    if (projectFile === null) {
+      return { ok: false, message: 'No project is open.' };
+    }
+    const texturePaths = Array.from(this.projectTextureFilesRead(projectFile).keys()).sort();
+    return { ok: true, projectFile, texturePaths };
+  }
+
+  /** @inheritdoc */
+  async projectTextureRead(path: string): Promise<TextureProjectReadResult> {
+    const projectFile = this.nextStatus?.project?.projectFile ?? '';
+    await this.projectTextureReadGate;
+    const bytesBase64 = this.projectTextureFilesRead(projectFile).get(path);
+    return bytesBase64 === undefined ? { ok: false, message: `No texture ${path}` } : { ok: true, path, bytesBase64 };
+  }
+
+  /**
+   * Returns the fake images of one project.
+   *
+   * @param projectFile Project file path.
+   * @returns Base64 image bytes by asset-relative path.
+   */
+  private projectTextureFilesRead(projectFile: string): Map<string, string> {
+    return this.projectTextureFiles.get(projectFile) ?? new Map();
   }
 }
 

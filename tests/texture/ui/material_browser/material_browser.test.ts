@@ -87,6 +87,14 @@ describe('MaterialBrowser', () => {
     expect(tile(brick.id).getAttribute('aria-selected')).toBe('false');
   });
 
+  it('starts the tiles of every source with a header and hides headers of filtered-out sources', () => {
+    const projectWall = { ...createEntry('textures/wall.png', 'wall'), sourceName: 'Project textures' };
+    browser.setEntries([brick, stone, projectWall], null, 'Pack');
+    expect(sourceHeadersRead()).toEqual(['Pack', 'Project textures']);
+    typeFilter('textures/');
+    expect(sourceHeadersRead()).toEqual(['Project textures']);
+  });
+
   it('selects with the keyboard', () => {
     browser.setEntries([brick], null, 'Pack');
     tile(brick.id).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
@@ -142,6 +150,17 @@ describe('MaterialBrowser', () => {
 });
 
 /**
+ * Reads the source header captions of the grid, top to bottom.
+ *
+ * @returns Source names of the headers.
+ */
+function sourceHeadersRead(): string[] {
+  return Array.from(document.querySelectorAll<HTMLElement>('[data-source-header]')).map(
+    (header) => header.dataset['sourceHeader'] ?? '',
+  );
+}
+
+/**
  * Creates a material entry with a fake preview URL.
  *
  * @param relativePath Entry id and relative path.
@@ -159,5 +178,6 @@ function createEntry(relativePath: string, displayName: string): TextureBrowserE
     mimeType: file.type,
     byteSize: file.size,
     sourceFile: file,
+    sourceName: 'Pack',
   };
 }

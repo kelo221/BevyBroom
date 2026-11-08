@@ -33,3 +33,19 @@ fn rejects_paths_outside_the_project_and_unknown_versions() {
     let future = SAMPLE.replacen("\"project_version\": 1", "\"project_version\": 99", 1);
     assert!(ProjectConfig::parse(&future).is_err());
 }
+
+#[test]
+fn texture_directories_default_to_empty_and_stay_inside_the_project() {
+    let sample = ProjectConfig::parse(SAMPLE).expect("the sample project parses");
+    assert!(!sample.texture_directories.is_empty());
+    let mut value: serde_json::Value = serde_json::from_str(SAMPLE).expect("sample is JSON");
+    let object = value.as_object_mut().expect("sample is an object");
+    object.remove("texture_directories");
+    let without = ProjectConfig::parse(&value.to_string()).expect("the field is optional");
+    assert!(without.texture_directories.is_empty());
+    for escaping in ["../outside", "/absolute", "textures/../../outside"] {
+        value["texture_directories"] = serde_json::json!(["textures", escaping]);
+        let error = ProjectConfig::parse(&value.to_string()).expect_err("escaping is rejected");
+        assert!(error.contains("texture_directories"), "{error}");
+    }
+}

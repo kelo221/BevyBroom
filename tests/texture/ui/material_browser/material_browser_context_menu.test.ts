@@ -4,6 +4,7 @@ import { createTextureBrowserEntry } from '@/texture/library/texture_browser_ent
 import type { TextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
 import type { MaterialBrowserContextMenuHandlers } from '@/texture/ui/material_browser/material_browser_context_menu.js';
 import { mockObjectUrlApis } from '../../library/utils_object_url_test.js';
+import { TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER } from '@/texture/library/texture_library_source.js';
 
 describe('MaterialBrowser context menu', () => {
   let host: HTMLElement;
@@ -23,8 +24,16 @@ describe('MaterialBrowser context menu', () => {
       selectedMaterialIdRead: vi.fn(() => ''),
       onCopyName: vi.fn(),
     };
-    entry = createTextureBrowserEntry(new File(['x'], 'brick.png', { type: 'image/png' }), 'walls/brick.png');
-    otherEntry = createTextureBrowserEntry(new File(['y'], 'stone.png', { type: 'image/png' }), 'walls/stone.png');
+    entry = createTextureBrowserEntry(
+      new File(['x'], 'brick.png', { type: 'image/png' }),
+      'walls/brick.png',
+      TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER,
+    );
+    otherEntry = createTextureBrowserEntry(
+      new File(['y'], 'stone.png', { type: 'image/png' }),
+      'walls/stone.png',
+      TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER,
+    );
     browser = new MaterialBrowser({
       onOpenFolder: () => undefined,
       onSelectTexture: () => undefined,

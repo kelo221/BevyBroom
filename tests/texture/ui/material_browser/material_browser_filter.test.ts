@@ -55,5 +55,6 @@ function createEntry(relativePath: string, displayName: string): TextureBrowserE
     mimeType: file.type,
     byteSize: file.size,
     sourceFile: file,
+    sourceName: 'Pack',
   };
 }

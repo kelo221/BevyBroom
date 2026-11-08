@@ -205,11 +205,31 @@ export class MaterialBrowser implements MaterialBrowserView {
     this.tileElements.clear();
     this.gridElement.replaceChildren();
     const shownEntries = materialBrowserFilterEntries(this.allEntries, this.filterInput.getValue());
-    shownEntries.forEach((entry) => this.tileAppend(entry));
+    shownEntries.forEach((entry, index) => {
+      if (index === 0 || shownEntries[index - 1]?.sourceName !== entry.sourceName) {
+        this.gridElement.appendChild(this.sourceHeaderCreate(entry.sourceName));
+      }
+      this.tileAppend(entry);
+    });
     if (shownEntries.length === 0) {
       this.gridElement.appendChild(this.emptyMessageCreate());
     }
     this.statusLabel.textContent = this.countStatusText(shownEntries.length);
+  }
+
+  /**
+   * Creates the caption that starts the tiles of one texture source.
+   *
+   * @param sourceName Name of the texture library source.
+   * @returns Header element spanning the grid.
+   */
+  private sourceHeaderCreate(sourceName: string): HTMLElement {
+    const header = faceInspectorCaptionCreate(sourceName);
+    header.dataset['sourceHeader'] = sourceName;
+    header.style.gridColumn = '1 / -1';
+    header.style.fontWeight = 'bold';
+    header.style.borderBottom = `1px solid ${Theme.chromeBorderColor}`;
+    return header;
   }
 
   /**

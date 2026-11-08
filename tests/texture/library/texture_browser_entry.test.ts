@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createTextureBrowserEntry, revokeTextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
 import { ensureObjectUrlApis } from './utils_object_url_test.js';
+import { TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER } from '@/texture/library/texture_library_source.js';
 
 describe('texture_browser_entry', () => {
   afterEach(() => {
@@ -11,7 +12,7 @@ describe('texture_browser_entry', () => {
     ensureObjectUrlApis();
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-preview');
     const file = new File(['pixels'], 'brick_wall.png', { type: 'image/png' });
-    const entry = createTextureBrowserEntry(file, 'walls/brick_wall.png');
+    const entry = createTextureBrowserEntry(file, 'walls/brick_wall.png', TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER);
     expect(createObjectURL).toHaveBeenCalledWith(file);
     expect(entry.id).toBe('walls/brick_wall.png');
     expect(entry.displayName).toBe('brick_wall');
@@ -21,6 +22,7 @@ describe('texture_browser_entry', () => {
     expect(entry.mimeType).toBe('image/png');
     expect(entry.byteSize).toBe(file.size);
     expect(entry.sourceFile).toBe(file);
+    expect(entry.sourceName).toBe(TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER);
   });
 
   it('should revoke the preview object URL', () => {
@@ -28,7 +30,7 @@ describe('texture_browser_entry', () => {
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:to-revoke');
     const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
     const file = new File(['x'], 'floor.jpg', { type: 'image/jpeg' });
-    const entry = createTextureBrowserEntry(file, 'floor.jpg');
+    const entry = createTextureBrowserEntry(file, 'floor.jpg', TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER);
     revokeTextureBrowserEntry(entry);
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:to-revoke');
   });

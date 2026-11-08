@@ -39,6 +39,16 @@ describe('ProjectWorkbench', () => {
     expect(rig.workbench.statusRead()?.project?.name).toBe('beta');
   });
 
+  it('counts successful opens, including a second open of the same file, but not failed ones', async () => {
+    const rig = workbenchRigCreate();
+    workbenches.push(rig.workbench);
+    const countBefore = rig.workbench.projectOpenCountRead();
+    await rig.workbench.projectOpen('/games/delta/broom.project.json');
+    await rig.workbench.projectOpen('/games/delta/broom.project.json');
+    await rig.workbench.projectOpen('/games/missing/broom.project.json');
+    expect(rig.workbench.projectOpenCountRead() - countBefore).toBe(2);
+  });
+
   it('forgets a recent project that no longer opens', async () => {
     const rig = workbenchRigCreate();
     workbenches.push(rig.workbench);

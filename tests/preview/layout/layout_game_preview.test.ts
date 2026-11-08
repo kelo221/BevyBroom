@@ -2,13 +2,13 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as THREE from 'three';
 import {
   LayoutGamePreview,
-  LAYOUT_GAME_PREVIEW_CATALOG_FOLDER_NAME,
   LAYOUT_GAME_PREVIEW_FALLBACK_LEVEL_NAME,
   layoutGamePreviewLevelNameFromFileName,
   type LayoutGamePreviewHosts,
 } from '@/preview/layout/layout_game_preview.js';
 import type { ControllerTextureBrowser } from '@/texture/controller/controller_texture_browser.js';
 import type { TextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
+import { TEXTURE_LIBRARY_SOURCE_GAME_MATERIALS } from '@/texture/library/texture_library_source.js';
 
 /**
  * Creates layout hosts backed by spies.
@@ -61,7 +61,7 @@ describe('LayoutGamePreview', () => {
     const layout = new LayoutGamePreview(hosts);
     const entries = [{ id: 'stone_wall' }, { id: 'wood_floor' }] as unknown as TextureBrowserEntry[];
     layout.catalogApply({ entries, generation: 1, textureGeneration: 0, error: '' });
-    expect(applyEntries).toHaveBeenCalledWith(LAYOUT_GAME_PREVIEW_CATALOG_FOLDER_NAME, entries);
+    expect(applyEntries).toHaveBeenCalledWith(TEXTURE_LIBRARY_SOURCE_GAME_MATERIALS, entries);
     expect(statusMessages[statusMessages.length - 1]).toContain(String(entries.length));
   });
 

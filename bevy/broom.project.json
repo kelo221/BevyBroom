@@ -6,6 +6,7 @@
   "material_catalog": "broom/materials.json",
   "level_directory": "broom/levels",
   "document_directory": "broom/documents",
+  "texture_directories": ["textures"],
   "preview": {
     "program": "cargo",
     "arguments": ["run", "--release", "-p", "broom_preview", "--", "--project", "broom.project.json"],
