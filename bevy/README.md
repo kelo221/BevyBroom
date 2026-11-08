@@ -19,7 +19,7 @@ cargo run --release -p broom_preview -- --project broom.project.json
 
 Or from the editor folder, `bun run preview:game bevy\broom.project.json`, which runs whatever the project's `preview` section says.
 
-Then in the editor choose **Game > Game Preview…** and press **Connect**. Fly the camera with WASD and the mouse (hold the right button).
+Then in the editor choose **Run > Game Preview…** and press **Connect**. Fly the camera with WASD and the mouse (hold the right button).
 
 Preview flags (`crates/broom_preview/src/arguments.rs`):
 
@@ -59,10 +59,12 @@ Preview flags (`crates/broom_preview/src/arguments.rs`):
 
 ## Adding the bridge to your game
 
+The editor's `documentation/integrating_a_game.md` walks through it step by step, and `crates/broom_bridge/examples/minimal_game.rs` is the smallest complete game (`cargo run -p broom_bridge --example minimal_game -- --project broom.project.json`, add `--no-default-features` to run it without DynLight).
+
 ```rust
 use broom_bridge::prelude::*;
 
-let paths = ProjectPaths::load("broom.project.json")?;
+let paths = ProjectPaths::load(std::path::Path::new(PROJECT_FILE_NAME))?;
 app.add_plugins(DefaultPlugins.set(AssetPlugin {
         file_path: paths.asset_root.to_string_lossy().into_owned(),
         ..default()

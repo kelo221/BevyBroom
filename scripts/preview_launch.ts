@@ -17,7 +17,7 @@ async function previewLaunchMain(): Promise<void> {
   console.log(
     `Starting game preview in ${command.workingDirectory}: ${command.program} ${command.arguments.join(' ')}`,
   );
-  console.log(`Connect the editor (Game > Game Preview…) to ${command.endpoint || 'the endpoint the preview prints'}`);
+  console.log(`Connect the editor (Run > Game Preview…) to ${command.endpoint || 'the endpoint the preview prints'}`);
   const child = Bun.spawn([command.program, ...command.arguments], {
     cwd: command.workingDirectory,
     stdout: 'inherit',
