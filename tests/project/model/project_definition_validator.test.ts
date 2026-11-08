@@ -30,6 +30,7 @@ function definitionCreate(root: string): ProjectDefinition {
     name: 'Game',
     assetRoot: `${root}/assets`,
     levelDirectory: `${root}/assets/broom/levels`,
+    textureDirectories: [],
     launch: { program: 'bin/game.exe', arguments: [], workingDirectory: root, endpoint: 'http://127.0.0.1:15702' },
     build: { program: 'cargo', arguments: ['build'], workingDirectory: `${root}/source`, endpoint: '' },
   };
@@ -62,5 +63,19 @@ describe('ProjectDefinitionValidator', () => {
       probeCreate([root, `${root}/assets`, `${root}/source`], []),
     );
     expect(problems).toEqual([{ severity: 'warning', message: expect.stringContaining('example.com') }]);
+  });
+
+  it('warns about each texture directory that is not a directory under the asset root', () => {
+    const root = '/games/textured';
+    const definition = definitionCreate(root);
+    definition.textureDirectories = ['textures', 'missing/walls'];
+    const probe = probeCreate(
+      [root, `${root}/assets`, `${root}/source`, `${root}/assets/textures`],
+      [`${root}/bin/game.exe`],
+    );
+    const problems = ProjectDefinitionValidator.validate(definition, probe);
+    expect(problems).toEqual([
+      { severity: 'warning', message: expect.stringContaining(`${root}/assets/missing/walls`) },
+    ]);
   });
 });

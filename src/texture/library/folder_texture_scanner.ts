@@ -1,6 +1,7 @@
 import { isImageFileName } from './image_file_filter.js';
 import { PickedDirectoryFile, PickedDirectoryListing } from './local_directory_access.js';
 import { TextureBrowserEntry, createTextureBrowserEntry } from './texture_browser_entry.js';
+import { TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER } from './texture_library_source.js';
 
 /** Result of scanning a picked directory for image textures. */
 export interface FolderTextureScanResult {
@@ -39,6 +40,6 @@ export class FolderTextureScanner {
    * @returns Texture browser entry.
    */
   private createEntryFromPickedFile(picked: PickedDirectoryFile): TextureBrowserEntry {
-    return createTextureBrowserEntry(picked.file, picked.relativePath);
+    return createTextureBrowserEntry(picked.file, picked.relativePath, TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER);
   }
 }

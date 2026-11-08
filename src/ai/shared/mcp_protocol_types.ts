@@ -121,7 +121,8 @@ export type McpToolName =
   | 'game_launch'
   | 'game_rebuild'
   | 'game_restart'
-  | 'game_stop';
+  | 'game_stop'
+  | 'texture_browser_entries';
 
 /** JSON vector DTO used at the MCP / EditorApi boundary. */
 export interface McpVec3 {

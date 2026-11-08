@@ -14,6 +14,7 @@ import { TextureLibrary } from '@/texture/library/texture_library.js';
 import { TextureMapCache, setTextureMapCacheForTests } from '@/texture/library/texture_map_cache.js';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
 import { mockObjectUrlApis } from '../library/utils_object_url_test.js';
+import { TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER } from '@/texture/library/texture_library_source.js';
 
 const CLOTH_TEXTURE_ID = 'cloth.png';
 
@@ -76,7 +77,9 @@ function chamferedClothWorld(): { mesh: THREE.Mesh; cloth: THREE.Texture } {
 function clothLibrary(): TextureLibrary {
   const library = new TextureLibrary();
   const file = new File(['img'], CLOTH_TEXTURE_ID, { type: 'image/png' });
-  library.replaceAll('Cloth', [createTextureBrowserEntry(file, CLOTH_TEXTURE_ID)]);
+  library.replaceSource(TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER, [
+    createTextureBrowserEntry(file, CLOTH_TEXTURE_ID, TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER),
+  ]);
   return library;
 }
 

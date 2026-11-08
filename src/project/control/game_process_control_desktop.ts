@@ -5,6 +5,7 @@ import type {
   LevelBuildPublishRequest,
   LevelBuildPublishResult,
 } from '@/level_build/publish/level_build_publish_types.js';
+import type { TextureProjectListResult, TextureProjectReadResult } from '@/texture/project/texture_project_types.js';
 
 declare global {
   interface Window {
@@ -73,6 +74,26 @@ export class GameProcessControlDesktop extends GameProcessControl {
    */
   levelPackagePublish(request: LevelBuildPublishRequest): Promise<LevelBuildPublishResult> {
     return this.rpc.request.levelPackagePublish(request);
+  }
+
+  /**
+   * Asks the main process for the images of the open project's texture
+   * directories.
+   *
+   * @returns Image paths relative to the asset root, or why there are none.
+   */
+  projectTextureList(): Promise<TextureProjectListResult> {
+    return this.rpc.request.projectTextureList();
+  }
+
+  /**
+   * Asks the main process for the bytes of one project image.
+   *
+   * @param path Image path relative to the asset root.
+   * @returns The bytes as base64, or why the file is not returned.
+   */
+  projectTextureRead(path: string): Promise<TextureProjectReadResult> {
+    return this.rpc.request.projectTextureRead({ path });
   }
 }
 

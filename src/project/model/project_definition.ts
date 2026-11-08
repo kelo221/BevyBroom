@@ -17,6 +17,11 @@ export interface ProjectDefinition {
   assetRoot: string;
   /** Absolute directory holding the game's level packages, forward slashes. */
   levelDirectory: string;
+  /**
+   * Directories whose images the Texture Browser loads, relative to the asset
+   * root with forward slashes.
+   */
+  textureDirectories: string[];
   /** Command that starts the game preview. */
   launch: PreviewLaunchCommand;
   /**

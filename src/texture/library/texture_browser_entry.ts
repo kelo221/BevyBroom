@@ -16,16 +16,19 @@ export interface TextureBrowserEntry {
   byteSize: number;
   /** Source File object for later Three.js texture loading. */
   sourceFile: File;
+  /** Name of the texture library source the entry belongs to. */
+  sourceName: string;
 }
 
 /**
  * Creates a browser entry from a File and relative path.
  *
- * @param file Browser File from the folder scan.
- * @param relativePath Path relative to the opened root folder.
+ * @param file Browser File the entry previews and loads.
+ * @param relativePath Path relative to the root of its source; becomes the id.
+ * @param sourceName Name of the texture library source the entry belongs to.
  * @returns Texture browser entry with a live object URL.
  */
-export function createTextureBrowserEntry(file: File, relativePath: string): TextureBrowserEntry {
+export function createTextureBrowserEntry(file: File, relativePath: string, sourceName: string): TextureBrowserEntry {
   const previewObjectUrl = URL.createObjectURL(file);
   return {
     id: relativePath,
@@ -36,6 +39,7 @@ export function createTextureBrowserEntry(file: File, relativePath: string): Tex
     mimeType: file.type || 'application/octet-stream',
     byteSize: file.size,
     sourceFile: file,
+    sourceName,
   };
 }
 

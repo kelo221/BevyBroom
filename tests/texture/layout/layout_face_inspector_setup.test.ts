@@ -16,6 +16,7 @@ import { createTextureBrowserEntry } from '@/texture/library/texture_browser_ent
 import { setStateTexturePaintForTests, StateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import { setTextureMapCacheForTests, TextureMapCache } from '@/texture/library/texture_map_cache.js';
 import { mockObjectUrlApis } from '../library/utils_object_url_test.js';
+import { TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER } from '@/texture/library/texture_library_source.js';
 
 /**
  * Proves the Face tab end to end inside the editor: the attribute fields show
@@ -104,8 +105,16 @@ describe('faceInspectorSetup', () => {
   it('applies a filtered material to the selected object with undo', () => {
     selection.selectObject(mesh);
     faceController.setSelectionMode(SelectionMode.OBJECT);
-    const rock = createTextureBrowserEntry(new File(['r'], 'rock.png', { type: 'image/png' }), 'cave/rock.png');
-    const metal = createTextureBrowserEntry(new File(['m'], 'metal.png', { type: 'image/png' }), 'base/metal.png');
+    const rock = createTextureBrowserEntry(
+      new File(['r'], 'rock.png', { type: 'image/png' }),
+      'cave/rock.png',
+      TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER,
+    );
+    const metal = createTextureBrowserEntry(
+      new File(['m'], 'metal.png', { type: 'image/png' }),
+      'base/metal.png',
+      TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER,
+    );
     result.textureBrowserController.applyEntries('Pack', [rock, metal]);
     result.faceInspector.getMaterialBrowser().setFilterText('rock');
     expect(listedEntryIds()).toEqual([rock.id]);

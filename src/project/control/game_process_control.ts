@@ -3,6 +3,7 @@ import type {
   LevelBuildPublishRequest,
   LevelBuildPublishResult,
 } from '@/level_build/publish/level_build_publish_types.js';
+import type { TextureProjectListResult, TextureProjectReadResult } from '@/texture/project/texture_project_types.js';
 
 /** Explanation shown where only the desktop app can manage a game. */
 export const GAME_PROCESS_DESKTOP_ONLY_MESSAGE =
@@ -54,6 +55,21 @@ export abstract class GameProcessControl {
    * @returns Where the package went, or why nothing was written.
    */
   abstract levelPackagePublish(request: LevelBuildPublishRequest): Promise<LevelBuildPublishResult>;
+
+  /**
+   * Lists the images of the open project's texture directories.
+   *
+   * @returns Image paths relative to the asset root, or why there are none.
+   */
+  abstract projectTextureList(): Promise<TextureProjectListResult>;
+
+  /**
+   * Reads one image of the open project's texture directories.
+   *
+   * @param path Image path relative to the asset root.
+   * @returns The bytes as base64, or why the file is not returned.
+   */
+  abstract projectTextureRead(path: string): Promise<TextureProjectReadResult>;
 }
 
 /**
@@ -105,6 +121,24 @@ export class GameProcessControlUnavailable extends GameProcessControl {
    * @returns Failure result.
    */
   async levelPackagePublish(): Promise<LevelBuildPublishResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that project textures need the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectTextureList(): Promise<TextureProjectListResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that project textures need the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectTextureRead(): Promise<TextureProjectReadResult> {
     return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
   }
 

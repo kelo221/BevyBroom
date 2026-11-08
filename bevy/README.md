@@ -45,12 +45,15 @@ Preview flags (`crates/broom_preview/src/arguments.rs`):
   "material_catalog": "broom/materials.json",
   "level_directory": "broom/levels",
   "document_directory": "broom/documents",
+  "texture_directories": ["textures"],
   "preview": { "program": "cargo", "arguments": ["run", "--release", "-p", "broom_preview", "--", "--project", "broom.project.json"], "working_directory": ".", "endpoint": "http://127.0.0.1:15702" },
   "coordinate_profile": "bevy_meters"
 }
 ```
 
 `material_catalog` and `level_directory` are relative to `asset_root`; every path must stay inside the project.
+
+`texture_directories` (optional, default none) lists folders relative to `asset_root` whose images the desktop editor's Texture Browser loads when the project opens, with ids that are paths relative to `asset_root`. The game does not read it.
 
 `preview` may carry a `build` section (`program`, `arguments`, `working_directory`) that the desktop editor runs before launching; without it the editor builds a `cargo run` launch with the matching `cargo build`.
 

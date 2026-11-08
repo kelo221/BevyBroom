@@ -3,6 +3,7 @@ import type {
   LevelBuildPublishResult,
 } from '@/level_build/publish/level_build_publish_types.js';
 import type { StandaloneHostUpdateCheck } from '@/updater/update_types.js';
+import type { TextureProjectListResult, TextureProjectReadResult } from '@/texture/project/texture_project_types.js';
 import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
 import type {
   McpHostStartResult,
@@ -25,6 +26,8 @@ export interface ElectrobunDesktopRpcSchema {
       gameProcessAction: { params: { action: GameProcessAction }; response: GameProcessStatus };
       gameProcessStatus: { params: undefined; response: GameProcessStatus };
       levelPackagePublish: { params: LevelBuildPublishRequest; response: LevelBuildPublishResult };
+      projectTextureList: { params: undefined; response: TextureProjectListResult };
+      projectTextureRead: { params: { path: string }; response: TextureProjectReadResult };
     };
     messages: {};
   };
@@ -49,6 +52,8 @@ export interface ElectrobunDesktopBunRpcClient {
     gameProcessAction: (params: { action: GameProcessAction }) => Promise<GameProcessStatus>;
     gameProcessStatus: () => Promise<GameProcessStatus>;
     levelPackagePublish: (params: LevelBuildPublishRequest) => Promise<LevelBuildPublishResult>;
+    projectTextureList: () => Promise<TextureProjectListResult>;
+    projectTextureRead: (params: { path: string }) => Promise<TextureProjectReadResult>;
   };
 }
 

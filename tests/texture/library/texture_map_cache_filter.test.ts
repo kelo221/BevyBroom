@@ -7,6 +7,7 @@ import { createTextureBrowserEntry, type TextureBrowserEntry } from '@/texture/l
 import { disposeDebugCheckerTexture } from '@/texture/library/factory_debug_texture.js';
 import { DEFAULT_CHECKER_TEXTURE_ID } from '@/texture/library/texture_id.js';
 import { mockObjectUrlApis } from './utils_object_url_test.js';
+import { TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER } from '@/texture/library/texture_library_source.js';
 
 describe('TextureMapCache filter policy', () => {
   afterEach(() => {
@@ -85,7 +86,7 @@ describe('TextureMapCache filter policy', () => {
 function createLibraryWithEntry(relativePath: string): TextureLibrary {
   const library = new TextureLibrary();
   const entry = createEntry(relativePath);
-  library.replaceAll('TestFolder', [entry]);
+  library.replaceSource(TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER, [entry]);
   return library;
 }
 
@@ -96,5 +97,9 @@ function createLibraryWithEntry(relativePath: string): TextureLibrary {
  * @returns Browser entry.
  */
 function createEntry(relativePath: string): TextureBrowserEntry {
-  return createTextureBrowserEntry(new File(['img'], relativePath, { type: 'image/png' }), relativePath);
+  return createTextureBrowserEntry(
+    new File(['img'], relativePath, { type: 'image/png' }),
+    relativePath,
+    TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER,
+  );
 }

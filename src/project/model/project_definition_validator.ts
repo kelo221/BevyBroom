@@ -39,7 +39,29 @@ export class ProjectDefinitionValidator {
       problems.push(...ProjectDefinitionValidator.commandProblems('build', definition.build, probe));
     }
     problems.push(...ProjectDefinitionValidator.endpointProblems(definition.launch.endpoint));
+    problems.push(...ProjectDefinitionValidator.textureDirectoryProblems(definition, probe));
     return problems;
+  }
+
+  /**
+   * Warns about texture directories that are not directories under the asset
+   * root.
+   *
+   * @param definition Parsed project.
+   * @param probe File system access.
+   * @returns One warning per missing texture directory.
+   */
+  private static textureDirectoryProblems(
+    definition: ProjectDefinition,
+    probe: ProjectFileSystemProbe,
+  ): ProjectProblem[] {
+    return definition.textureDirectories
+      .map((directory) => `${definition.assetRoot}/${directory}`)
+      .filter((absoluteDirectory) => !probe.isDirectory(absoluteDirectory))
+      .map((absoluteDirectory) => ({
+        severity: 'warning' as const,
+        message: `The texture directory ${absoluteDirectory} does not exist.`,
+      }));
   }
 
   /**

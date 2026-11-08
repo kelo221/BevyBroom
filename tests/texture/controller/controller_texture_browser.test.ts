@@ -3,6 +3,11 @@ import { ControllerTextureBrowser } from '@/texture/controller/controller_textur
 import { MaterialBrowser } from '@/texture/ui/material_browser/material_browser.js';
 import { TextureLibrary } from '@/texture/library/texture_library.js';
 import { LocalDirectoryAccess, PickedDirectoryListing } from '@/texture/library/local_directory_access.js';
+import { createTextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
+import {
+  TEXTURE_LIBRARY_SOURCE_GAME_MATERIALS,
+  TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER,
+} from '@/texture/library/texture_library_source.js';
 import { mockObjectUrlApis } from '../../texture/library/utils_object_url_test.js';
 
 describe('ControllerTextureBrowser', () => {
@@ -75,7 +80,7 @@ describe('ControllerTextureBrowser', () => {
     });
     await controller.openFolder();
     expect(controller.getLibrary().getEntryCount()).toBe(2);
-    expect(controller.getLibrary().getFolderName()).toBe('Walls');
+    expect(controller.getLocalFolderName()).toBe('Walls');
     expect(host.textContent).toContain('Checker');
     expect(host.textContent).toContain('brick');
     expect(host.textContent).toContain('Folder: Walls');
@@ -85,17 +90,8 @@ describe('ControllerTextureBrowser', () => {
   it('should ignore cancelled folder picks without clearing existing data', async () => {
     const populatedLibrary = new TextureLibrary();
     const existingFile = new File(['x'], 'keep.png', { type: 'image/png' });
-    populatedLibrary.replaceAll('Existing', [
-      {
-        id: 'keep.png',
-        displayName: 'keep',
-        fileName: 'keep.png',
-        relativePath: 'keep.png',
-        previewObjectUrl: 'blob:keep',
-        mimeType: 'image/png',
-        byteSize: existingFile.size,
-        sourceFile: existingFile,
-      },
+    populatedLibrary.replaceSource(TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER, [
+      createTextureBrowserEntry(existingFile, 'keep.png', TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER),
     ]);
     directoryAccess = createMockDirectoryAccess(null);
     controller.dispose();
@@ -140,6 +136,32 @@ describe('ControllerTextureBrowser', () => {
     controller.selectTexture('b.png');
     expect(controller.getLibrary().getSelectedId()).toBe('b.png');
     expect(selectionNames.at(-1)).toBe('b');
+  });
+
+  it('should keep game materials when a local folder is opened and drop only the cleared source', async () => {
+    directoryAccess = createMockDirectoryAccess({
+      folderName: 'Walls',
+      files: [
+        { name: 'brick.png', relativePath: 'brick.png', file: new File(['a'], 'brick.png', { type: 'image/png' }) },
+      ],
+    });
+    controller.dispose();
+    controller = new ControllerTextureBrowser({ browser, library: new TextureLibrary(), directoryAccess });
+    const gameFile = new File(['g'], 'stone.png', { type: 'image/png' });
+    controller.applyEntries(TEXTURE_LIBRARY_SOURCE_GAME_MATERIALS, [
+      createTextureBrowserEntry(gameFile, 'castle/stone', TEXTURE_LIBRARY_SOURCE_GAME_MATERIALS),
+    ]);
+    await controller.openFolder();
+    expect(controller.getLibrary().getEntryById('castle/stone')).not.toBeNull();
+    expect(controller.getLibrary().getEntryById('brick.png')).not.toBeNull();
+    const headers = Array.from(host.querySelectorAll<HTMLElement>('[data-source-header]')).map(
+      (header) => header.dataset['sourceHeader'],
+    );
+    expect(headers.slice(-2)).toEqual([TEXTURE_LIBRARY_SOURCE_GAME_MATERIALS, TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER]);
+    controller.clearSource(TEXTURE_LIBRARY_SOURCE_GAME_MATERIALS);
+    expect(controller.getLibrary().getEntryById('castle/stone')).toBeNull();
+    expect(controller.getLibrary().getEntryById('brick.png')).not.toBeNull();
+    expect(host.querySelector('[data-entry-id="castle/stone"]')).toBeNull();
   });
 
   it('should report when folder access is unsupported', async () => {

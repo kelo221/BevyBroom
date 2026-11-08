@@ -14,6 +14,7 @@ import { createTextureBrowserEntry } from '@/texture/library/texture_browser_ent
 import { setStateTexturePaintForTests, StateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import { setTextureMapCacheForTests, TextureMapCache } from '@/texture/library/texture_map_cache.js';
 import { mockObjectUrlApis } from '../../texture/library/utils_object_url_test.js';
+import { TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER } from '@/texture/library/texture_library_source.js';
 
 describe('ControllerTextureAssignment content-mesh face painting', () => {
   let world: THREE.Group;
@@ -45,7 +46,11 @@ describe('ControllerTextureAssignment content-mesh face painting', () => {
   it('paints selected content-mesh faces in face mode with one undo entry', () => {
     faceController.setSelectionMode(SelectionMode.FACE);
     faceController.selectFace(mesh, 0, false);
-    const entry = createTextureBrowserEntry(new File(['x'], 'rock.png', { type: 'image/png' }), 'rock.png');
+    const entry = createTextureBrowserEntry(
+      new File(['x'], 'rock.png', { type: 'image/png' }),
+      'rock.png',
+      TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER,
+    );
     controller.onTextureSelected(entry);
     expect(commandStack.getUndoCount()).toBe(1);
     expect(getFaceTextureMaps(mesh).some((stored) => stored.mapping.textureId === 'rock.png')).toBe(true);
@@ -54,7 +59,11 @@ describe('ControllerTextureAssignment content-mesh face painting', () => {
   it('restores the prior material on undo', () => {
     faceController.setSelectionMode(SelectionMode.FACE);
     faceController.selectFace(mesh, 0, false);
-    const entry = createTextureBrowserEntry(new File(['x'], 'rock.png', { type: 'image/png' }), 'rock.png');
+    const entry = createTextureBrowserEntry(
+      new File(['x'], 'rock.png', { type: 'image/png' }),
+      'rock.png',
+      TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER,
+    );
     controller.onTextureSelected(entry);
     commandStack.undo();
     expect(getFaceTextureMaps(mesh).every((stored) => stored.mapping.textureId !== 'rock.png')).toBe(true);
@@ -64,7 +73,11 @@ describe('ControllerTextureAssignment content-mesh face painting', () => {
     faceController.setSelectionMode(SelectionMode.FACE);
     const status = vi.fn();
     controller.setStatusCallback(status);
-    const entry = createTextureBrowserEntry(new File(['x'], 'rock.png', { type: 'image/png' }), 'rock.png');
+    const entry = createTextureBrowserEntry(
+      new File(['x'], 'rock.png', { type: 'image/png' }),
+      'rock.png',
+      TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER,
+    );
     controller.onTextureSelected(entry);
     expect(commandStack.getUndoCount()).toBe(0);
     expect(status).toHaveBeenCalled();

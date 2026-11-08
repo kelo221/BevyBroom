@@ -10,6 +10,7 @@ import { TextureBrowserEntry } from '@/texture/library/texture_browser_entry.js'
 import { getTextureMapCache } from '@/texture/library/texture_map_cache.js';
 import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import { DEFAULT_CHECKER_TEXTURE_ID } from '@/texture/library/texture_id.js';
+import { TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER } from '@/texture/library/texture_library_source.js';
 
 /**
  * Callback for status messages shown in the editor status bar.
@@ -42,6 +43,7 @@ export class ControllerTextureBrowser {
   private statusCallback: TextureBrowserStatusCallback | null;
   private selectionCallback: TextureBrowserSelectionCallback | null;
   private isLoading: boolean;
+  private localFolderName: string | null;
 
   /**
    * Creates a texture browser controller.
@@ -56,6 +58,7 @@ export class ControllerTextureBrowser {
     this.statusCallback = null;
     this.selectionCallback = null;
     this.isLoading = false;
+    this.localFolderName = null;
     getTextureMapCache().setLibrary(this.library);
     if (!this.library.getSelectedId()) {
       this.library.selectById(DEFAULT_CHECKER_TEXTURE_ID);
@@ -89,6 +92,15 @@ export class ControllerTextureBrowser {
    */
   getLibrary(): TextureLibrary {
     return this.library;
+  }
+
+  /**
+   * Returns the name of the folder the user opened by hand.
+   *
+   * @returns Folder name, or null when no folder was opened.
+   */
+  getLocalFolderName(): string | null {
+    return this.localFolderName;
   }
 
   /**
@@ -131,12 +143,12 @@ export class ControllerTextureBrowser {
 
   /** Refreshes the browser UI from the current library state. */
   refreshBrowserUi(): void {
-    this.browser.setEntries(this.library.getEntries(), this.library.getSelectedId(), this.library.getFolderName());
+    this.browser.setEntries(this.library.getEntries(), this.library.getSelectedId(), this.localFolderName);
   }
 
   /** Releases library resources (object URLs). */
   dispose(): void {
-    this.library.clear();
+    this.library.clearAllSources();
     getTextureMapCache().setLibrary(null);
     getTextureMapCache().pruneMissingLibraryEntries();
     this.statusCallback = null;
@@ -162,19 +174,39 @@ export class ControllerTextureBrowser {
    */
   private applyListing(listing: PickedDirectoryListing): void {
     const scan = this.scanner.scanListing(listing);
-    this.applyEntries(listing.folderName, scan.entries);
+    this.localFolderName = listing.folderName;
+    this.applyEntries(TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER, scan.entries);
     this.reportLoadResult(scan.entries.length, scan.skippedNonImageCount);
   }
 
   /**
-   * Replaces the library textures, refreshes cached maps of ids that stay and
-   * refreshes the browser UI.
+   * Replaces the textures of one library source, refreshes cached maps of ids
+   * that stay and refreshes the browser UI.
    *
-   * @param folderName Display name of the texture source.
-   * @param entries Texture entries without the built-in checker.
+   * @param sourceName Name of the texture library source.
+   * @param entries Texture entries of the source without the built-in checker.
    */
-  applyEntries(folderName: string, entries: TextureBrowserEntry[]): void {
-    this.library.replaceAll(folderName, entries);
+  applyEntries(sourceName: string, entries: TextureBrowserEntry[]): void {
+    this.library.replaceSource(sourceName, entries);
+    this.libraryChangeApply();
+  }
+
+  /**
+   * Removes every texture of one library source and refreshes cached maps and
+   * the browser UI.
+   *
+   * @param sourceName Name of the texture library source.
+   */
+  clearSource(sourceName: string): void {
+    this.library.clearSource(sourceName);
+    this.libraryChangeApply();
+  }
+
+  /**
+   * Drops cached maps of vanished ids, reloads the remaining cached maps from
+   * their current entries and redraws the browser.
+   */
+  private libraryChangeApply(): void {
     getTextureMapCache().setLibrary(this.library);
     getTextureMapCache().pruneMissingLibraryEntries();
     getTextureMapCache().cachedTexturesReloadFromLibrary();

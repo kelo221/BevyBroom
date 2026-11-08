@@ -376,6 +376,12 @@ These tools need the desktop app; the browser editor answers that it cannot star
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `get_face_edit_state` | `activeTool` of the tools palette (`object`, `face`, ...), `faceEditSheetOpen`, `faceEditSheetTab` (`material`, `displacement`) and the face selection as `faces` |
 
+## Texture browser
+
+| Tool                      | What it does                                                                                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `texture_browser_entries` | Every texture the Texture Browser lists as `entries: [{ id, displayName, source }]`, in browser order: built-in checker, `Game materials`, `Project textures`, then the local folder |
+
 ## Not in this build
 
 - **`capture_section`** — orthographic 2D section slices (top/front/side) are not a separate tool yet; use `capture_view` with a free camera for now.

@@ -5,6 +5,9 @@ import type { PreviewCatalogEntries } from '@/preview/catalog/preview_catalog_en
 import { previewCatalogMaterialsRebind } from '@/preview/catalog/preview_catalog_material_rebind.js';
 import type { ControllerTextureBrowser } from '@/texture/controller/controller_texture_browser.js';
 import { getTextureMapCache } from '@/texture/library/texture_map_cache.js';
+import { TEXTURE_LIBRARY_SOURCE_GAME_MATERIALS } from '@/texture/library/texture_library_source.js';
+import { revokeTextureBrowserEntry, type TextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
+import { TextureProjectSourceLoader } from '@/texture/project/texture_project_source_loader.js';
 import { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
 import { ProjectWorkbenchLinkPreview } from '@/project/workbench/project_workbench_link_preview.js';
 import { ProjectRecentStore } from '@/project/recent/project_recent_store.js';
@@ -12,9 +15,6 @@ import { gameProcessControlResolve } from '@/project/control/game_process_contro
 import { ControllerLevelBuild } from '@/level_build/controller_level_build.js';
 import { GlbExporter } from '@/io/glb/glb_exporter.js';
 import type { GameProfile } from '@/settings/store/settings_types.js';
-
-/** Texture browser folder name shown for the game material catalog. */
-export const LAYOUT_GAME_PREVIEW_CATALOG_FOLDER_NAME = 'Game materials';
 
 /** Level name used before the scene has been saved to a file. */
 export const LAYOUT_GAME_PREVIEW_FALLBACK_LEVEL_NAME = 'untitled';
@@ -44,6 +44,7 @@ export class LayoutGamePreview {
   private service: PreviewLinkService | null = null;
   private workbench: ProjectWorkbench | null = null;
   private panel: PanelGamePreview | null = null;
+  private textureProjectSourceLoader: TextureProjectSourceLoader | null = null;
 
   /**
    * Creates the layout helper without creating the link.
@@ -89,8 +90,37 @@ export class LayoutGamePreview {
         recentStore: new ProjectRecentStore(),
         levelBuilder: this.levelBuilderCreate(),
       });
+      this.textureProjectSourceLoader = this.textureProjectSourceLoaderCreate(this.workbench);
     }
     return this.workbench;
+  }
+
+  /**
+   * Returns the loader of the open project's textures.
+   *
+   * @returns Loader, or null before the workbench exists.
+   */
+  textureProjectSourceLoaderRead(): TextureProjectSourceLoader | null {
+    return this.textureProjectSourceLoader;
+  }
+
+  /**
+   * Creates the loader that fills the texture browser with the open project's
+   * textures.
+   *
+   * @param workbench Workbench whose open project is followed.
+   * @returns Project texture loader.
+   */
+  private textureProjectSourceLoaderCreate(workbench: ProjectWorkbench): TextureProjectSourceLoader {
+    return new TextureProjectSourceLoader({
+      workbench,
+      control: gameProcessControlResolve(),
+      sink: {
+        applyEntries: (sourceName, entries) => this.textureSourceApply(sourceName, entries),
+        clearSource: (sourceName) => this.textureSourceClear(sourceName),
+      },
+      statusReport: (message) => this.hosts.statusMessageShow(message),
+    });
   }
 
   /**
@@ -124,10 +154,58 @@ export class LayoutGamePreview {
    * @param catalog Loaded game material catalog.
    */
   catalogApply(catalog: PreviewCatalogEntries): void {
-    this.hosts.textureBrowserControllerRead()?.applyEntries(LAYOUT_GAME_PREVIEW_CATALOG_FOLDER_NAME, catalog.entries);
-    const identifiers = new Set(catalog.entries.map((entry) => entry.id));
-    previewCatalogMaterialsRebind(this.hosts.worldGroup, identifiers, getTextureMapCache());
+    this.textureSourceApply(TEXTURE_LIBRARY_SOURCE_GAME_MATERIALS, catalog.entries);
     this.hosts.statusMessageShow(catalog.error !== '' ? catalog.error : `Game materials: ${catalog.entries.length}`);
+  }
+
+  /**
+   * Shows the entries of one texture source in the texture browser and points
+   * existing materials using one of their ids at the new maps. Without a
+   * texture browser the entries are released.
+   *
+   * @param sourceName Name of the texture library source.
+   * @param entries Entries of the source.
+   */
+  private textureSourceApply(sourceName: string, entries: TextureBrowserEntry[]): void {
+    const controller = this.hosts.textureBrowserControllerRead();
+    if (!controller) {
+      entries.forEach((entry) => revokeTextureBrowserEntry(entry));
+      return;
+    }
+    controller.applyEntries(sourceName, entries);
+    this.materialsRebind(entries.map((entry) => entry.id));
+  }
+
+  /**
+   * Removes one texture source from the texture browser and points materials
+   * that used its ids at whatever the library resolves now.
+   *
+   * @param sourceName Name of the texture library source.
+   */
+  private textureSourceClear(sourceName: string): void {
+    const controller = this.hosts.textureBrowserControllerRead();
+    if (!controller) {
+      return;
+    }
+    const removedIdentifiers = controller
+      .getLibrary()
+      .getEntries()
+      .filter((entry) => entry.sourceName === sourceName)
+      .map((entry) => entry.id);
+    controller.clearSource(sourceName);
+    this.materialsRebind(removedIdentifiers);
+  }
+
+  /**
+   * Points content materials using one of the ids at the maps the texture cache
+   * resolves now.
+   *
+   * @param identifiers Texture ids whose materials are refreshed.
+   */
+  private materialsRebind(identifiers: readonly string[]): void {
+    if (identifiers.length > 0) {
+      previewCatalogMaterialsRebind(this.hosts.worldGroup, new Set(identifiers), getTextureMapCache());
+    }
   }
 
   /**
