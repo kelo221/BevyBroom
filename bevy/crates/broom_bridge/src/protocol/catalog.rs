@@ -6,7 +6,9 @@ use serde::{Deserialize, Serialize};
 /// The catalog format version.
 pub const CATALOG_VERSION: u32 = 1;
 
-/// The resolver for plain DynLit materials described entirely by the catalog entry.
+/// The resolver for plain materials described entirely by the catalog entry: DynLit materials,
+/// or whichever material type the game binds catalog entries as. The name stays for
+/// compatibility with existing catalog files.
 pub const DYNLIT_RESOLVER: &str = "dynlit";
 
 /// A catalog file.

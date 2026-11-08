@@ -92,6 +92,7 @@ fn spot_cones_must_be_ordered_and_open() {
     assert!(state_with_light(no_radius).validate().is_err());
 }
 
+#[cfg(feature = "dynlight")]
 #[test]
 fn authored_lights_become_valid_dynamic_lights() {
     let authored = AuthoredLight {
@@ -304,6 +305,7 @@ fn rooms_and_portals_need_finite_sizes_above_zero() {
     }
 }
 
+#[cfg(feature = "dynlight")]
 #[test]
 fn authored_rooms_and_portals_become_dynlight_components() {
     let room = AuthoredRoom {

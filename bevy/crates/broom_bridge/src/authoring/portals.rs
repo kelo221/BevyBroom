@@ -11,15 +11,9 @@ use bevy::prelude::*;
 use dynlight::portals::{ClosedPortal, Portal, Room};
 
 use super::AppliedAuthoring;
+use super::markers::AuthoredCellEntity;
 use super::ownership::{authored_unchanged, previous_of_same_document};
 use crate::protocol::{AuthoredHierarchy, AuthoredObject, AuthoredObjectKind, AuthoredState};
-
-/// A room or portal owned by an editor document.
-#[derive(Component, Clone, Debug, PartialEq, Eq)]
-pub struct AuthoredCellEntity {
-    pub id: String,
-    pub document_id: String,
-}
 
 /// The DynLight component one authored object asks for.
 #[derive(Clone, Debug, PartialEq)]

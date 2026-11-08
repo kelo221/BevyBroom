@@ -1,8 +1,11 @@
 //! The effect, cookie, fog, shimmer and baking fields of authored lights.
 
 use bevy::prelude::*;
+#[cfg(feature = "dynlight")]
 use dynlight::effects::LightEffectKind;
+#[cfg(feature = "dynlight")]
 use dynlight::fog::VolumetricShape;
+#[cfg(feature = "dynlight")]
 use dynlight::light::{BounceCompression, Illumination, Shimmer, Transparency};
 
 use super::*;
@@ -36,6 +39,7 @@ fn sample_spot_light_parses_every_feature() {
     assert_eq!(spot.validate(), Ok(()));
 }
 
+#[cfg(feature = "dynlight")]
 #[test]
 fn lights_without_features_get_dynlight_defaults() {
     let json = r#"{ "light_type": "point", "color": [1, 1, 1], "intensity": 1, "radius": 4 }"#;
@@ -50,6 +54,7 @@ fn lights_without_features_get_dynlight_defaults() {
     assert_eq!(dynamic.illumination, defaults.illumination);
 }
 
+#[cfg(feature = "dynlight")]
 #[test]
 fn features_become_dynlight_settings_and_components() {
     let spot = sample_spot();

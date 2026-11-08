@@ -6,15 +6,54 @@ fn sample_hello() -> HelloReply {
     serde_json::from_str(json).expect("the sample hello parses")
 }
 
+/// The shared fixture as this build of the bridge would send it: a bridge without the
+/// `dynlight` feature leaves out the [`DYNLIGHT_CAPABILITIES`].
+fn sample_hello_of_this_build() -> HelloReply {
+    let mut sample = sample_hello();
+    if !cfg!(feature = "dynlight") {
+        sample
+            .capabilities
+            .retain(|name| !DYNLIGHT_CAPABILITIES.contains(&name.as_str()));
+    }
+    sample
+}
+
 #[test]
 fn sample_hello_matches_the_default_range_and_capabilities() {
-    let sample = sample_hello();
+    let sample = sample_hello_of_this_build();
     let built = ProtocolRange::default().hello(
         &sample.bridge_version,
         &sample.project_id,
         &sample.instance_id,
     );
     assert_eq!(built, sample);
+}
+
+#[test]
+fn the_shared_sample_names_every_dynlight_capability() {
+    let sample = sample_hello();
+    for name in DYNLIGHT_CAPABILITIES {
+        assert!(sample.capabilities.iter().any(|served| served == name));
+    }
+}
+
+#[cfg(feature = "dynlight")]
+#[test]
+fn a_dynlight_bridge_serves_lights_and_preview_bakes() {
+    let hello = ProtocolRange::default().hello("1", "project", "instance");
+    for name in DYNLIGHT_CAPABILITIES {
+        assert!(hello.capabilities.iter().any(|served| served == name));
+    }
+}
+
+#[cfg(not(feature = "dynlight"))]
+#[test]
+fn a_bridge_without_dynlight_serves_neither_lights_nor_preview_bakes() {
+    let hello = ProtocolRange::default().hello("1", "project", "instance");
+    assert!(hello.capabilities.iter().any(|served| served == "state"));
+    for name in DYNLIGHT_CAPABILITIES {
+        assert!(!hello.capabilities.iter().any(|served| served == name));
+    }
 }
 
 #[test]

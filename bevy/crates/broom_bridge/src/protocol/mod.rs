@@ -7,6 +7,9 @@ mod data_asset;
 mod hello;
 mod hierarchy;
 mod light;
+mod light_defaults;
+#[cfg(feature = "dynlight")]
+mod light_dynlight;
 mod light_features;
 mod package;
 mod placeable;
@@ -16,6 +19,8 @@ mod state;
 
 #[cfg(test)]
 mod hello_tests;
+#[cfg(all(test, feature = "dynlight"))]
+mod light_defaults_tests;
 #[cfg(test)]
 mod light_feature_tests;
 #[cfg(test)]
@@ -30,7 +35,8 @@ pub use data_asset::{
     DataAssetWriteRequest, validate_data_asset_values,
 };
 pub use hello::{
-    CAPABILITIES, HelloReply, MIN_PROTOCOL_VERSION, ProtocolRange, protocol_supported,
+    CAPABILITIES, CAPABILITY_BAKE_PREVIEW, CAPABILITY_LIGHTS, DYNLIGHT_CAPABILITIES, HelloReply,
+    MIN_PROTOCOL_VERSION, ProtocolRange, protocol_supported,
 };
 pub use hierarchy::{AuthoredHierarchy, local_transform};
 pub use light::{AuthoredLight, AuthoredLightType, AuthoredShadowMode};

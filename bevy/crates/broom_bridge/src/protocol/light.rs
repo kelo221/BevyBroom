@@ -1,9 +1,11 @@
-//! Light definitions as the editor authors them, and their DynLight equivalent.
+//! Light definitions as the editor authors them. Their DynLight equivalent is in
+//! `light_dynlight`.
 
-use bevy::prelude::*;
-use dynlight::light::{DynamicLight, LightType, ShadowMode};
 use serde::{Deserialize, Serialize};
 
+use super::light_defaults::{
+    LIGHT_FALLOFF, LIGHT_INNER_CUTOFF, LIGHT_INTENSITY, LIGHT_OUTER_CUTOFF, LIGHT_RADIUS,
+};
 use super::light_features::{
     AuthoredBounce, AuthoredFog, AuthoredIllumination, AuthoredLightEffect, AuthoredShimmer,
     AuthoredTransparency,
@@ -75,12 +77,12 @@ pub struct AuthoredLight {
 
 /// Serde default for [`AuthoredLight::inner_cutoff`].
 fn default_inner_cutoff() -> f32 {
-    DynamicLight::default().inner_cutoff
+    LIGHT_INNER_CUTOFF
 }
 
 /// Serde default for [`AuthoredLight::outer_cutoff`].
 fn default_outer_cutoff() -> f32 {
-    DynamicLight::default().outer_cutoff
+    LIGHT_OUTER_CUTOFF
 }
 
 /// Serde default for [`AuthoredLight::enabled`].
@@ -90,15 +92,14 @@ fn enabled_by_default() -> bool {
 
 impl Default for AuthoredLight {
     fn default() -> Self {
-        let light = DynamicLight::default();
         Self {
             light_type: AuthoredLightType::Point,
             color: [1.0, 1.0, 1.0],
-            intensity: light.intensity,
-            radius: light.radius,
-            falloff: light.falloff,
-            inner_cutoff: light.inner_cutoff,
-            outer_cutoff: light.outer_cutoff,
+            intensity: LIGHT_INTENSITY,
+            radius: LIGHT_RADIUS,
+            falloff: LIGHT_FALLOFF,
+            inner_cutoff: LIGHT_INNER_CUTOFF,
+            outer_cutoff: LIGHT_OUTER_CUTOFF,
             realtime: false,
             shadows: AuthoredShadowMode::Raytraced,
             enabled: true,
@@ -176,34 +177,6 @@ impl AuthoredLight {
             ));
         }
         Ok(())
-    }
-
-    /// The DynLight component for this definition.
-    pub fn to_dynamic_light(&self) -> DynamicLight {
-        DynamicLight {
-            color: Color::srgb(self.color[0], self.color[1], self.color[2]),
-            intensity: self.intensity,
-            radius: self.radius,
-            falloff: self.falloff,
-            realtime: self.realtime,
-            light_type: match self.light_type {
-                AuthoredLightType::Point => LightType::Point,
-                AuthoredLightType::Spot => LightType::Spot,
-            },
-            inner_cutoff: self.inner_cutoff,
-            outer_cutoff: self.outer_cutoff,
-            shadows: match self.shadows {
-                AuthoredShadowMode::Raytraced => ShadowMode::Raytraced,
-                AuthoredShadowMode::Realtime => ShadowMode::Realtime,
-            },
-            illumination: self.illumination.to_dynlight(),
-            transparency: self.transparency.to_dynlight(),
-            bounce: self.bounce.to_dynlight(),
-            shimmer: self.shimmer.to_dynlight(),
-            shimmer_scale: self.shimmer.scale,
-            shimmer_modifier: self.shimmer.modifier,
-            ..default()
-        }
     }
 
     /// The part of `self` a bake depends on: everything except what DynLight evaluates live,

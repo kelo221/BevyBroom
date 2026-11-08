@@ -16,6 +16,13 @@ export const PREVIEW_PROTOCOL_VERSION = 4;
 /** Game bridge features this editor cannot mirror a scene without. */
 export const PREVIEW_REQUIRED_CAPABILITIES: readonly string[] = ['state', 'geometry'];
 
+/**
+ * Game bridge feature of a game that renders authored lights, rooms and
+ * portals. A bridge built without DynLight leaves it out; the editor still
+ * mirrors the scene into such a game.
+ */
+export const PREVIEW_CAPABILITY_LIGHTS = 'lights';
+
 /** Default game preview endpoint of the Bevy remote server. */
 export const PREVIEW_DEFAULT_ENDPOINT = 'http://127.0.0.1:15702';
 

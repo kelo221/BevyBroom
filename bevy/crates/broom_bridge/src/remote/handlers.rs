@@ -8,6 +8,7 @@ use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
 use crate::authoring::AuthoringInbox;
+#[cfg(feature = "dynlight")]
 use crate::bake_link::BakeLink;
 use crate::level::{LevelGeometry, LevelLoadRequest};
 use crate::materials::CatalogState;
@@ -142,6 +143,7 @@ pub fn read_asset(In(params): In<Option<Value>>, paths: Res<ProjectPaths>) -> Br
 }
 
 /// `broom.bake_preview`: asks for a shadow-only preview bake.
+#[cfg(feature = "dynlight")]
 pub fn bake_preview(In(_): In<Option<Value>>, mut link: ResMut<BakeLink>) -> BrpResult {
     link.request();
     Ok(json!({ "requested": true }))

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
+  PREVIEW_CAPABILITY_LIGHTS,
   PREVIEW_PROTOCOL_VERSION,
   PREVIEW_REQUIRED_CAPABILITIES,
   type PreviewAuthoredLight,
@@ -100,6 +101,7 @@ describe('preview protocol fixtures', () => {
       expectedProjectIdentifier: hello.project_id,
     });
     expect(verdict).toEqual({ compatible: true });
+    expect(hello.capabilities).toContain(PREVIEW_CAPABILITY_LIGHTS);
   });
 
   it('declares every field of the bridge sample snapshot and its objects', () => {

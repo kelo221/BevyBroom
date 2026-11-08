@@ -160,6 +160,15 @@ jobs:
         working-directory: AiWorldEd/bevy
         run: cargo test --workspace -j 2
 
+      # Games without DynLight build broom_bridge with default features off.
+      - name: Run clippy on the bridge without DynLight
+        working-directory: AiWorldEd/bevy
+        run: cargo clippy -p broom_bridge --no-default-features --all-targets -j 2 -- -D warnings
+
+      - name: Run the bridge tests without DynLight
+        working-directory: AiWorldEd/bevy
+        run: cargo test -p broom_bridge --no-default-features -j 2
+
   desktop-build:
     name: Build ${{ matrix.platform }} desktop artifact
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'

@@ -10,15 +10,28 @@ use super::state::PROTOCOL_VERSION;
 /// the handshake, so version 3 snapshots, publications and manifests still read.
 pub const MIN_PROTOCOL_VERSION: u32 = 3;
 
-/// Every feature the bridge serves, by name. The editor checks the ones it needs.
-pub const CAPABILITIES: [&str; 7] = [
+/// The capability of a bridge that renders authored lights, rooms and portals with DynLight.
+pub const CAPABILITY_LIGHTS: &str = "lights";
+
+/// The capability of a bridge that runs preview bakes (`broom.bake_preview`).
+pub const CAPABILITY_BAKE_PREVIEW: &str = "bake_preview";
+
+/// The capabilities only a bridge built with the `dynlight` feature serves.
+pub const DYNLIGHT_CAPABILITIES: [&str; 2] = [CAPABILITY_BAKE_PREVIEW, CAPABILITY_LIGHTS];
+
+/// Every feature the bridge serves, by name. The editor checks the ones it needs; the
+/// [`DYNLIGHT_CAPABILITIES`] are only served with the `dynlight` feature.
+pub const CAPABILITIES: &[&str] = &[
     "state",
     "geometry",
     "catalog",
     "placeables",
     "data_assets",
-    "bake_preview",
+    #[cfg(feature = "dynlight")]
+    CAPABILITY_BAKE_PREVIEW,
     "load_level",
+    #[cfg(feature = "dynlight")]
+    CAPABILITY_LIGHTS,
 ];
 
 /// The reply to `broom.hello`.

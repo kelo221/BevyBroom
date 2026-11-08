@@ -1,6 +1,6 @@
 # BevyBroom ⇄ Bevy
 
-The game side of the BevyBroom editor: a Bevy 0.20 bridge that shows the level you are editing inside your game, rendered with [DynLight](https://github.com/kelo221/DynamicLighting-Bevy), and a ready-made preview program. It lives in `bevy/` of the [BevyBroom](https://github.com/kelo221/BevyBroom) repository and expects the renderer checked out next to that repository (`../../DynLightBevy` from here, at the commit pinned in `../compatibility.json`).
+The game side of the BevyBroom editor: a Bevy 0.20 bridge that shows the level you are editing inside your game, rendered with [DynLight](https://github.com/kelo221/DynamicLighting-Bevy) by default (see [Games without DynLight](#games-without-dynlight)), and a ready-made preview program. It lives in `bevy/` of the [BevyBroom](https://github.com/kelo221/BevyBroom) repository and expects the renderer checked out next to that repository (`../../DynLightBevy` from here, at the commit pinned in `../compatibility.json`).
 
 ```
 crates/
@@ -69,19 +69,31 @@ app.add_plugins(DefaultPlugins.set(AssetPlugin {
     }))
     .add_plugins(dynlight::prelude::DynamicLightingPlugin)
     .add_plugins(BroomBridgePlugin::new(paths)); // development builds
-    // .add_plugins(BroomLevelPlugin { paths }); // shipped builds: no editor connection
+    // .add_plugins(BroomLevelPlugin::new(paths)); // shipped builds: no editor connection
 ```
 
 The game's `AssetPlugin` must use the project's asset root. Load a level with a `LevelLoadRequest { level_name }` message.
+
+### Games without DynLight
+
+The bridge's `dynlight` cargo feature is on by default. A game rendered another way turns it off:
+
+```toml
+broom_bridge = { path = "…/bevy/crates/broom_bridge", default-features = false }
+```
+
+Without it the bridge needs only `DefaultPlugins`: geometry, catalog materials, transforms, game components, entity I/O and level loading work as before. Authored lights, rooms and portals are accepted with each snapshot but get no entities (a single `debug!` line per document says so), there are no shipped-light, `bake_link` or `broom.bake_preview` parts, and the light, room, portal and bake fields of `broom.status` keep their empty values. The handshake leaves out the `lights` and `bake_preview` capabilities; the editor still connects and shows the console notice "This game does not render editor lights".
 
 - **`BroomLevelPlugin`** loads generated levels (geometry GLB plus a manifest with the lights and transforms), binds catalog materials and tracks bakes. Games ship with it.
 - **`BroomBridgePlugin`** adds the editor connection: Bevy's remote protocol on `127.0.0.1` with the `broom.*` methods below. Development only; it accepts any local caller.
 
 ## Materials
 
-`assets/broom/materials.json` lists the game's materials with stable ids (`stone/castle_wall`). The editor shows them in its texture browser; a face assigned one exports the id as the glTF material extras key `broom_material`, and the bridge gives that primitive the catalog's `DynLitMaterial`. Unknown ids keep their glTF material, which DynLight converts.
+`assets/broom/materials.json` lists the game's materials with stable ids (`stone/castle_wall`). The editor shows them in its texture browser; a face assigned one exports the id as the glTF material extras key `broom_material`, and the bridge gives that primitive the catalog's material: a `DynLitMaterial` with the `dynlight` feature, a `StandardMaterial` without it. Unknown ids keep their glTF material (which DynLight converts, when it is used).
 
-A catalog entry can name a `resolver`; register your own with `CatalogResolvers::register` to build game-specific materials. When the catalog file or one of its textures changes on disk, materials and textures are rebuilt in place, so meshes keep their handles. A broken catalog file keeps the previous catalog and is reported.
+The material type is any `CatalogMaterialKind` (`StandardMaterial`, `DynLitMaterial`, or a game's own type implementing `from_catalog`). Choose it with `BroomBridgePlugin::new(paths).with_catalog_material::<M>()` or `BroomLevelPlugin::new(paths).with_catalog_material::<M>()`; the game's renderer must add `MaterialPlugin::<M>`. The materials of each id are in `CatalogMaterials<M>`.
+
+A catalog entry can name a `resolver`; register your own with `CatalogResolvers::<M>::register` to build game-specific materials. When the catalog file or one of its textures changes on disk, materials and textures are rebuilt in place, so meshes keep their handles. A broken catalog file keeps the previous catalog and is reported.
 
 ## Game components
 
@@ -136,6 +148,8 @@ The `bevy_meters` profile matches the editor: Y up, right-handed, one unit is on
 cargo fmt --all
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
+cargo clippy -p broom_bridge --no-default-features --all-targets -- -D warnings
+cargo test -p broom_bridge --no-default-features
 ```
 
 ### End-to-end test with the editor

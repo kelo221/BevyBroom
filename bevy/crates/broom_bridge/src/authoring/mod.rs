@@ -1,31 +1,39 @@
-//! Applies the editor's authored state to the world: DynLight lights, room cells and portals
-//! spawned and updated by id, the transforms and visibility of exported geometry nodes, and the
-//! complete settings of light nodes in shipped levels.
+//! Applies the editor's authored state to the world: the transforms and visibility of exported
+//! geometry nodes and, with the `dynlight` feature, DynLight lights, room cells and portals
+//! spawned and updated by id and the complete settings of light nodes in shipped levels. Without
+//! the feature, lights, rooms and portals are accepted but get no entities (`unrendered`).
 //!
 //! Remote handlers only queue a validated snapshot in [`AuthoringInbox`]; the systems here apply
 //! the newest one in `Update`, before transforms propagate in `PostUpdate`.
 
+#[cfg(feature = "dynlight")]
 mod light_companions;
+#[cfg(feature = "dynlight")]
 mod lights;
+mod markers;
 mod nodes;
 mod ownership;
+#[cfg(feature = "dynlight")]
 mod portals;
+#[cfg(feature = "dynlight")]
 mod shipped_lights;
-#[cfg(test)]
+#[cfg(all(test, feature = "dynlight"))]
 mod tests;
+#[cfg(not(feature = "dynlight"))]
+mod unrendered;
 
 use bevy::app::{SceneSpawnerSystems, SpawnScene};
 use bevy::prelude::*;
 use bevy::transform::TransformSystems;
-use dynlight::effects::LightEffect;
 
 use crate::protocol::{AuthoredState, RevisionGate, RevisionVerdict, StateRejection};
 
+#[cfg(feature = "dynlight")]
 pub use light_companions::AuthoredLightCookiePath;
-pub use lights::AuthoredLightEntity;
+pub use markers::{AuthoredCellEntity, AuthoredLightEntity};
 pub use nodes::AuthoredNode;
 pub(crate) use nodes::tag_authored_nodes;
-pub use portals::AuthoredCellEntity;
+#[cfg(feature = "dynlight")]
 pub use shipped_lights::{ShippedLight, ShippedLightReplaced, ShippedLightSettings};
 
 /// Ordering of the bridge's own work.
@@ -105,10 +113,6 @@ impl Plugin for AuthoringPlugin {
         app.init_resource::<AuthoringInbox>()
             .init_resource::<AppliedAuthoring>()
             .register_type::<AuthoredNode>()
-            .register_type::<AuthoredLightCookiePath>()
-            .register_type::<LightEffect>()
-            .register_type::<ShippedLight>()
-            .register_type::<ShippedLightReplaced>()
             .add_message::<DocumentSwitched>()
             .configure_sets(Update, BroomSystems::ApplyState)
             .configure_sets(
@@ -119,15 +123,7 @@ impl Plugin for AuthoringPlugin {
                 Update,
                 BroomSystems::Geometry.after(BroomSystems::Components),
             )
-            .add_systems(
-                Update,
-                (
-                    apply_pending_state,
-                    (lights::sync_lights, portals::sync_cells),
-                )
-                    .chain()
-                    .in_set(BroomSystems::ApplyState),
-            )
+            .add_systems(Update, apply_pending_state.in_set(BroomSystems::ApplyState))
             .add_systems(
                 SpawnScene,
                 nodes::tag_authored_nodes
@@ -136,16 +132,45 @@ impl Plugin for AuthoringPlugin {
             )
             .add_systems(
                 PostUpdate,
-                (
-                    nodes::sync_node_transforms.before(TransformSystems::Propagate),
-                    (
-                        shipped_lights::read_shipped_lights,
-                        shipped_lights::replace_shipped_lights,
-                    )
-                        .chain(),
-                ),
+                nodes::sync_node_transforms.before(TransformSystems::Propagate),
             );
+        add_authored_object_systems(app);
     }
+}
+
+/// Lights, rooms and portals follow the applied snapshot as DynLight entities, and shipped
+/// light nodes get their complete settings.
+#[cfg(feature = "dynlight")]
+fn add_authored_object_systems(app: &mut App) {
+    app.register_type::<AuthoredLightCookiePath>()
+        .register_type::<dynlight::effects::LightEffect>()
+        .register_type::<ShippedLight>()
+        .register_type::<ShippedLightReplaced>()
+        .add_systems(
+            Update,
+            (lights::sync_lights, portals::sync_cells)
+                .after(apply_pending_state)
+                .in_set(BroomSystems::ApplyState),
+        )
+        .add_systems(
+            PostUpdate,
+            (
+                shipped_lights::read_shipped_lights,
+                shipped_lights::replace_shipped_lights,
+            )
+                .chain(),
+        );
+}
+
+/// Without DynLight, lights, rooms and portals get no entities; a debug line says so.
+#[cfg(not(feature = "dynlight"))]
+fn add_authored_object_systems(app: &mut App) {
+    app.add_systems(
+        Update,
+        unrendered::log_unrendered_objects
+            .after(apply_pending_state)
+            .in_set(BroomSystems::ApplyState),
+    );
 }
 
 /// Moves the newest received snapshot into [`AppliedAuthoring`], announcing document switches.

@@ -1,13 +1,13 @@
 //! The optional DynLight features of an authored light: intensity effects, volumetric fog,
-//! shimmer and baking options, and their DynLight equivalents.
+//! shimmer and baking options. Their DynLight equivalents are in `light_dynlight`.
 
-use bevy::prelude::*;
-use dynlight::effects::{LightEffect, LightEffectKind};
-use dynlight::fog::{VolumetricLight, VolumetricShape};
-use dynlight::light::{
-    BounceCompression, DynamicLight, Illumination, LightBounce, Shimmer, Transparency,
-};
 use serde::{Deserialize, Serialize};
+
+use super::light_defaults::{
+    BOUNCE_COLOR, BOUNCE_INTENSITY, BOUNCE_MODIFIER, BOUNCE_SAMPLES, EFFECT_PULSE_MODIFIER,
+    EFFECT_PULSE_OFFSET, EFFECT_PULSE_SPEED, EFFECT_TIMESTEP, FOG_INTENSITY, FOG_RADIUS,
+    FOG_THICKNESS, FOG_VISIBILITY, SHIMMER_MODIFIER, SHIMMER_SCALE,
+};
 
 /// The intensity animations DynLight plays; mirrors `LightEffectKind`.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -31,30 +31,6 @@ pub enum AuthoredEffectKind {
     Overcast,
 }
 
-impl AuthoredEffectKind {
-    /// The DynLight effect kind.
-    pub fn to_dynlight(self) -> LightEffectKind {
-        use AuthoredEffectKind as Kind;
-        match self {
-            Kind::Steady => LightEffectKind::Steady,
-            Kind::Pulse => LightEffectKind::Pulse,
-            Kind::Random => LightEffectKind::Random,
-            Kind::Strobe => LightEffectKind::Strobe,
-            Kind::Flicker => LightEffectKind::Flicker,
-            Kind::FluorescentStarter => LightEffectKind::FluorescentStarter,
-            Kind::FluorescentClicker => LightEffectKind::FluorescentClicker,
-            Kind::FluorescentRandom => LightEffectKind::FluorescentRandom,
-            Kind::Candle => LightEffectKind::Candle,
-            Kind::Pulsar => LightEffectKind::Pulsar,
-            Kind::Fire => LightEffectKind::Fire,
-            Kind::Generator => LightEffectKind::Generator,
-            Kind::Lightning => LightEffectKind::Lightning,
-            Kind::Cloudy => LightEffectKind::Cloudy,
-            Kind::Overcast => LightEffectKind::Overcast,
-        }
-    }
-}
-
 /// An intensity animation; becomes a `LightEffect` next to the light.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 #[serde(default)]
@@ -68,13 +44,12 @@ pub struct AuthoredLightEffect {
 
 impl Default for AuthoredLightEffect {
     fn default() -> Self {
-        let effect = LightEffect::default();
         Self {
             kind: AuthoredEffectKind::Steady,
-            pulse_speed: effect.pulse_speed,
-            pulse_modifier: effect.pulse_modifier,
-            pulse_offset: effect.pulse_offset,
-            timestep: effect.timestep,
+            pulse_speed: EFFECT_PULSE_SPEED,
+            pulse_modifier: EFFECT_PULSE_MODIFIER,
+            pulse_offset: EFFECT_PULSE_OFFSET,
+            timestep: EFFECT_TIMESTEP,
         }
     }
 }
@@ -95,17 +70,6 @@ impl AuthoredLightEffect {
             return Err(format!("effect step {} must be above zero", self.timestep));
         }
         Ok(())
-    }
-
-    /// The DynLight component.
-    pub fn to_dynlight(&self) -> LightEffect {
-        LightEffect {
-            kind: self.kind.to_dynlight(),
-            pulse_speed: self.pulse_speed,
-            pulse_modifier: self.pulse_modifier,
-            pulse_offset: self.pulse_offset,
-            timestep: self.timestep,
-        }
     }
 }
 
@@ -134,13 +98,12 @@ pub struct AuthoredFog {
 
 impl Default for AuthoredFog {
     fn default() -> Self {
-        let fog = VolumetricLight::default();
         Self {
             shape: AuthoredFogShape::Sphere,
-            radius: fog.radius,
-            thickness: fog.thickness,
-            intensity: fog.intensity,
-            visibility: fog.visibility,
+            radius: FOG_RADIUS,
+            thickness: FOG_THICKNESS,
+            intensity: FOG_INTENSITY,
+            visibility: FOG_VISIBILITY,
         }
     }
 }
@@ -162,23 +125,6 @@ impl AuthoredFog {
             ));
         }
         Ok(())
-    }
-
-    /// The DynLight component.
-    pub fn to_dynlight(&self) -> VolumetricLight {
-        VolumetricLight {
-            shape: match self.shape {
-                AuthoredFogShape::Sphere => VolumetricShape::Sphere,
-                AuthoredFogShape::Box => VolumetricShape::Box,
-                AuthoredFogShape::ConeZ => VolumetricShape::ConeZ,
-                AuthoredFogShape::ConeY => VolumetricShape::ConeY,
-                AuthoredFogShape::Frustum => VolumetricShape::Frustum,
-            },
-            radius: self.radius,
-            thickness: self.thickness,
-            intensity: self.intensity.clamp(0.0, 1.0),
-            visibility: self.visibility.max(0.0),
-        }
     }
 }
 
@@ -203,22 +149,10 @@ pub struct AuthoredShimmer {
 
 impl Default for AuthoredShimmer {
     fn default() -> Self {
-        let light = DynamicLight::default();
         Self {
             kind: AuthoredShimmerKind::None,
-            scale: light.shimmer_scale,
-            modifier: light.shimmer_modifier,
-        }
-    }
-}
-
-impl AuthoredShimmer {
-    /// The DynLight shimmer pattern.
-    pub fn to_dynlight(&self) -> Shimmer {
-        match self.kind {
-            AuthoredShimmerKind::None => Shimmer::None,
-            AuthoredShimmerKind::Water => Shimmer::Water,
-            AuthoredShimmerKind::Random => Shimmer::Random,
+            scale: SHIMMER_SCALE,
+            modifier: SHIMMER_MODIFIER,
         }
     }
 }
@@ -232,16 +166,6 @@ pub enum AuthoredIllumination {
     SingleBounce,
 }
 
-impl AuthoredIllumination {
-    /// The DynLight illumination mode.
-    pub fn to_dynlight(self) -> Illumination {
-        match self {
-            Self::Direct => Illumination::Direct,
-            Self::SingleBounce => Illumination::SingleBounce,
-        }
-    }
-}
-
 /// Whether baked shadows pass through alpha-tested textures; mirrors `Transparency`.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -250,17 +174,6 @@ pub enum AuthoredTransparency {
     Disabled,
     Enabled,
     EnabledMax,
-}
-
-impl AuthoredTransparency {
-    /// The DynLight transparency mode.
-    pub fn to_dynlight(self) -> Transparency {
-        match self {
-            Self::Disabled => Transparency::Disabled,
-            Self::Enabled => Transparency::Enabled,
-            Self::EnabledMax => Transparency::EnabledMax,
-        }
-    }
 }
 
 /// Storage precision of baked bounce light; mirrors `BounceCompression`.
@@ -289,12 +202,11 @@ pub struct AuthoredBounce {
 
 impl Default for AuthoredBounce {
     fn default() -> Self {
-        let bounce = LightBounce::default();
         Self {
-            color: bounce.color.to_srgba().to_f32_array(),
-            modifier: bounce.modifier,
-            intensity: bounce.intensity,
-            samples: bounce.samples,
+            color: BOUNCE_COLOR,
+            modifier: BOUNCE_MODIFIER,
+            intensity: BOUNCE_INTENSITY,
+            samples: BOUNCE_SAMPLES,
             compression: None,
         }
     }
@@ -318,22 +230,5 @@ impl AuthoredBounce {
             ));
         }
         Ok(())
-    }
-
-    /// The DynLight bounce settings.
-    pub fn to_dynlight(&self) -> LightBounce {
-        let [red, green, blue, alpha] = self.color;
-        LightBounce {
-            color: Color::srgba(red, green, blue, alpha),
-            modifier: self.modifier,
-            intensity: self.intensity,
-            samples: self.samples,
-            compression: self.compression.map(|compression| match compression {
-                AuthoredBounceCompression::Bits8 => BounceCompression::Bits8,
-                AuthoredBounceCompression::Bits6 => BounceCompression::Bits6,
-                AuthoredBounceCompression::Bits5 => BounceCompression::Bits5,
-                AuthoredBounceCompression::Bits4 => BounceCompression::Bits4,
-            }),
-        }
     }
 }

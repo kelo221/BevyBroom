@@ -1,13 +1,13 @@
 //! Giving exported primitives their catalog material.
 
+use std::any::TypeId;
 use std::collections::HashSet;
 
 use bevy::gltf::{GltfMaterialExtras, GltfMaterialName};
 use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::*;
-use dynlight::surface::DynLitMaterial;
 
-use super::CatalogState;
+use super::{CatalogMaterialKind, CatalogMaterials, CatalogState};
 use crate::protocol::EXTRAS_MATERIAL_ID;
 
 /// The catalog id a primitive's exported material names.
@@ -56,11 +56,13 @@ pub(super) fn request_catalog_materials(mut commands: Commands, primitives: NewP
     }
 }
 
-/// Binds tagged primitives to their catalog material when they are new or the catalog was
-/// rebuilt since they were bound.
-pub(super) fn bind_catalog_materials(
+/// Binds tagged primitives to their catalog material of type `M` when they are new or the
+/// catalog was rebuilt since they were bound. The glTF's `StandardMaterial` is removed unless `M`
+/// is `StandardMaterial` itself, whose handle the catalog's simply replaces.
+pub(super) fn bind_catalog_materials<M: CatalogMaterialKind>(
     mut commands: Commands,
     catalog: Res<CatalogState>,
+    materials: Res<CatalogMaterials<M>>,
     mut flipped: ResMut<FlippedMeshes>,
     mut meshes: ResMut<Assets<Mesh>>,
     primitives: Query<(
@@ -74,21 +76,22 @@ pub(super) fn bind_catalog_materials(
         if binding.is_some_and(|binding| binding.generation == catalog.generation) {
             continue;
         }
-        let Some(handle) = catalog.handle(&request.0) else {
+        let Some(handle) = materials.handle(&request.0) else {
             continue;
         };
         if flipped.0.insert(mesh.id()) {
             prepare_mesh(&mut meshes, &mesh.0, catalog.needs_tangents(&request.0));
         }
-        commands
-            .entity(entity)
-            .remove::<MeshMaterial3d<StandardMaterial>>()
-            .insert((
-                MeshMaterial3d::<DynLitMaterial>(handle.clone()),
-                CatalogMaterialBinding {
-                    generation: catalog.generation,
-                },
-            ));
+        let mut primitive = commands.entity(entity);
+        if TypeId::of::<M>() != TypeId::of::<StandardMaterial>() {
+            primitive.remove::<MeshMaterial3d<StandardMaterial>>();
+        }
+        primitive.insert((
+            MeshMaterial3d::<M>(handle.clone()),
+            CatalogMaterialBinding {
+                generation: catalog.generation,
+            },
+        ));
     }
 }
 
