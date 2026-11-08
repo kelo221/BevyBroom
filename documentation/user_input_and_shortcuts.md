@@ -111,14 +111,14 @@ Earlier builds may have described plain `Tab` as a toggle. In the current defaul
 
 ### Main window
 
-| Shortcut     | Action                                      |
-| ------------ | ------------------------------------------- |
-| `Ctrl+1`     | Show the right dock (Map inspector)         |
-| `Ctrl+4`     | Show or hide the info panel                 |
-| `Ctrl+5`     | Show or hide the inspector                  |
-| Ctrl+`       | Collapse or expand the info panel           |
-| `Ctrl+Alt+T` | Show or hide the toolbar                    |
-| `Alt+Enter`  | Open Object Properties on the selection     |
+| Shortcut     | Action                                  |
+| ------------ | --------------------------------------- |
+| `Ctrl+1`     | Show the right dock (Map inspector)     |
+| `Ctrl+4`     | Show or hide the info panel             |
+| `Ctrl+5`     | Show or hide the inspector              |
+| Ctrl+`       | Collapse or expand the info panel       |
+| `Ctrl+Alt+T` | Show or hide the toolbar                |
+| `Alt+Enter`  | Open Object Properties on the selection |
 
 These shortcuts are listed under **Window and Views** in **Settings > Keyboard**, and the menus show the current binding next to each command.
 
