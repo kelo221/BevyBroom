@@ -1,11 +1,15 @@
 import * as THREE from 'three';
 import { displacementOffsetDeltaForDistance } from '@/displacement/model/displacement_face_surface.js';
+import { displacementSeamOffsetWrite } from '@/displacement/model/displacement_seam_offsets.js';
 import { displacementVertexOnBorderIs } from '@/displacement/grid/displacement_grid_neighborhood.js';
 import type { DisplacementSculptFace } from './displacement_sculpt_face.js';
 import { DisplacementSewPointClusters } from './displacement_sew_point_clusters.js';
 
 /** Largest distance, in meters, between border vertices that are sewn together. */
 const DISPLACEMENT_SEW_POSITION_TOLERANCE = 1e-3;
+
+/** Largest offset change that still counts as no change. */
+const DISPLACEMENT_SEW_OFFSET_EPSILON = 1e-9;
 
 /** One border vertex of one sculpt face. */
 export interface DisplacementSewVertex {
@@ -17,8 +21,9 @@ export interface DisplacementSewVertex {
 
 /**
  * Sews displacements along shared edges: border vertices of different faces
- * that sit on the same flat world position move to their averaged displaced
- * position, as far as each vertex can move along its own face normal.
+ * that sit on the same flat world position move exactly to their averaged
+ * displaced position, along their own face normal through the offset and across
+ * it through the seam offset.
  */
 export class DisplacementSew {
   /**
@@ -79,6 +84,25 @@ export class DisplacementSew {
   }
 
   /**
+   * Moves one vertex exactly onto a target: the offset takes the part along the
+   * face normal and the seam offset replaces the old one with the rest.
+   *
+   * @param entry Border vertex.
+   * @param target World-space target position.
+   * @param scratch Scratch vector.
+   * @returns True when the offset or the seam offset changed.
+   */
+  private static vertexMoveTowards(
+    entry: DisplacementSewVertex,
+    target: THREE.Vector3,
+    scratch: THREE.Vector3,
+  ): boolean {
+    const offsetChanged = DisplacementSew.vertexOffsetMoveTowards(entry, target, scratch);
+    const seamChanged = DisplacementSew.vertexSeamOffsetMoveTowards(entry, target, scratch);
+    return offsetChanged || seamChanged;
+  }
+
+  /**
    * Sets one vertex offset so the vertex lies as close to a target as its face
    * normal allows.
    *
@@ -87,18 +111,40 @@ export class DisplacementSew {
    * @param scratch Scratch vector.
    * @returns True when the offset changed.
    */
-  private static vertexMoveTowards(
+  private static vertexOffsetMoveTowards(
     entry: DisplacementSewVertex,
     target: THREE.Vector3,
     scratch: THREE.Vector3,
   ): boolean {
     const displacement = entry.face.displacement;
     const base = entry.face.placement.basePositions[entry.vertexIndex];
-    if (!base) return false;
+    if (!base) {
+      return false;
+    }
     const height = scratch.subVectors(target, base).dot(entry.face.placement.normal);
     const next = displacementOffsetDeltaForDistance(displacement, height - displacement.elevation);
     const previous = displacement.offsets[entry.vertexIndex] ?? 0;
     displacement.offsets[entry.vertexIndex] = next;
-    return Math.abs(next - previous) > 1e-9;
+    return Math.abs(next - previous) > DISPLACEMENT_SEW_OFFSET_EPSILON;
+  }
+
+  /**
+   * Replaces the seam offset of one vertex with whatever separates its position
+   * along the face normal from a target.
+   *
+   * @param entry Border vertex whose offset already holds its height.
+   * @param target World-space target position.
+   * @param scratch Scratch vector.
+   * @returns True when the seam offset changed.
+   */
+  private static vertexSeamOffsetMoveTowards(
+    entry: DisplacementSewVertex,
+    target: THREE.Vector3,
+    scratch: THREE.Vector3,
+  ): boolean {
+    const placement = entry.face.placement;
+    placement.heightPositionWrite(entry.face.displacement, entry.vertexIndex, scratch);
+    const seamOffset = placement.seamOffsetFromSpaceWrite(scratch.subVectors(target, scratch));
+    return displacementSeamOffsetWrite(entry.face.displacement, entry.vertexIndex, seamOffset);
   }
 }

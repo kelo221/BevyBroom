@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { DISPLACEMENT_POWERS, type DisplacementFaceSurface } from '@/displacement/model/displacement_types.js';
+import { DISPLACEMENT_POWERS } from '@/displacement/model/displacement_types.js';
 import {
   displacementRowLength,
   displacementSurfaceClone,
@@ -12,18 +12,21 @@ import { DisplacementSculptFace } from '@/displacement/sculpt/displacement_sculp
 import { DisplacementSculptOps } from '@/displacement/sculpt/displacement_sculpt_ops.js';
 import { DisplacementSculptStroke } from '@/displacement/sculpt/displacement_sculpt_stroke.js';
 import { DisplacementSew } from '@/displacement/sculpt/displacement_sew.js';
-import { displacementVertexOnBorderIs } from '@/displacement/grid/displacement_grid_neighborhood.js';
 import type { SolidFaceTextureTarget } from '@/texture/commands/command_texture_solid_face_edit.js';
 import type { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import {
   displacementTestBoxAdd,
   displacementTestCreate,
+  displacementTestFaceCenter,
   displacementTestFaceFacing,
   displacementTestOffsetsRead,
   displacementTestRigCreate,
+  displacementTestSharedEdgeExpectSewn,
+  displacementTestStore,
   displacementTestStrokeSettings,
   displacementTestSurfaceMeshFind,
   displacementTestTarget,
+  displacementTestWorldPositions,
   type DisplacementTestRig,
 } from '../displacement_test_rig.js';
 
@@ -46,47 +49,6 @@ function sculptTestTopFaceCreate(): { rig: DisplacementTestRig; target: SolidFac
 }
 
 /**
- * Returns the world center of the flat grid of a displaced face.
- *
- * @param target Displaced face.
- * @returns World-space center.
- */
-function sculptTestFaceCenter(target: SolidFaceTextureTarget): THREE.Vector3 {
-  const face = DisplacementSculptFace.fromTarget(target);
-  if (!face) throw new Error('face has no displacement');
-  const center = new THREE.Vector3();
-  face.placement.basePositions.forEach((point) => center.add(point));
-  return center.multiplyScalar(1 / face.placement.basePositions.length);
-}
-
-/**
- * Stores a displacement on a face through the undo stack.
- *
- * @param rig Test rig.
- * @param target Face.
- * @param displacement Displacement to store.
- */
-function sculptTestStore(
-  rig: DisplacementTestRig,
-  target: SolidFaceTextureTarget,
-  displacement: DisplacementFaceSurface,
-): void {
-  rig.commandStack.push(new CommandDisplacementEdit([{ target, displacement }]));
-}
-
-/**
- * Returns the world displaced positions of a face.
- *
- * @param target Displaced face.
- * @returns Row-major world positions.
- */
-function sculptTestWorldPositions(target: SolidFaceTextureTarget): THREE.Vector3[] {
-  const face = DisplacementSculptFace.fromTarget(target);
-  if (!face) throw new Error('face has no displacement');
-  return face.placement.displacedPositions(face.displacement);
-}
-
-/**
  * Unit tests for displacement creation, painting, smoothing, noise, sewing and
  * undo.
  */
@@ -99,14 +61,14 @@ describe('displacement sculpting', () => {
       const mesh = displacementTestSurfaceMeshFind(rig, target);
       expect(mesh?.geometry.getAttribute('position').count).toBe(displacementVertexCount(power));
       const topY = SCULPT_TEST_BOX_CENTER.y + SCULPT_TEST_BOX_EDGES.y / 2;
-      sculptTestWorldPositions(target).forEach((point) => expect(point.y).toBeCloseTo(topY, 5));
+      displacementTestWorldPositions(target).forEach((point) => expect(point.y).toBeCloseTo(topY, 5));
     }
   });
 
   it('raises the face center with one paint stroke and leaves vertices beyond the radius alone', () => {
     const { rig, target } = sculptTestTopFaceCreate();
     displacementTestCreate(rig, target, 3);
-    const center = sculptTestFaceCenter(target);
+    const center = displacementTestFaceCenter(target);
     const radius = SCULPT_TEST_BOX_EDGES.x / 4;
     const undoCountBefore = rig.commandStack.getUndoCount();
     const stroke = new DisplacementSculptStroke(
@@ -118,7 +80,7 @@ describe('displacement sculpting', () => {
     stroke.dabApply(center);
     expect(stroke.finish()).toBe(2);
     expect(rig.commandStack.getUndoCount()).toBe(undoCountBefore + 1);
-    const positions = sculptTestWorldPositions(target);
+    const positions = displacementTestWorldPositions(target);
     const flatY = center.y;
     positions.forEach((point) => {
       const reach = Math.hypot(point.x - center.x, point.z - center.z);
@@ -141,8 +103,8 @@ describe('displacement sculpting', () => {
         direction: -1,
       }),
     );
-    stroke.dabApply(sculptTestFaceCenter(target));
-    stroke.dabApply(sculptTestFaceCenter(target));
+    stroke.dabApply(displacementTestFaceCenter(target));
+    stroke.dabApply(displacementTestFaceCenter(target));
     stroke.finish();
     const sculpted = displacementTestOffsetsRead(target);
     expect(sculpted).not.toEqual(flatOffsets);
@@ -220,12 +182,16 @@ describe('displacement sculpting', () => {
     targets.forEach((target, index) => {
       const displacement = displacementSurfaceCreate(3);
       DisplacementSculptOps.applyNoise(displacement, -0.5, 0.5, 11 + index);
-      sculptTestStore(rig, target, displacement);
+      displacementTestStore(rig, target, displacement);
     });
     const changed = DisplacementSew.sewSharedEdges(DisplacementSculptFace.listFromTargets(targets));
     expect(changed.length).toBe(2);
     rig.commandStack.push(new CommandDisplacementEdit(changed.map((face) => face.editBuild())));
-    sculptTestSharedEdgeExpectSewn(targets);
+    displacementTestSharedEdgeExpectSewn(targets);
+    targets.forEach((target) => {
+      const stored = target.model.findBrush(target.brushId)?.faceDisplacementRead(target.surfaceIndex);
+      expect(stored?.seamOffsets).toBeUndefined();
+    });
   });
 
   it('sews the shared edge of two neighboring brushes that are rotated and scaled together', () => {
@@ -249,19 +215,19 @@ describe('displacement sculpting', () => {
     targets.forEach((target, index) => {
       const displacement = displacementSurfaceCreate(3);
       DisplacementSculptOps.applyNoise(displacement, -0.5, 0.5, 23 + index);
-      sculptTestStore(rig, target, displacement);
+      displacementTestStore(rig, target, displacement);
     });
     const changed = DisplacementSew.sewSharedEdges(DisplacementSculptFace.listFromTargets(targets));
     expect(changed.length).toBe(2);
     rig.commandStack.push(new CommandDisplacementEdit(changed.map((face) => face.editBuild())));
-    sculptTestSharedEdgeExpectSewn(targets);
+    displacementTestSharedEdgeExpectSewn(targets);
   });
 
   it('sews shared edges at the end of an AutoSew stroke and undoes stroke and sew as one step', () => {
     const { rig, targets } = sculptTestNeighborTopFacesCreate('AutoSewTest');
     const flatOffsets = targets.map((target) => displacementTestOffsetsRead(target));
     const sharedEdgeCenter = targets
-      .map((target) => sculptTestFaceCenter(target))
+      .map((target) => displacementTestFaceCenter(target))
       .reduce((sum, center) => sum.add(center), new THREE.Vector3())
       .multiplyScalar(0.5);
     const undoCountBefore = rig.commandStack.getUndoCount();
@@ -280,7 +246,7 @@ describe('displacement sculpting', () => {
     expect(stroke.dabApply(sharedEdgeCenter)).toBe(2);
     expect(stroke.finish()).toBe(1);
     expect(rig.commandStack.getUndoCount()).toBe(undoCountBefore + 1);
-    sculptTestSharedEdgeExpectSewn(targets);
+    displacementTestSharedEdgeExpectSewn(targets);
     rig.commandStack.undo();
     targets.forEach((target, index) => expect(displacementTestOffsetsRead(target)).toEqual(flatOffsets[index]));
   });
@@ -292,7 +258,7 @@ describe('displacement sculpting', () => {
       targets,
       displacementTestStrokeSettings({ effect: 'noise', edge: 'hard', radius: SCULPT_TEST_BOX_EDGES.x * 2, seed: 17 }),
     );
-    stroke.dabApply(sculptTestFaceCenter(targets[0] as SolidFaceTextureTarget));
+    stroke.dabApply(displacementTestFaceCenter(targets[0] as SolidFaceTextureTarget));
     stroke.finish();
     expect(DisplacementSew.sewSharedEdges(DisplacementSculptFace.listFromTargets(targets)).length).toBeGreaterThan(0);
   });
@@ -341,27 +307,4 @@ function sculptTestBrushTransformAround(
   brush.rotation.copy(rotation);
   brush.scale.copy(scale);
   brush.pushTransformToMesh();
-}
-
-/**
- * Checks that the two faces share a full border edge and that every vertex on
- * it sits at the same displaced position as its partner on the other face.
- *
- * @param targets The two sewn faces.
- */
-function sculptTestSharedEdgeExpectSewn(targets: readonly SolidFaceTextureTarget[]): void {
-  const [first, second] = targets.map((target) => DisplacementSculptFace.fromTarget(target));
-  if (!first || !second) throw new Error('sewn faces lost their displacement');
-  const secondPositions = second.placement.displacedPositions(second.displacement);
-  let matchedCount = 0;
-  first.placement.basePositions.forEach((base, vertexIndex) => {
-    if (!displacementVertexOnBorderIs(first.rowLength(), vertexIndex)) return;
-    const partnerIndex = second.placement.basePositions.findIndex((other) => other.distanceTo(base) < 1e-4);
-    const partner = secondPositions[partnerIndex];
-    if (!partner) return;
-    const position = first.placement.displacedPositionWrite(first.displacement, vertexIndex, new THREE.Vector3());
-    expect(position.distanceTo(partner)).toBeLessThan(1e-5);
-    matchedCount += 1;
-  });
-  expect(matchedCount).toBe(first.rowLength());
 }

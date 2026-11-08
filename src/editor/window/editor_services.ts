@@ -4,6 +4,7 @@ import type { ISelectable } from '../i_selectable.js';
 import type { EditorViewportPickContext } from './editor_viewport_pick_context.js';
 import type { ObjectDragPointerSample } from '@/tools/object_drag/object_drag_pointer_sample.js';
 import type { ObjectDragSession } from '@/tools/object_drag/object_drag_session.js';
+import type { FaceSelectSecondaryPressResult } from '@/editor/tools/face_select/face_select_secondary_press_result.js';
 
 /**
  * Service methods for selection, transform, viewport picking, and interaction
@@ -420,9 +421,9 @@ export interface EditorServices {
    *
    * @param clientX Pointer client X.
    * @param clientY Pointer client Y.
-   * @param isShiftPressed True when Shift is held for additive selection.
-   * @param isCtrlPressed True when Ctrl or Meta is held for subtractive
-   *   selection.
+   * @param isShiftPressed True when Shift is held to select the whole brush.
+   * @param isCtrlPressed True when Ctrl or Meta is held to toggle faces (or to
+   *   add the whole brush together with Shift).
    * @returns True when face mode consumed the press.
    */
   beginFaceSelectPointerDown(
@@ -440,9 +441,17 @@ export interface EditorServices {
    *
    * @param clientX Pointer client X.
    * @param clientY Pointer client Y.
-   * @returns True when a right-button face stroke started and owns the press.
+   * @returns Whether the press hit a viewport and whether a paint stroke
+   *   started.
    */
-  beginFaceSelectSecondaryPress?: (clientX: number, clientY: number) => boolean;
+  beginFaceSelectSecondaryPress?: (clientX: number, clientY: number) => FaceSelectSecondaryPressResult;
+
+  /**
+   * Returns whether a Face Select right-button texture apply click is armed.
+   *
+   * @returns True while waiting for a click or a drag.
+   */
+  isFaceSelectSecondaryApplyArmed?: () => boolean;
 
   /**
    * Continues face paint or UV smear while the button is held.

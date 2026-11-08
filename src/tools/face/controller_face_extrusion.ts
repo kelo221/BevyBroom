@@ -36,6 +36,12 @@ export type SelectionModeCallback = (mode: SelectionMode) => void;
 export type FaceSelectionChangedListener = (faces: FaceSelection[]) => void;
 
 /**
+ * What a face drag stroke does to the faces it crosses: add them, remove them,
+ * or take add or remove from the selection state of the first face it touches.
+ */
+type FaceStrokePolarity = 'add' | 'remove' | 'from_first_face';
+
+/**
  * Central controller for face selection and extrusion operations. Extrusion
  * creates a new convex prism object; source meshes stay unchanged.
  */
@@ -54,11 +60,7 @@ export class ControllerFaceExtrusion {
   private extrudeCounter: number;
   private lastCreatedMeshes: THREE.Mesh[];
   private isFaceDragActive: boolean;
-  /**
-   * Shape Editor marquee subtractive latch: true when the stroke began with
-   * isCtrlPressed so drag-paint removes faces instead of adding them.
-   */
-  private isSubtractiveStroke: boolean;
+  private strokePolarity: FaceStrokePolarity;
   private lastDragRegionKey: string | null;
   /** True when external listeners need a post-drag selection notification. */
   private externalSelectionNotifyPending: boolean;
@@ -87,7 +89,7 @@ export class ControllerFaceExtrusion {
     this.extrudeCounter = 0;
     this.lastCreatedMeshes = [];
     this.isFaceDragActive = false;
-    this.isSubtractiveStroke = false;
+    this.strokePolarity = 'add';
     this.lastDragRegionKey = null;
     this.externalSelectionNotifyPending = false;
     this.pointerDoubleClickDetector = new PointerDoubleClickDetector();
@@ -228,15 +230,19 @@ export class ControllerFaceExtrusion {
   }
 
   /**
-   * Processes a pointer down event for face selection. Starts a drag-paint
-   * session so holding and moving selects more faces. Modifier flags match
-   * Shape Editor isShiftPressed / isCtrlPressed (not browser event.shiftKey).
+   * Processes a pointer down event for face selection with Hammer modifiers: a
+   * plain click selects only the face, Ctrl toggles it, Shift selects only the
+   * whole brush and Ctrl+Shift adds the whole brush. A double-click expands to
+   * the brush. Starts a drag-paint session so holding and moving selects more
+   * faces. Modifier flags match the editor's isShiftPressed / isCtrlPressed
+   * (not browser event.shiftKey).
    *
    * @param event The pointer event (client coordinates for raycast).
    * @param camera The viewport camera.
    * @param pickElement DOM pick target for NDC.
-   * @param isShiftPressed When true, do not clear selection first (additive).
-   * @param isCtrlPressed When true, remove faces (subtractive stroke).
+   * @param isShiftPressed When true, the click selects the whole brush.
+   * @param isCtrlPressed When true, the click toggles the face, or adds the
+   *   brush together with Shift.
    * @returns The picked face when a hit occurred, otherwise null (event still
    *   consumed while in face mode).
    */
@@ -248,9 +254,7 @@ export class ControllerFaceExtrusion {
     isCtrlPressed: boolean = false,
   ): FacePickResult | null {
     if (this.currentMode !== SelectionMode.FACE) return null;
-    this.isFaceDragActive = true;
-    this.isSubtractiveStroke = isCtrlPressed;
-    this.lastDragRegionKey = null;
+    this.faceDragStrokeBegin(isCtrlPressed && !isShiftPressed ? 'from_first_face' : 'add');
     const isDoubleClick = this.pointerDoubleClickDetector.pressRegister(event.clientX, event.clientY);
     const result = this.raycaster.pickFace(event, camera, pickElement, this.availableMeshes);
     if (!result) {
@@ -269,8 +273,9 @@ export class ControllerFaceExtrusion {
 
   /**
    * Continues face drag-paint while the pointer moves with the button held. New
-   * faces under the cursor are added, or removed when the stroke is subtractive
-   * (isCtrlPressed at down).
+   * faces under the cursor are added or removed by the stroke polarity; a Ctrl
+   * stroke that has not touched a face yet takes its polarity from the first
+   * face it crosses.
    *
    * @param event The pointer event.
    * @param camera The viewport camera.
@@ -282,7 +287,10 @@ export class ControllerFaceExtrusion {
     if (!this.isFaceDragActive) return null;
     const result = this.raycaster.pickFace(event, camera, pickElement, this.availableMeshes);
     if (!result) return null;
-    if (this.isSubtractiveStroke) {
+    if (this.strokePolarity === 'from_first_face') {
+      this.strokePolarity = this.strokePolarityToggling(result);
+    }
+    if (this.strokePolarity === 'remove') {
       this.paintRemoveFace(result, true);
       return result;
     }
@@ -293,9 +301,31 @@ export class ControllerFaceExtrusion {
   /** Ends a face drag-paint session and flushes deferred selection listeners. */
   onPointerUp(): void {
     this.isFaceDragActive = false;
-    this.isSubtractiveStroke = false;
+    this.strokePolarity = 'add';
     this.lastDragRegionKey = null;
     this.flushExternalSelectionNotify();
+  }
+
+  /**
+   * Starts a face drag-paint session.
+   *
+   * @param polarity What the stroke does to the faces it crosses.
+   */
+  private faceDragStrokeBegin(polarity: FaceStrokePolarity): void {
+    this.isFaceDragActive = true;
+    this.strokePolarity = polarity;
+    this.lastDragRegionKey = null;
+  }
+
+  /**
+   * Returns the polarity that toggles a face: remove when it is selected,
+   * otherwise add.
+   *
+   * @param result Face the toggle applies to.
+   * @returns Remove for a selected face, add for an unselected one.
+   */
+  private strokePolarityToggling(result: FacePickResult): FaceStrokePolarity {
+    return this.selectionManager.isFaceSelected(result.mesh, result.faceIndex) ? 'remove' : 'add';
   }
 
   /**
@@ -335,25 +365,62 @@ export class ControllerFaceExtrusion {
   }
 
   /**
-   * Applies a single face click using Shape Editor selection rules: unless
-   * isShiftPressed, replace the selection; isCtrlPressed removes the face.
+   * Applies a single face click with Hammer selection rules: plain selects only
+   * the face, Ctrl toggles the face, Shift selects only the whole brush and
+   * Ctrl+Shift adds the whole brush.
    *
    * @param result The raycast pick result.
-   * @param isShiftPressed Additive (do not clear) when true.
-   * @param isCtrlPressed Subtractive when true.
+   * @param isShiftPressed Selects the whole brush when true.
+   * @param isCtrlPressed Toggles the face, or keeps the selection for a brush
+   *   click, when true.
    */
   private applyFaceClickSelection(result: FacePickResult, isShiftPressed: boolean, isCtrlPressed: boolean): void {
+    if (isShiftPressed) {
+      this.brushSelectFromFacePick(result, isCtrlPressed);
+      return;
+    }
     if (isCtrlPressed) {
+      this.faceToggleFromClick(result);
+      return;
+    }
+    this.paintSelectFace(result, false, false);
+  }
+
+  /**
+   * Toggles the clicked face and gives the stroke the polarity of that toggle.
+   *
+   * @param result The raycast pick result.
+   */
+  private faceToggleFromClick(result: FacePickResult): void {
+    this.strokePolarity = this.strokePolarityToggling(result);
+    if (this.strokePolarity === 'remove') {
       this.paintRemoveFace(result, false);
       return;
     }
-    this.paintSelectFace(result, isShiftPressed, false);
+    this.paintSelectFace(result, true, false);
+  }
+
+  /**
+   * Selects every face of the brush owning the picked face. Picks on meshes
+   * that are not solid brush results select the picked face instead.
+   *
+   * @param result The raycast pick result.
+   * @param addToSelection When false, the brush replaces the selection.
+   */
+  private brushSelectFromFacePick(result: FacePickResult, addToSelection: boolean): void {
+    const seeds = collectFaceSelectionSeedsFromFacePick(result.mesh, result.faceIndex);
+    if (seeds.length === 0) {
+      this.paintSelectFace(result, addToSelection, false);
+      return;
+    }
+    this.selectionManager.selectFaceSeeds(seeds, addToSelection);
   }
 
   /**
    * Double-click expands a face pick to the whole solid brush (or mesh) and
-   * adds or removes those faces. Shift always adds; Ctrl always removes; plain
-   * toggles (add unless every region is already selected).
+   * adds or removes those faces. Shift always adds; Ctrl always removes and
+   * makes the stroke remove; plain toggles (add unless every region is already
+   * selected).
    *
    * @param result The raycast pick result.
    * @param isShiftPressed Additive when true.
@@ -369,6 +436,7 @@ export class ControllerFaceExtrusion {
       this.applyFaceClickSelection(result, isShiftPressed, isCtrlPressed);
       return;
     }
+    this.strokePolarity = isCtrlPressed ? 'remove' : 'add';
     if (isCtrlPressed || (!isShiftPressed && this.areAllFaceSeedsSelected(seeds))) {
       this.selectionManager.removeFaceSeeds(seeds);
       return;
@@ -405,7 +473,7 @@ export class ControllerFaceExtrusion {
   }
 
   /**
-   * Removes the face unit under a pick (Ctrl / subtractive stroke).
+   * Removes the face unit under a pick (Ctrl toggle or removing stroke).
    *
    * @param result The raycast pick result.
    * @param skipIfSameRegion When true, ignores repeats of the last drag region.
