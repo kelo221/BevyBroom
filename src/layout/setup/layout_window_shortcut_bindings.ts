@@ -2,6 +2,7 @@ import type { HandlerKeyboardShortcut } from '@/input/handler_keyboard_shortcut.
 import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
 import type { ShellDockCommands } from '@/layout/shell/actions/shell_dock_commands.js';
+import { EditorToolId } from '@/types/editor_tool_id.js';
 
 /** Callbacks of window level shortcut actions keyed by their settings action. */
 export type LayoutWindowShortcutCallbacks = Partial<Record<KeyboardShortcutAction, () => void>>;
@@ -28,8 +29,8 @@ export function layoutWindowShortcutsRegister(
 }
 
 /**
- * Builds the callbacks of the view, play, selection, Object Properties and
- * paste at original position shortcuts.
+ * Builds the callbacks of the view, play, selection, Object Properties, paste
+ * at original position and Sprinkle tool shortcuts.
  *
  * @param windowActions Main window commands.
  * @returns Shortcut callbacks keyed by action.
@@ -48,6 +49,7 @@ export function layoutWindowShortcutsWindowActionsCreate(
     visibility_isolate: () => windowActions.selectionVisibilityRead()?.isolateSelected(),
     visibility_show_all: () => windowActions.selectionVisibilityRead()?.showAll(),
     object_properties: () => windowActions.objectPropertiesOpen(),
+    tool_sprinkle: () => windowActions.toolSelect(EditorToolId.SPRINKLE),
   };
 }
 

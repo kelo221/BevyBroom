@@ -6,6 +6,10 @@ import type {
   LevelBuildPublishResult,
 } from '@/level_build/publish/level_build_publish_types.js';
 import type { TextureProjectListResult, TextureProjectReadResult } from '@/texture/project/texture_project_types.js';
+import type {
+  SprinkleDefinitionFilesReadResult,
+  SprinkleDefinitionOpenResult,
+} from '@/tools/sprinkle/definition/sprinkle_definition.js';
 
 declare global {
   interface Window {
@@ -94,6 +98,27 @@ export class GameProcessControlDesktop extends GameProcessControl {
    */
   projectTextureRead(path: string): Promise<TextureProjectReadResult> {
     return this.rpc.request.projectTextureRead({ path });
+  }
+
+  /**
+   * Asks the main process for every sprinkle definition file of the open
+   * project.
+   *
+   * @returns The files, or why there are none.
+   */
+  projectSprinkleDefinitionFilesRead(): Promise<SprinkleDefinitionFilesReadResult> {
+    return this.rpc.request.projectSprinkleDefinitionFilesRead();
+  }
+
+  /**
+   * Asks the main process to open one sprinkle definition file in the system's
+   * text editor.
+   *
+   * @param path File path relative to the asset root.
+   * @returns Success, or why the file was not opened.
+   */
+  projectSprinkleDefinitionOpen(path: string): Promise<SprinkleDefinitionOpenResult> {
+    return this.rpc.request.projectSprinkleDefinitionOpen({ path });
   }
 }
 

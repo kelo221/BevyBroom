@@ -1,50 +1,48 @@
-import type {
-  SprinkleConfig,
-  SprinkleSamplePoint,
-  SprinkleSurfaceHit,
-  SprinkleWeightedEntry,
-} from './sprinkle_types.js';
-import { SprinkleSurfaceSampler, type SprinkleSurfaceRayProjector } from './sprinkle_surface_sampler.js';
+import type { SprinkleConfig } from './sprinkle_types.js';
 
 /** Listener notified when the Sprinkle tool configuration changes. */
 export type StateSprinkleToolListener = () => void;
 
 /**
- * Holds the active configuration, weighted entries, and stamp execution
- * delegate for the Hammer++ Sprinkle surface scatter tool.
+ * Holds whether the Hammer++ Entity Sprinkle tool is active and its
+ * configuration.
  */
 export class StateSprinkleTool {
   private toolActive: boolean;
   private config: SprinkleConfig;
-  private entries: SprinkleWeightedEntry[];
-  private stampDelegate:
-    ((samples: readonly SprinkleSamplePoint[], centerHit: SprinkleSurfaceHit, config: SprinkleConfig) => number) | null;
-  private clientPointHandler: ((clientX: number, clientY: number) => boolean) | null;
   private readonly listeners: Set<StateSprinkleToolListener>;
 
-  /** Creates a default Sprinkle tool state. */
+  /** Creates an inactive Sprinkle tool state with the default configuration. */
   constructor() {
     this.toolActive = false;
-    this.config = {
-      radius: 4,
-      density: 5,
-      gridStepX: 0,
-      gridStepZ: 0,
-      mode: 'ADDITIVE',
-      alignToNormal: true,
-      randomYaw: true,
-      scaleMin: 0.9,
-      scaleMax: 1.1,
-      seed: 1337,
-    };
-    this.entries = [];
-    this.stampDelegate = null;
-    this.clientPointHandler = null;
+    this.config = StateSprinkleTool.configDefaultCreate();
     this.listeners = new Set();
   }
 
   /**
-   * Returns whether the Sprinkle scatter tool is currently active.
+   * Returns the configuration a fresh Sprinkle tool starts with.
+   *
+   * @returns Default configuration.
+   */
+  static configDefaultCreate(): SprinkleConfig {
+    return {
+      definitionName: null,
+      radius: 4,
+      densityPercent: 25,
+      mode: 'ADDITIVE',
+      gridOffsetU: 0,
+      gridOffsetV: 0,
+      gridSizeU: 1,
+      gridSizeV: 1,
+      gridSizeFromDefinition: true,
+      randomYaw: false,
+      alignToNormal: false,
+      seed: 1337,
+    };
+  }
+
+  /**
+   * Returns whether the Sprinkle tool is currently active.
    *
    * @returns True when active.
    */
@@ -53,7 +51,7 @@ export class StateSprinkleTool {
   }
 
   /**
-   * Sets whether the Sprinkle scatter tool is currently active.
+   * Sets whether the Sprinkle tool is currently active.
    *
    * @param active True when active.
    */
@@ -66,41 +64,18 @@ export class StateSprinkleTool {
   }
 
   /**
-   * Registers the viewport client-point scatter callback.
+   * Returns a snapshot of the current configuration.
    *
-   * @param handler Callback executing a scatter stamp at `(clientX, clientY)`.
-   */
-  clientPointHandlerWrite(handler: ((clientX: number, clientY: number) => boolean) | null): void {
-    this.clientPointHandler = handler;
-  }
-
-  /**
-   * Executes a scatter stamp at a viewport client point.
-   *
-   * @param clientX Viewport client X.
-   * @param clientY Viewport client Y.
-   * @returns True when handled.
-   */
-  scatterAtClientPoint(clientX: number, clientY: number): boolean {
-    if (!this.clientPointHandler) {
-      return false;
-    }
-    return this.clientPointHandler(clientX, clientY);
-  }
-
-  /**
-   * Returns a snapshot of the current Sprinkle configuration.
-   *
-   * @returns Current SprinkleConfig.
+   * @returns Configuration copy.
    */
   configRead(): SprinkleConfig {
     return { ...this.config };
   }
 
   /**
-   * Merges partial updates into the Sprinkle configuration.
+   * Merges partial updates into the configuration.
    *
-   * @param patch Partial configuration fields to update.
+   * @param patch Configuration fields to update.
    */
   configPatch(patch: Partial<SprinkleConfig>): void {
     this.config = { ...this.config, ...patch };
@@ -108,54 +83,7 @@ export class StateSprinkleTool {
   }
 
   /**
-   * Returns the weighted catalog entries used for scatter selection.
-   *
-   * @returns Weighted entries.
-   */
-  entriesRead(): readonly SprinkleWeightedEntry[] {
-    return this.entries;
-  }
-
-  /**
-   * Replaces the weighted catalog entries used for scatter selection.
-   *
-   * @param entries Weighted entries.
-   */
-  entriesWrite(entries: readonly SprinkleWeightedEntry[]): void {
-    this.entries = entries.map((e) => ({ ...e }));
-    this.listenersNotify();
-  }
-
-  /**
-   * Registers the scene instantiation delegate invoked on each scatter stamp.
-   *
-   * @param delegate Callback that instantiates or removes objects in the scene.
-   */
-  stampDelegateWrite(
-    delegate:
-      | ((samples: readonly SprinkleSamplePoint[], centerHit: SprinkleSurfaceHit, config: SprinkleConfig) => number)
-      | null,
-  ): void {
-    this.stampDelegate = delegate;
-  }
-
-  /**
-   * Executes one scatter stamp at `centerHit` and advances the deterministic
-   * seed.
-   *
-   * @param centerHit Brush center surface hit.
-   * @param projector Optional surface raycast callback.
-   * @returns Generated samples.
-   */
-  stampAtHit(centerHit: SprinkleSurfaceHit, projector?: SprinkleSurfaceRayProjector): SprinkleSamplePoint[] {
-    const samples = SprinkleSurfaceSampler.sampleStamp(centerHit, this.config, this.entries, projector);
-    this.stampDelegate?.(samples, centerHit, this.config);
-    this.config.seed = (this.config.seed + 1) | 0;
-    return samples;
-  }
-
-  /**
-   * Subscribes to Sprinkle configuration changes.
+   * Subscribes to Sprinkle tool changes.
    *
    * @param listener Change callback.
    * @returns Unsubscribe function.
@@ -165,6 +93,13 @@ export class StateSprinkleTool {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  /** Restores the default configuration and the inactive state. */
+  reset(): void {
+    this.toolActive = false;
+    this.config = StateSprinkleTool.configDefaultCreate();
+    this.listenersNotify();
   }
 
   /** Notifies all registered listeners. */

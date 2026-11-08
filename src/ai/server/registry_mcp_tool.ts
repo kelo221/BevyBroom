@@ -11,6 +11,7 @@ import { MCP_DISPLACEMENT_TOOL_DEFINITIONS } from './registry_mcp_tool_displacem
 import { MCP_FACE_EDIT_TOOL_DEFINITIONS } from './registry_mcp_tool_face_edit.js';
 import { MCP_PROJECT_TOOL_DEFINITIONS } from './registry_mcp_tool_project.js';
 import { MCP_TEXTURE_TOOL_DEFINITIONS } from './registry_mcp_tool_textures.js';
+import { MCP_SPRINKLE_TOOL_DEFINITIONS } from './registry_mcp_tool_sprinkle.js';
 import { emptySchema, tool, vec3Schema, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
 export type { McpToolDefinition } from './registry_mcp_tool_helpers.js';
@@ -824,6 +825,7 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ...MCP_VIEWPORT_INPUT_TOOL_DEFINITIONS,
   ...MCP_PROJECT_TOOL_DEFINITIONS,
   ...MCP_TEXTURE_TOOL_DEFINITIONS,
+  ...MCP_SPRINKLE_TOOL_DEFINITIONS,
 ];
 
 /**

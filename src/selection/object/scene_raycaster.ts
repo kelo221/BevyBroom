@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { pointerEventToNdc } from '@/utils/pointer_ndc.js';
 import { getOrBuildFacePickBvh } from '@/selection/pick/mesh_pick_acceleration.js';
+import type { TriangleBvhHit } from '@/selection/pick/triangle_bvh.js';
 import { objectInUnselectableLayerIs } from '@/layer/model/layer_membership.js';
 
 /**
@@ -17,6 +18,7 @@ export class SceneRaycaster {
   private readonly scratchInverse = new THREE.Matrix4();
   private readonly scratchLocalOrigin = new THREE.Vector3();
   private readonly scratchLocalDirection = new THREE.Vector3();
+  private readonly scratchNormalMatrix = new THREE.Matrix3();
   private readonly candidateMeshes: THREE.Mesh[] = [];
 
   /** Creates a new shared raycaster instance for click-to-select operations. */
@@ -84,7 +86,32 @@ export class SceneRaycaster {
     camera.updateMatrixWorld(false);
     pointerEventToNdc(event, pickElement, this.ndcVector);
     this.raycaster.setFromCamera(this.ndcVector, camera);
-    this.collectSphereCandidates(selectableObjects);
+    return this.intersectionsCollect(selectableObjects);
+  }
+
+  /**
+   * Casts a world-space ray against meshes and returns the intersection records
+   * ordered near-to-far, each with its world-space triangle normal.
+   *
+   * @param ray World-space ray with a unit direction.
+   * @param meshes Meshes to test against.
+   * @param maxDistance Farthest hit distance kept along the ray.
+   * @returns Intersection records (distance-sorted).
+   */
+  castRayIntersections(ray: THREE.Ray, meshes: THREE.Mesh[], maxDistance: number = Infinity): THREE.Intersection[] {
+    if (meshes.length === 0) return [];
+    this.raycaster.ray.copy(ray);
+    return this.intersectionsCollect(meshes).filter((intersection) => intersection.distance <= maxDistance);
+  }
+
+  /**
+   * Tests the raycaster's current ray against meshes.
+   *
+   * @param meshes Meshes to test against.
+   * @returns Intersection records (distance-sorted).
+   */
+  private intersectionsCollect(meshes: THREE.Mesh[]): THREE.Intersection[] {
+    this.collectSphereCandidates(meshes);
     if (this.candidateMeshes.length === 0) return [];
     const intersections: THREE.Intersection[] = [];
     for (const mesh of this.candidateMeshes) {
@@ -152,17 +179,37 @@ export class SceneRaycaster {
     this.scratchLocalOrigin.copy(this.raycaster.ray.origin).applyMatrix4(this.scratchInverse);
     this.scratchLocalDirection.copy(this.raycaster.ray.direction).transformDirection(this.scratchInverse).normalize();
     const hit = bvh.raycastDoubleSided(this.scratchLocalOrigin, this.scratchLocalDirection, Infinity);
-    if (!hit) {
-      return null;
-    }
+    return hit ? this.intersectionBuild(mesh, hit) : null;
+  }
+
+  /**
+   * Turns a mesh-local BVH hit into a world-space intersection record.
+   *
+   * @param mesh Hit mesh.
+   * @param hit Hit in mesh-local coordinates.
+   * @returns Intersection with world point, distance and normal.
+   */
+  private intersectionBuild(mesh: THREE.Mesh, hit: TriangleBvhHit): THREE.Intersection {
     const worldPoint = hit.point.clone().applyMatrix4(mesh.matrixWorld);
-    const worldDistance = this.raycaster.ray.origin.distanceTo(worldPoint);
     return {
-      distance: worldDistance,
+      distance: this.raycaster.ray.origin.distanceTo(worldPoint),
       point: worldPoint,
       object: mesh,
       faceIndex: hit.faceIndex,
+      normal: this.worldNormalCompute(mesh, hit.localNormal),
     } as THREE.Intersection;
+  }
+
+  /**
+   * Turns a mesh-local triangle normal into a unit world-space normal.
+   *
+   * @param mesh Mesh the normal belongs to.
+   * @param localNormal Normal in mesh-local coordinates.
+   * @returns Unit world-space normal.
+   */
+  private worldNormalCompute(mesh: THREE.Mesh, localNormal: THREE.Vector3): THREE.Vector3 {
+    this.scratchNormalMatrix.getNormalMatrix(mesh.matrixWorld);
+    return localNormal.clone().applyMatrix3(this.scratchNormalMatrix).normalize();
   }
 
   /**

@@ -600,7 +600,7 @@ export class ControllerViewportToolChrome {
     }
     this.refreshChromeContext();
     this.notifyPrimaryToolChanged();
-    this.deps.showStatusMessage('Sprinkle tool · drag across surfaces to scatter entities');
+    this.deps.showStatusMessage('Sprinkle tool · LMB drag to paint, Ctrl+LMB drag to erase, RMB drag to change radius');
   }
 
   /** Activates the global grid orientation tool. */

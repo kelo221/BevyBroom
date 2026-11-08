@@ -22,6 +22,11 @@ export interface ProjectDefinition {
    * root with forward slashes.
    */
   textureDirectories: string[];
+  /**
+   * Directories whose sprinkle definition files the Sprinkle tool loads,
+   * relative to the asset root with forward slashes.
+   */
+  sprinkleDirectories: string[];
   /** Command that starts the game preview. */
   launch: PreviewLaunchCommand;
   /**

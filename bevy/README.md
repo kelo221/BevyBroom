@@ -55,6 +55,8 @@ Preview flags (`crates/broom_preview/src/arguments.rs`):
 
 `texture_directories` (optional, default none) lists folders relative to `asset_root` whose images the desktop editor's Texture Browser loads when the project opens, with ids that are paths relative to `asset_root`. The game does not read it.
 
+`sprinkle_directories` (optional, default none) lists folders relative to `asset_root` whose `*.txt` sprinkle definition files (Valve KeyValues, one or more types per file) the desktop editor's Sprinkle tool loads. The game does not read it.
+
 `preview` may carry a `build` section (`program`, `arguments`, `working_directory`) that the desktop editor runs before launching; without it the editor builds a `cargo run` launch with the matching `cargo build`.
 
 ## Adding the bridge to your game

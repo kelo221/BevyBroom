@@ -118,4 +118,30 @@ describe('ProjectDefinitionParser', () => {
       ProjectDefinitionParser.parse(projectJsonCreate({ texture_directories: 'textures' }), '/g/broom.project.json'),
     ).toThrow(/texture_directories/);
   });
+
+  it('reads sprinkle directories relative to the asset root and defaults to none', () => {
+    const absent = ProjectDefinitionParser.parse(projectJsonCreate(), '/g/broom.project.json');
+    expect(absent.sprinkleDirectories).toEqual([]);
+    const listed = ProjectDefinitionParser.parse(
+      projectJsonCreate({ sprinkle_directories: ['sprinkle', 'props\\foliage/'] }),
+      '/g/broom.project.json',
+    );
+    expect(listed.sprinkleDirectories).toEqual(['sprinkle', 'props/foliage']);
+    expect(listed.textureDirectories).toEqual([]);
+  });
+
+  it('rejects sprinkle directories that escape the asset root or are not strings', () => {
+    const rejectedEntries: unknown[] = ['../outside', 'sprinkle/../../outside', '/absolute', 'C:/absolute', '', 7];
+    for (const rejectedEntry of rejectedEntries) {
+      expect(() =>
+        ProjectDefinitionParser.parse(
+          projectJsonCreate({ sprinkle_directories: ['sprinkle', rejectedEntry] }),
+          '/g/broom.project.json',
+        ),
+      ).toThrow(/sprinkle_directories/);
+    }
+    expect(() =>
+      ProjectDefinitionParser.parse(projectJsonCreate({ sprinkle_directories: 'sprinkle' }), '/g/broom.project.json'),
+    ).toThrow(/sprinkle_directories/);
+  });
 });

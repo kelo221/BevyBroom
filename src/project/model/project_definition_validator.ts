@@ -39,28 +39,43 @@ export class ProjectDefinitionValidator {
       problems.push(...ProjectDefinitionValidator.commandProblems('build', definition.build, probe));
     }
     problems.push(...ProjectDefinitionValidator.endpointProblems(definition.launch.endpoint));
-    problems.push(...ProjectDefinitionValidator.textureDirectoryProblems(definition, probe));
+    problems.push(
+      ...ProjectDefinitionValidator.assetDirectoryProblems(definition, definition.textureDirectories, 'texture', probe),
+    );
+    problems.push(
+      ...ProjectDefinitionValidator.assetDirectoryProblems(
+        definition,
+        definition.sprinkleDirectories,
+        'sprinkle',
+        probe,
+      ),
+    );
     return problems;
   }
 
   /**
-   * Warns about texture directories that are not directories under the asset
+   * Warns about listed directories that are not directories under the asset
    * root.
    *
    * @param definition Parsed project.
+   * @param directories Asset-root-relative directories to check.
+   * @param directoryKind Word naming the kind of directory in messages, such as
+   *   "texture".
    * @param probe File system access.
-   * @returns One warning per missing texture directory.
+   * @returns One warning per missing directory.
    */
-  private static textureDirectoryProblems(
+  private static assetDirectoryProblems(
     definition: ProjectDefinition,
+    directories: readonly string[],
+    directoryKind: string,
     probe: ProjectFileSystemProbe,
   ): ProjectProblem[] {
-    return definition.textureDirectories
+    return directories
       .map((directory) => `${definition.assetRoot}/${directory}`)
       .filter((absoluteDirectory) => !probe.isDirectory(absoluteDirectory))
       .map((absoluteDirectory) => ({
         severity: 'warning' as const,
-        message: `The texture directory ${absoluteDirectory} does not exist.`,
+        message: `The ${directoryKind} directory ${absoluteDirectory} does not exist.`,
       }));
   }
 

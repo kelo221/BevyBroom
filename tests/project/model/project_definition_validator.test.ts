@@ -31,6 +31,7 @@ function definitionCreate(root: string): ProjectDefinition {
     assetRoot: `${root}/assets`,
     levelDirectory: `${root}/assets/broom/levels`,
     textureDirectories: [],
+    sprinkleDirectories: [],
     launch: { program: 'bin/game.exe', arguments: [], workingDirectory: root, endpoint: 'http://127.0.0.1:15702' },
     build: { program: 'cargo', arguments: ['build'], workingDirectory: `${root}/source`, endpoint: '' },
   };
@@ -76,6 +77,20 @@ describe('ProjectDefinitionValidator', () => {
     const problems = ProjectDefinitionValidator.validate(definition, probe);
     expect(problems).toEqual([
       { severity: 'warning', message: expect.stringContaining(`${root}/assets/missing/walls`) },
+    ]);
+  });
+
+  it('warns about each sprinkle directory that is not a directory under the asset root', () => {
+    const root = '/games/sprinkled';
+    const definition = definitionCreate(root);
+    definition.sprinkleDirectories = ['sprinkle', 'missing/foliage'];
+    const probe = probeCreate(
+      [root, `${root}/assets`, `${root}/source`, `${root}/assets/sprinkle`],
+      [`${root}/bin/game.exe`],
+    );
+    const problems = ProjectDefinitionValidator.validate(definition, probe);
+    expect(problems).toEqual([
+      { severity: 'warning', message: expect.stringMatching(/sprinkle directory .*assets\/missing\/foliage/) },
     ]);
   });
 });

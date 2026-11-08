@@ -28,6 +28,8 @@ import type { ShellInspectorSlot } from '@/layout/shell/inspector/shell_inspecto
 import { shellTestDocksCreate, shellTestDocksDispose, type ShellTestDocks } from '../shell_test_support.js';
 import { entityBrowserTestEditorCreate } from '../../../entity_browser/entity_browser_test_support.js';
 import { mockObjectUrlApis } from '../../../texture/library/utils_object_url_test.js';
+import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
+import { EditorToolId } from '@/types/editor_tool_id.js';
 
 /** Inspector slots the docked panels fill. */
 const LAYOUT_SHELL_PANELS_TEST_FILLED_SLOTS: readonly ShellInspectorSlot[] = [
@@ -53,6 +55,9 @@ function fixtureCreate(): LayoutShellPanelsFixture {
   const docks = shellTestDocksCreate();
   const editor = entityBrowserTestEditorCreate();
   const commandStack = new CommandStack(32);
+  const toolSelect = vi.fn((toolId: EditorToolId) =>
+    getStateSprinkleTool().toolActiveWrite(toolId === EditorToolId.SPRINKLE),
+  );
   const source: LayoutShellPanelsSource = {
     docks,
     selectionManager: new ManagerSelection(),
@@ -67,6 +72,7 @@ function fixtureCreate(): LayoutShellPanelsFixture {
     selectionFrameAll: vi.fn(),
     viewportAtClientPointResolve: () => null,
     spawnCameraOverrideRun: (_camera, action) => action(),
+    toolSelect,
   };
   return { docks, source, panels: layoutShellPanelsCreate(source) };
 }
@@ -109,6 +115,7 @@ function singletonsInstall(): void {
 
 /** Drops the editor singletons a test installed. */
 function singletonsReset(): void {
+  getStateSprinkleTool().reset();
   setStateTexturePaintForTests(null);
   setTextureMapCacheForTests(null);
   setStateFaceEditSessionForTests(null);
@@ -186,6 +193,16 @@ describe('layoutShellPanelsCreate', () => {
     issueRow?.click();
     expect(fixture.source.selectionManager.getAllSelectedObjectsAsArray()).toContain(brokenMesh);
     expect(fixture.source.selectionFrameAll).toHaveBeenCalledOnce();
+  });
+
+  it('opens the Entity Sprinkle window with the Sprinkle tool and returns to Select when it is closed', () => {
+    const sprinkleDialog = fixture.panels.sprinkleDialogMount.dialog;
+    getStateSprinkleTool().toolActiveWrite(true);
+    expect(sprinkleDialog.isOpen()).toBe(true);
+    expect(fixture.docks.toolbarContainer.contains(sprinkleDialog.getRootElement())).toBe(true);
+    sprinkleDialog.getRootElement().querySelector<HTMLButtonElement>('button[title="Close"]')?.click();
+    expect(fixture.source.toolSelect).toHaveBeenCalledExactlyOnceWith(EditorToolId.OBJECT);
+    expect(sprinkleDialog.isOpen()).toBe(false);
   });
 
   it('removes every docked panel and the Browse delegate on dispose', () => {

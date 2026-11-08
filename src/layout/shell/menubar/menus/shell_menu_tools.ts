@@ -25,6 +25,7 @@ export class ShellMenuTools extends ShellMenu {
     const actions = context.toolbarActions;
     return [
       ...SHELL_MENU_TOOLS_ORDER.map((toolId) => this.toolEntryBuild(context, toolId)),
+      this.sprinkleEntryBuild(context),
       this.separatorEntry(),
       this.actionEntry(context, 'Snap to Grid', () => actions.onToggleSnap(), {
         isChecked: () => actions.isUserSnapEnabled(),
@@ -52,6 +53,21 @@ export class ShellMenuTools extends ShellMenu {
     const window = context.windowActions;
     return this.actionEntry(context, toolInstructionForEditorTool(toolId).title, () => window.toolSelect(toolId), {
       isChecked: () => window.toolActiveRead() === toolId,
+    });
+  }
+
+  /**
+   * Builds the row that activates the Sprinkle tool, which opens the Entity
+   * Sprinkle window.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Menu action entry checked while the Sprinkle tool is active.
+   */
+  private sprinkleEntryBuild(context: ShellMenuContext): ToolbarMenuEntry {
+    const window = context.windowActions;
+    return this.actionEntry(context, 'Sprinkle…', () => window.toolSelect(EditorToolId.SPRINKLE), {
+      shortcutAction: 'tool_sprinkle',
+      isChecked: () => window.toolActiveRead() === EditorToolId.SPRINKLE,
     });
   }
 

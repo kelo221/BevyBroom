@@ -1,17 +1,19 @@
-import { getStateDisplacementSculpt } from '@/displacement/state/state_displacement_sculpt.js';
+import {
+  DISPLACEMENT_SCULPT_RADIUS_MAX,
+  DISPLACEMENT_SCULPT_RADIUS_MIN,
+  getStateDisplacementSculpt,
+} from '@/displacement/state/state_displacement_sculpt.js';
+import { BrushResizeSession } from '@/tools/brush_resize/brush_resize_session.js';
 import type { DisplacementSurfaceHit } from './displacement_surface_raycaster.js';
-import { displacementBrushResizeRadiusCompute } from './displacement_brush_resize_radius.js';
 
 /**
  * One Shift + right-button drag that resizes the paint brush: horizontal
  * pointer travel since the press changes the shared paint radius. Changes no
  * geometry and records no undo step.
  */
-export class DisplacementBrushResizeSession {
+export class DisplacementBrushResizeSession extends BrushResizeSession {
   /** Surface point under the press, where the brush cursor stays while resizing. */
   readonly anchor: DisplacementSurfaceHit;
-  private readonly startClientX: number;
-  private readonly startRadius: number;
 
   /**
    * Starts resizing at a press.
@@ -20,22 +22,28 @@ export class DisplacementBrushResizeSession {
    * @param startClientX Press client X.
    */
   constructor(anchor: DisplacementSurfaceHit, startClientX: number) {
+    super(startClientX, getStateDisplacementSculpt().settingsRead().radius, {
+      minimum: DISPLACEMENT_SCULPT_RADIUS_MIN,
+      maximum: DISPLACEMENT_SCULPT_RADIUS_MAX,
+    });
     this.anchor = { point: anchor.point.clone(), normal: anchor.normal.clone() };
-    this.startClientX = startClientX;
-    this.startRadius = getStateDisplacementSculpt().settingsRead().radius;
   }
 
   /**
-   * Sets the shared paint radius for the pointer's horizontal travel since the
-   * press.
+   * Returns the shared paint radius.
    *
-   * @param clientX Current pointer client X.
+   * @returns Radius in meters.
    */
-  pointerUpdate(clientX: number): void {
-    const radius = displacementBrushResizeRadiusCompute(this.startRadius, clientX - this.startClientX);
-    const state = getStateDisplacementSculpt();
-    if (radius !== state.settingsRead().radius) {
-      state.settingsWrite({ radius });
-    }
+  protected radiusRead(): number {
+    return getStateDisplacementSculpt().settingsRead().radius;
+  }
+
+  /**
+   * Stores the shared paint radius.
+   *
+   * @param radius Radius in meters.
+   */
+  protected radiusWrite(radius: number): void {
+    getStateDisplacementSculpt().settingsWrite({ radius });
   }
 }

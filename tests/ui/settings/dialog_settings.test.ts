@@ -5,6 +5,8 @@ import { DialogSettings } from '@/ui/settings/dialog_settings.js';
 import { IMPERIAL_UNIT_LABELS, METRIC_UNIT_LABELS } from '@/settings/units/unit_presets.js';
 import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
+import { formatKeyboardShortcut } from '@/settings/keyboard/keyboard_shortcut_format.js';
+import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
 import { cssColorNormalize } from '../ui_css_color_test_support.js';
 
 describe('SettingsDialog', () => {
@@ -237,6 +239,17 @@ describe('SettingsDialog', () => {
     expect(store.getKeyboardShortcutSettings().save.code).toBe('KeyP');
     expect(store.getKeyboardShortcutSettings().save.ctrl).toBe(true);
     expect(clipInput.value).toBe('Enter');
+  });
+
+  it('lists the Sprinkle tool shortcut on the Keyboard tab and lets the user rebind it', () => {
+    dialog.show();
+    dialog.showTab('keyboard');
+    const sprinkleInput = dialog
+      .getContentElement()
+      .querySelector('[data-settings-field="keyboard-shortcut-tool_sprinkle"]') as HTMLInputElement | null;
+    expect(sprinkleInput?.value).toBe(formatKeyboardShortcut(createDefaultKeyboardShortcutSettings().tool_sprinkle));
+    sprinkleInput?.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyJ', shiftKey: true, bubbles: true }));
+    expect(store.getKeyboardShortcutSettings().tool_sprinkle).toMatchObject({ code: 'KeyJ', shift: true, ctrl: false });
   });
 
   it('should show fixed reminders for click modifiers, the clipboard, UV smear and 3D fly navigation keys', () => {

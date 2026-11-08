@@ -12,6 +12,11 @@ import type {
   LevelBuildPublishResult,
 } from '@/level_build/publish/level_build_publish_types.js';
 import type { TextureProjectListResult, TextureProjectReadResult } from '@/texture/project/texture_project_types.js';
+import type {
+  SprinkleDefinitionFile,
+  SprinkleDefinitionFilesReadResult,
+  SprinkleDefinitionOpenResult,
+} from '@/tools/sprinkle/definition/sprinkle_definition.js';
 import { ProjectRecentStore } from '@/project/recent/project_recent_store.js';
 import { ProjectWorkbench, type ProjectWorkbenchLink } from '@/project/workbench/project_workbench.js';
 import { ProjectWorkbenchConsoleReporter } from '@/project/workbench/project_workbench_console_reporter.js';
@@ -32,6 +37,12 @@ export class GameProcessControlFake extends GameProcessControl {
    * back.
    */
   projectTextureReadGate: Promise<void> = Promise.resolve();
+  /** Sprinkle definition files, per project file. */
+  readonly projectSprinkleFiles = new Map<string, SprinkleDefinitionFile[]>();
+  /** Paths of every sprinkle definition file asked to open. */
+  readonly openedSprinkleDefinitions: string[] = [];
+  /** Answer of every sprinkle definition open request. */
+  nextSprinkleOpenResult: SprinkleDefinitionOpenResult = { ok: true };
 
   /** @inheritdoc */
   async projectChooseFile(): Promise<string | null> {
@@ -88,6 +99,21 @@ export class GameProcessControlFake extends GameProcessControl {
     await this.projectTextureReadGate;
     const bytesBase64 = this.projectTextureFilesRead(projectFile).get(path);
     return bytesBase64 === undefined ? { ok: false, message: `No texture ${path}` } : { ok: true, path, bytesBase64 };
+  }
+
+  /** @inheritdoc */
+  async projectSprinkleDefinitionFilesRead(): Promise<SprinkleDefinitionFilesReadResult> {
+    const projectFile = this.nextStatus?.project?.projectFile ?? null;
+    if (projectFile === null) {
+      return { ok: false, message: 'No project is open.' };
+    }
+    return { ok: true, files: this.projectSprinkleFiles.get(projectFile) ?? [] };
+  }
+
+  /** @inheritdoc */
+  async projectSprinkleDefinitionOpen(path: string): Promise<SprinkleDefinitionOpenResult> {
+    this.openedSprinkleDefinitions.push(path);
+    return this.nextSprinkleOpenResult;
   }
 
   /**

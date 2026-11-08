@@ -6,6 +6,10 @@ import type { StandaloneHostUpdateCheck } from '@/updater/update_types.js';
 import type { TextureProjectListResult, TextureProjectReadResult } from '@/texture/project/texture_project_types.js';
 import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
 import type {
+  SprinkleDefinitionFilesReadResult,
+  SprinkleDefinitionOpenResult,
+} from '@/tools/sprinkle/definition/sprinkle_definition.js';
+import type {
   McpHostStartResult,
   McpHostStatus,
   McpInvokeEditorToolParams,
@@ -28,6 +32,8 @@ export interface ElectrobunDesktopRpcSchema {
       levelPackagePublish: { params: LevelBuildPublishRequest; response: LevelBuildPublishResult };
       projectTextureList: { params: undefined; response: TextureProjectListResult };
       projectTextureRead: { params: { path: string }; response: TextureProjectReadResult };
+      projectSprinkleDefinitionFilesRead: { params: undefined; response: SprinkleDefinitionFilesReadResult };
+      projectSprinkleDefinitionOpen: { params: { path: string }; response: SprinkleDefinitionOpenResult };
     };
     messages: {};
   };
@@ -54,6 +60,8 @@ export interface ElectrobunDesktopBunRpcClient {
     levelPackagePublish: (params: LevelBuildPublishRequest) => Promise<LevelBuildPublishResult>;
     projectTextureList: () => Promise<TextureProjectListResult>;
     projectTextureRead: (params: { path: string }) => Promise<TextureProjectReadResult>;
+    projectSprinkleDefinitionFilesRead: () => Promise<SprinkleDefinitionFilesReadResult>;
+    projectSprinkleDefinitionOpen: (params: { path: string }) => Promise<SprinkleDefinitionOpenResult>;
   };
 }
 

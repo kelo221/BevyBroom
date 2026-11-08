@@ -80,6 +80,10 @@ pub struct ProjectConfig {
     /// Relative to the asset root: folders whose images the editor's Texture Browser loads.
     #[serde(default)]
     pub texture_directories: Vec<String>,
+    /// Relative to the asset root: folders whose sprinkle definition files the editor's Sprinkle
+    /// tool loads.
+    #[serde(default)]
+    pub sprinkle_directories: Vec<String>,
 }
 
 /// Serde default for [`ProjectConfig::document_directory`].
@@ -115,7 +119,11 @@ impl ProjectConfig {
             .texture_directories
             .iter()
             .map(|path| ("texture_directories", path));
-        for (field, path) in paths.into_iter().chain(texture_paths) {
+        let sprinkle_paths = config
+            .sprinkle_directories
+            .iter()
+            .map(|path| ("sprinkle_directories", path));
+        for (field, path) in paths.into_iter().chain(texture_paths).chain(sprinkle_paths) {
             check_contained(field, path)?;
         }
         Ok(config)

@@ -2,6 +2,7 @@ import type { Vector2 } from 'three';
 import { Tool } from '../tool.js';
 import { boxSelectApplyClickSelection } from './box_select_click_select.js';
 import { BoxSelectDragGesture } from './box_select_drag_gesture.js';
+import { BoxSelectSprinklePress } from './box_select_sprinkle_press.js';
 import {
   boxSelectModifierKeyIs,
   boxSelectPointerSampleRead,
@@ -23,6 +24,7 @@ const BOX_SELECT_SCALE_NOT_ALLOWED_MESSAGE = 'Scale unavailable: point entities 
  */
 export class BoxSelectTool extends Tool {
   private readonly dragGesture = new BoxSelectDragGesture();
+  private readonly sprinklePress = new BoxSelectSprinklePress();
 
   /** Creates a box select tool. */
   constructor() {
@@ -30,12 +32,24 @@ export class BoxSelectTool extends Tool {
   }
 
   /**
-   * Busy while an object drag runs so the tool keeps exclusive input.
+   * Busy while an object drag or a Sprinkle press runs so the tool keeps
+   * exclusive input.
    *
-   * @returns True during an object drag session.
+   * @returns True during an object drag session or a Sprinkle press.
    */
   override isBusy(): boolean {
-    return this.dragGesture.isSessionActive();
+    return this.dragGesture.isSessionActive() || this.sprinklePress.isPressActive();
+  }
+
+  /**
+   * Returns whether a right-button Sprinkle resize holds the press, so the
+   * press must not also fly or pan the view.
+   *
+   * @param button Mouse button index of the press.
+   * @returns True while that button holds a Sprinkle press.
+   */
+  override claimsViewportNavigationPress(button: number): boolean {
+    return this.sprinklePress.isPressHeldBy(button);
   }
 
   /** Called when the tool is activated. */
@@ -43,14 +57,19 @@ export class BoxSelectTool extends Tool {
     this.editor?.getServices()?.setStatusMessage('Select');
   }
 
-  /** Cancels a running object drag when the tool is deactivated. */
+  /**
+   * Cancels a running object drag or Sprinkle press when the tool is
+   * deactivated.
+   */
   override onDeactivate(): void {
     this.dragGesture.reset();
+    this.sprinklePress.reset();
   }
 
-  /** Cancels a running object drag when the tool loses focus. */
+  /** Cancels a running object drag or Sprinkle press when the tool loses focus. */
   override onFocusLost(): void {
     this.dragGesture.reset();
+    this.sprinklePress.reset();
   }
 
   /** Called when the tool is rendered. */
@@ -81,25 +100,29 @@ export class BoxSelectTool extends Tool {
   }
 
   /**
-   * Records a left-button press as a possible drag start.
+   * Hands a press over a surface to the Sprinkle tool while it is active,
+   * otherwise records a left-button press as a possible drag start.
    *
    * @param button Mouse button index.
    */
   override onMouseDown(button: number): void {
-    if (button !== 0 || this.isSingleUse || !this.editor) {
+    if (this.isSingleUse || !this.editor) {
+      return;
+    }
+    if (this.sprinklePress.pressBegin(this.editor, button) || button !== 0) {
       return;
     }
     this.dragGesture.pressBegin(boxSelectPointerSampleRead(this.editor));
   }
 
   /**
-   * Ends a left-button press: commits a running drag, otherwise applies click
-   * selection.
+   * Ends a Sprinkle press held by the button, otherwise ends a left-button
+   * press: commits a running drag, otherwise applies click selection.
    *
    * @param button Mouse button index.
    */
   override onGlobalMouseUp(button: number): void {
-    if (button !== 0) {
+    if (this.sprinklePress.pressEnd(button) || button !== 0) {
       return;
     }
     if (this.dragGesture.release()) {
@@ -117,13 +140,18 @@ export class BoxSelectTool extends Tool {
   override onMouseDrag(_button: number, _screenDelta: Vector2, _gridDelta: Vector2): void {}
 
   /**
-   * Feeds left-button pointer movement to the drag gesture.
+   * Feeds pointer movement to a held Sprinkle press, otherwise left-button
+   * movement to the drag gesture.
    *
    * @param button Mouse button index.
    * @param _screenDelta Screen-space movement delta.
    * @param _gridDelta Grid/world-space movement delta.
    */
   override onGlobalMouseDrag(button: number, _screenDelta: Vector2, _gridDelta: Vector2): void {
+    if (this.editor && this.sprinklePress.isPressActive()) {
+      this.sprinklePress.pressMove(this.editor);
+      return;
+    }
     if (button !== 0 || !this.editor) {
       return;
     }
@@ -246,8 +274,8 @@ export class BoxSelectTool extends Tool {
   }
 
   /**
-   * Dispatches viewport clicks to Entity, Polygon, or Sprinkle tools when
-   * active.
+   * Dispatches viewport clicks to the Entity or Polygon tool when active; the
+   * Sprinkle tool paints on press and takes every click without selecting.
    *
    * @param clientX Viewport client X.
    * @param clientY Viewport client Y.
@@ -256,8 +284,7 @@ export class BoxSelectTool extends Tool {
   private applyHammerToolClick(clientX: number, clientY: number): boolean {
     if (getStateEntityPlace().toolActiveRead()) return getStateEntityPlace().placeAtClientPoint(clientX, clientY);
     if (getStatePolygonTool().toolActiveRead()) return getStatePolygonTool().placeVertexAtClientPoint(clientX, clientY);
-    if (getStateSprinkleTool().toolActiveRead()) return getStateSprinkleTool().scatterAtClientPoint(clientX, clientY);
-    return false;
+    return getStateSprinkleTool().toolActiveRead();
   }
 
   /**

@@ -743,6 +743,7 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
       onBeforeRender: () => {
         this.cadRulerSystem.refreshLabelProjection();
         this.displacementOverlaySystem?.frameUpdate();
+        this.sprinkleToolSystem?.frameUpdate();
         this.toolEditorSystem?.editorWindow.onRepaint();
         this.statusBarZoomRefresh();
       },
@@ -804,6 +805,8 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
     this.renderLoop.dispose();
     this.displacementOverlaySystem?.dispose();
     this.displacementOverlaySystem = null;
+    this.sprinkleToolSystem?.dispose();
+    this.sprinkleToolSystem = null;
     this.playerSystem?.dispose();
     this.playerSystem = null;
     this.keyboardShortcutHandler?.unregister();

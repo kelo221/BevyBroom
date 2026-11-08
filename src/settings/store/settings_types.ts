@@ -148,6 +148,7 @@ export type KeyboardShortcutAction =
   | 'bounds'
   | 'face'
   | 'selection_object'
+  | 'tool_sprinkle'
   | 'interaction_mode'
   | 'delete_selected'
   | 'escape'

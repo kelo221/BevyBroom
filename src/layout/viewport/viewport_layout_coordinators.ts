@@ -53,6 +53,7 @@ import {
 } from '@/layout/setup/layout_settings_system.js';
 import { LayoutGamePreview } from '@/preview/layout/layout_game_preview.js';
 import { DisplacementOverlaySystem } from '@/displacement/overlay/displacement_overlay_system.js';
+import { SprinkleToolSystem } from '@/tools/sprinkle/setup/sprinkle_tool_system.js';
 import { ViewportLayoutCore } from './viewport_layout_core.js';
 
 /**
@@ -255,6 +256,7 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     this.wireOutlinerFaceModeSelection();
     this.wireEditModeOutlinerAndDeleteGuards();
     this.setupDisplacementOverlaySystem();
+    this.setupSprinkleToolSystem();
   }
 
   /**
@@ -270,6 +272,22 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
       selectedFacesRead: () => this.faceModeCoordinator.getFaceExtrusionController().getSelectedFaces(),
       isCtrlDown: () => this.keyboardShortcutHandler.modifiersStateRead().ctrl,
       isShiftDown: () => this.keyboardShortcutHandler.modifiersStateRead().shift,
+    });
+  }
+
+  /**
+   * Creates the Sprinkle tool's stroke painting, brush resizing and radius
+   * cursor, painting into the world through the undo stack.
+   */
+  private setupSprinkleToolSystem(): void {
+    this.sprinkleToolSystem = new SprinkleToolSystem({
+      commandStack: this.commandStack,
+      worldObject: this.worldObject,
+      helperParent: this.sharedWorldScene.getHelpersRoot(),
+      viewportsRead: () => this.getAllInteractiveViewports(),
+      isCtrlDown: () => this.keyboardShortcutHandler.modifiersStateRead().ctrl,
+      statusShow: (message) => this.showStatusMessage(message),
+      afterWorldMutation: () => this.refreshAfterWorldMutation(),
     });
   }
 

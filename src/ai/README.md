@@ -382,6 +382,13 @@ These tools need the desktop app; the browser editor answers that it cannot star
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `texture_browser_entries` | Every texture the Texture Browser lists as `entries: [{ id, displayName, source }]`, in browser order: built-in checker, `Game materials`, `Project textures`, then the local folder |
 
+## Entity Sprinkle
+
+| Tool                        | What it does                                                                                                                                                                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sprinkle_definitions_list` | The loaded sprinkle types as `definitions: [{ name, sourcePath, grid, caseCount }]` plus `problems` of definition files that failed to read                                                                               |
+| `sprinkle_stamp`            | One whole Sprinkle stroke (one undo step) of `definition` at world `center` (optional `normal`, `mode`, `radius`, `densityPercent`, `seed`; the rest comes from the Entity Sprinkle window); returns `{ added, removed }` |
+
 ## Not in this build
 
 - **`capture_section`** — orthographic 2D section slices (top/front/side) are not a separate tool yet; use `capture_view` with a free camera for now.

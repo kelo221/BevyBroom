@@ -19,6 +19,8 @@ import {
 } from '@/layout/shell/mount/layout_shell_panels.js';
 import { getVisGroupSharedServices } from '@/visgroup/visgroup_shared_services.js';
 import { getPrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
+import { EditorToolId } from '@/types/editor_tool_id.js';
+import type { DialogSprinkleServices } from '@/tools/sprinkle/ui/dialog_sprinkle.js';
 
 /** Editor parts the docked panels of the main window are built from. */
 export interface LayoutShellPanelsSource extends EntityBrowserPlacementHost {
@@ -49,6 +51,12 @@ export interface LayoutShellPanelsSource extends EntityBrowserPlacementHost {
   refreshAfterWorldMutation(): void;
   /** Frames the selection in every view. */
   selectionFrameAll(): void;
+  /**
+   * Activates a viewport tool.
+   *
+   * @param toolId Tool to activate.
+   */
+  toolSelect(toolId: EditorToolId): void;
 }
 
 /**
@@ -65,7 +73,22 @@ export function layoutShellPanelsCreate(source: LayoutShellPanelsSource): Layout
     entityBrowserHost: entityBrowserHostCreate(source),
     dockPanels: layoutShellDockPanelsOptionsCreate(source),
     hammerBar: layoutShellHammerBarOptionsCreate(source),
+    sprinkleDialog: layoutShellSprinkleDialogServicesCreate(source),
   });
+}
+
+/**
+ * Builds the Entity Sprinkle window services from the shell source.
+ *
+ * @param source Editor parts the panels are built from.
+ * @returns Grid interval, status reporting and the return to the Select tool.
+ */
+function layoutShellSprinkleDialogServicesCreate(source: LayoutShellPanelsSource): DialogSprinkleServices {
+  return {
+    gridIntervalRead: () => source.gridSnap?.getInterval() ?? null,
+    statusReport: (message) => source.statusBar?.setLastAction(message),
+    toolSelectExit: () => source.toolSelect(EditorToolId.OBJECT),
+  };
 }
 
 /**

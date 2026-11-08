@@ -364,6 +364,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
       surfaceShadingRefresh: () => this.shadingModeCoordinator?.updateShadingMeshes(),
       refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
       selectionFrameAll: () => this.cameraFitCoordinator.onFitAllViewports(),
+      toolSelect: (toolId) => this.toolsPaletteController?.selectTool(toolId),
       ...this.faceInspectorSourcePartsRead(),
       viewportAtClientPointResolve: (clientX, clientY) =>
         this.toolEditorSystem?.editorWindow.getServices()?.resolveInteractiveViewportAtClientPoint(clientX, clientY) ??

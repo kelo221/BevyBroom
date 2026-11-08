@@ -172,7 +172,8 @@ function createDefaultWindowShortcuts(): Pick<
 /**
  * Default transform-mode, selection-tool, interaction-mode, and Edit Mode
  * component-mode shortcuts. Digit 1–3 select vertex / edge / face while Edit
- * Mode is active (object-mode shading keeps the same digits).
+ * Mode is active (object-mode shading keeps the same digits). Ctrl+Alt+S
+ * activates the Sprinkle tool as in Hammer++.
  *
  * @returns Partial keyboard shortcut settings.
  */
@@ -184,6 +185,7 @@ function createDefaultTransformShortcuts(): Pick<
   | 'bounds'
   | 'face'
   | 'selection_object'
+  | 'tool_sprinkle'
   | 'interaction_mode'
   | 'component_vertex'
   | 'component_edge'
@@ -196,6 +198,7 @@ function createDefaultTransformShortcuts(): Pick<
     bounds: createShortcut('KeyT'),
     face: createShortcut('Tab', false, true),
     selection_object: createShortcut('KeyO'),
+    tool_sprinkle: createShortcut('KeyS', true, false, true),
     interaction_mode: createShortcut('Tab'),
     component_vertex: createShortcut('Digit1'),
     component_edge: createShortcut('Digit2'),

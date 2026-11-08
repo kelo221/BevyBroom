@@ -123,7 +123,9 @@ export type McpToolName =
   | 'game_rebuild'
   | 'game_restart'
   | 'game_stop'
-  | 'texture_browser_entries';
+  | 'texture_browser_entries'
+  | 'sprinkle_definitions_list'
+  | 'sprinkle_stamp';
 
 /** JSON vector DTO used at the MCP / EditorApi boundary. */
 export interface McpVec3 {

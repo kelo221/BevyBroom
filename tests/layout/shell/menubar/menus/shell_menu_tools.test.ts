@@ -11,6 +11,8 @@ import {
   shellTestMenuActionFind,
   shellTestMenuContextCreate,
   shellTestMenuLabelsRead,
+  shellTestMenuShortcutRead,
+  shellTestShortcutLabelFormat,
   shellTestToolbarActionsCreate,
   type ShellTestDocks,
   type ShellTestToolbarActions,
@@ -165,6 +167,18 @@ describe('ShellMenuTools', () => {
     local.onClick();
     expect(toolbarActions.onSetTransformSpaceGlobal).toHaveBeenCalledTimes(1);
     expect(toolbarActions.onSetTransformSpaceLocal).toHaveBeenCalledTimes(1);
+  });
+
+  it('activates the Sprinkle tool from Sprinkle…, shows its rebindable shortcut and checks it while active', () => {
+    const { entries, windowActions } = shellMenuToolsTestRigCreate();
+    const labels = shellTestMenuLabelsRead(entries);
+    expect(labels.indexOf('Sprinkle…')).toBe(SHELL_MENU_TOOLS_TEST_TOOL_IDS.length);
+    const row = shellTestMenuActionFind(entries, 'Sprinkle…');
+    expect(shellTestMenuShortcutRead(row)).toBe(shellTestShortcutLabelFormat('tool_sprinkle'));
+    expect(row.isChecked?.()).toBe(false);
+    row.onClick();
+    expect(windowActions.toolSelect).toHaveBeenCalledWith(EditorToolId.SPRINKLE);
+    expect(row.isChecked?.()).toBe(true);
   });
 
   it('opens the solid model panel', () => {

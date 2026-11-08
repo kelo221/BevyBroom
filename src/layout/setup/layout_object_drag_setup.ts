@@ -15,8 +15,6 @@ import type { ShapeDrawPreviewHost } from '@/tools/shape_draw/shape_draw_preview
 import { getShapeDrawSettings } from '@/tools/shape_draw/shapes/shape_draw_settings.js';
 import { PolygonBrushCommitter } from '@/tools/polygon/polygon_brush_committer.js';
 import { getStatePolygonTool } from '@/tools/polygon/state_polygon_tool.js';
-import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
-import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js';
 import type { LayoutToolEditorSetupDeps } from './layout_tool_editor_types.js';
 
 /** Layout systems object dragging needs beyond the tool editor dependencies. */
@@ -72,7 +70,7 @@ export function layoutObjectDragControllerCreate(
   viewportAtClientPoint: (clientX: number, clientY: number) => ObjectDragViewportSource | null,
 ): ObjectDragController {
   const commitDeps = layoutObjectDragBrushCommitDepsCreate(deps, host);
-  layoutPolygonAndSprinkleWire(deps, commitDeps, viewportAtClientPoint);
+  layoutPolygonToolWire(deps, commitDeps, viewportAtClientPoint);
   return new ObjectDragController({
     viewportAtClientPoint,
     gridSnap: deps.gridSnap,
@@ -169,14 +167,13 @@ function layoutObjectDragBrushCommitDepsCreate(
 }
 
 /**
- * Wires `StatePolygonTool` and `StateSprinkleTool` to the live viewport and
- * brush committer.
+ * Wires `StatePolygonTool` to the live viewport and brush committer.
  *
  * @param deps Tool editor dependencies.
  * @param commitDeps Brush commit dependencies.
  * @param viewportAtClientPoint Viewport lookup by client coordinates.
  */
-function layoutPolygonAndSprinkleWire(
+function layoutPolygonToolWire(
   deps: LayoutToolEditorSetupDeps,
   commitDeps: ShapeDrawBrushCommitDeps,
   viewportAtClientPoint: (clientX: number, clientY: number) => ObjectDragViewportSource | null,
@@ -189,7 +186,6 @@ function layoutPolygonAndSprinkleWire(
   polygonTool.clientPointProjectorWrite((cx, cy) =>
     projectClientPointOntoGridPlane(deps, viewportAtClientPoint, cx, cy),
   );
-  getStateSprinkleTool().clientPointHandlerWrite((cx, cy) => getStateEntityPlace().placeAtClientPoint(cx, cy));
 }
 
 /**
