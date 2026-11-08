@@ -23,13 +23,40 @@ pub struct Door {
     pub stats: Handle<DoorStats>,
 }
 
-impl Default for Door { /* the defaults the editor shows */ }
+impl Default for Door {
+    fn default() -> Self {
+        Self {
+            speed: 1.5,
+            locked: false,
+            key_name: String::new(),
+            kind: DoorKind::Wooden,
+            stats: Handle::default(),
+        }
+    }
+}
+
+#[derive(Reflect, Clone, Copy, Default)]
+pub enum DoorKind {
+    #[default]
+    Wooden,
+    Iron,
+    Glass,
+}
 
 #[derive(Asset, Reflect)]
 #[reflect(Default)]
 pub struct DoorStats {
     pub health: f32,
     pub open_seconds: f32,
+}
+
+impl Default for DoorStats {
+    fn default() -> Self {
+        Self {
+            health: 100.0,
+            open_seconds: 1.0,
+        }
+    }
 }
 
 app.register_data_asset::<DoorStats>("door.ron")

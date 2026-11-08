@@ -15,6 +15,10 @@ serde_json.workspace = true
 base64 = "0.23"
 ron = "0.12"
 
+[dev-dependencies]
+# The examples open a window.
+bevy = { workspace = true, features = ["bevy_winit", "x11", "wayland"] }
+
 [features]
 default = ["dynlight"]
 # Authored lights, rooms, portals, shipped lights, preview bakes and DynLit catalog materials.
