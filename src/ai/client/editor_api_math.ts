@@ -24,6 +24,24 @@ export function dtoToVec3(dto: McpVec3 | undefined, fallback: THREE.Vector3): TH
 }
 
 /**
+ * Reads an untrusted `{ x, y, z }` tool argument.
+ *
+ * @param value Argument value.
+ * @returns Vector, or null when the value is no object of three finite numbers.
+ */
+export function vec3FromUnknown(value: unknown): THREE.Vector3 | null {
+  if (typeof value !== 'object' || value === null) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const components = [record['x'], record['y'], record['z']];
+  if (!components.every((component) => typeof component === 'number' && Number.isFinite(component))) {
+    return null;
+  }
+  return new THREE.Vector3(Number(record['x']), Number(record['y']), Number(record['z']));
+}
+
+/**
  * Converts a box into an MCP bounds DTO.
  *
  * @param box Source box.

@@ -1,6 +1,7 @@
-import * as THREE from 'three';
+import type * as THREE from 'three';
 import type { EditorApiHost, EditorApiViewportView } from './editor_api_host.js';
 import { failResult, okResult } from './editor_api_result.js';
+import { vec3FromUnknown } from './editor_api_math.js';
 import { EditorApiViewportPointer, type EditorApiViewportKeys } from './editor_api_viewport_pointer.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 import { ViewportKind } from '@/viewports/core/viewport_kind.js';
@@ -71,8 +72,8 @@ export class EditorApiViewportInput {
    * @returns Result with the selection afterwards.
    */
   private viewportDrag(args: Record<string, unknown>): McpToolResult {
-    const from = this.worldPointArgRead(args['from']);
-    const to = this.worldPointArgRead(args['to']);
+    const from = vec3FromUnknown(args['from']);
+    const to = vec3FromUnknown(args['to']);
     const steps = this.stepsArgRead(args['steps']);
     if (!from || !to) {
       return failResult('from and to must be {x, y, z} with finite numbers');
@@ -98,7 +99,7 @@ export class EditorApiViewportInput {
    * @returns Result with the selection afterwards.
    */
   private viewportClick(args: Record<string, unknown>): McpToolResult {
-    const at = this.worldPointArgRead(args['at']);
+    const at = vec3FromUnknown(args['at']);
     if (!at) {
       return failResult('at must be {x, y, z} with finite numbers');
     }
@@ -199,24 +200,6 @@ export class EditorApiViewportInput {
    */
   private selectionResultWithMessage(message: string): McpToolResult {
     return okResult(message, { selection: this.selectionResultRead().data });
-  }
-
-  /**
-   * Reads a world point argument.
-   *
-   * @param value Argument value.
-   * @returns World point, or null when invalid.
-   */
-  private worldPointArgRead(value: unknown): THREE.Vector3 | null {
-    if (typeof value !== 'object' || value === null) {
-      return null;
-    }
-    const record = value as Record<string, unknown>;
-    const components = [record['x'], record['y'], record['z']];
-    if (!components.every((component) => typeof component === 'number' && Number.isFinite(component))) {
-      return null;
-    }
-    return new THREE.Vector3(Number(record['x']), Number(record['y']), Number(record['z']));
   }
 
   /**

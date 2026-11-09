@@ -1,8 +1,12 @@
-import type { SprinkleWeightedEntry } from './sprinkle_types.js';
+/** Anything a weighted pick may choose, carrying its relative chance. */
+export interface SprinkleWeighted {
+  /** Relative chance of being chosen; entries at or below zero never are. */
+  readonly weight: number;
+}
 
 /**
- * Deterministic Mulberry32 pseudo-random number generator used by the Sprinkle
- * scatter tool so scatter strokes are reproducible under unit tests.
+ * Deterministic Mulberry32 pseudo-random number generator, so seeded strokes
+ * and sculpt noise are reproducible.
  */
 export class SprinklePrng {
   private state: number;
@@ -43,29 +47,34 @@ export class SprinklePrng {
   }
 
   /**
-   * Selects an `entryId` from a weighted list using the PRNG stream.
+   * Returns whether a roll succeeds for a chance in percent.
+   *
+   * @param chancePercent Chance from 0 (never) to 100 (always).
+   * @returns True when the roll lands inside the chance.
+   */
+  chancePercentRoll(chancePercent: number): boolean {
+    return this.nextFloat() * 100 < chancePercent;
+  }
+
+  /**
+   * Picks one entry with a chance proportional to its weight.
    *
    * @param entries Weighted entries.
-   * @returns Chosen entryId, or null when no positive-weight entry exists.
+   * @returns Chosen entry, or null when no entry has a positive weight.
    */
-  pickWeighted(entries: readonly SprinkleWeightedEntry[]): string | null {
-    let total = 0;
-    for (const entry of entries) {
-      if (entry.weight > 0) {
-        total += entry.weight;
-      }
-    }
+  pickWeighted<TEntry extends SprinkleWeighted>(entries: readonly TEntry[]): TEntry | null {
+    const positiveEntries = entries.filter((entry) => entry.weight > 0);
+    const total = positiveEntries.reduce((sum, entry) => sum + entry.weight, 0);
     if (total <= 0) {
       return null;
     }
     let threshold = this.nextFloat() * total;
-    for (const entry of entries) {
-      if (entry.weight <= 0) continue;
+    for (const entry of positiveEntries) {
       threshold -= entry.weight;
-      if (threshold <= 0) {
-        return entry.entryId;
+      if (threshold < 0) {
+        return entry;
       }
     }
-    return entries[entries.length - 1]?.entryId ?? null;
+    return positiveEntries[positiveEntries.length - 1] ?? null;
   }
 }

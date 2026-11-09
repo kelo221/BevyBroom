@@ -23,7 +23,7 @@ import {
 } from '../displacement_test_rig.js';
 import { displacementPickTestViewCreate, type DisplacementPickTestView } from '../displacement_pick_test_view.js';
 import { RouterDisplacementSculptPointer } from '@/displacement/sculpt/router_displacement_sculpt_pointer.js';
-import { DISPLACEMENT_BRUSH_RESIZE_PIXELS_PER_DOUBLING } from '@/displacement/sculpt/displacement_brush_resize_radius.js';
+import { BRUSH_RESIZE_PIXELS_PER_DOUBLING } from '@/tools/brush_resize/brush_resize_radius.js';
 import { DisplacementSculptFrameSchedulerFake } from '../sculpt/displacement_sculpt_frame_scheduler_fake.js';
 
 /** Router, cursor, displaced face, view and switchable services. */
@@ -149,7 +149,7 @@ describe('RouterDisplacementBrushHover', () => {
       true,
     );
     const radiusBefore = getStateDisplacementSculpt().settingsRead().radius;
-    const travel = DISPLACEMENT_BRUSH_RESIZE_PIXELS_PER_DOUBLING / 2;
+    const travel = BRUSH_RESIZE_PIXELS_PER_DOUBLING / 2;
     const moved = new MouseEvent('pointermove', { clientX: pressX + travel, clientY: pressY });
     sculptRouter.strokeContinue(moved, parts.view.camera, parts.view.pickElement);
     hoverTestPointerMove(parts, moved.clientX, moved.clientY);

@@ -4,6 +4,10 @@ import type {
   LevelBuildPublishResult,
 } from '@/level_build/publish/level_build_publish_types.js';
 import type { TextureProjectListResult, TextureProjectReadResult } from '@/texture/project/texture_project_types.js';
+import type {
+  SprinkleDefinitionFilesReadResult,
+  SprinkleDefinitionOpenResult,
+} from '@/tools/sprinkle/definition/sprinkle_definition.js';
 
 /** Explanation shown where only the desktop app can manage a game. */
 export const GAME_PROCESS_DESKTOP_ONLY_MESSAGE =
@@ -70,6 +74,23 @@ export abstract class GameProcessControl {
    * @returns The bytes as base64, or why the file is not returned.
    */
   abstract projectTextureRead(path: string): Promise<TextureProjectReadResult>;
+
+  /**
+   * Reads every sprinkle definition file of the open project's sprinkle
+   * directories.
+   *
+   * @returns The files, or why there are none.
+   */
+  abstract projectSprinkleDefinitionFilesRead(): Promise<SprinkleDefinitionFilesReadResult>;
+
+  /**
+   * Opens one sprinkle definition file of the open project in the system's text
+   * editor.
+   *
+   * @param path File path relative to the asset root.
+   * @returns Success, or why the file was not opened.
+   */
+  abstract projectSprinkleDefinitionOpen(path: string): Promise<SprinkleDefinitionOpenResult>;
 }
 
 /**
@@ -139,6 +160,24 @@ export class GameProcessControlUnavailable extends GameProcessControl {
    * @returns Failure result.
    */
   async projectTextureRead(): Promise<TextureProjectReadResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that project sprinkle definitions need the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectSprinkleDefinitionFilesRead(): Promise<SprinkleDefinitionFilesReadResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that opening sprinkle definition files needs the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectSprinkleDefinitionOpen(): Promise<SprinkleDefinitionOpenResult> {
     return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
   }
 

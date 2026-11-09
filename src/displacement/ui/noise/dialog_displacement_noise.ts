@@ -2,22 +2,19 @@ import { InputNumeric } from '@/ui/input/input_numeric.js';
 import { buttonCompactCreate } from '@/ui/button/button_compact.js';
 import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
 import { getStateDisplacementSculpt } from '@/displacement/state/state_displacement_sculpt.js';
-import { DialogDisplacementFloating } from '@/displacement/ui/dialog_displacement_floating.js';
+import { PanelFloatingToolWindow } from '@/ui/floating_panel/panel_floating_tool_window.js';
 import {
   PANEL_DISPLACEMENT_BUTTON_HEIGHT_PX,
   type PanelDisplacementActionRun,
 } from '@/displacement/ui/panel_displacement_section.js';
-import {
-  displacementTabFieldLabelCreate,
-  displacementTabRowCreate,
-} from '@/displacement/ui/panel_displacement_tab_layout.js';
+import { formLayoutFieldLabelCreate, formLayoutRowCreate } from '@/ui/form/form_layout.js';
 
 /**
  * Floating Noise window of the Displacement tab: the smallest and largest
  * distance Noise adds and the random seed, and Apply adding seeded noise to the
  * selected displaced faces as one undo step.
  */
-export class DialogDisplacementNoise extends DialogDisplacementFloating {
+export class DialogDisplacementNoise extends PanelFloatingToolWindow {
   private readonly minInput = new InputNumeric({ ariaLabel: 'Noise min', width: '64px' });
   private readonly maxInput = new InputNumeric({ ariaLabel: 'Noise max', width: '64px' });
   private readonly seedInput = new InputNumeric({ ariaLabel: 'Noise seed', width: '56px' });
@@ -102,12 +99,12 @@ export class DialogDisplacementNoise extends DialogDisplacementFloating {
    * @returns Row element.
    */
   private fieldsRowBuild(): HTMLElement {
-    return displacementTabRowCreate([
-      displacementTabFieldLabelCreate('Min'),
+    return formLayoutRowCreate([
+      formLayoutFieldLabelCreate('Min'),
       this.minInput.getElement(),
-      displacementTabFieldLabelCreate('Max'),
+      formLayoutFieldLabelCreate('Max'),
       this.maxInput.getElement(),
-      displacementTabFieldLabelCreate('Seed'),
+      formLayoutFieldLabelCreate('Seed'),
       this.seedInput.getElement(),
     ]);
   }
@@ -118,7 +115,7 @@ export class DialogDisplacementNoise extends DialogDisplacementFloating {
    * @returns Row element.
    */
   private applyRowBuild(): HTMLElement {
-    return displacementTabRowCreate([
+    return formLayoutRowCreate([
       buttonCompactCreate({
         title: 'Apply Noise',
         text: 'Apply',

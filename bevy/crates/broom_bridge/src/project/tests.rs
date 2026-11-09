@@ -49,3 +49,20 @@ fn texture_directories_default_to_empty_and_stay_inside_the_project() {
         assert!(error.contains("texture_directories"), "{error}");
     }
 }
+
+#[test]
+fn sprinkle_directories_default_to_empty_and_stay_inside_the_project() {
+    let mut value: serde_json::Value = serde_json::from_str(SAMPLE).expect("sample is JSON");
+    let object = value.as_object_mut().expect("sample is an object");
+    object.remove("sprinkle_directories");
+    let without = ProjectConfig::parse(&value.to_string()).expect("the field is optional");
+    assert!(without.sprinkle_directories.is_empty());
+    value["sprinkle_directories"] = serde_json::json!(["sprinkle", "props/foliage"]);
+    let listed = ProjectConfig::parse(&value.to_string()).expect("contained entries parse");
+    assert_eq!(listed.sprinkle_directories, ["sprinkle", "props/foliage"]);
+    for escaping in ["../outside", "/absolute", "sprinkle/../../outside"] {
+        value["sprinkle_directories"] = serde_json::json!(["sprinkle", escaping]);
+        let error = ProjectConfig::parse(&value.to_string()).expect_err("escaping is rejected");
+        assert!(error.contains("sprinkle_directories"), "{error}");
+    }
+}

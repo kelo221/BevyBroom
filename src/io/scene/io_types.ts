@@ -98,6 +98,8 @@ export interface ObjectEntry {
   objectComments?: string;
   /** User VisGroup ids this object belongs to. */
   visGroupIds?: string[];
+  /** Name of the sprinkle definition that created this entity (editor-only). */
+  sprinkleDefinition?: string;
   /** Re-editable 2D Polygon outline extrusion recipe on this brush or group. */
   polygonOutline?: import('@/tools/polygon/polygon_outline_recipe.js').PolygonOutlineRecipe;
   /** Present when the mesh is a bevel volume. Distance is world units. */

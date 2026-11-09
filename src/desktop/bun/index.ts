@@ -13,6 +13,7 @@ import { GameProcessSpawnerNode } from '@/desktop/bun/game_process/game_process_
 import { gameProcessProjectReaderNodeCreate } from '@/desktop/bun/game_process/game_process_project_reader.js';
 import { gameProcessRpcHandlersCreate } from '@/desktop/bun/game_process/game_process_rpc_handlers.js';
 import { projectTextureRpcHandlersCreate } from '@/desktop/bun/project_textures/project_texture_rpc_handlers.js';
+import { projectSprinkleRpcHandlersCreate } from '@/desktop/bun/project_sprinkle/project_sprinkle_rpc_handlers.js';
 
 await enableWindowsPerMonitorDpiAwareness();
 
@@ -38,6 +39,7 @@ const desktopRpcBinding = BrowserView.defineRPC<ElectrobunDesktopRpcSchema>({
         Utils.openFileDialog({ allowedFileTypes: 'json', canChooseDirectory: false, allowsMultipleSelection: false }),
       ),
       ...projectTextureRpcHandlersCreate(gameProcessHost),
+      ...projectSprinkleRpcHandlersCreate(gameProcessHost),
     },
   },
 });

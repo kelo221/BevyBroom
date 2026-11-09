@@ -23,7 +23,7 @@ import {
   PanelDisplacementSection,
   type PanelDisplacementActionRun,
 } from './panel_displacement_section.js';
-import { displacementTabFieldLabelCreate, displacementTabRowCreate } from './panel_displacement_tab_layout.js';
+import { formLayoutFieldLabelCreate, formLayoutRowCreate } from '@/ui/form/form_layout.js';
 
 /** Visible names of the collision flags. */
 const PANEL_DISPLACEMENT_FLAG_LABELS: Readonly<Record<keyof DisplacementCollisionFlags, string>> = {
@@ -118,12 +118,12 @@ export class PanelDisplacementAttributesSection extends PanelDisplacementSection
    * @returns Row element.
    */
   private fieldsRowBuild(): HTMLElement {
-    return displacementTabRowCreate([
-      displacementTabFieldLabelCreate('Power'),
+    return formLayoutRowCreate([
+      formLayoutFieldLabelCreate('Power'),
       this.powerInput.spinnerElementRead(),
-      displacementTabFieldLabelCreate('Elev'),
+      formLayoutFieldLabelCreate('Elev'),
       this.elevationInput.getElement(),
-      displacementTabFieldLabelCreate('Scale'),
+      formLayoutFieldLabelCreate('Scale'),
       this.scaleInput.getElement(),
     ]);
   }
@@ -157,7 +157,7 @@ export class PanelDisplacementAttributesSection extends PanelDisplacementSection
       heightPx: PANEL_DISPLACEMENT_BUTTON_HEIGHT_PX,
       onClick: () => this.attributesApply(),
     });
-    return displacementTabRowCreate([applyButton]);
+    return formLayoutRowCreate([applyButton]);
   }
 
   /** Stores a typed valid power as the Create power, or shows the stored one. */

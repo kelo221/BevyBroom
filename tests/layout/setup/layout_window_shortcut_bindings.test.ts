@@ -214,6 +214,25 @@ describe('layout window shortcut bindings', () => {
     handler.unregister();
   });
 
+  it('activates the Sprinkle tool from Ctrl+Alt+S', () => {
+    const windowActions = windowActionsSpyCreate();
+    const handler = handlerWithWindowShortcutsCreate(windowActions, dockCommandsSpyCreate());
+    const shortcut = createDefaultKeyboardShortcutSettings().tool_sprinkle;
+    expect(shortcut).toEqual({ code: 'KeyS', ctrl: true, shift: false, alt: true, meta: false });
+    shortcutPress(shortcut);
+    expect(windowActions.toolSelect).toHaveBeenCalledExactlyOnceWith(EditorToolId.SPRINKLE);
+    handler.unregister();
+  });
+
+  it('binds the Sprinkle tool shortcut to a key no other default shortcut uses', () => {
+    const defaults = createDefaultKeyboardShortcutSettings();
+    const sprinkleShortcut = defaults.tool_sprinkle;
+    const clashingActions = (Object.keys(defaults) as KeyboardShortcutAction[]).filter(
+      (action) => action !== 'tool_sprinkle' && JSON.stringify(defaults[action]) === JSON.stringify(sprinkleShortcut),
+    );
+    expect(clashingActions).toEqual([]);
+  });
+
   it('registers every callback it is given under its action', () => {
     const handler = new HandlerKeyboardShortcut(new ManagerInput());
     const actionCallbackSet = vi.spyOn(handler, 'actionCallbackSet');

@@ -2,12 +2,13 @@ import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
 import { getStatePolygonTool } from '@/tools/polygon/state_polygon_tool.js';
 import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
-import type { SprinklePlacementMode } from '@/tools/sprinkle/sprinkle_types.js';
+import { SPRINKLE_RADIUS_MAX, SPRINKLE_RADIUS_MIN } from '@/tools/sprinkle/sprinkle_types.js';
 import { applyViewportToolOptionsTextButtonMetrics } from './viewport_tool_options_control_style.js';
 
 /**
  * Provides context controls for the Hammer++ Polygon and Sprinkle tools inside
- * `ViewportToolOptionsBar`.
+ * `ViewportToolOptionsBar`. The Sprinkle strip holds only the brush radius; the
+ * Entity Sprinkle window owns the other Sprinkle settings.
  */
 export class ViewportToolPolygonSprinkleControls {
   private readonly polygonRow: HTMLElement;
@@ -15,8 +16,6 @@ export class ViewportToolPolygonSprinkleControls {
   private readonly polygonDepthInput: HTMLInputElement;
   private readonly sprinkleRow: HTMLElement;
   private readonly sprinkleRadiusInput: HTMLInputElement;
-  private readonly sprinkleDensityInput: HTMLInputElement;
-  private readonly sprinkleModeSelect: HTMLSelectElement;
   private readonly unsubscribePolygon: () => void;
   private readonly unsubscribeSprinkle: () => void;
 
@@ -31,8 +30,6 @@ export class ViewportToolPolygonSprinkleControls {
     this.polygonDepthInput = ownerDocument.createElement('input');
     this.sprinkleRow = ownerDocument.createElement('div');
     this.sprinkleRadiusInput = ownerDocument.createElement('input');
-    this.sprinkleDensityInput = ownerDocument.createElement('input');
-    this.sprinkleModeSelect = ownerDocument.createElement('select');
     this.buildPolygonRow(ownerDocument);
     this.buildSprinkleRow(ownerDocument);
     this.unsubscribePolygon = getStatePolygonTool().changeListenerAdd(() => this.syncPolygonRow());
@@ -89,52 +86,31 @@ export class ViewportToolPolygonSprinkleControls {
   }
 
   /**
-   * Builds the Sprinkle options row (`Radius`, `Density`, `Mode`).
+   * Builds the Sprinkle options row (`Radius`).
    *
    * @param doc Owner document.
    */
   private buildSprinkleRow(doc: Document): void {
     this.styleRow(this.sprinkleRow, 'viewport-tool-sprinkle-controls');
     const radiusLabel = this.createLabel(doc, 'Radius:');
-    this.styleNumberInput(this.sprinkleRadiusInput, '48px', () => {
-      const val = Number.parseFloat(this.sprinkleRadiusInput.value);
-      if (Number.isFinite(val) && val > 0) getStateSprinkleTool().configPatch({ radius: val });
-    });
-    const densityLabel = this.createLabel(doc, 'Density:');
-    this.styleNumberInput(this.sprinkleDensityInput, '44px', () => {
-      const val = Number.parseFloat(this.sprinkleDensityInput.value);
-      if (Number.isFinite(val) && val > 0) getStateSprinkleTool().configPatch({ density: val });
-    });
-    this.buildSprinkleModeSelect(doc);
-    this.sprinkleRow.append(
-      radiusLabel,
-      this.sprinkleRadiusInput,
-      densityLabel,
-      this.sprinkleDensityInput,
-      this.sprinkleModeSelect,
-    );
+    this.styleNumberInput(this.sprinkleRadiusInput, '48px', () => this.sprinkleRadiusCommit());
+    this.sprinkleRadiusInput.min = String(SPRINKLE_RADIUS_MIN);
+    this.sprinkleRadiusInput.max = String(SPRINKLE_RADIUS_MAX);
+    this.sprinkleRadiusInput.setAttribute('aria-label', 'Sprinkle radius');
+    this.sprinkleRow.append(radiusLabel, this.sprinkleRadiusInput);
   }
 
   /**
-   * Populates the Sprinkle placement mode select element.
-   *
-   * @param doc Owner document.
+   * Stores the typed radius clamped to the Sprinkle radius range, then shows
+   * the stored radius.
    */
-  private buildSprinkleModeSelect(doc: Document): void {
-    this.sprinkleModeSelect.style.background = Theme.inputBackgroundColor;
-    this.sprinkleModeSelect.style.color = Theme.buttonTextColor;
-    this.sprinkleModeSelect.style.border = `1px solid ${hexToRgb(Theme.separatorColor)}`;
-    this.sprinkleModeSelect.style.borderRadius = '4px';
-    this.sprinkleModeSelect.style.fontSize = '11px';
-    for (const mode of ['ADDITIVE', 'REPLACE', 'SUBTRACTIVE'] as const) {
-      const opt = doc.createElement('option');
-      opt.value = mode;
-      opt.textContent = mode;
-      this.sprinkleModeSelect.appendChild(opt);
+  private sprinkleRadiusCommit(): void {
+    const typedRadius = Number.parseFloat(this.sprinkleRadiusInput.value);
+    if (Number.isFinite(typedRadius)) {
+      const radius = Math.min(SPRINKLE_RADIUS_MAX, Math.max(SPRINKLE_RADIUS_MIN, typedRadius));
+      getStateSprinkleTool().configPatch({ radius });
     }
-    this.sprinkleModeSelect.addEventListener('change', () => {
-      getStateSprinkleTool().configPatch({ mode: this.sprinkleModeSelect.value as SprinklePlacementMode });
-    });
+    this.syncSprinkleRow();
   }
 
   /**
@@ -216,7 +192,5 @@ export class ViewportToolPolygonSprinkleControls {
   private syncSprinkleRow(): void {
     const cfg = getStateSprinkleTool().configRead();
     this.sprinkleRadiusInput.value = String(cfg.radius);
-    this.sprinkleDensityInput.value = String(cfg.density);
-    this.sprinkleModeSelect.value = cfg.mode;
   }
 }

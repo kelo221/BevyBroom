@@ -13,6 +13,7 @@ import { ProjectWorkbenchLinkPreview } from '@/project/workbench/project_workben
 import { ProjectRecentStore } from '@/project/recent/project_recent_store.js';
 import { gameProcessControlResolve } from '@/project/control/game_process_control_desktop.js';
 import { ControllerLevelBuild } from '@/level_build/controller_level_build.js';
+import { sprinkleDefinitionLibraryProjectSetup } from '@/tools/sprinkle/definition/setup/sprinkle_definition_library_setup.js';
 import { GlbExporter } from '@/io/glb/glb_exporter.js';
 import type { GameProfile } from '@/settings/store/settings_types.js';
 
@@ -91,6 +92,7 @@ export class LayoutGamePreview {
         levelBuilder: this.levelBuilderCreate(),
       });
       this.textureProjectSourceLoader = this.textureProjectSourceLoaderCreate(this.workbench);
+      sprinkleDefinitionLibraryProjectSetup(this.workbench, gameProcessControlResolve());
     }
     return this.workbench;
   }

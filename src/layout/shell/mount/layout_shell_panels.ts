@@ -17,6 +17,8 @@ import type { ShellInspector } from '@/layout/shell/inspector/shell_inspector.js
 import type { ShellInfoPanel } from '@/layout/shell/info_panel/shell_info_panel.js';
 import type { ShellDockCommands } from '@/layout/shell/actions/shell_dock_commands.js';
 import type { Issue } from '@/info_panel/issues/issue.js';
+import { SprinkleDialogMount } from '@/tools/sprinkle/ui/mount/sprinkle_dialog_mount.js';
+import type { DialogSprinkleServices } from '@/tools/sprinkle/ui/dialog_sprinkle.js';
 
 /** Docks of the main window the panels are mounted into. */
 export interface LayoutShellPanelsDocks {
@@ -39,12 +41,15 @@ export interface LayoutShellPanelsOptions {
   dockPanels: Omit<ShellDockPanelsMountOptions, 'inspector' | 'infoPanel'>;
   /** Services of the Hammer bar sections. */
   hammerBar: Omit<ShellHammerBarMountOptions, 'inspector' | 'objectBarHandlers'>;
+  /** Services of the Entity Sprinkle window. */
+  sprinkleDialog: DialogSprinkleServices;
 }
 
 /**
  * Builds the panels of the main window: the Hammer bar sections and the layers
  * panel in the inspector, the console and issues views in the info panel, and
- * the floating texture browser, Face Edit Sheet and entity browser.
+ * the floating texture browser, Face Edit Sheet, entity browser and Entity
+ * Sprinkle window.
  */
 export class LayoutShellPanels {
   /** Face inspector with the controllers that drive it. */
@@ -57,6 +62,8 @@ export class LayoutShellPanels {
   readonly entityBrowserWindow: PanelFloatingEntityBrowser;
   /** Object Bar, VisGroups and prefab sections of the Hammer bar. */
   readonly hammerBar: ShellHammerBarMount;
+  /** Entity Sprinkle window open while the Sprinkle tool is active. */
+  readonly sprinkleDialogMount: SprinkleDialogMount;
   private readonly dockPanels: ShellDockPanelsMount;
 
   /**
@@ -75,6 +82,7 @@ export class LayoutShellPanels {
       infoPanel: options.docks.infoPanel,
     });
     this.hammerBar = this.hammerBarCreate(options);
+    this.sprinkleDialogMount = new SprinkleDialogMount(options.docks.toolbarContainer, options.sprinkleDialog);
     this.floatingWindowsRegister(options.docks.dockCommands);
   }
 
@@ -105,6 +113,7 @@ export class LayoutShellPanels {
   /** Disposes every panel, floating window and face inspector controller. */
   dispose(): void {
     getStateEntityPlace().browseDelegateWrite(null);
+    this.sprinkleDialogMount.dispose();
     this.hammerBar.dispose();
     this.dockPanels.dispose();
     this.entityBrowserWindow.dispose();

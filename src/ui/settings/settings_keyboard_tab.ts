@@ -13,6 +13,7 @@ const PRIMARY_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, str
   ['interaction_mode', 'Object Mode / Edit Mode'],
   ['selection_object', 'Object Selection'],
   ['face', 'Face Selection'],
+  ['tool_sprinkle', 'Sprinkle Tool'],
   ['delete_selected', 'Delete Selected Object / Dissolve Components'],
   ['component_vertex', 'Edit Mode Vertex Select'],
   ['component_edge', 'Edit Mode Edge Select'],

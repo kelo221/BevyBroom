@@ -97,8 +97,10 @@ From top to bottom:
 - **Clip Plane** (`Shift+X`) cuts brushes along a plane you place.
 - **Vertex Tool** (`Shift+V`) edits the vertices of the selection.
 - **Polygon Tool** draws a 2D outline and extrudes it into convex solids.
-- **Sprinkle Tool** scatters entities or prefabs with a radius, a density,
-  seeded randomness, and an orientation.
+- **Sprinkle Tool** (`Ctrl+Alt+S`, or Tools > Sprinkle…) paints entities onto
+  surfaces: LMB drag paints, Ctrl+LMB drag erases, RMB drag changes the radius.
+  It opens the Entity Sprinkle window with the Type, Mode, Density, grid and
+  orientation settings; closing the window returns to the Select tool.
 - **Grid** aligns the grid and camera orientation to a face or edge.
 
 In Edit Mode the palette shows only the tools that work there. Hide or show the

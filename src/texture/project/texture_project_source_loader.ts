@@ -1,5 +1,8 @@
 import type { GameProcessControl } from '@/project/control/game_process_control.js';
-import type { GameProcessStatus } from '@/project/process/game_process_types.js';
+import {
+  projectWorkbenchOpenKeyRead,
+  type ProjectWorkbenchOpenKeySource,
+} from '@/project/workbench/project_workbench_open_key.js';
 import {
   createTextureBrowserEntry,
   revokeTextureBrowserEntry,
@@ -27,7 +30,7 @@ export interface TextureProjectSourceSink {
 }
 
 /** The parts of the project workbench the loader follows. */
-export interface TextureProjectSourceWorkbench {
+export interface TextureProjectSourceWorkbench extends ProjectWorkbenchOpenKeySource {
   /**
    * Registers a callback run whenever the project status changes.
    *
@@ -35,18 +38,6 @@ export interface TextureProjectSourceWorkbench {
    * @returns Function that removes the callback.
    */
   changeListenerAdd(listener: () => void): () => void;
-  /**
-   * Returns the newest status.
-   *
-   * @returns Status, or null before a project was opened.
-   */
-  statusRead(): GameProcessStatus | null;
-  /**
-   * Returns how many times a project was opened.
-   *
-   * @returns Number of successful opens.
-   */
-  projectOpenCountRead(): number;
 }
 
 /** Collaborators of the project texture loader. */
@@ -122,8 +113,7 @@ export class TextureProjectSourceLoader {
    * @returns Key, or null when no project is open.
    */
   private projectKeyRead(): string | null {
-    const project = this.hosts.workbench.statusRead()?.project ?? null;
-    return project === null ? null : `${this.hosts.workbench.projectOpenCountRead()}:${project.projectFile}`;
+    return projectWorkbenchOpenKeyRead(this.hosts.workbench);
   }
 
   /**

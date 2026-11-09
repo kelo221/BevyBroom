@@ -14,10 +14,7 @@ import {
   type DisplacementSculptAxis,
   type DisplacementSculptEffect,
 } from '@/displacement/model/displacement_types.js';
-import {
-  displacementTabFieldLabelCreate,
-  displacementTabRowCreate,
-} from '@/displacement/ui/panel_displacement_tab_layout.js';
+import { formLayoutFieldLabelCreate, formLayoutRowCreate } from '@/ui/form/form_layout.js';
 import { DialogDisplacementPaintBase } from './dialog_displacement_paint_base.js';
 
 /** Visible names of the Paint Geometry effects. */
@@ -73,11 +70,11 @@ export class DialogDisplacementPaintGeometry extends DialogDisplacementPaintBase
     this.toolCommitHandlersBind();
     this.contentMount([
       this.effectGroupBuild(),
-      displacementTabRowCreate([displacementTabFieldLabelCreate('Axis'), this.axisSelect.getElement()]),
+      formLayoutRowCreate([formLayoutFieldLabelCreate('Axis'), this.axisSelect.getElement()]),
       faceEditSheetGroupBoxCreate('Brush', 'dialog-displacement-paint-brush', this.edgeRadio.getElement()),
       faceEditSheetGroupBoxCreate('Distance', 'dialog-displacement-paint-distance', this.distanceSlider.getElement()),
       faceEditSheetGroupBoxCreate('Spatial', 'dialog-displacement-paint-spatial', this.radiusSlider.getElement()),
-      displacementTabRowCreate([
+      formLayoutRowCreate([
         faceEditSheetCheckboxLabelCreate(this.autoSewCheckbox, 'AutoSew'),
         faceEditSheetCheckboxLabelCreate(this.continuousMouseCheckbox, 'Continuous Mouse'),
       ]),
@@ -118,7 +115,7 @@ export class DialogDisplacementPaintGeometry extends DialogDisplacementPaintBase
     return faceEditSheetGroupBoxCreate(
       'Effect',
       'dialog-displacement-paint-effect',
-      displacementTabRowCreate([
+      formLayoutRowCreate([
         this.effectRadio.getElement(),
         faceEditSheetCheckboxLabelCreate(this.raiseCheckbox, 'Raise (Ctrl lowers)'),
       ]),

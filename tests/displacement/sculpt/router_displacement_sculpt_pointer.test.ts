@@ -8,7 +8,7 @@ import {
   getStateDisplacementSculpt,
 } from '@/displacement/state/state_displacement_sculpt.js';
 import { getStateDisplacementSculptPress } from '@/displacement/state/state_displacement_sculpt_press.js';
-import { DISPLACEMENT_BRUSH_RESIZE_PIXELS_PER_DOUBLING } from '@/displacement/sculpt/displacement_brush_resize_radius.js';
+import { BRUSH_RESIZE_PIXELS_PER_DOUBLING } from '@/tools/brush_resize/brush_resize_radius.js';
 import { RouterDisplacementSculptPointer } from '@/displacement/sculpt/router_displacement_sculpt_pointer.js';
 import type { SolidFaceTextureTarget } from '@/texture/commands/command_texture_solid_face_edit.js';
 import {
@@ -194,7 +194,7 @@ describe('RouterDisplacementSculptPointer', () => {
     expect(router.isStrokeActive()).toBe(true);
     const anchor = getStateDisplacementSculptPress().pressRead()?.resizeAnchor ?? null;
     expect(anchor?.point.distanceTo(displacementTestFaceCenter(target))).toBeLessThan(1e-3);
-    const travel = DISPLACEMENT_BRUSH_RESIZE_PIXELS_PER_DOUBLING;
+    const travel = BRUSH_RESIZE_PIXELS_PER_DOUBLING;
     expect(router.strokeContinue(routerTestMovedEvent(view, travel), view.camera, view.pickElement)).toBe(true);
     expect(getStateDisplacementSculpt().settingsRead().radius).toBeCloseTo(radiusBefore * 2, 9);
     router.strokeContinue(routerTestMovedEvent(view, -travel), view.camera, view.pickElement);

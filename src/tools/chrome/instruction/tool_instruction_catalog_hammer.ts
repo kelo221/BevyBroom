@@ -53,7 +53,7 @@ const TOOL_INSTRUCTIONS_BY_ID: Readonly<Record<EditorToolId, ToolInstruction>> =
   [EditorToolId.SPRINKLE]: {
     title: 'Sprinkle Tool',
     description:
-      'Scatter-place game entities or prefabs across surfaces with configurable radius, density, seeded randomness, and orientation.',
+      'Entity Sprinkle: LMB drag paints the chosen sprinkle type onto surfaces, Ctrl+LMB drag erases it, RMB drag changes the brush radius. Type, Mode, Density and grid live in the Entity Sprinkle window.',
   },
   [EditorToolId.GRID]: {
     title: 'Grid',

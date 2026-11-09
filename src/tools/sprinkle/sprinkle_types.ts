@@ -1,37 +1,65 @@
 import type * as THREE from 'three';
 
-/** Sprinkle placement operation mode matching Hammer++ Entity Sprinkle. */
-export type SprinklePlacementMode = 'ADDITIVE' | 'REPLACE' | 'SUBTRACTIVE';
+/**
+ * Sprinkle placement operation mode matching the Hammer++ Entity Sprinkle
+ * modes.
+ */
+export type SprinklePlacementMode = 'ADDITIVE' | 'SUBTRACTIVE' | 'REPLACE' | 'OVERWRITE';
 
-/** Weighted entity or prefab entry in a Sprinkle definition preset. */
-export interface SprinkleWeightedEntry {
-  /** Catalog entry or prefab identifier. */
-  entryId: string;
-  /** Relative selection weight (`> 0`). */
-  weight: number;
-}
+/**
+ * Every Sprinkle placement mode in the order the Entity Sprinkle window lists
+ * them.
+ */
+export const SPRINKLE_PLACEMENT_MODES: readonly SprinklePlacementMode[] = Object.freeze([
+  'ADDITIVE',
+  'SUBTRACTIVE',
+  'REPLACE',
+  'OVERWRITE',
+]);
 
-/** Configuration parameters for the Hammer++ Sprinkle scatter tool. */
+/** Smallest Sprinkle radius in meters. */
+export const SPRINKLE_RADIUS_MIN = 0.25;
+
+/** Largest Sprinkle radius in meters. */
+export const SPRINKLE_RADIUS_MAX = 256;
+
+/** Smallest Sprinkle grid cell size in meters. */
+export const SPRINKLE_GRID_SIZE_MIN = 0.05;
+
+/** Configuration of the Hammer++ Entity Sprinkle tool. */
 export interface SprinkleConfig {
-  /** Scatter disk radius in meters. */
+  /** Name of the active sprinkle definition, or null when none is chosen. */
+  definitionName: string | null;
+  /** Brush radius in meters. */
   radius: number;
-  /** Number of candidate samples evaluated per scatter stamp. */
-  density: number;
-  /** Grid spacing along tangent U in meters (`0` for free uniform disk). */
-  gridStepX: number;
-  /** Grid spacing along tangent V in meters (`0` for free uniform disk). */
-  gridStepZ: number;
+  /**
+   * Chance in percent (0 to 100) that a grid cell inside the radius receives an
+   * entity.
+   */
+  densityPercent: number;
   /** Placement operation mode. */
   mode: SprinklePlacementMode;
-  /** Whether placed objects tilt their +Y axis to match the hit surface normal. */
-  alignToNormal: boolean;
-  /** Whether placed objects receive a random yaw around their up axis. */
+  /**
+   * Grid shift in meters along the first in-plane axis of the surface's grid
+   * plane.
+   */
+  gridOffsetU: number;
+  /**
+   * Grid shift in meters along the second in-plane axis of the surface's grid
+   * plane.
+   */
+  gridOffsetV: number;
+  /** Custom grid cell size in meters along the first in-plane axis. */
+  gridSizeU: number;
+  /** Custom grid cell size in meters along the second in-plane axis. */
+  gridSizeV: number;
+  /** Whether the active definition's grid replaces the custom grid size. */
+  gridSizeFromDefinition: boolean;
+  /** Whether placed entities receive a random yaw around their up axis. */
   randomYaw: boolean;
-  /** Minimum uniform scale factor. */
-  scaleMin: number;
-  /** Maximum uniform scale factor. */
-  scaleMax: number;
-  /** Deterministic PRNG seed. */
+  /** Whether placed entities tilt their +Y axis to the surface normal. */
+  alignToNormal: boolean;
+  /** Seed of the placement random number generator. */
   seed: number;
 }
 
@@ -41,16 +69,4 @@ export interface SprinkleSurfaceHit {
   point: THREE.Vector3;
   /** World-space unit surface normal at the hit. */
   normal: THREE.Vector3;
-}
-
-/** One computed scatter placement sample ready to instantiate. */
-export interface SprinkleSamplePoint {
-  /** Chosen catalog entry or prefab id. */
-  entryId: string;
-  /** World-space placement position. */
-  position: THREE.Vector3;
-  /** World-space orientation quaternion. */
-  quaternion: THREE.Quaternion;
-  /** Uniform scale vector. */
-  scale: THREE.Vector3;
 }

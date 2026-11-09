@@ -236,6 +236,10 @@ export const Theme = Object.freeze({
   /** Sphere and normal arrow of the displacement sculpt cursor. */
   displacementCursorSphereColor: 0x33ff4d,
   displacementCursorArrowColor: 0xffd21f,
+  /** Sphere of the Sprinkle scatter radius cursor. */
+  sprinkleCursorSphereColor: 0x33ccff,
+  /** Sphere of the Sprinkle radius cursor while painting would remove entities. */
+  sprinkleCursorSubtractiveColor: 0xff7a1f,
   /** Lattice drawn over displacement surfaces. */
   displacementOverlayGridColor: 0xffffff,
   /** Edit Mode cage lines in the 3D and 2D views. */

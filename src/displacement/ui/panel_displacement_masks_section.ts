@@ -7,7 +7,7 @@ import {
   PanelDisplacementSection,
   type PanelDisplacementActionRun,
 } from './panel_displacement_section.js';
-import { displacementTabRowCreate } from './panel_displacement_tab_layout.js';
+import { formLayoutRowCreate } from '@/ui/form/form_layout.js';
 
 /**
  * Hammer++ style Masks group of the Displacement tab: the Grid mask (grid
@@ -26,7 +26,7 @@ export class PanelDisplacementMasksSection extends PanelDisplacementSection {
   constructor(private readonly actionRun: PanelDisplacementActionRun) {
     super('Masks', 'panel-displacement-masks');
     this.element.append(
-      displacementTabRowCreate([
+      formLayoutRowCreate([
         faceEditSheetCheckboxLabelCreate(this.gridCheckbox, 'Grid'),
         faceEditSheetCheckboxLabelCreate(this.selectCheckbox, 'Select'),
         this.selectAdjacentButtonCreate(),

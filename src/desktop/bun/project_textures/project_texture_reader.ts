@@ -1,12 +1,12 @@
-import { readFileSync, realpathSync, statSync } from 'node:fs';
-import { isAbsolute, relative } from 'node:path';
+import { readFileSync, statSync } from 'node:fs';
 import { isImageFileName } from '@/texture/library/image_file_filter.js';
 import { ProjectDefinitionParser } from '@/project/model/project_definition_parser.js';
 import {
   TEXTURE_PROJECT_FILE_BYTE_LIMIT,
   type TextureProjectReadResult,
 } from '@/texture/project/texture_project_types.js';
-import { ProjectTexturePaths } from '@/desktop/bun/project_textures/project_texture_paths.js';
+import { ProjectFilePaths } from '@/desktop/bun/project_files/project_file_paths.js';
+import { ProjectFileRealPath } from '@/desktop/bun/project_files/project_file_real_path.js';
 
 /**
  * Reads one image of a project's texture directories, refusing every path that
@@ -38,7 +38,7 @@ export class ProjectTextureReader {
       return { ok: false, message: `Cannot read texture "${texturePath}": ${refusal}` };
     }
     try {
-      return this.fileRead(assetRoot, ProjectTexturePaths.relativeNormalize(texturePath));
+      return this.fileRead(assetRoot, ProjectFilePaths.relativeNormalize(texturePath));
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       return { ok: false, message: `Cannot read texture "${texturePath}": ${reason}` };
@@ -59,10 +59,8 @@ export class ProjectTextureReader {
     if (!isImageFileName(texturePath)) {
       return 'it is not an image file';
     }
-    const relativePath = ProjectTexturePaths.relativeNormalize(texturePath);
-    const isInsideTextureDirectory = textureDirectories.some((directory) =>
-      ProjectTexturePaths.isInsideDirectory(relativePath, ProjectTexturePaths.relativeNormalize(directory)),
-    );
+    const relativePath = ProjectFilePaths.relativeNormalize(texturePath);
+    const isInsideTextureDirectory = ProjectFilePaths.isInsideAnyDirectory(relativePath, textureDirectories);
     return isInsideTextureDirectory ? null : 'it is not inside a texture directory of the project';
   }
 
@@ -74,9 +72,8 @@ export class ProjectTextureReader {
    * @returns The bytes as base64, or why the file is not returned.
    */
   private fileRead(assetRoot: string, relativePath: string): TextureProjectReadResult {
-    const realFilePath = realpathSync(ProjectTexturePaths.absoluteJoin(assetRoot, relativePath));
-    const pathFromRoot = relative(realpathSync(assetRoot), realFilePath);
-    if (pathFromRoot === '' || pathFromRoot.startsWith('..') || isAbsolute(pathFromRoot)) {
+    const realFilePath = ProjectFileRealPath.insideAssetRootResolve(assetRoot, relativePath);
+    if (realFilePath === null) {
       return { ok: false, message: `Cannot read texture "${relativePath}": it resolves outside the asset root` };
     }
     const byteSize = statSync(realFilePath).size;

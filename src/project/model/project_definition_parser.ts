@@ -42,7 +42,8 @@ export class ProjectDefinitionParser {
       name: previewLaunchOptionalStringRead(project, 'name', PROJECT_SECTION_PATH) ?? projectIdentifier,
       assetRoot,
       levelDirectory: ProjectDefinitionParser.levelDirectoryRead(project, assetRoot),
-      textureDirectories: ProjectDefinitionParser.textureDirectoriesRead(project),
+      textureDirectories: ProjectDefinitionParser.assetDirectoriesRead(project, 'texture_directories'),
+      sprinkleDirectories: ProjectDefinitionParser.assetDirectoriesRead(project, 'sprinkle_directories'),
       launch,
       build: ProjectBuildCommandResolver.resolve(preview, launch, projectDirectory),
     };
@@ -81,35 +82,38 @@ export class ProjectDefinitionParser {
   }
 
   /**
-   * Reads the optional texture directories, each of which must stay inside the
+   * Reads an optional list of directories, each of which must stay inside the
    * asset root.
    *
    * @param project Parsed project object.
+   * @param fieldName Top-level field holding the list, such as
+   *   "texture_directories".
    * @returns Asset-root-relative directories with forward slashes, empty when
    *   the field is absent.
    */
-  private static textureDirectoriesRead(project: Record<string, unknown>): string[] {
-    const value = project['texture_directories'] ?? [];
+  private static assetDirectoriesRead(project: Record<string, unknown>, fieldName: string): string[] {
+    const value = project[fieldName] ?? [];
     if (!Array.isArray(value)) {
-      throw new PreviewLaunchCommandError('project.texture_directories must be a list of strings');
+      throw new PreviewLaunchCommandError(`project.${fieldName} must be a list of strings`);
     }
-    return value.map((directory: unknown) => ProjectDefinitionParser.textureDirectoryRead(directory));
+    return value.map((directory: unknown) => ProjectDefinitionParser.assetDirectoryRead(directory, fieldName));
   }
 
   /**
-   * Checks and normalizes one entry of the texture directories.
+   * Checks and normalizes one entry of a directory list.
    *
    * @param directory Entry from the project file.
+   * @param fieldName Top-level field holding the list, used in messages.
    * @returns Asset-root-relative directory with forward slashes and no trailing
    *   slash.
    */
-  private static textureDirectoryRead(directory: unknown): string {
+  private static assetDirectoryRead(directory: unknown, fieldName: string): string {
     if (typeof directory !== 'string' || directory.trim() === '') {
-      throw new PreviewLaunchCommandError('project.texture_directories must be a list of non-empty strings');
+      throw new PreviewLaunchCommandError(`project.${fieldName} must be a list of non-empty strings`);
     }
     if (!ProjectDefinitionParser.isContainedRelativePath(directory)) {
       throw new PreviewLaunchCommandError(
-        `project.texture_directories entry "${directory}" must be a path inside the asset root`,
+        `project.${fieldName} entry "${directory}" must be a path inside the asset root`,
       );
     }
     return directory.replace(/\\/g, '/').replace(/\/+$/, '') || '.';

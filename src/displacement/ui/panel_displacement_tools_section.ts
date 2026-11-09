@@ -13,7 +13,7 @@ import type {
   DisplacementSelectionSummary,
 } from '@/displacement/controller/controller_displacement_actions.js';
 import { PanelDisplacementSection, type PanelDisplacementActionRun } from './panel_displacement_section.js';
-import { displacementTabGridCreate } from './panel_displacement_tab_layout.js';
+import { formLayoutGridEqualColumnsCreate } from '@/ui/form/form_layout.js';
 
 /** What the selection must hold for a Tools button to be enabled. */
 type PanelDisplacementToolRequirement = 'nothing' | 'faces' | 'displaced';
@@ -50,7 +50,7 @@ export class PanelDisplacementToolsSection extends PanelDisplacementSection {
   ) {
     super('Tools', 'panel-displacement-tools');
     this.element.append(
-      displacementTabGridCreate(PANEL_DISPLACEMENT_TOOLS_COLUMN_COUNT, [
+      formLayoutGridEqualColumnsCreate(PANEL_DISPLACEMENT_TOOLS_COLUMN_COUNT, [
         ...this.toolRowButtonsCreate(),
         null,
         ...this.actionRowButtonsCreate(),

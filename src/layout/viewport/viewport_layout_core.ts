@@ -182,6 +182,9 @@ export abstract class ViewportLayoutCore {
   /** Displacement grid wireframes, alpha tints and paint cursor. */
   protected displacementOverlaySystem:
     import('@/displacement/overlay/displacement_overlay_system.js').DisplacementOverlaySystem | null = null;
+  /** Sprinkle tool: stroke painting, brush resizing and the radius cursor. */
+  protected sprinkleToolSystem: import('@/tools/sprinkle/setup/sprinkle_tool_system.js').SprinkleToolSystem | null =
+    null;
   protected snapSettingsController!: ControllerSnapSettings;
   protected cameraFitCoordinator!: CoordinatorCameraFit;
   protected shadingModeCoordinator!: CoordinatorShadingMode;
