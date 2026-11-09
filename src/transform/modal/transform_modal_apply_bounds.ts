@@ -1,11 +1,7 @@
 import * as THREE from 'three';
-import { BoundsFace } from '@/types/bounds_face.js';
-import {
-  computeOneSidedMeshResize,
-  computeOneSidedMultiMeshResize,
-  MIN_BOUNDS_HALF_EXTENT_FREE,
-} from '@/transform/bounds/bounds_resize_math.js';
-import type { DataOrientedBounds } from '@/transform/bounds/builder_oriented_bounds.js';
+import type { BoundsFace } from '@/types/bounds_face.js';
+import type { BoundsFaceResizeStep } from '@/transform/bounds/bounds_resize_steps.js';
+import { boundsFaceAxisLetter } from '@/transform/bounds/handle/bounds_handle_faces.js';
 import { TransformModalAxis } from './transform_modal_axis.js';
 import { transformModalAxisWorldVector } from './transform_modal_axis_vector.js';
 
@@ -43,37 +39,43 @@ export function transformModalApplyBoundsMoveNumeric(
   return true;
 }
 
+/** Faces of an active bounds resize drag and their last pointer travels. */
+export interface TransformModalBoundsResizeFaces {
+  /** Face the drag started on. */
+  primaryFace: BoundsFace;
+  /** Second face of a corner drag, or null for an edge drag. */
+  secondaryFace: BoundsFace | null;
+  /** Last pointer travel of the primary face along its normal. */
+  primaryPointerDelta: number;
+  /** Last pointer travel of the secondary face along its normal. */
+  secondaryPointerDelta: number;
+}
+
 /**
- * Applies a typed distance as one-sided bounds resize along the active face.
+ * Builds the resize steps for a typed distance. An edge drag moves its face by
+ * the value. A corner drag with an axis lock moves the face on that axis by the
+ * value and keeps the other face at its last pointer travel; without a lock on
+ * one of its axes both faces move by the value.
  *
- * @param objects Drag targets.
- * @param initialPositions Pre-drag positions.
- * @param initialScales Pre-drag scales.
- * @param startBounds Bounds at drag start.
- * @param face Active bounds face.
- * @param value Typed displacement along the face outward normal.
- * @param minHalfExtent Minimum half-extent after resize.
- * @returns True when applied.
+ * @param faces Faces of the drag and their last pointer travels.
+ * @param value Typed travel along the outward normal.
+ * @param axis Keyboard axis lock.
+ * @returns Steps to apply.
  */
-export function transformModalApplyBoundsResizeNumeric(
-  objects: THREE.Object3D[],
-  initialPositions: Map<THREE.Object3D, THREE.Vector3>,
-  initialScales: Map<THREE.Object3D, THREE.Vector3>,
-  startBounds: DataOrientedBounds,
-  face: BoundsFace,
+export function transformModalBoundsResizeStepsBuild(
+  faces: TransformModalBoundsResizeFaces,
   value: number,
-  minHalfExtent: number = MIN_BOUNDS_HALF_EXTENT_FREE,
-): boolean {
-  const multi = objects.length > 1;
-  objects.forEach((object) => {
-    const startPos = initialPositions.get(object);
-    const startScale = initialScales.get(object);
-    if (!startPos || !startScale) return;
-    const result = multi
-      ? computeOneSidedMultiMeshResize(startPos, startScale, startBounds, face, value, minHalfExtent)
-      : computeOneSidedMeshResize(startPos, startScale, startBounds, face, value, minHalfExtent);
-    object.position.copy(result.position);
-    object.scale.copy(result.scale);
-  });
-  return true;
+  axis: TransformModalAxis,
+): BoundsFaceResizeStep[] {
+  const secondaryFace = faces.secondaryFace;
+  if (!secondaryFace) {
+    return [{ face: faces.primaryFace, deltaAlongNormal: value }];
+  }
+  const locksPrimary = axis === boundsFaceAxisLetter(faces.primaryFace);
+  const locksSecondary = axis === boundsFaceAxisLetter(secondaryFace);
+  const unlocked = !locksPrimary && !locksSecondary;
+  return [
+    { face: faces.primaryFace, deltaAlongNormal: locksPrimary || unlocked ? value : faces.primaryPointerDelta },
+    { face: secondaryFace, deltaAlongNormal: locksSecondary || unlocked ? value : faces.secondaryPointerDelta },
+  ];
 }

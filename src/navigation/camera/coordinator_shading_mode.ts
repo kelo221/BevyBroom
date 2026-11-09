@@ -51,7 +51,8 @@ export class CoordinatorShadingMode {
    * toolbars.
    *
    * @param keyboardShortcutHandler Keyboard handler for shading keys.
-   * @param onFitViewport Callback when a viewport Fit button is pressed.
+   * @param onFitViewport Callback when Fit to Selection is chosen in a viewport
+   *   menu.
    */
   wireControls(
     keyboardShortcutHandler: HandlerKeyboardShortcut,
@@ -160,7 +161,8 @@ export class CoordinatorShadingMode {
   /**
    * Wires shading and Fit actions on each viewport overlay toolbar.
    *
-   * @param onFitViewport Callback when Fit is pressed for a viewport.
+   * @param onFitViewport Callback when Fit to Selection is chosen for a
+   *   viewport.
    */
   private bindViewportToolbars(onFitViewport: (viewport: ViewportEditor) => void): void {
     const viewports = this.getOrderedViewports();

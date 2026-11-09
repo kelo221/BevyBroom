@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InputNumberSpinner } from '@/ui/input/input_number_spinner.js';
+import { inputWheelTestEventCreate as wheelEventCreate } from './wheel/input_wheel_test_support.js';
 
 /** Spinners built by the running test. */
 const spinnerTestInstances: InputNumberSpinner[] = [];
@@ -32,16 +33,6 @@ function stepperButtonRead(spinner: InputNumberSpinner, direction: 'up' | 'down'
     throw new Error(`stepper not found: ${direction}`);
   }
   return button;
-}
-
-/**
- * Builds a bubbling, cancelable wheel event.
- *
- * @param init Wheel deltas and modifier keys.
- * @returns Wheel event.
- */
-function wheelEventCreate(init: WheelEventInit): WheelEvent {
-  return new WheelEvent('wheel', { bubbles: true, cancelable: true, ...init });
 }
 
 afterEach(() => {

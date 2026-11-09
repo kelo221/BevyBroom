@@ -5,6 +5,11 @@ import { GameEntityComponentStore } from '@/game_entity/component/game_entity_co
 import { PrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
 import { PanelPrefabDock } from '@/prefab/ui/panel_prefab_dock.js';
 import { PREFAB_ENTITY_TIE_DEFAULT_CLASS } from '@/prefab/commands/command_prefab_entity_tie.js';
+import {
+  INPUT_WHEEL_TEST_NOTCH_DOWN,
+  INPUT_WHEEL_TEST_NOTCH_UP,
+  inputWheelTestDispatch,
+} from '../../ui/input/wheel/input_wheel_test_support.js';
 
 /** Dock, world, history and selection a prefab dock test works with. */
 interface PrefabDockTestRig {
@@ -116,6 +121,27 @@ describe('PanelPrefabDock', () => {
     expect(world.children.length).toBe(childCountBefore);
     stack.redo();
     expect(world.children[world.children.length - 1]).toBe(stamped);
+  });
+
+  it('steps the Objects list with the wheel so Insert stamps the newly chosen prefab', () => {
+    const { host, store } = prefabDockTestRigCreate();
+    prefabDockTestButtonClick(host, 'panel-prefab-create');
+    const objectSelect = host.querySelector<HTMLSelectElement>('.panel-prefab-object-select');
+    if (!objectSelect) throw new Error('objects list missing');
+    const firstId = objectSelect.value;
+    prefabDockTestButtonClick(host, 'panel-prefab-create');
+    const secondId = objectSelect.value;
+    expect(secondId).not.toBe(firstId);
+    const optionIds = Array.from(objectSelect.options).map((option) => option.value);
+    const wheelTowardFirst =
+      optionIds.indexOf(firstId) < optionIds.indexOf(secondId)
+        ? INPUT_WHEEL_TEST_NOTCH_UP
+        : INPUT_WHEEL_TEST_NOTCH_DOWN;
+    inputWheelTestDispatch(objectSelect, wheelTowardFirst);
+    expect(objectSelect.value).toBe(firstId);
+    const stampSpy = vi.spyOn(store, 'stampTemplate');
+    prefabDockTestButtonClick(host, 'panel-prefab-insert');
+    expect(stampSpy.mock.calls[0]?.[0]).toBe(firstId);
   });
 
   it('ties the selection to an entity and moves it back to world, each undoable', () => {

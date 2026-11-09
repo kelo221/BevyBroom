@@ -168,6 +168,13 @@ export interface LayoutToolEditorSystem {
    * @returns True when grid tool is active.
    */
   switchToGridTool: () => boolean;
+  /**
+   * Switches to the Polygon outline tool.
+   *
+   * @param onLeft Called when the editor later switches away from the tool.
+   * @returns True when the Polygon tool is active.
+   */
+  switchToPolygonTool: (onLeft: () => void) => boolean;
   /** Re-pins exclusive routing roots to every interactive pane content element. */
   refreshInteractiveViewportDomain: () => void;
   /**
@@ -184,7 +191,8 @@ export interface LayoutToolEditorSystem {
   isToolBusy: () => boolean;
   /**
    * Returns whether the focused event receiver is busy (Shape Editor
-   * exclusive).
+   * exclusive), first dropping busy state left by a press whose release never
+   * arrived while no mouse button is held.
    *
    * @returns True while focus cannot leave the current receiver.
    */

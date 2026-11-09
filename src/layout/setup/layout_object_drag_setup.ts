@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import type * as THREE from 'three';
 import type { CommandStack } from '@/commands/command_stack.js';
 import type { TransformExecutor } from '@/transform/core/transform_executor.js';
 import type { TransformDragSession } from '@/transform/core/session_transform_drag.js';
@@ -9,13 +9,18 @@ import { filterUnlockedObjects } from '@/utils/object_lock.js';
 import { resolveTransformTargets } from '@/selection/object/resolve_transform_targets.js';
 import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import { ObjectDragController, type ObjectDragControllerMoveDeps } from '@/tools/object_drag/object_drag_controller.js';
-import { ObjectDragViewport, type ObjectDragViewportSource } from '@/tools/object_drag/object_drag_viewport.js';
+import type { ObjectDragViewportSource } from '@/tools/object_drag/object_drag_viewport.js';
 import { ShapeDrawBrushCommit, type ShapeDrawBrushCommitDeps } from '@/tools/shape_draw/shape_draw_brush_commit.js';
 import type { ShapeDrawPreviewHost } from '@/tools/shape_draw/shape_draw_preview.js';
 import { getShapeDrawSettings } from '@/tools/shape_draw/shapes/shape_draw_settings.js';
 import { PolygonBrushCommitter } from '@/tools/polygon/polygon_brush_committer.js';
 import { getStatePolygonTool } from '@/tools/polygon/state_polygon_tool.js';
+import { PolygonSketchProjector } from '@/tools/polygon/sketch/polygon_sketch_projector.js';
+import { PolygonOutlinePreview } from '@/tools/polygon/preview/polygon_outline_preview.js';
 import type { LayoutToolEditorSetupDeps } from './layout_tool_editor_types.js';
+
+/** Outline preview of the shared Polygon tool state, replaced on every rewire. */
+let layoutPolygonOutlinePreview: PolygonOutlinePreview | null = null;
 
 /** Layout systems object dragging needs beyond the tool editor dependencies. */
 export interface LayoutObjectDragHost {
@@ -70,7 +75,7 @@ export function layoutObjectDragControllerCreate(
   viewportAtClientPoint: (clientX: number, clientY: number) => ObjectDragViewportSource | null,
 ): ObjectDragController {
   const commitDeps = layoutObjectDragBrushCommitDepsCreate(deps, host);
-  layoutPolygonToolWire(deps, commitDeps, viewportAtClientPoint);
+  layoutPolygonToolWire(deps, host, commitDeps, viewportAtClientPoint);
   return new ObjectDragController({
     viewportAtClientPoint,
     gridSnap: deps.gridSnap,
@@ -167,14 +172,17 @@ function layoutObjectDragBrushCommitDepsCreate(
 }
 
 /**
- * Wires `StatePolygonTool` to the live viewport and brush committer.
+ * Wires `StatePolygonTool` to the live viewports, the brush committer and the
+ * helper-scene outline preview.
  *
  * @param deps Tool editor dependencies.
+ * @param host Additional layout systems holding the helper scene.
  * @param commitDeps Brush commit dependencies.
  * @param viewportAtClientPoint Viewport lookup by client coordinates.
  */
 function layoutPolygonToolWire(
   deps: LayoutToolEditorSetupDeps,
+  host: LayoutObjectDragHost,
   commitDeps: ShapeDrawBrushCommitDeps,
   viewportAtClientPoint: (clientX: number, clientY: number) => ObjectDragViewportSource | null,
 ): void {
@@ -183,37 +191,10 @@ function layoutPolygonToolWire(
   polygonTool.commitDelegateWrite((recipe, target) =>
     target ? polygonCommitter.regenerateTarget(target, recipe) : polygonCommitter.commitRecipe(recipe),
   );
-  polygonTool.clientPointProjectorWrite((cx, cy) =>
-    projectClientPointOntoGridPlane(deps, viewportAtClientPoint, cx, cy),
+  const projector = new PolygonSketchProjector({ viewportAtClientPoint, gridSnap: deps.gridSnap });
+  polygonTool.clientPointProjectorWrite((clientX, clientY, lockedFrame, depth) =>
+    projector.project(clientX, clientY, lockedFrame, depth),
   );
-}
-
-/**
- * Intersects a viewport pick ray with the working grid plane and returns the
- * snapped 2D `(u, v)` coordinate.
- *
- * @param deps Tool editor dependencies.
- * @param viewportAtClientPoint Viewport lookup.
- * @param clientX Client X.
- * @param clientY Client Y.
- * @returns 2D coordinate on the grid plane, or null.
- */
-function projectClientPointOntoGridPlane(
-  deps: LayoutToolEditorSetupDeps,
-  viewportAtClientPoint: (clientX: number, clientY: number) => ObjectDragViewportSource | null,
-  clientX: number,
-  clientY: number,
-): THREE.Vector2 | null {
-  const source = viewportAtClientPoint(clientX, clientY);
-  if (!source) return null;
-  const ray = new ObjectDragViewport(source).rayAtClientPoint(clientX, clientY);
-  const frame = deps.gridSnap.getPlaneFrame();
-  const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(frame.normal, frame.origin);
-  const hit = ray.intersectPlane(plane, new THREE.Vector3());
-  if (!hit) return null;
-  const rel = hit.sub(frame.origin);
-  const step = Math.max(0.125, deps.gridSnap.getInterval());
-  const u = Math.round(rel.dot(frame.uAxis) / step) * step;
-  const v = Math.round(rel.dot(frame.vAxis) / step) * step;
-  return new THREE.Vector2(u, v);
+  layoutPolygonOutlinePreview?.dispose();
+  layoutPolygonOutlinePreview = new PolygonOutlinePreview(host.helperScene, polygonTool);
 }

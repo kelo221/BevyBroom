@@ -6,6 +6,8 @@ import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js'
 import { editorInputPointerEventClone, editorInputWheelEventClone } from './editor_input_event_clone.js';
 import { EditorInputIdleDocumentListeners } from './editor_input_idle_document_listeners.js';
 import { EditorInputSecondaryPressGuard } from './editor_input_secondary_press_guard.js';
+import { EditorStalePressRelease } from './editor_stale_press_release.js';
+import { EditorInputHeldButtons } from './editor_input_held_buttons.js';
 
 /**
  * Routes browser pointer events into editor mouse-down, mouse-up, mouse-move,
@@ -29,6 +31,7 @@ export class EditorInputBridge {
   private exclusiveViewportRoots: HTMLElement[];
   private readonly idleDocumentListeners: EditorInputIdleDocumentListeners;
   private readonly secondaryPressGuard: EditorInputSecondaryPressGuard;
+  private readonly heldButtons: EditorInputHeldButtons;
   /**
    * True while RMB/MMB navigation was started through the shield and should
    * keep receiving retargeted move/up until release.
@@ -59,6 +62,7 @@ export class EditorInputBridge {
     this.exclusiveViewportRoots = [];
     this.idleDocumentListeners = new EditorInputIdleDocumentListeners();
     this.secondaryPressGuard = new EditorInputSecondaryPressGuard();
+    this.heldButtons = new EditorInputHeldButtons();
     this.navigationPassThroughActive = false;
     this.navigationPassThroughRoot = null;
     this.navigationPassThroughDocument = null;
@@ -153,19 +157,39 @@ export class EditorInputBridge {
     this.uninstall();
     this.ownerDocument = hostElement.ownerDocument;
     this.idleDocumentListeners.handlersWrite({
-      pointerDown: (event) => this.handleDocumentPointerDown(event),
-      pointerUp: (event) => this.handleDocumentPointerUp(event),
-      pointerMove: (event) => this.handleDocumentPointerMove(event),
+      pointerDown: (event) => this.heldButtonsRecordThen(event, () => this.handleDocumentPointerDown(event)),
+      pointerUp: (event) => this.heldButtonsRecordThen(event, () => this.handleDocumentPointerUp(event)),
+      pointerMove: (event) => this.heldButtonsRecordThen(event, () => this.handleDocumentPointerMove(event)),
     });
     this.exclusiveShieldDomain.setListeners({
-      onPointerDown: (event) => this.handleShieldPointerDown(event),
-      onPointerUp: (event) => this.handleShieldPointerUp(event),
-      onPointerMove: (event) => this.handleShieldPointerMove(event),
+      onPointerDown: (event) => this.heldButtonsRecordThen(event, () => this.handleShieldPointerDown(event)),
+      onPointerUp: (event) => this.heldButtonsRecordThen(event, () => this.handleShieldPointerUp(event)),
+      onPointerMove: (event) => this.heldButtonsRecordThen(event, () => this.handleShieldPointerMove(event)),
       onContextMenu: (event) => this.handleShieldContextMenu(event),
       onWheel: (event) => this.handleShieldWheel(event),
     });
     this.syncIdleDocumentListeners();
     this.syncExclusiveShieldMount();
+  }
+
+  /**
+   * Returns the buttons the browser last reported as held.
+   *
+   * @returns Held-buttons tracker fed by every routed pointer event.
+   */
+  heldButtonsRead(): EditorInputHeldButtons {
+    return this.heldButtons;
+  }
+
+  /**
+   * Records the held buttons of a pointer event, then runs its handler.
+   *
+   * @param event Pointer event.
+   * @param handler Handler routing the event.
+   */
+  private heldButtonsRecordThen(event: PointerEvent, handler: () => void): void {
+    this.heldButtons.record(event);
+    handler();
   }
 
   /** Removes listeners and the exclusive shields. */
@@ -314,6 +338,10 @@ export class EditorInputBridge {
       }
     }
     const hitRoot = this.findExclusiveRootAtClientPoint(event.clientX, event.clientY, event);
+    if (!hitRoot && !EditorInputHeldButtons.isOtherButtonHeld(event) && EditorStalePressRelease.release(this.editor)) {
+      this.syncExclusiveShieldMount();
+      return;
+    }
     if (hitRoot) {
       this.notifyExclusiveRootHit(hitRoot);
       this.claimViewportDomKeyboardFocus(hitRoot);

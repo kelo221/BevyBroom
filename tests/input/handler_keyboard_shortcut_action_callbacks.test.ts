@@ -79,6 +79,27 @@ describe('HandlerKeyboardShortcut registered action callbacks', () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
+  it('neither runs nor consumes an action whose availability guard reports false', () => {
+    const playStart = vi.fn();
+    handler.actionCallbackSet('play_start', playStart, () => false);
+    const event = defaultShortcutPress('play_start');
+    expect(playStart).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('runs another action bound to the same key when the first one is unavailable', () => {
+    const defaults = createDefaultKeyboardShortcutSettings();
+    expect(defaults.clip_flip).toEqual(defaults.fit_selection);
+    const unavailableClipFlip = vi.fn();
+    const fitSelection = vi.fn();
+    handler.actionCallbackSet('clip_flip', unavailableClipFlip, () => false);
+    handler.actionCallbackSet('fit_selection', fitSelection);
+    const event = defaultShortcutPress('fit_selection');
+    expect(unavailableClipFlip).not.toHaveBeenCalled();
+    expect(fitSelection).toHaveBeenCalledOnce();
+    expect(event.defaultPrevented).toBe(true);
+  });
+
   it('does not run registered actions while right mouse fly navigation is held', () => {
     const viewCycle = vi.fn();
     handler.actionCallbackSet('view_cycle', viewCycle);

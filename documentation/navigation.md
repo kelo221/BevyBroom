@@ -48,7 +48,7 @@ Use framing whenever you become lost or a newly created object is not visible.
 
 - `F` frames the current selection.
 - `Shift+F` fits all viewports.
-- The Fit icon in a viewport header frames the selection in that individual view.
+- **Fit to Selection** in a viewport's corner label menu frames the selection in that individual view.
 
 If nothing is selected, a fit action may use the scene's available bounds or report that there is nothing suitable to frame.
 
@@ -59,7 +59,7 @@ Both shortcuts act on the view under the pointer:
 - `Space` switches that view to the next of Perspective, Top, Front, and Side and frames the selection in it.
 - `Ctrl+Space` maximizes that view; press it again to restore the previous pane layout.
 
-The same commands are in the **View** menu as **Cycle View** and **Maximize View**.
+The same commands are in the **View** menu as **Cycle View** and **Maximize View**. Each viewport's corner label menu also switches that view directly and has **Maximize Viewport**.
 
 ## A reliable editing rhythm
 

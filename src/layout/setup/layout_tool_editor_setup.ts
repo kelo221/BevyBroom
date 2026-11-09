@@ -2,6 +2,8 @@ import { TransformMode, isBoundsWidgetMode } from '@/types/transform_mode.js';
 import { EditorWindow } from '@/editor/window/editor_window.js';
 import { GuiWindow } from '@/editor/gui/gui_window.js';
 import { ClipTool } from '@/editor/tools/clip_tool.js';
+import { PolygonTool } from '@/editor/tools/polygon/polygon_tool.js';
+import { EditorStalePressRelease } from '@/editor/window/editor_stale_press_release.js';
 import { keyboardShortcutCodeFromEvent } from '@/input/keyboard_event_match.js';
 import type { HandlerClipPlane } from '@/tools/clip_plane/handler_clip_plane.js';
 import type { ToolClipPlane } from '@/tools/clip_plane/tool_clip_plane.js';
@@ -21,6 +23,7 @@ type LayoutToolEditorSystemToolSwitchHandles = Pick<
   | 'switchToFaceSelect'
   | 'switchToEditSelect'
   | 'switchToGridTool'
+  | 'switchToPolygonTool'
   | 'refreshInteractiveViewportDomain'
   | 'cancelActiveSingleUseTool'
   | 'isToolBusy'
@@ -82,17 +85,38 @@ function layoutToolEditorSystemToolSwitchHandlesCreate(
   session: LayoutToolEditorSystemSession,
 ): LayoutToolEditorSystemToolSwitchHandles {
   const editorWindow = session.editorWindow;
+  const polygonTool = new PolygonTool();
   return {
     switchToTransformMode: (mode) => switchPermanentTransformMode(editorWindow, mode),
     switchToObjectSelect: () => layoutToolEditorObjectSelectSwitch(editorWindow),
     switchToFaceSelect: () => layoutToolEditorFaceSelectSwitch(editorWindow),
     switchToEditSelect: () => layoutToolEditorEditSelectSwitch(editorWindow),
     switchToGridTool: () => layoutToolEditorGridToolSwitch(editorWindow),
+    switchToPolygonTool: (onLeft) => layoutToolEditorPolygonToolSwitch(editorWindow, polygonTool, onLeft),
     refreshInteractiveViewportDomain: session.refreshInteractiveViewportDomain,
     cancelActiveSingleUseTool: () => cancelActiveSingleUseTool(editorWindow),
     isToolBusy: () => editorWindow.isToolBusy,
-    isActiveEventReceiverBusy: () => editorWindow.isActiveEventReceiverBusy,
+    isActiveEventReceiverBusy: () =>
+      EditorStalePressRelease.busyAfterReleaseWhenNoButtonHeld(editorWindow, session.inputBridge.heldButtonsRead()),
   };
+}
+
+/**
+ * Switches to the Polygon outline tool.
+ *
+ * @param editorWindow Editor window.
+ * @param polygonTool Polygon tool receiver owned by this tool system.
+ * @param onLeft Called when the editor later switches away from the tool.
+ * @returns True when switched.
+ */
+function layoutToolEditorPolygonToolSwitch(
+  editorWindow: EditorWindow,
+  polygonTool: PolygonTool,
+  onLeft: () => void,
+): boolean {
+  polygonTool.leftListenerWrite(onLeft);
+  editorWindow.switchTool(polygonTool);
+  return true;
 }
 
 /**

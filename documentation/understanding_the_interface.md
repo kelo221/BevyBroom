@@ -99,6 +99,10 @@ From top to bottom:
 - **Polygon Tool** draws a 2D outline and extrudes it into convex solids.
 - **Sprinkle Tool** (`Ctrl+Alt+S`, or Tools > Sprinkle…) paints entities onto
   surfaces: LMB drag paints, Ctrl+LMB drag erases, RMB drag changes the radius.
+  Alt+mouse wheel over any view also steps the radius (wheel up grows it, four
+  notches double it), and `[` / `]` halve / double it; plain wheel still zooms.
+  The cursor sphere and the Radius field in the options bar follow at once, and
+  the bracket keys can be rebound under Settings > Keyboard > Sprinkle Tool.
   It opens the Entity Sprinkle window with the Type, Mode, Density, grid and
   orientation settings; closing the window returns to the Select tool.
 - **Grid** aligns the grid and camera orientation to a face or edge.
@@ -119,16 +123,24 @@ viewport arrangements such as **Quad View** and **Single Perspective**.
 ## The four viewports
 
 The default **Quad View** workspace divides the center into a 2 × 2 grid of
-views, in reading order: Perspective, Top, Front, and Side. Each viewport
-has a small header containing:
+views, in reading order: Perspective, Top, Front, and Side. As in Hammer, each
+viewport has a small label in its top-left corner that names the view: **top
+(x/z)**, **front (x/y)**, **side (z/y)**, or **camera** for the 3D view. Click
+the label to open the view menu, which holds every viewport control:
 
-- The view name, which opens a menu to switch the view to Top, Front, Side, or
-  Perspective.
-- An axis caption that names the plane the view looks at: **top (x/z)**,
-  **front (x/y)**, **side (z/y)**, or **camera** for the 3D view.
+- **2D Top (x/z)**, **2D Front (x/y)**, and **2D Side (z/y)** switch to an
+  orthographic view.
+- **3D Wireframe**, **3D Wireframe Overlay**, **3D Flat**, and **3D Textured**
+  switch to the perspective view with that shading. A check mark shows the
+  current view and, in a 3D view, its shading.
 - Toggles for content and brush wireframes and for the projected surface grid.
-- Solid, Wireframe, Flat, and Wireframe Overlay shading buttons.
-- A Fit button that frames the selection in that view, and a maximize button.
+- **Fit to Selection** frames the selection in that view, and **Maximize
+  Viewport** fills the workspace with it.
+- **Play from here**, in 3D views only, starts play mode in that view from its
+  camera.
+
+The shading shortcuts `1` to `4` still change the shading of the view under the
+pointer, 2D views included; 2D views start in wireframe.
 
 Shading changes how you inspect the scene; it does not change exported material
 data.
@@ -140,7 +152,7 @@ Two shortcuts act on the view under the pointer:
 - `Space` cycles that view through Perspective, Top, Front, and Side and frames
   the selection in the new view.
 - `Ctrl+Space` maximizes that view, and pressing it again restores your
-  previous pane layout. The square-corners button in a viewport header does the
+  previous pane layout. **Maximize Viewport** in the corner label menu does the
   same.
 
 ## Right dock

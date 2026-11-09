@@ -233,6 +233,25 @@ describe('layout window shortcut bindings', () => {
     expect(clashingActions).toEqual([]);
   });
 
+  it('activates the Vertex tool from Shift+V', () => {
+    const windowActions = windowActionsSpyCreate();
+    const handler = handlerWithWindowShortcutsCreate(windowActions, dockCommandsSpyCreate());
+    const shortcut = createDefaultKeyboardShortcutSettings().tool_vertex;
+    expect(shortcut).toEqual({ code: 'KeyV', ctrl: false, shift: true, alt: false, meta: false });
+    shortcutPress(shortcut);
+    expect(windowActions.toolSelect).toHaveBeenCalledExactlyOnceWith(EditorToolId.VERTEX);
+    handler.unregister();
+  });
+
+  it('binds the Vertex tool shortcut to a key no other default shortcut uses', () => {
+    const defaults = createDefaultKeyboardShortcutSettings();
+    const vertexShortcut = defaults.tool_vertex;
+    const clashingActions = (Object.keys(defaults) as KeyboardShortcutAction[]).filter(
+      (action) => action !== 'tool_vertex' && JSON.stringify(defaults[action]) === JSON.stringify(vertexShortcut),
+    );
+    expect(clashingActions).toEqual([]);
+  });
+
   it('registers every callback it is given under its action', () => {
     const handler = new HandlerKeyboardShortcut(new ManagerInput());
     const actionCallbackSet = vi.spyOn(handler, 'actionCallbackSet');

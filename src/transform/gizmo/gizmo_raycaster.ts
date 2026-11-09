@@ -105,17 +105,21 @@ export class GizmoRaycaster {
 
   /**
    * Collects only real handle meshes for picking. Meshes without a handleId are
-   * excluded so a nearer non-handle mesh cannot block a farther handle.
+   * excluded so a nearer non-handle mesh cannot block a farther handle, and
+   * meshes under a hidden parent are skipped like hidden meshes. The group's
+   * own visibility is ignored because panes toggle it per render pass.
    *
    * @param group The group to traverse.
    * @returns Visible handle meshes with a handleId.
    */
   private collectHandleMeshes(group: THREE.Group): THREE.Mesh[] {
     const meshes: THREE.Mesh[] = [];
-    group.traverse((child) => {
-      if (!(child instanceof THREE.Mesh) || !child.visible) return;
-      if (child.userData['handleId'] === undefined) return;
-      meshes.push(child);
+    group.children.forEach((child) => {
+      child.traverseVisible((object) => {
+        if (object instanceof THREE.Mesh && object.userData['handleId'] !== undefined) {
+          meshes.push(object);
+        }
+      });
     });
     return meshes;
   }

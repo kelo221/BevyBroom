@@ -5,6 +5,12 @@ import {
   setStateEntityPlaceForTests,
   StateEntityPlace,
 } from '@/tools/entity_place/state_entity_place.js';
+import type { EntityBrowserCatalogEntry } from '@/entity_browser/catalog/entity_browser_catalog_entry.js';
+import {
+  INPUT_WHEEL_TEST_NOTCH_DOWN,
+  INPUT_WHEEL_TEST_NOTCH_UP,
+  inputWheelTestDispatch,
+} from '../../../ui/input/wheel/input_wheel_test_support.js';
 
 /** Controls built by the running test. */
 const entityPlaceControlsTestControls: ViewportToolEntityPlaceControls[] = [];
@@ -19,6 +25,27 @@ function entityPlaceControlsTestCreate(): ViewportToolEntityPlaceControls {
   document.body.appendChild(controls.entityElementRead());
   entityPlaceControlsTestControls.push(controls);
   return controls;
+}
+
+/**
+ * Builds a placeable catalog entry.
+ *
+ * @param id Entry id, also used as its label.
+ * @returns Catalog entry.
+ */
+function entityPlaceControlsTestEntryCreate(id: string): EntityBrowserCatalogEntry {
+  return {
+    id,
+    label: id,
+    category: 'Test',
+    categoryIndex: 0,
+    catalogIndex: 0,
+    iconName: null,
+    iconColor: null,
+    tooltip: id,
+    objectMatches: null,
+    activate: vi.fn(),
+  };
 }
 
 beforeEach(() => {
@@ -45,5 +72,17 @@ describe('ViewportToolEntityPlaceControls', () => {
     getStateEntityPlace().browseDelegateWrite(browseDelegate);
     controls.entityElementRead().querySelector<HTMLElement>('.viewport-tool-entity-place-browse')?.click();
     expect(browseDelegate).toHaveBeenCalledOnce();
+  });
+
+  it('activates the next and previous entity class with the wheel over the list', () => {
+    const entryIds = ['test_first', 'test_second', 'test_third'];
+    getStateEntityPlace().entriesWrite(entryIds.map(entityPlaceControlsTestEntryCreate));
+    const controls = entityPlaceControlsTestCreate();
+    const select = controls.entityElementRead().querySelector<HTMLSelectElement>('.viewport-tool-entity-place-select');
+    if (!select) throw new Error('entity list missing');
+    inputWheelTestDispatch(select, INPUT_WHEEL_TEST_NOTCH_DOWN);
+    expect(getStateEntityPlace().activeEntryRead()?.id).toBe(entryIds[1]);
+    inputWheelTestDispatch(select, INPUT_WHEEL_TEST_NOTCH_UP);
+    expect(getStateEntityPlace().activeEntryRead()?.id).toBe(entryIds[0]);
   });
 });

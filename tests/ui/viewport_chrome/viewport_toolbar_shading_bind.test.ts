@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ShadingMode } from '@/types/shading_mode.js';
 import {
+  applyViewportToolbarShadingChoice,
   bindViewportToolbarShadingControls,
   syncViewportToolbarShadingState,
   type ViewportToolbarShadingTarget,
 } from '@/ui/viewport_chrome/viewport_toolbar_shading_bind.js';
-import type { ViewportToolbar } from '@/ui/viewport_chrome/viewport_toolbar.js';
+import { ViewportToolbar } from '@/ui/viewport_chrome/viewport_toolbar.js';
 
 /**
  * Builds a shading target with a mock toolbar for binding tests.
@@ -74,5 +75,46 @@ describe('viewport_toolbar_shading_bind', () => {
     expect(onAfterShadingMode).toHaveBeenCalledWith(ShadingMode.WIREFRAME);
     expect(setContentWireframesVisible).toHaveBeenCalledWith(true);
     expect(setProjectedGridVisible).toHaveBeenCalledWith(true);
+  });
+});
+
+/**
+ * Builds a shading target that remembers its shading mode and owns a real
+ * viewport toolbar.
+ *
+ * @param initialMode Shading mode the target starts with.
+ * @returns Stateful target.
+ */
+function createStatefulTarget(initialMode: ShadingMode): ViewportToolbarShadingTarget {
+  const toolbar = new ViewportToolbar(document.createElement('div'), 'Perspective', initialMode);
+  let shadingMode = initialMode;
+  return {
+    getViewportToolbar: () => toolbar,
+    getShadingMode: () => shadingMode,
+    setShadingMode: (mode) => {
+      shadingMode = mode;
+    },
+    areContentWireframesVisible: () => true,
+    setContentWireframesVisible: vi.fn(),
+    isProjectedGridVisible: () => true,
+    setProjectedGridVisible: vi.fn(),
+  };
+}
+
+describe('applyViewportToolbarShadingChoice', () => {
+  it('applies a chosen shading mode to the viewport and checks it in the toolbar', () => {
+    const target = createStatefulTarget(ShadingMode.SOLID);
+    const chosenMode = ShadingMode.WIREFRAME_OVERLAY;
+    applyViewportToolbarShadingChoice(target, chosenMode);
+    expect(target.getShadingMode()).toBe(chosenMode);
+    expect(target.getViewportToolbar().getActiveShadingMode()).toBe(chosenMode);
+  });
+
+  it('keeps the viewport shading when no mode was chosen', () => {
+    const initialMode = ShadingMode.FLAT;
+    const target = createStatefulTarget(initialMode);
+    applyViewportToolbarShadingChoice(target, null);
+    expect(target.getShadingMode()).toBe(initialMode);
+    expect(target.getViewportToolbar().getActiveShadingMode()).toBe(initialMode);
   });
 });

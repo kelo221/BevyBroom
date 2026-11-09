@@ -17,13 +17,12 @@ import {
   scratchMid,
   scratchToCamera,
   scratchWorkA,
-  scratchWorkB,
 } from './cad_dimension_primitives.js';
 
 /**
  * Places a measured edge for size dimensions. Perspective uses view-ray focus
- * (including inside-bounds far hit). Orthographic 2D picks the closer of the
- * two silhouette edges and flips if the preferred edge is off-screen.
+ * (including inside-bounds far hit). Orthographic 2D picks the screen top or
+ * screen left silhouette edge and flips if that edge is off-screen.
  *
  * @param bounds Oriented bounds.
  * @param measureLocal Local measure axis.
@@ -75,10 +74,43 @@ export function placeCameraFacingMeasuredEdge(
   );
 }
 
+/** World frame of the two ortho silhouette edges parallel to a measured axis. */
+interface CadOrthoEdgeFrame {
+  /** Bounds center. */
+  center: THREE.Vector3;
+  /** World measure direction. */
+  measureAxis: THREE.Vector3;
+  /** Half length along the measure axis. */
+  halfMeasure: number;
+  /** World in-plane axis across the measured size. */
+  offsetAxis: THREE.Vector3;
+  /** Half length along the offset axis. */
+  halfOffset: number;
+  /** World view depth axis. */
+  depthAxis: THREE.Vector3;
+  /** Sign of the depth side facing the camera. */
+  depthSign: 1 | -1;
+  /** Half length along the depth axis. */
+  halfDepth: number;
+}
+
+/** Reusable ortho edge frame filled for each placement. */
+const scratchOrthoEdgeFrame: CadOrthoEdgeFrame = {
+  center: new THREE.Vector3(),
+  measureAxis: new THREE.Vector3(),
+  halfMeasure: 0,
+  offsetAxis: new THREE.Vector3(),
+  halfOffset: 0,
+  depthAxis: new THREE.Vector3(),
+  depthSign: 1,
+  halfDepth: 0,
+};
+
 /**
  * Ortho 2D placement: among the two edges parallel to the measure axis, pick
- * the one closer to the camera in the view plane; if that edge is off-screen,
- * flip to the opposite edge.
+ * the screen top edge for a size measured across the screen or the screen left
+ * edge for a size measured up the screen; if that edge is off-screen, flip to
+ * the opposite edge.
  *
  * @param bounds Oriented bounds.
  * @param measureLocal Measured local axis.
@@ -103,111 +135,103 @@ function placeOrthoSilhouetteEdge(
   outEnd: THREE.Vector3,
   outOutward: THREE.Vector3,
 ): void {
-  const plane = getCadViewPlaneAxes(viewPlane);
-  if (plane.depthAxis === null) return;
-  const offsetLocal: LocalAxisIndex = measureLocal === plane.axisU ? plane.axisV : plane.axisU;
-  const depthLocal = plane.depthAxis;
-  const offsetAxis = axes[offsetLocal];
-  const depthAxis = axes[depthLocal];
-  if (!offsetAxis || !depthAxis) return;
-  const halfOffset = getHalfComponent(bounds.halfExtents, offsetLocal);
-  const halfDepth = getHalfComponent(bounds.halfExtents, depthLocal);
-  writeDirectionTowardCamera(camera, bounds.center, scratchToCamera);
-  const depthSign: 1 | -1 = depthAxis.dot(scratchToCamera) >= 0 ? 1 : -1;
-  let offsetSign = pickCloserOffsetSign(bounds.center, offsetAxis, halfOffset, camera);
-  writeOrthoEdgeEndpoints(
-    bounds.center,
-    measureAxis,
-    halfMeasure,
-    offsetAxis,
-    offsetSign,
-    halfOffset,
-    depthAxis,
-    depthSign,
-    halfDepth,
-    outStart,
-    outEnd,
-  );
+  const frame = orthoEdgeFrameWrite(bounds, measureLocal, measureAxis, halfMeasure, axes, camera, viewPlane);
+  if (!frame) return;
+  let offsetSign = offsetSignScreenTopOrLeftPick(measureAxis, frame.offsetAxis, camera);
+  writeOrthoEdgeEndpoints(frame, offsetSign, outStart, outEnd);
   scratchMid.copy(outStart).lerp(outEnd, 0.5);
   if (!isWorldPointRoughlyOnScreen(scratchMid, camera)) {
     offsetSign = offsetSign === 1 ? -1 : 1;
-    writeOrthoEdgeEndpoints(
-      bounds.center,
-      measureAxis,
-      halfMeasure,
-      offsetAxis,
-      offsetSign,
-      halfOffset,
-      depthAxis,
-      depthSign,
-      halfDepth,
-      outStart,
-      outEnd,
-    );
+    writeOrthoEdgeEndpoints(frame, offsetSign, outStart, outEnd);
   }
-  outOutward.copy(offsetAxis).multiplyScalar(offsetSign);
+  outOutward.copy(frame.offsetAxis).multiplyScalar(offsetSign);
 }
 
 /**
- * Picks ±offset so the edge is closer to the camera in world space.
+ * Fills the reusable ortho edge frame for a measured axis in a view plane.
  *
- * @param center Bounds center.
- * @param offsetAxis Silhouette normal axis.
- * @param halfOffset Half extent on offset.
- * @param camera Viewport camera.
- * @returns Preferred offset sign.
+ * @param bounds Oriented bounds.
+ * @param measureLocal Measured local axis.
+ * @param measureAxis World measure direction.
+ * @param halfMeasure Half length.
+ * @param axes Local world axes.
+ * @param camera Orthographic camera.
+ * @param viewPlane Active grid plane.
+ * @returns Filled frame, or null for a plane without a depth axis.
  */
-function pickCloserOffsetSign(
-  center: THREE.Vector3,
+function orthoEdgeFrameWrite(
+  bounds: DataOrientedBounds,
+  measureLocal: LocalAxisIndex,
+  measureAxis: THREE.Vector3,
+  halfMeasure: number,
+  axes: THREE.Vector3[],
+  camera: THREE.Camera,
+  viewPlane: CadPlacementContext['viewPlane'],
+): CadOrthoEdgeFrame | null {
+  const plane = getCadViewPlaneAxes(viewPlane);
+  if (plane.depthAxis === null) return null;
+  const offsetLocal: LocalAxisIndex = measureLocal === plane.axisU ? plane.axisV : plane.axisU;
+  const offsetAxis = axes[offsetLocal];
+  const depthAxis = axes[plane.depthAxis];
+  if (!offsetAxis || !depthAxis) return null;
+  const frame = scratchOrthoEdgeFrame;
+  frame.center.copy(bounds.center);
+  frame.measureAxis.copy(measureAxis);
+  frame.halfMeasure = halfMeasure;
+  frame.offsetAxis.copy(offsetAxis);
+  frame.halfOffset = getHalfComponent(bounds.halfExtents, offsetLocal);
+  frame.depthAxis.copy(depthAxis);
+  frame.halfDepth = getHalfComponent(bounds.halfExtents, plane.depthAxis);
+  writeDirectionTowardCamera(camera, bounds.center, scratchToCamera);
+  frame.depthSign = depthAxis.dot(scratchToCamera) >= 0 ? 1 : -1;
+  return frame;
+}
+
+/**
+ * Picks ±offset the way Hammer labels a 2D selection: a size measured across
+ * the screen sits on the top edge, a size measured up the screen sits on the
+ * left edge.
+ *
+ * @param measureAxis World direction of the measured size.
+ * @param offsetAxis World direction from the measured edge to its opposite.
+ * @param camera Orthographic viewport camera.
+ * @returns Offset sign selecting the top or left edge.
+ */
+export function offsetSignScreenTopOrLeftPick(
+  measureAxis: THREE.Vector3,
   offsetAxis: THREE.Vector3,
-  halfOffset: number,
   camera: THREE.Camera,
 ): 1 | -1 {
-  scratchWorkA.copy(center).addScaledVector(offsetAxis, halfOffset);
-  scratchWorkB.copy(center).addScaledVector(offsetAxis, -halfOffset);
-  const distPos = camera.position.distanceToSquared(scratchWorkA);
-  const distNeg = camera.position.distanceToSquared(scratchWorkB);
-  return distPos <= distNeg ? 1 : -1;
+  camera.updateMatrixWorld();
+  scratchCamRight.setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+  scratchCamUp.setFromMatrixColumn(camera.matrixWorld, 1).normalize();
+  const measuresAcrossScreen = Math.abs(measureAxis.dot(scratchCamRight)) >= Math.abs(measureAxis.dot(scratchCamUp));
+  if (measuresAcrossScreen) {
+    return offsetAxis.dot(scratchCamUp) >= 0 ? 1 : -1;
+  }
+  return offsetAxis.dot(scratchCamRight) <= 0 ? 1 : -1;
 }
 
 /**
- * Writes endpoints for an ortho silhouette edge.
+ * Writes endpoints for an ortho silhouette edge on one offset side.
  *
- * @param center Bounds center.
- * @param measureAxis Measure direction.
- * @param halfMeasure Half measure.
- * @param offsetAxis Offset axis.
- * @param offsetSign Offset sign.
- * @param halfOffset Half offset.
- * @param depthAxis Depth axis.
- * @param depthSign Depth sign.
- * @param halfDepth Half depth.
+ * @param frame Ortho edge frame.
+ * @param offsetSign Side of the offset axis the edge lies on.
  * @param outStart Start point.
  * @param outEnd End point.
  */
 function writeOrthoEdgeEndpoints(
-  center: THREE.Vector3,
-  measureAxis: THREE.Vector3,
-  halfMeasure: number,
-  offsetAxis: THREE.Vector3,
+  frame: CadOrthoEdgeFrame,
   offsetSign: 1 | -1,
-  halfOffset: number,
-  depthAxis: THREE.Vector3,
-  depthSign: 1 | -1,
-  halfDepth: number,
   outStart: THREE.Vector3,
   outEnd: THREE.Vector3,
 ): void {
   outStart
-    .copy(center)
-    .addScaledVector(measureAxis, -halfMeasure)
-    .addScaledVector(offsetAxis, offsetSign * halfOffset)
-    .addScaledVector(depthAxis, depthSign * halfDepth);
-  outEnd
-    .copy(center)
-    .addScaledVector(measureAxis, halfMeasure)
-    .addScaledVector(offsetAxis, offsetSign * halfOffset)
-    .addScaledVector(depthAxis, depthSign * halfDepth);
+    .copy(frame.center)
+    .addScaledVector(frame.offsetAxis, offsetSign * frame.halfOffset)
+    .addScaledVector(frame.depthAxis, frame.depthSign * frame.halfDepth);
+  outEnd.copy(outStart).addScaledVector(frame.measureAxis, frame.halfMeasure);
+  outStart.addScaledVector(frame.measureAxis, -frame.halfMeasure);
 }
 
 /**

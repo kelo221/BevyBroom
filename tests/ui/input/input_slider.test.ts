@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { InputSlider, type InputSliderOptions } from '@/ui/input/input_slider.js';
+import {
+  INPUT_WHEEL_TEST_NOTCH_DOWN,
+  INPUT_WHEEL_TEST_NOTCH_UP,
+  inputWheelTestDispatch,
+} from './wheel/input_wheel_test_support.js';
 
 /** Options every slider test uses. */
 const SLIDER_TEST_OPTIONS: InputSliderOptions = { ariaLabel: 'Test size', min: 1, max: 9, step: 0.5, decimals: 1 };
@@ -72,5 +77,35 @@ describe('InputSlider', () => {
     slider.dispose();
     numeric.dispatchEvent(new Event('change'));
     expect(commit).toHaveBeenCalledTimes(1);
+  });
+
+  it('steps up on wheel up over the number box, down on wheel down, and commits each step', () => {
+    const slider = new InputSlider(SLIDER_TEST_OPTIONS);
+    const commit = vi.fn(() => slider.getValue());
+    slider.bindCommit(commit);
+    const start = SLIDER_TEST_OPTIONS.min + SLIDER_TEST_OPTIONS.step * 2;
+    slider.setNumber(start);
+    const scrollUp = inputWheelTestDispatch(sliderTestNumericFind(slider), INPUT_WHEEL_TEST_NOTCH_UP);
+    expect(commit).toHaveLastReturnedWith(start + SLIDER_TEST_OPTIONS.step);
+    expect(scrollUp.defaultPrevented).toBe(true);
+    inputWheelTestDispatch(sliderTestRangeFind(slider), INPUT_WHEEL_TEST_NOTCH_DOWN);
+    expect(commit).toHaveLastReturnedWith(start);
+    expect(commit).toHaveBeenCalledTimes(2);
+    slider.dispose();
+  });
+
+  it('clamps wheel steps at the ends and ignores the wheel over a mixed value', () => {
+    const slider = new InputSlider(SLIDER_TEST_OPTIONS);
+    const commit = vi.fn();
+    slider.bindCommit(commit);
+    slider.setNumber(SLIDER_TEST_OPTIONS.max);
+    inputWheelTestDispatch(slider.getElement(), INPUT_WHEEL_TEST_NOTCH_UP);
+    expect(slider.getValue()).toBe(SLIDER_TEST_OPTIONS.max);
+    slider.setSharedValues([SLIDER_TEST_OPTIONS.min, SLIDER_TEST_OPTIONS.max]);
+    const overMixed = inputWheelTestDispatch(slider.getElement(), INPUT_WHEEL_TEST_NOTCH_UP);
+    expect(overMixed.defaultPrevented).toBe(false);
+    expect(slider.getValue()).toBeNull();
+    expect(commit).not.toHaveBeenCalled();
+    slider.dispose();
   });
 });

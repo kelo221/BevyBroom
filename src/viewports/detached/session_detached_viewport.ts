@@ -12,7 +12,11 @@ import { disposeEditorViewport } from '@/viewports/core/viewport_dispose.js';
 import { applyDetachedWindowFavicon, embedDetachedWindowFaviconDataUrl } from './detached_window_favicon.js';
 import { DETACHED_HOST_WATCH_INTERVAL_MS, isDetachedHostGone } from './detached_host_liveness.js';
 import type { DetachedViewportRenderSource } from './detached_viewport_render_source.js';
-import { bindViewportToolbarShadingControls } from '@/ui/viewport_chrome/viewport_toolbar_shading_bind.js';
+import {
+  applyViewportToolbarShadingChoice,
+  bindViewportToolbarShadingControls,
+} from '@/ui/viewport_chrome/viewport_toolbar_shading_bind.js';
+import type { ShadingMode } from '@/types/shading_mode.js';
 
 /**
  * Builds the popup workspace surface. Defaults to a real SharedWebGLSurface.
@@ -423,17 +427,22 @@ export class DetachedViewportSession {
     toolbar.setOnToggleMaximize(() => {
       // Maximize is a main-window layout concern.
     });
-    toolbar.setOnViewportKindChange((kind) => this.changeViewportKind(kind));
+    toolbar.setOnViewportKindChange((kind, shadingMode) => this.changeViewportKind(kind, shadingMode));
   }
 
   /**
    * Switches the detached pane to another viewport kind in place.
    *
-   * @param kind Requested kind from the type menu.
+   * @param kind Requested kind from the view menu.
+   * @param shadingMode Shading mode for the new viewport, or null to keep its
+   *   default shading.
    */
-  private changeViewportKind(kind: ViewportKind): void {
+  private changeViewportKind(kind: ViewportKind, shadingMode: ShadingMode | null): void {
     if (this.isDisposed || !this.isOpen() || kind === this.currentKind) return;
     this.installViewport(kind);
+    if (this.viewport) {
+      applyViewportToolbarShadingChoice(this.viewport, shadingMode);
+    }
     this.resizeViewport();
   }
 

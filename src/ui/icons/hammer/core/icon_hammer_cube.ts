@@ -37,22 +37,6 @@ export class IconHammerCube {
   }
 
   /**
-   * Draws a cube whose three faces use one flat paint each.
-   *
-   * @param layout Pixel placement of the cube.
-   * @param paints Paint of each face.
-   * @param stroke Outline colour.
-   * @returns Cube markup.
-   */
-  static flat(
-    layout: IconHammerCubeLayout,
-    paints: IconHammerCubeFacePaints,
-    stroke: string = ICON_HAMMER_OUTLINE,
-  ): string {
-    return IconHammerCube.faces(new IconHammerCubeGeometry(layout), paints, stroke);
-  }
-
-  /**
    * Draws the three outlined faces of a cube.
    *
    * @param geometry Cube corners.
@@ -86,19 +70,5 @@ export class IconHammerCube {
     const far = box.left + box.size - 2;
     const pathData = `M${inset} ${box.top + box.size - 2}V${insetTop}H${far}`;
     return `<path d="${pathData}" fill="none" stroke="${ICON_HAMMER_HIGHLIGHT}" stroke-opacity="0.55" stroke-width="1"/>`;
-  }
-
-  /**
-   * Draws the visible and hidden edges of a cube without fills.
-   *
-   * @param layout Pixel placement of the cube.
-   * @param edgeColor Colour of the visible edges.
-   * @param hiddenColor Colour of the dashed hidden edges.
-   * @returns Wireframe markup.
-   */
-  static wireframe(layout: IconHammerCubeLayout, edgeColor: string, hiddenColor: string): string {
-    const geometry = new IconHammerCubeGeometry(layout);
-    const hidden = IconHammerShape.strokeDashed(geometry.hiddenEdgesPathData(), hiddenColor, '2 1');
-    return hidden + IconHammerCube.faces(geometry, { top: 'none', front: 'none', side: 'none' }, edgeColor);
   }
 }

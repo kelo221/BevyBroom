@@ -14,6 +14,14 @@ export interface IEditorEventReceiver {
    */
   isBusy(): boolean;
 
+  /**
+   * Drops busy state that only a held pointer press justifies, used when that
+   * press is known to have ended without its release reaching the object.
+   *
+   * @returns True when busy state was dropped.
+   */
+  pointerPressHoldRelease(): boolean;
+
   /** Called when the object is activated. */
   onActivate(): void;
 

@@ -179,7 +179,7 @@ export class ControllerShearDrag {
     this.lastAppliedOffset = 0;
     this.shearActive = true;
     this.transformGizmo.setActiveHandle(picked);
-    this.transformGizmo.setHighlightedBoundsFace(face);
+    this.transformGizmo.setHighlightedBoundsFaces([face]);
     this.transformGizmo.setBoundsGuideLinesVisible(true);
   }
 

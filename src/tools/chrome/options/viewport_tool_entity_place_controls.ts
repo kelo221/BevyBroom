@@ -4,6 +4,7 @@ import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js'
 import { getStateBlockDrawSettings } from '@/tools/block/state_block_draw_settings.js';
 import { applyViewportToolOptionsTextButtonMetrics } from './viewport_tool_options_control_style.js';
 import { styleViewportToolRailButton } from '@/tools/chrome/rail/viewport_tool_rail_button.js';
+import { InputWheelBindingSelect } from '@/ui/input/wheel/input_wheel_binding_select.js';
 
 /**
  * Provides the Entity tool class selector and the Object Select empty-space
@@ -13,6 +14,7 @@ export class ViewportToolEntityPlaceControls {
   private readonly entityContainer: HTMLElement;
   private readonly entitySelect: HTMLSelectElement;
   private readonly emptyDrawButton: HTMLButtonElement;
+  private readonly entitySelectWheelBinding: InputWheelBindingSelect;
   private readonly unsubscribeEntity: () => void;
   private readonly unsubscribeBlock: () => void;
 
@@ -25,6 +27,7 @@ export class ViewportToolEntityPlaceControls {
     this.entityContainer = ownerDocument.createElement('div');
     this.entitySelect = ownerDocument.createElement('select');
     this.emptyDrawButton = ownerDocument.createElement('button');
+    this.entitySelectWheelBinding = new InputWheelBindingSelect(this.entitySelect);
     this.styleEntityContainer(ownerDocument);
     this.styleEmptyDrawButton();
     this.unsubscribeEntity = getStateEntityPlace().changeListenerAdd(() => {
@@ -55,10 +58,11 @@ export class ViewportToolEntityPlaceControls {
     return this.emptyDrawButton;
   }
 
-  /** Removes state listeners and DOM nodes. */
+  /** Removes state and wheel listeners and DOM nodes. */
   dispose(): void {
     this.unsubscribeEntity();
     this.unsubscribeBlock();
+    this.entitySelectWheelBinding.dispose();
     this.entityContainer.remove();
     this.emptyDrawButton.remove();
   }

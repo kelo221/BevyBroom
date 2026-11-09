@@ -15,6 +15,7 @@ import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.j
 import { CommandPrimitiveCreate } from '@/tools/creation/commands/command_primitive_create.js';
 import { CommandObjectGroup } from '@/outliner/commands/command_object_group.js';
 import { buildObjImportGroupBaseName } from '@/io/obj/obj_importer.js';
+import { getStatePolygonTool } from '@/tools/polygon/state_polygon_tool.js';
 import type * as THREE from 'three';
 
 /** Dependencies for scene load / history refresh side effects. */
@@ -44,6 +45,7 @@ export function handleLayoutSceneLoaded(context: LayoutSceneRefreshContext): voi
   context.commandStack.clear();
   context.clipPlaneHandler?.reattachPreviewToWorld();
   hierarchyNameAllocator.rebuildFromWorld(context.worldObject);
+  getStatePolygonTool().clear();
   context.refreshAfterWorldMutation();
 }
 
@@ -60,6 +62,7 @@ export function applyLayoutHistoryChange(context: LayoutSceneRefreshContext, dir
   context.snapSettingsController.rebakeWorldTexturesIfLocked();
   SolidModel.refreshAfterHistoryChange(context.worldObject);
   context.faceModeCoordinator.getFaceExtrusionController().pruneInvalidFaceSelection(context.worldObject);
+  getStatePolygonTool().editingTargetForgetWhenDetached(context.worldObject);
   context.refreshAfterWorldMutation();
 }
 

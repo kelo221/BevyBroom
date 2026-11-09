@@ -1,14 +1,16 @@
 import { ShadingMode } from '@/types/shading_mode.js';
-import { IconHammerCatalog } from '@/ui/icons/hammer/icon_hammer_catalog.js';
 import { PanelMenu } from '@/ui/menu/panel_menu.js';
 import { MenuOutsidePointerClose } from '@/ui/menu/menu_outside_pointer_close.js';
-import { ViewportKind, getViewportKindDisplayLabel } from '@/viewports/core/viewport_kind.js';
+import {
+  ViewportKind,
+  getViewportKindDisplayLabel,
+  isPerspectiveViewportKind,
+} from '@/viewports/core/viewport_kind.js';
 import { UiStackLayers } from '@/ui/stack/ui_stack_layers.js';
 import { buildViewportViewMenuEntries, type ViewportViewMenuState } from './viewport_type_menu.js';
 import { viewportAxisCaptionForKind, viewportAxisCaptionForTitle } from './viewport_axis_caption.js';
 import { ViewportLabel } from './viewport_label.js';
-import { ViewportHoverButtonRow } from './viewport_hover_button_row.js';
-import { VIEWPORT_SHADING_CHOICES } from './viewport_shading_choices.js';
+import type { ViewportViewChoice } from './viewport_view_choices.js';
 
 /** CSS class of the top-left cluster holding the corner label. */
 export const VIEWPORT_CORNER_CLUSTER_CLASS = 'editor-viewport-corner';
@@ -20,25 +22,22 @@ interface ViewportToolbarCallbacks {
   projectedGridToggle?: (visible: boolean) => void;
   fit?: () => void;
   maximizeToggle?: () => void;
-  kindChange?: (kind: ViewportKind) => void;
+  kindChange?: (kind: ViewportKind, shadingMode: ShadingMode | null) => void;
+  playFromHere?: (() => void) | null;
 }
 
 /**
  * Hammer-style chrome of one viewport: a corner label at the top-left that
- * opens the view menu (view kind, shading, render toggles, fit, maximize), and
- * a hover-only icon row at the top-right with the shading modes and maximize.
- * The view starts at the top of the pane.
+ * opens the view menu (2D and 3D views, render toggles, fit, maximize and play
+ * from here). The view starts at the top of the pane.
  */
 export class ViewportToolbar {
   private readonly ownerDocument: Document;
   private readonly ownerWindow: Window;
   private readonly cornerCluster: HTMLElement;
   private readonly label: ViewportLabel;
-  private readonly hoverRow: ViewportHoverButtonRow;
   private readonly outsideCloser = new MenuOutsidePointerClose();
-  private readonly shadingButtons = new Map<ShadingMode, HTMLButtonElement>();
   private readonly callbacks: ViewportToolbarCallbacks = {};
-  private readonly maximizeButton: HTMLButtonElement;
   private viewMenuPanel: PanelMenu | null = null;
   private titleText: string;
   private currentMode: ShadingMode;
@@ -52,7 +51,7 @@ export class ViewportToolbar {
    *
    * @param parentElement The viewport pane element.
    * @param titleText The viewport display name.
-   * @param initialMode The shading mode to highlight initially.
+   * @param initialMode The shading mode the view menu checks initially.
    */
   constructor(parentElement: HTMLElement, titleText: string, initialMode: ShadingMode = ShadingMode.SOLID) {
     this.ownerDocument = parentElement.ownerDocument;
@@ -62,14 +61,6 @@ export class ViewportToolbar {
     this.cornerCluster = this.cornerClusterCreate(parentElement);
     this.label = new ViewportLabel(this.cornerCluster, '', () => this.viewMenuToggle());
     this.labelTextRefresh(viewportAxisCaptionForTitle(titleText));
-    this.hoverRow = new ViewportHoverButtonRow(parentElement);
-    this.shadingButtonsCreate();
-    this.maximizeButton = this.hoverRow.buttonAdd(
-      'Maximize viewport',
-      IconHammerCatalog.toolbarSvg('view_maximize'),
-      () => this.maximizeToggle(),
-    );
-    this.setActiveShadingMode(initialMode);
   }
 
   /**
@@ -118,12 +109,32 @@ export class ViewportToolbar {
   }
 
   /**
-   * Registers the callback invoked when the user picks a viewport type.
+   * Registers the callback invoked when the user picks a view of another kind.
    *
-   * @param callback Kind change handler.
+   * @param callback Kind change handler receiving the new kind and the shading
+   *   mode to apply to the new view, or null to keep its default shading.
    */
-  setOnViewportKindChange(callback: (kind: ViewportKind) => void): void {
+  setOnViewportKindChange(callback: (kind: ViewportKind, shadingMode: ShadingMode | null) => void): void {
     this.callbacks.kindChange = callback;
+  }
+
+  /**
+   * Registers the handler of the Play from here row; the row shows only on a
+   * perspective view while a handler is registered.
+   *
+   * @param callback Play handler, or null to remove the row.
+   */
+  setOnPlayFromHere(callback: (() => void) | null): void {
+    this.callbacks.playFromHere = callback;
+  }
+
+  /**
+   * Returns whether the view menu offers Play from here.
+   *
+   * @returns True on a perspective view with a registered play handler.
+   */
+  isPlayFromHereAvailable(): boolean {
+    return isPerspectiveViewportKind(this.currentKind) && Boolean(this.callbacks.playFromHere);
   }
 
   /**
@@ -139,16 +150,12 @@ export class ViewportToolbar {
   }
 
   /**
-   * Updates the maximize button tooltip and selected appearance.
+   * Records whether the viewport fills the workspace for the Maximize check.
    *
    * @param maximized Whether this viewport currently fills the workspace.
    */
   setMaximized(maximized: boolean): void {
     this.maximized = maximized;
-    const label = maximized ? 'Restore viewport layout' : 'Maximize viewport';
-    this.maximizeButton.title = label;
-    this.maximizeButton.setAttribute('aria-label', label);
-    this.hoverRow.buttonActiveSet(this.maximizeButton, maximized);
   }
 
   /**
@@ -161,19 +168,16 @@ export class ViewportToolbar {
   }
 
   /**
-   * Updates which shading mode appears selected.
+   * Records the shading mode the view menu checks.
    *
    * @param mode The mode to mark as active.
    */
   setActiveShadingMode(mode: ShadingMode): void {
     this.currentMode = mode;
-    this.shadingButtons.forEach((button, buttonMode) => {
-      this.hoverRow.buttonActiveSet(button, buttonMode === mode);
-    });
   }
 
   /**
-   * Returns the currently highlighted shading mode.
+   * Returns the shading mode the view menu checks.
    *
    * @returns The active ShadingMode value.
    */
@@ -220,43 +224,6 @@ export class ViewportToolbar {
   }
 
   /**
-   * Returns the hover-only icon row at the top-right.
-   *
-   * @returns Hover row.
-   */
-  getHoverRow(): ViewportHoverButtonRow {
-    return this.hoverRow;
-  }
-
-  /**
-   * Inserts a control right after the corner label.
-   *
-   * @param element Control element to insert after the label.
-   */
-  insertControlAfterTitle(element: HTMLElement): void {
-    this.label.getLabelElement().after(element);
-  }
-
-  /**
-   * Returns the maximize button of the hover row.
-   *
-   * @returns The maximize button.
-   */
-  getMaximizeButton(): HTMLButtonElement {
-    return this.maximizeButton;
-  }
-
-  /**
-   * Returns the hover row button of a shading mode.
-   *
-   * @param mode The shading mode whose button is requested.
-   * @returns The button element, or undefined if missing.
-   */
-  getShadingButton(mode: ShadingMode): HTMLButtonElement | undefined {
-    return this.shadingButtons.get(mode);
-  }
-
-  /**
    * Records whether content wireframes are shown.
    *
    * @param active Whether wireframes are enabled.
@@ -297,14 +264,11 @@ export class ViewportToolbar {
     this.viewMenuClose();
     this.viewMenuPanel?.dispose();
     this.viewMenuPanel = null;
-    this.hoverRow.dispose();
     this.cornerCluster.remove();
-    this.shadingButtons.clear();
   }
 
   /**
-   * Creates the top-left cluster that holds the corner label and inserted
-   * controls.
+   * Creates the top-left cluster that holds the corner label and the view menu.
    *
    * @param parentElement Viewport pane element.
    * @returns Cluster element appended to the pane.
@@ -330,14 +294,6 @@ export class ViewportToolbar {
    */
   private labelTextRefresh(caption: string): void {
     this.label.textSet(caption === '' ? this.titleText : caption, this.titleText);
-  }
-
-  /** Adds one hover row button per shading mode. */
-  private shadingButtonsCreate(): void {
-    VIEWPORT_SHADING_CHOICES.forEach((choice) => {
-      const button = this.hoverRow.buttonAdd(choice.label, choice.iconSvgRead(), () => this.shadingSelect(choice.mode));
-      this.shadingButtons.set(choice.mode, button);
-    });
   }
 
   /**
@@ -370,12 +326,25 @@ export class ViewportToolbar {
   }
 
   /**
-   * Switches to a chosen view kind through the registered handler.
+   * Applies a chosen view: a view of another kind goes to the kind change
+   * handler with the choice shading; a view of the current kind applies only
+   * the choice shading.
    *
-   * @param kind Chosen view kind.
+   * @param choice Chosen view.
    */
-  private kindSelect(kind: ViewportKind): void {
-    this.callbacks.kindChange?.(kind);
+  private viewChoiceSelect(choice: ViewportViewChoice): void {
+    if (choice.kind !== this.currentKind) {
+      this.callbacks.kindChange?.(choice.kind, choice.shadingMode);
+      return;
+    }
+    if (choice.shadingMode !== null) {
+      this.shadingSelect(choice.shadingMode);
+    }
+  }
+
+  /** Runs the registered Play from here handler. */
+  private playFromHere(): void {
+    this.callbacks.playFromHere?.();
   }
 
   /**
@@ -390,6 +359,7 @@ export class ViewportToolbar {
       contentWireframesActive: this.contentWireframesActive,
       projectedGridActive: this.projectedGridActive,
       maximized: this.maximized,
+      playFromHereAvailable: this.isPlayFromHereAvailable(),
     };
   }
 
@@ -397,12 +367,12 @@ export class ViewportToolbar {
   private viewMenuRebuild(): void {
     this.viewMenuPanel?.dispose();
     const entries = buildViewportViewMenuEntries(() => this.viewMenuStateRead(), {
-      onKindSelect: (kind) => this.kindSelect(kind),
-      onShadingSelect: (mode) => this.shadingSelect(mode),
+      onViewChoiceSelect: (choice) => this.viewChoiceSelect(choice),
       onContentWireframesToggle: () => this.contentWireframesToggle(),
       onProjectedGridToggle: () => this.projectedGridToggle(),
       onFit: () => this.callbacks.fit?.(),
       onMaximizeToggle: () => this.maximizeToggle(),
+      onPlayFromHere: () => this.playFromHere(),
     });
     this.viewMenuPanel = new PanelMenu(entries, () => this.viewMenuClose(), false, this.ownerDocument);
     this.cornerCluster.appendChild(this.viewMenuPanel.getElement());

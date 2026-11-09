@@ -73,6 +73,15 @@ export class GuiWindow implements IGuiContainerEventReceiver {
     return false;
   }
 
+  /**
+   * GUI surfaces hold no pointer press state.
+   *
+   * @returns Always false.
+   */
+  pointerPressHoldRelease(): boolean {
+    return false;
+  }
+
   /** @inheritdoc */
   onActivate(): void {}
 

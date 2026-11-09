@@ -104,6 +104,8 @@ export interface LayoutCoreHostSource {
   updateGizmoVisibility(): void;
   /** Attaches CAD rulers to interactive viewports. */
   attachCadRulers(): void;
+  /** Offers the player view menu entries on the current viewport set. */
+  refreshPlayerViewportChrome(): void;
   /**
    * Shows a status bar message.
    *
@@ -173,6 +175,7 @@ export function buildDetachedViewportHost(source: LayoutCoreHostSource): LayoutD
     wireClipCallbackOnViewport: (viewport: ViewportEditor) => source.wireClipCallbackOnViewport(viewport),
     updateGizmoVisibility: () => source.updateGizmoVisibility(),
     attachCadRulers: () => source.attachCadRulers(),
+    refreshPlayerViewportChrome: () => source.refreshPlayerViewportChrome(),
   };
 }
 

@@ -5,6 +5,7 @@ import { GizmoTransform } from '@/transform/gizmo/gizmo_transform.js';
 import { GizmoRaycaster } from '@/transform/gizmo/gizmo_raycaster.js';
 import { boundsHandleVisibleHitAcceptanceCreate } from './bounds_handle_occlusion.js';
 import type { CadViewPlane } from '@/rulers/view/cad_view_plane.js';
+import { boundsHandleFacesRead } from './handle/bounds_handle_faces.js';
 
 /**
  * Picks a bounds face handle under the pointer, skipping handles hidden behind
@@ -36,7 +37,19 @@ export function pickBoundsHandleFace(
 }
 
 /**
- * Reads the bounds face stored on a handle.
+ * Reads every bounds face a handle drags: one for an edge handle, two for a
+ * corner handle.
+ *
+ * @param handle Picked handle.
+ * @returns Dragged faces; empty when the handle carries none.
+ */
+export function boundsHandleFacesFromHandleRead(handle: GizmoHandle): readonly BoundsFace[] {
+  return boundsHandleFacesRead(handle.getVisualMesh());
+}
+
+/**
+ * Reads the single bounds face stored on an edge handle. Corner handles carry
+ * no single face.
  *
  * @param handle Picked handle.
  * @returns Bounds face, or null when the handle carries none.

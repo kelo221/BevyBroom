@@ -3,7 +3,9 @@ import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings
 import type { KeyboardShortcutAction, KeyboardShortcutSettings } from '@/settings/store/settings_types.js';
 import {
   handlerKeyboardShortcutIsTypingInFormField,
+  type ActionAvailabilityGuard,
   type ActionCallback,
+  type ActionRegistration,
   type KeyboardActionCallback,
   type NavigationActiveCallback,
   type SelectionModeCallback,
@@ -81,7 +83,7 @@ export class HandlerKeyboardShortcut {
   private keydownListener: ((event: KeyboardEvent) => void) | null;
   private readonly registeredWindows: Set<Window>;
   /** Callbacks of shortcut actions registered through {@link actionCallbackSet}. */
-  private readonly actionCallbacks: Map<KeyboardShortcutAction, ActionCallback>;
+  private readonly actionCallbacks: Map<KeyboardShortcutAction, ActionRegistration>;
   private readonly getKeyboardShortcuts: () => KeyboardShortcutSettings;
 
   /**
@@ -164,32 +166,49 @@ export class HandlerKeyboardShortcut {
   /**
    * Registers or replaces the callback of one configurable shortcut action.
    * These actions run after camera navigation checks, so they never fire while
-   * flying or panning.
+   * flying or panning. While the availability guard reports false, the action's
+   * key is neither consumed nor default-prevented.
    *
    * @param action Shortcut action from the keyboard settings.
    * @param callback Function run when the shortcut is pressed, or null to
    *   remove it.
+   * @param isAvailable Guard reporting whether the action handles its key now;
+   *   always available when omitted.
    */
-  actionCallbackSet(action: KeyboardShortcutAction, callback: ActionCallback | null): void {
+  actionCallbackSet(
+    action: KeyboardShortcutAction,
+    callback: ActionCallback | null,
+    isAvailable: ActionAvailabilityGuard = HandlerKeyboardShortcut.actionAlwaysAvailable,
+  ): void {
     if (callback) {
-      this.actionCallbacks.set(action, callback);
+      this.actionCallbacks.set(action, { callback, isAvailable });
       return;
     }
     this.actionCallbacks.delete(action);
   }
 
   /**
-   * Runs the first registered action whose shortcut matches the event.
+   * Availability guard of actions registered without one.
+   *
+   * @returns Always true.
+   */
+  private static actionAlwaysAvailable(): boolean {
+    return true;
+  }
+
+  /**
+   * Runs the first available registered action whose shortcut matches the
+   * event.
    *
    * @param event Browser keyboard event.
-   * @returns True when an action ran.
+   * @returns True when an action handled the event.
    */
   private registeredActionDispatch(event: KeyboardEvent): boolean {
-    for (const [action, callback] of this.actionCallbacks) {
-      if (this.matchesShortcut(event, action)) {
+    for (const [action, registration] of this.actionCallbacks) {
+      if (this.matchesShortcut(event, action) && registration.isAvailable()) {
         event.preventDefault();
         if (!event.repeat) {
-          callback();
+          registration.callback();
         }
         return true;
       }

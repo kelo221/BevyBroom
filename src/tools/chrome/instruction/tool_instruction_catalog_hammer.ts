@@ -53,7 +53,7 @@ const TOOL_INSTRUCTIONS_BY_ID: Readonly<Record<EditorToolId, ToolInstruction>> =
   [EditorToolId.SPRINKLE]: {
     title: 'Sprinkle Tool',
     description:
-      'Entity Sprinkle: LMB drag paints the chosen sprinkle type onto surfaces, Ctrl+LMB drag erases it, RMB drag changes the brush radius. Type, Mode, Density and grid live in the Entity Sprinkle window.',
+      'Entity Sprinkle: LMB drag paints the chosen sprinkle type onto surfaces, Ctrl+LMB drag erases it, RMB drag or Alt+wheel changes the brush radius and [ / ] halve / double it. Type, Mode, Density and grid live in the Entity Sprinkle window.',
   },
   [EditorToolId.GRID]: {
     title: 'Grid',

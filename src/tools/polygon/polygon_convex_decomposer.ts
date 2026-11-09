@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { PolygonSketchFrame } from './sketch/polygon_sketch_frame.js';
 
 /** Extrusion frame mapping 2D polygon coordinates into 3D world space. */
 export interface PolygonExtrusionFrame {
@@ -344,9 +345,8 @@ export class PolygonConvexDecomposer {
   private static extrudeSingleConvex(poly2d: readonly THREE.Vector2[], frame: PolygonExtrusionFrame): THREE.Vector3[] {
     const points: THREE.Vector3[] = [];
     for (const pt of poly2d) {
-      const base = frame.origin.clone().addScaledVector(frame.axisU, pt.x).addScaledVector(frame.axisV, pt.y);
-      points.push(base.clone().addScaledVector(frame.axisNormal, frame.extrusionMin));
-      points.push(base.clone().addScaledVector(frame.axisNormal, frame.extrusionMax));
+      points.push(PolygonSketchFrame.worldPointAt(frame, pt, frame.extrusionMin));
+      points.push(PolygonSketchFrame.worldPointAt(frame, pt, frame.extrusionMax));
     }
     return points;
   }

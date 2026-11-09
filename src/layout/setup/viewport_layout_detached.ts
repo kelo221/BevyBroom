@@ -31,6 +31,8 @@ export interface LayoutDetachedViewportHost {
   updateGizmoVisibility(): void;
   /** Rebinds shared CAD rulers to main + detached panes and refreshes selection. */
   attachCadRulers(): void;
+  /** Offers the player view menu entries on the current viewport set. */
+  refreshPlayerViewportChrome(): void;
 }
 
 /**
@@ -49,8 +51,8 @@ export function bindDetachedViewportRenderSource(host: LayoutDetachedViewportHos
 }
 
 /**
- * Wires selection, gizmo, transform, clip, face, and fit hooks on a detached
- * pane so it behaves like an in-window viewport.
+ * Wires selection, gizmo, transform, clip, face, fit, and player menu hooks on
+ * a detached pane so it behaves like an in-window viewport.
  *
  * @param host Detached viewport host.
  * @param viewport Newly created or kind-switched detached viewport.
@@ -69,6 +71,7 @@ export function wireDetachedViewport(host: LayoutDetachedViewportHost, viewport:
   host.selectionVisualController?.refreshFromSelection();
   host.attachCadRulers();
   host.updateGizmoVisibility();
+  host.refreshPlayerViewportChrome();
 }
 
 /**
@@ -85,11 +88,13 @@ export function wireDetachedViewportToolbar(host: LayoutDetachedViewportHost, vi
 }
 
 /**
- * Handles teardown notification for a disposed detached viewport instance.
+ * Handles teardown notification for a disposed detached viewport instance:
+ * rebinds face callbacks, CAD rulers, and the player menu entries.
  *
  * @param host Detached viewport host.
  */
 export function onDetachedViewportDisposed(host: LayoutDetachedViewportHost): void {
   host.faceModeCoordinator?.rebindViewportFaceCallbacks();
   host.attachCadRulers();
+  host.refreshPlayerViewportChrome();
 }

@@ -18,6 +18,8 @@ export class TranslateTool extends BoxSelectTool {
   protected registerTranslateUndoOperation: boolean;
   private pinnedCamera: import('three').Camera | null;
   private pinnedPickElement: HTMLElement | null;
+  /** True once a single-use grab followed a held left-button drag. */
+  private isSingleUsePressDriven: boolean;
 
   /** Creates a translate tool. */
   constructor() {
@@ -27,6 +29,7 @@ export class TranslateTool extends BoxSelectTool {
     this.registerTranslateUndoOperation = true;
     this.pinnedCamera = null;
     this.pinnedPickElement = null;
+    this.isSingleUsePressDriven = false;
   }
 
   /** Called when the tool is activated. */
@@ -35,6 +38,7 @@ export class TranslateTool extends BoxSelectTool {
     this.isSingleUseDone = false;
     this.pinnedCamera = null;
     this.pinnedPickElement = null;
+    this.isSingleUsePressDriven = false;
     if (this.isSingleUse) {
       this.toolOnBeginTranslating();
       return;
@@ -92,6 +96,43 @@ export class TranslateTool extends BoxSelectTool {
       }
     }
     super.onMouseDrag(button, screenDelta, gridDelta);
+  }
+
+  /**
+   * Follows the pointer during a single-use grab started while the left button
+   * is held, otherwise runs the permanent-mode drag handling.
+   *
+   * @param button Mouse button index.
+   * @param screenDelta Screen-space movement delta.
+   * @param gridDelta Grid/world-space movement delta.
+   */
+  override onGlobalMouseDrag(button: number, screenDelta: Vector2, gridDelta: Vector2): void {
+    if (!this.isSingleUse) {
+      super.onGlobalMouseDrag(button, screenDelta, gridDelta);
+      return;
+    }
+    if (button === 0 && !this.isSingleUseDone) {
+      this.isSingleUsePressDriven = true;
+      this.toolOnMouseDrag();
+    }
+  }
+
+  /**
+   * Commits a single-use grab driven by a held left button whose release never
+   * arrived, as the release would have. Keyboard grabs and permanent-mode drags
+   * keep their own handling.
+   *
+   * @returns True when a press-driven grab was ended.
+   */
+  override pointerPressHoldRelease(): boolean {
+    if (!this.isSingleUse) {
+      return super.pointerPressHoldRelease();
+    }
+    if (this.isSingleUseDone || !this.isSingleUsePressDriven) {
+      return false;
+    }
+    this.onGlobalMouseUp(0);
+    return true;
   }
 
   /**

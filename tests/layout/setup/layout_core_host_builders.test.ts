@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { buildWorkspaceAreaWiringHost } from '@/layout/setup/layout_core_host_builders.js';
+import { describe, expect, it, vi } from 'vitest';
+import { buildDetachedViewportHost, buildWorkspaceAreaWiringHost } from '@/layout/setup/layout_core_host_builders.js';
 import type { LayoutCoreHostSource } from '@/layout/setup/layout_core_host_builders.js';
 import type { WorkspaceSwitcherBar } from '@/ui/workspace/workspace_switcher_bar.js';
 
@@ -59,6 +59,7 @@ function createMutableHostSource(): {
     wireClipCallbackOnViewport: () => undefined,
     updateGizmoVisibility: () => undefined,
     attachCadRulers: () => undefined,
+    refreshPlayerViewportChrome: () => undefined,
     showStatusMessage: () => undefined,
   } as LayoutCoreHostSource;
   return { source, liveSwitcher };
@@ -82,5 +83,15 @@ describe('buildWorkspaceAreaWiringHost', () => {
     const { source } = createMutableHostSource();
     const host = buildWorkspaceAreaWiringHost(source);
     expect(host.getWorkspaceSwitcherSlot()).toBe(source.workspaceSwitcherSlot);
+  });
+});
+
+describe('buildDetachedViewportHost', () => {
+  it('forwards the player menu refresh to the layout source', () => {
+    const { source } = createMutableHostSource();
+    const refreshPlayerViewportChrome = vi.fn();
+    source.refreshPlayerViewportChrome = refreshPlayerViewportChrome;
+    buildDetachedViewportHost(source).refreshPlayerViewportChrome();
+    expect(refreshPlayerViewportChrome).toHaveBeenCalledOnce();
   });
 });

@@ -10,6 +10,7 @@ import {
   testClassesInstall,
   testDoorField,
 } from '../game_entity_test_classes.js';
+import { INPUT_WHEEL_TEST_NOTCH_DOWN, inputWheelTestDispatch } from '../../ui/input/wheel/input_wheel_test_support.js';
 
 /**
  * Creates the section with plain chrome and an undo stack.
@@ -119,6 +120,17 @@ describe('PanelPropertiesGameComponentsSection', () => {
       .getElement()
       .querySelector('select[aria-label="Add game component"]') as HTMLSelectElement;
     expect([...pointSelect.options].map((option) => option.value)).toContain(TEST_DOOR_TYPE_PATH);
+  });
+
+  it('adds no component when the wheel scrolls over the Add picker', () => {
+    const { section, stack } = sectionCreate();
+    const mesh = new THREE.Mesh();
+    section.updateFromObjects([mesh]);
+    const select = section.getElement().querySelector('select[aria-label="Add game component"]') as HTMLSelectElement;
+    inputWheelTestDispatch(select, INPUT_WHEEL_TEST_NOTCH_DOWN);
+    expect(select.value).toBe('');
+    expect(GameEntityComponentStore.hasAny(mesh)).toBe(false);
+    expect(stack.getUndoCount()).toBe(0);
   });
 
   it('shows classes the game does not report read-only and keeps their data', () => {

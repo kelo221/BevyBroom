@@ -13,6 +13,22 @@ export type TransformModeCallback = (mode: TransformMode) => void;
 export type ActionCallback = () => void;
 
 /**
+ * Reports whether a registered shortcut action can act right now. An
+ * unavailable action leaves its key to other shortcuts and to the browser.
+ *
+ * @returns True when the action handles its shortcut.
+ */
+export type ActionAvailabilityGuard = () => boolean;
+
+/** A registered shortcut action: what it runs and when it is available. */
+export interface ActionRegistration {
+  /** Function run when the shortcut is pressed. */
+  readonly callback: ActionCallback;
+  /** Whether the action currently handles its shortcut. */
+  readonly isAvailable: ActionAvailabilityGuard;
+}
+
+/**
  * Callback for a keyboard shortcut that needs the originating key event (for
  * example fit, which targets the window that received the key).
  *

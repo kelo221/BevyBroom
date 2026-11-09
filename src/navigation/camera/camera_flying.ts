@@ -6,6 +6,7 @@ import { SelectionClickThrough } from '@/selection/object/selection_click_throug
 import { EditorOrientation } from '@/navigation/orientation/editor_orientation.js';
 import { pointerCaptureTry } from '@/utils/pointer_capture.js';
 import { MOUSE_MOVE_SPEED_MAX, MOUSE_MOVE_SPEED_MIN } from '@/settings/store/settings_types.js';
+import { getRegistryViewportWheelConsumer } from '@/navigation/wheel/registry_viewport_wheel_consumer.js';
 import { NAVIGATION_BUTTON_MIDDLE, NAVIGATION_BUTTON_SECONDARY } from './navigation_buttons.js';
 
 /**
@@ -364,8 +365,9 @@ export class CameraFlying {
   }
 
   /**
-   * Changes the fly speed while right-button look is held, otherwise zooms the
-   * camera along its look direction.
+   * Changes the fly speed while right-button look is held. Otherwise, unless a
+   * registered viewport wheel consumer takes the event outside a middle-button
+   * pan, zooms the camera along its look direction.
    *
    * @param event The wheel event.
    */
@@ -373,11 +375,15 @@ export class CameraFlying {
     if (!this.isEnabled) {
       return;
     }
-    event.preventDefault();
     if (this.isRotating) {
+      event.preventDefault();
       this.moveSpeedStepFromWheel(event.deltaY);
       return;
     }
+    if (!this.isPanning && getRegistryViewportWheelConsumer().eventOffer(event)) {
+      return;
+    }
+    event.preventDefault();
     this.dollyFromWheel(event.deltaY);
   }
 

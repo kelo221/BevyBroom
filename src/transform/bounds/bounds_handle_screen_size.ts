@@ -51,37 +51,17 @@ export const BOUNDS_CUBE_MAX_EDGE_FRACTION = 0.32;
 /** Absolute floor so a zero-thickness OBB cannot produce a zero pick size. */
 const BOUNDS_CUBE_ABSOLUTE_MIN_WORLD_SIZE = 1e-6;
 
-/** 2D ear length along the edge in CSS pixels (screen-space). */
-export const BOUNDS_EAR_ALONG_PIXELS = 44;
-
-/** 2D ear thickness in CSS pixels (screen-space) — thin drafting grips. */
-export const BOUNDS_EAR_THICKNESS_PIXELS = 6;
-
-/** Gap from bounds wire to ear center in CSS pixels. */
-export const BOUNDS_EAR_OFFSET_PIXELS = 8;
-
-/**
- * When a 2D ear's along-edge length would be shorter than this (CSS pixels),
- * the ear is hidden instead of rendering a stub.
- */
-export const BOUNDS_EAR_MIN_ALONG_PIXELS = 8;
-
-/**
- * Maximum fraction of a bounds side that a 2D ear may cover (when zoom makes
- * the pixel-sized ear longer than the brush edge).
- */
-export const BOUNDS_EAR_MAX_SIDE_FRACTION = 0.5;
-
 /** Exterior-only silhouette resize band thickness in CSS pixels. */
 export const BOUNDS_SILHOUETTE_EXTERIOR_PIXELS = 10;
 
 /**
- * OBB-relative ear size fallback when no orthographic camera is available.
+ * OBB-relative handle size used when no camera is available to size handles in
+ * screen space.
  *
  * @param bounds Current OBB, or null.
- * @returns World-space base size for CAD ear layout.
+ * @returns World-space fallback handle size.
  */
-export function computeBoundsEarWorldSize(bounds: DataOrientedBounds | null): number {
+export function computeBoundsHandleFallbackWorldSize(bounds: DataOrientedBounds | null): number {
   const minHalf = bounds ? Math.min(bounds.halfExtents.x, bounds.halfExtents.y, bounds.halfExtents.z) : 0.5;
   const size = Math.max(0.12, minHalf * 0.16);
   return Math.min(size, 0.34);
@@ -133,35 +113,6 @@ export function worldSizeFromScreenPixels(
 }
 
 /**
- * Screen-space 2D ear layout sizes in world units for the active ortho zoom.
- * Along-edge length is capped so the ear never exceeds
- * {@link BOUNDS_EAR_MAX_SIDE_FRACTION} of the bounds side.
- *
- * @param camera Orthographic (or any) camera.
- * @param viewportHeightPx Drawable pane height in CSS pixels.
- * @param sideLengthWorld Optional full length of the bounds side the ear sits
- *   on.
- * @returns Along-edge, thickness, and offset in world units.
- */
-export function computeBoundsEarScreenLayout(
-  camera: THREE.Camera,
-  viewportHeightPx: number,
-  sideLengthWorld?: number,
-): { alongEdge: number; thickness: number; offset: number } {
-  const upp = worldUnitsPerPixel(camera, viewportHeightPx);
-  let alongEdge = upp * BOUNDS_EAR_ALONG_PIXELS;
-  if (sideLengthWorld !== undefined && sideLengthWorld > 1e-8) {
-    const maxAlong = sideLengthWorld * BOUNDS_EAR_MAX_SIDE_FRACTION;
-    alongEdge = Math.min(alongEdge, maxAlong);
-  }
-  return {
-    alongEdge,
-    thickness: upp * BOUNDS_EAR_THICKNESS_PIXELS,
-    offset: upp * BOUNDS_EAR_OFFSET_PIXELS,
-  };
-}
-
-/**
  * Exterior-only silhouette resize band in world units from screen pixels.
  *
  * @param camera Active camera (typically orthographic).
@@ -187,7 +138,7 @@ export function computeBoundsCubeWorldSize(bounds: DataOrientedBounds | null, ca
     return clampArrowWorldSizeToMax(uncapped, computeBoundsCubeMaxWorldSizeFromBounds(bounds));
   }
   return clampArrowWorldSizeToMax(
-    computeBoundsEarWorldSize(bounds) * 0.55,
+    computeBoundsHandleFallbackWorldSize(bounds) * 0.55,
     computeBoundsCubeMaxWorldSizeFromBounds(bounds),
   );
 }
@@ -211,7 +162,7 @@ export function computeBoundsCubeWorldSizeForFace(
     return clampArrowWorldSizeToMax(uncapped, computeBoundsCubeMaxWorldSizeForFace(bounds, face));
   }
   return clampArrowWorldSizeToMax(
-    computeBoundsEarWorldSize(bounds) * 0.55,
+    computeBoundsHandleFallbackWorldSize(bounds) * 0.55,
     computeBoundsCubeMaxWorldSizeForFace(bounds, face),
   );
 }

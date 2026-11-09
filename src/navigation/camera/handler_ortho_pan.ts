@@ -3,6 +3,7 @@ import { managerPointerLock } from '@/input/manager_pointer_lock.js';
 import { blurActiveFormField } from '@/utils/dom_focus.js';
 import { SelectionClickThrough } from '@/selection/object/selection_click_through.js';
 import { pointerCaptureTry } from '@/utils/pointer_capture.js';
+import { getRegistryViewportWheelConsumer } from '@/navigation/wheel/registry_viewport_wheel_consumer.js';
 import { NAVIGATION_BUTTON_MIDDLE, NAVIGATION_BUTTON_SECONDARY } from './navigation_buttons.js';
 
 /** Fraction of the pointer travel the view pans by default (half speed). */
@@ -244,11 +245,15 @@ export class HandlerOrthoPan {
   }
 
   /**
-   * Converts wheel deltas into orthographic zoom factors at the pointer.
+   * Converts wheel deltas into orthographic zoom factors at the pointer unless
+   * a registered viewport wheel consumer takes the event.
    *
    * @param event Wheel event from the canvas.
    */
   private onWheel(event: WheelEvent): void {
+    if (getRegistryViewportWheelConsumer().eventOffer(event)) {
+      return;
+    }
     event.preventDefault();
     const factor = event.deltaY > 0 ? 1.1 : 0.9;
     const pointer = this.readNormalizedPointer(event);

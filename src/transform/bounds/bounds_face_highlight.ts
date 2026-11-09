@@ -6,22 +6,22 @@ import { Theme } from '@/theme.js';
 export const BOUNDS_FACE_EDGE_HIGHLIGHT_KEY = 'isBoundsFaceEdgeHighlight';
 
 /**
- * Applies or clears the selection-orange edge-outline highlight for a bounds
- * face on every edge highlight object under the root.
+ * Applies or clears the selection edge-outline highlight for bounds faces on
+ * every edge highlight object under the root.
  *
  * @param root Gizmo root (master or viewport gizmo clone).
- * @param highlightedFace Face to outline, or null to clear.
+ * @param highlightedFaces Faces to outline; empty to clear.
  * @param theme Theme colors.
  */
 export function applyBoundsFaceEdgeHighlight(
   root: THREE.Object3D,
-  highlightedFace: BoundsFace | null,
+  highlightedFaces: readonly BoundsFace[],
   theme: typeof Theme = Theme,
 ): void {
   root.traverse((child) => {
     if (child.userData[BOUNDS_FACE_EDGE_HIGHLIGHT_KEY] !== true) return;
     const face = child.userData[BOUNDS_FACE_USERDATA_KEY] as BoundsFace | undefined;
-    child.visible = highlightedFace !== null && face === highlightedFace;
+    child.visible = face !== undefined && highlightedFaces.includes(face);
     if (!child.visible || !(child instanceof THREE.LineSegments)) return;
     const material = child.material;
     if (!Array.isArray(material) && material instanceof THREE.LineBasicMaterial) {

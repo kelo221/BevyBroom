@@ -50,6 +50,7 @@ export function layoutWindowShortcutsWindowActionsCreate(
     visibility_show_all: () => windowActions.selectionVisibilityRead()?.showAll(),
     object_properties: () => windowActions.objectPropertiesOpen(),
     tool_sprinkle: () => windowActions.toolSelect(EditorToolId.SPRINKLE),
+    tool_vertex: () => windowActions.toolSelect(EditorToolId.VERTEX),
   };
 }
 

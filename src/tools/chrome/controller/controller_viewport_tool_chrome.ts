@@ -30,6 +30,15 @@ import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
 import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
 import { getStateTextureStampTool } from '@/tools/texture_stamp/state_texture_stamp_tool.js';
+import { toolInstructionForEditorTool } from '@/tools/chrome/instruction/tool_instruction_catalog.js';
+import { POLYGON_TOOL_STATUS_READY } from '@/editor/tools/polygon/polygon_tool.js';
+
+/** Status shown when the Vertex tool opens Edit Mode on the selection. */
+export const VIEWPORT_TOOL_CHROME_STATUS_VERTEX_READY =
+  'Vertex tool · Edit Mode: click or drag vertices, G moves them, Tab returns to Object Mode';
+
+/** Status shown when the Vertex tool finds nothing editable selected. */
+export const VIEWPORT_TOOL_CHROME_STATUS_VERTEX_NEEDS_SELECTION = 'Vertex tool · Select a brush first';
 
 /** Dependencies for coordinating per-pane tool chrome with editor modes. */
 export interface ControllerViewportToolChromeDependencies {
@@ -97,7 +106,7 @@ export interface ControllerViewportToolChromeDependencies {
   /** Stamps the current texture onto the selected faces or objects. */
   onStampCurrentTexture: () => void;
   /** Switches the editor tool stack to the Polygon brush tool. */
-  switchToPolygonTool?: () => void;
+  switchToPolygonTool?: (onLeft: () => void) => void;
   /** Switches the editor tool stack to the Sprinkle scatter tool. */
   switchToSprinkleTool?: () => void;
 }
@@ -341,11 +350,32 @@ export class ControllerViewportToolChrome {
       this.broadcastActiveTool();
       return;
     }
-    if (toolId !== EditorToolId.OBJECT) {
-      this.deps.showStatusMessage('Face Select, Clip, and Grid are Object Mode tools');
+    if (toolId === EditorToolId.OBJECT) {
+      this.activateEditSelectTool();
       return;
     }
-    this.activateEditSelectTool();
+    if (this.activeTool === EditorToolId.VERTEX) {
+      this.enterObjectMode();
+      this.selectObjectModeTool(toolId);
+      return;
+    }
+    this.deps.showStatusMessage(
+      `${toolInstructionForEditorTool(toolId).title} works in Object Mode · press Tab to leave Edit Mode`,
+    );
+  }
+
+  /**
+   * Sets the active flag of every click-owning tool from the active tool and
+   * interaction mode: a flag is on only while its tool is active in Object
+   * Mode.
+   */
+  private hammerToolFlagsSync(): void {
+    const objectModeTool = this.activeInteractionMode === EditorInteractionMode.OBJECT_MODE ? this.activeTool : null;
+    getStateBlockDrawSettings().blockToolActiveWrite(objectModeTool === EditorToolId.BLOCK);
+    getStateEntityPlace().toolActiveWrite(objectModeTool === EditorToolId.ENTITY);
+    getStatePolygonTool().toolActiveWrite(objectModeTool === EditorToolId.POLYGON);
+    getStateSprinkleTool().toolActiveWrite(objectModeTool === EditorToolId.SPRINKLE);
+    getStateTextureStampTool().toolActiveWrite(objectModeTool === EditorToolId.STAMP);
   }
 
   /**
@@ -354,11 +384,6 @@ export class ControllerViewportToolChrome {
    * @param toolId Tool id to activate.
    */
   private selectObjectModeTool(toolId: EditorToolId): void {
-    getStateBlockDrawSettings().blockToolActiveWrite(toolId === EditorToolId.BLOCK);
-    getStateEntityPlace().toolActiveWrite(toolId === EditorToolId.ENTITY);
-    getStatePolygonTool().toolActiveWrite(toolId === EditorToolId.POLYGON);
-    getStateSprinkleTool().toolActiveWrite(toolId === EditorToolId.SPRINKLE);
-    getStateTextureStampTool().toolActiveWrite(toolId === EditorToolId.STAMP);
     if (toolId === EditorToolId.STAMP) return this.activateStampTool();
     if (toolId === EditorToolId.OBJECT) return this.activateObjectTool();
     if (toolId === EditorToolId.BLOCK) return this.activateBlockTool();
@@ -406,7 +431,6 @@ export class ControllerViewportToolChrome {
 
   /** Syncs rail state when Object selection mode is entered externally. */
   private syncExternalObjectSelectionMode(): void {
-    getStateTextureStampTool().toolActiveWrite(false);
     if (this.activeTool !== EditorToolId.OBJECT) {
       this.activeTool = EditorToolId.OBJECT;
       this.deps.switchToObjectSelect?.();
@@ -474,7 +498,6 @@ export class ControllerViewportToolChrome {
 
   /** Keeps Edit Select active while Edit Mode is open. */
   private activateEditSelectTool(): void {
-    getStateTextureStampTool().toolActiveWrite(false);
     this.endClipSessionIfActive();
     this.clearObjectToolOverlays();
     this.activeTool = EditorToolId.OBJECT;
@@ -557,14 +580,15 @@ export class ControllerViewportToolChrome {
   /** Enters Edit Mode in Vertex selection mode on the selected object. */
   private activateVertexTool(): void {
     this.enterEditMode();
-    if (this.activeInteractionMode === EditorInteractionMode.EDIT_MODE) {
-      this.activeTool = EditorToolId.VERTEX;
-      this.setComponentMode(EditorComponentMode.VERTEX);
-      this.broadcastActiveTool();
-      this.deps.showStatusMessage('Vertex tool · Edit Mode');
-    } else {
-      this.deps.showStatusMessage('Select a brush or mesh to edit vertices');
+    if (this.activeInteractionMode !== EditorInteractionMode.EDIT_MODE) {
+      this.selectObjectModeTool(EditorToolId.OBJECT);
+      this.deps.showStatusMessage(VIEWPORT_TOOL_CHROME_STATUS_VERTEX_NEEDS_SELECTION);
+      return;
     }
+    this.activeTool = EditorToolId.VERTEX;
+    this.setComponentMode(EditorComponentMode.VERTEX);
+    this.broadcastActiveTool();
+    this.deps.showStatusMessage(VIEWPORT_TOOL_CHROME_STATUS_VERTEX_READY);
   }
 
   /** Activates the 2D Polygon polyline-extrude brush tool. */
@@ -576,13 +600,33 @@ export class ControllerViewportToolChrome {
     this.activeTool = EditorToolId.POLYGON;
     this.broadcastActiveTool();
     if (this.deps.switchToPolygonTool) {
-      this.deps.switchToPolygonTool();
+      this.deps.switchToPolygonTool(() => this.onEditorToolLeft(EditorToolId.POLYGON));
     } else {
       this.deps.switchToObjectSelect?.();
     }
     this.refreshChromeContext();
     this.notifyPrimaryToolChanged();
-    this.deps.showStatusMessage('Polygon tool · click outline vertices in 2D view, Enter to extrude');
+    this.deps.showStatusMessage(POLYGON_TOOL_STATUS_READY);
+  }
+
+  /**
+   * Returns the rail to Object Select when the editor switched away from a rail
+   * tool on its own (for example a transform mode button), so the rail, the
+   * tool flags and the previews agree.
+   *
+   * @param toolId Rail tool the editor left.
+   */
+  private onEditorToolLeft(toolId: EditorToolId): void {
+    if (this.activeTool !== toolId) {
+      return;
+    }
+    this.activeTool = EditorToolId.OBJECT;
+    this.broadcastActiveTool();
+    if (this.activeInteractionMode === EditorInteractionMode.OBJECT_MODE) {
+      this.enableObjectToolOverlays();
+    }
+    this.refreshChromeContext();
+    this.notifyPrimaryToolChanged();
   }
 
   /** Activates the Sprinkle surface scatter-placement tool. */
@@ -600,7 +644,9 @@ export class ControllerViewportToolChrome {
     }
     this.refreshChromeContext();
     this.notifyPrimaryToolChanged();
-    this.deps.showStatusMessage('Sprinkle tool · LMB drag to paint, Ctrl+LMB drag to erase, RMB drag to change radius');
+    this.deps.showStatusMessage(
+      'Sprinkle tool · LMB drag to paint, Ctrl+LMB drag to erase, RMB drag, Alt+wheel or [ ] to change radius',
+    );
   }
 
   /** Activates the global grid orientation tool. */
@@ -777,15 +823,17 @@ export class ControllerViewportToolChrome {
     this.refreshChromeContext();
   }
 
-  /** Broadcasts active tool to all hosts. */
+  /** Syncs the tool flags and broadcasts the active tool to all hosts. */
   private broadcastActiveTool(): void {
+    this.hammerToolFlagsSync();
     this.hosts.forEach((host) => {
       host.setActiveTool(this.activeTool);
     });
   }
 
-  /** Broadcasts Object Mode / Edit Mode to all hosts. */
+  /** Syncs the tool flags and broadcasts Object Mode / Edit Mode to all hosts. */
   private broadcastInteractionMode(): void {
+    this.hammerToolFlagsSync();
     this.hosts.forEach((host) => {
       host.setActiveInteractionMode(this.activeInteractionMode);
     });

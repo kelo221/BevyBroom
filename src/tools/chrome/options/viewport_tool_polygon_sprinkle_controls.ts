@@ -3,6 +3,7 @@ import { hexToRgb } from '@/utils/utils_color.js';
 import { getStatePolygonTool } from '@/tools/polygon/state_polygon_tool.js';
 import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
 import { SPRINKLE_RADIUS_MAX, SPRINKLE_RADIUS_MIN } from '@/tools/sprinkle/sprinkle_types.js';
+import { sprinkleRadiusClamp } from '@/tools/sprinkle/radius/sprinkle_radius_scale.js';
 import { applyViewportToolOptionsTextButtonMetrics } from './viewport_tool_options_control_style.js';
 
 /**
@@ -107,8 +108,7 @@ export class ViewportToolPolygonSprinkleControls {
   private sprinkleRadiusCommit(): void {
     const typedRadius = Number.parseFloat(this.sprinkleRadiusInput.value);
     if (Number.isFinite(typedRadius)) {
-      const radius = Math.min(SPRINKLE_RADIUS_MAX, Math.max(SPRINKLE_RADIUS_MIN, typedRadius));
-      getStateSprinkleTool().configPatch({ radius });
+      getStateSprinkleTool().configPatch({ radius: sprinkleRadiusClamp(typedRadius) });
     }
     this.syncSprinkleRow();
   }
@@ -188,9 +188,12 @@ export class ViewportToolPolygonSprinkleControls {
     this.polygonDepthInput.value = String(state.extrusionDepthRead());
   }
 
-  /** Syncs Sprinkle controls from `StateSprinkleTool`. */
+  /**
+   * Syncs Sprinkle controls from `StateSprinkleTool`, showing the radius with
+   * at most three decimals.
+   */
   private syncSprinkleRow(): void {
     const cfg = getStateSprinkleTool().configRead();
-    this.sprinkleRadiusInput.value = String(cfg.radius);
+    this.sprinkleRadiusInput.value = String(Number(cfg.radius.toFixed(3)));
   }
 }

@@ -1,24 +1,42 @@
 import { ViewportKind, VIEWPORT_KIND_MENU_ORDER, getViewportKindDisplayLabel } from '@/viewports/core/viewport_kind.js';
 
 /**
- * Axis caption per viewport kind, naming the horizontal and vertical screen
- * axes in Y-up coordinates.
+ * Horizontal and vertical screen axes per viewport kind in Y-up coordinates;
+ * empty for the perspective view, which has no fixed screen axes.
  */
-const VIEWPORT_AXIS_CAPTIONS: Readonly<Record<ViewportKind, string>> = {
-  [ViewportKind.PERSPECTIVE]: 'camera',
-  [ViewportKind.TOP]: 'top (x/z)',
-  [ViewportKind.FRONT]: 'front (x/y)',
-  [ViewportKind.SIDE]: 'side (z/y)',
+const VIEWPORT_AXIS_PAIRS: Readonly<Record<ViewportKind, string>> = {
+  [ViewportKind.PERSPECTIVE]: '',
+  [ViewportKind.TOP]: 'x/z',
+  [ViewportKind.FRONT]: 'x/y',
+  [ViewportKind.SIDE]: 'z/y',
 };
 
+/** Caption of a view without fixed screen axes. */
+const VIEWPORT_AXIS_CAPTION_CAMERA = 'camera';
+
 /**
- * Returns the axis caption shown next to a viewport title.
+ * Returns the screen axes a viewport kind looks along.
+ *
+ * @param kind Viewport kind.
+ * @returns Axis pair such as "x/z", or an empty string for the perspective
+ *   view.
+ */
+export function viewportAxisPairForKind(kind: ViewportKind): string {
+  return VIEWPORT_AXIS_PAIRS[kind];
+}
+
+/**
+ * Returns the axis caption shown in a viewport corner label.
  *
  * @param kind Viewport kind.
  * @returns Caption such as "top (x/z)" or "camera".
  */
 export function viewportAxisCaptionForKind(kind: ViewportKind): string {
-  return VIEWPORT_AXIS_CAPTIONS[kind];
+  const axisPair = viewportAxisPairForKind(kind);
+  if (axisPair === '') {
+    return VIEWPORT_AXIS_CAPTION_CAMERA;
+  }
+  return `${getViewportKindDisplayLabel(kind).toLowerCase()} (${axisPair})`;
 }
 
 /**

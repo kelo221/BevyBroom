@@ -16,6 +16,7 @@ import { PolicyEditorOverlay } from '@/tools/overlay/policy_editor_overlay.js';
 import { RegistryModalToolSession } from '@/tools/session/registry_modal_tool_session.js';
 import { EditorOverlayId } from '@/tools/overlay/editor_overlay_id.js';
 import { CLIP_PLANE_SESSION_KEY } from '@/tools/session/editor_tool_session_keys.js';
+import { toolInstructionForEditorTool } from '@/tools/chrome/instruction/tool_instruction_catalog.js';
 
 describe('ControllerViewportToolChrome', () => {
   let pane: HTMLElement;
@@ -317,12 +318,27 @@ describe('ControllerViewportToolChrome', () => {
     controller.setInteractionMode(EditorInteractionMode.EDIT_MODE);
     controller.selectTool(EditorToolId.FACE);
     expect(controller.getActiveTool()).not.toBe(EditorToolId.FACE);
-    expect(showStatus).toHaveBeenCalledWith('Face Select, Clip, and Grid are Object Mode tools');
+    expect(showStatus).toHaveBeenCalledWith(
+      expect.stringContaining(toolInstructionForEditorTool(EditorToolId.FACE).title),
+    );
+    expect(showStatus).toHaveBeenCalledWith(expect.stringContaining('Object Mode'));
     showStatus.mockClear();
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1));
     selectionManager.selectObject(mesh);
     controller.selectTool(EditorToolId.CLIP_PLANE);
     expect(controller.getActiveTool()).not.toBe(EditorToolId.CLIP_PLANE);
-    expect(showStatus).toHaveBeenCalledWith('Face Select, Clip, and Grid are Object Mode tools');
+    expect(showStatus).toHaveBeenCalledWith(
+      expect.stringContaining(toolInstructionForEditorTool(EditorToolId.CLIP_PLANE).title),
+    );
+  });
+
+  it('names the Polygon tool instead of other tools when it is refused in Edit Mode', () => {
+    controller.setInteractionMode(EditorInteractionMode.EDIT_MODE);
+    showStatus.mockClear();
+    controller.selectTool(EditorToolId.POLYGON);
+    expect(controller.getActiveTool()).not.toBe(EditorToolId.POLYGON);
+    const message = showStatus.mock.calls.at(-1)?.[0] ?? '';
+    expect(message).toContain(toolInstructionForEditorTool(EditorToolId.POLYGON).title);
+    expect(message).not.toContain(toolInstructionForEditorTool(EditorToolId.FACE).title);
   });
 });

@@ -663,6 +663,7 @@ export abstract class ViewportLayoutCore {
       wireClipCallbackOnViewport: (viewport) => this.wireClipCallbackOnViewport(viewport),
       updateGizmoVisibility: () => this.updateGizmoVisibility(),
       attachCadRulers: () => this.attachCadRulers(),
+      refreshPlayerViewportChrome: () => this.playerSystem?.refreshViewportChrome(),
       showStatusMessage: (message) => this.showStatusMessage(message),
     };
   }
