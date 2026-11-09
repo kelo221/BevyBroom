@@ -9,6 +9,3 @@ export const BOUNDS_CUBE_VISUAL_KEY = 'boundsCubeVisual';
 
 /** UserData flag for the scaled visual group holding the 3D arrow. */
 export const BOUNDS_ARROW_VISUAL_GROUP_KEY = 'boundsArrowVisualGroup';
-
-/** UserData key for the idle (non-hover) tint color of a 2D ear. */
-export const BOUNDS_EAR_BASE_COLOR_KEY = 'boundsEarBaseColor';

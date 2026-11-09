@@ -22,7 +22,7 @@ const spawnSolverScratch = createPlayerCollisionSolverScratch();
  * Starts from camera height minus eye height so mid-air stays mid-air. Only
  * lifts onto ground when that pose would put the feet below walkable support.
  *
- * @param camera Perspective camera used when no figurine spawn is set.
+ * @param camera Perspective camera the player starts under.
  * @param collisionWorld Collision world with current level soup.
  * @param outFeet Destination feet position.
  */

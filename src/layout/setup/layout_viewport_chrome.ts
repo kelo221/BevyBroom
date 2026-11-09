@@ -12,6 +12,8 @@ import type { BridgeTransformInteraction } from '@/tools/bridge/bridge_transform
 import type { CoordinatorShadingMode } from '@/navigation/camera/coordinator_shading_mode.js';
 import type { CoordinatorFaceMode } from '@/tools/face/coordinator_face_mode.js';
 import type { HandlerClipPlane } from '@/tools/clip_plane/handler_clip_plane.js';
+import type { ShadingMode } from '@/types/shading_mode.js';
+import { applyViewportToolbarShadingChoice } from '@/ui/viewport_chrome/viewport_toolbar_shading_bind.js';
 
 /** Host surface for viewport maximize and type-menu chrome. */
 export interface LayoutViewportChromeHost {
@@ -106,7 +108,7 @@ export function toggleMaximizeForPane(host: LayoutViewportChromeHost, paneId: st
 }
 
 /**
- * Updates maximize/restore button appearance on every pane toolbar.
+ * Updates the Maximize Viewport check on every pane toolbar.
  *
  * @param host Layout chrome host.
  * @param maximizedAreaId Maximized area id, or null when restored.
@@ -131,7 +133,7 @@ export function setupViewportTypeMenus(host: LayoutViewportChromeHost): void {
     if (!viewport) return;
     const toolbar = viewport.getViewportToolbar();
     toolbar.setViewportKind(pane.getKind());
-    toolbar.setOnViewportKindChange((kind) => onViewportKindChange(host, pane.getId(), kind));
+    toolbar.setOnViewportKindChange((kind, shadingMode) => onViewportKindChange(host, pane.getId(), kind, shadingMode));
   });
 }
 
@@ -141,21 +143,39 @@ export function setupViewportTypeMenus(host: LayoutViewportChromeHost): void {
  * @param host Layout chrome host.
  * @param paneId Target pane id.
  * @param kind Desired viewport kind.
+ * @param shadingMode Shading mode for the new viewport, or null to keep its
+ *   default shading.
  */
-export function onViewportKindChange(host: LayoutViewportChromeHost, paneId: string, kind: ViewportKind): void {
+export function onViewportKindChange(
+  host: LayoutViewportChromeHost,
+  paneId: string,
+  kind: ViewportKind,
+  shadingMode: ShadingMode | null,
+): void {
   const pane = host.viewportRegistry.getPaneById(paneId);
   if (!pane || pane.getKind() === kind) return;
   const created = host.viewportRegistry.replaceKind(paneId, kind);
   if (!created) return;
+  applyViewportToolbarShadingChoice(created, shadingMode);
   host.viewportPaneLayout.getAreaLayoutController().setViewportKind(paneId, kind);
   wireReplacedPane(host, pane, created);
+  rebindLayoutAfterKindChange(host);
+  resizeReplacedPane(created);
+  host.persistActiveWorkspaceLayout();
+  host.showStatusMessage(`Viewport set to ${getViewportKindDisplayLabel(kind)}`);
+}
+
+/**
+ * Refreshes the named viewport fields, CAD rulers, shading UI, and face
+ * callbacks after a pane received a new viewport.
+ *
+ * @param host Layout chrome host.
+ */
+function rebindLayoutAfterKindChange(host: LayoutViewportChromeHost): void {
   host.refreshNamedViewportFields();
   host.attachCadRulers();
   host.shadingModeCoordinator?.rebindViewportUi();
   host.faceModeCoordinator?.rebindViewportFaceCallbacks();
-  resizeReplacedPane(created);
-  host.persistActiveWorkspaceLayout();
-  host.showStatusMessage(`Viewport set to ${getViewportKindDisplayLabel(kind)}`);
 }
 
 /**
@@ -189,7 +209,7 @@ export function wireReplacedPane(host: LayoutViewportChromeHost, pane: ViewportP
 export function wireToolbarForPane(host: LayoutViewportChromeHost, pane: ViewportPane, viewport: ViewportEditor): void {
   const toolbar = viewport.getViewportToolbar();
   toolbar.setViewportKind(pane.getKind());
-  toolbar.setOnViewportKindChange((kind) => onViewportKindChange(host, pane.getId(), kind));
+  toolbar.setOnViewportKindChange((kind, shadingMode) => onViewportKindChange(host, pane.getId(), kind, shadingMode));
   toolbar.setOnToggleMaximize(() => toggleMaximizeForPane(host, pane.getId()));
   const maximizedId = host.viewportPaneLayout.getAreaLayoutController().getMaximizedAreaId();
   toolbar.setMaximized(pane.getId() === maximizedId);

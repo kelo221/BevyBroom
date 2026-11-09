@@ -6,6 +6,10 @@ import {
 } from '@/texture/ui/texture_replace/dialog_texture_replace.js';
 import { TextureReplaceRunner } from '@/texture/replace/texture_replace_runner.js';
 import { PanelFloatingContentHost } from '@/ui/floating_panel/panel_floating_content_host.js';
+import {
+  INPUT_WHEEL_TEST_NOTCH_DOWN,
+  inputWheelTestDispatch,
+} from '../../../ui/input/wheel/input_wheel_test_support.js';
 
 /** Dialogs built by the running test. */
 const textureReplaceTestDialogs: DialogTextureReplace[] = [];
@@ -100,6 +104,35 @@ describe('DialogTextureReplace', () => {
     expect(host.querySelector('.dialog-texture-replace-result')?.textContent ?? '').toContain(
       String(repaintedFaceCount),
     );
+  });
+
+  it('chooses the replacement material with the wheel over the Replace list', () => {
+    const { dialog, host, handlers, materials } = textureReplaceTestRigCreate(false, 0);
+    const findId = materials[0]?.id ?? '';
+    dialog.openFor(findId);
+    const replaceSelect = textureReplaceTestSelectFind(host, 'dialog-texture-replace-with');
+    if (!replaceSelect) throw new Error('replace list missing');
+    inputWheelTestDispatch(replaceSelect, INPUT_WHEEL_TEST_NOTCH_DOWN);
+    const nextId = materials[1]?.id ?? '';
+    expect(replaceSelect.value).toBe(nextId);
+    host.querySelector<HTMLElement>('.dialog-texture-replace-run')?.click();
+    expect(handlers.replace).toHaveBeenCalledWith(findId, nextId, 'all');
+  });
+
+  it('stops stepping its lists with the wheel once disposed', () => {
+    const { dialog, materials } = textureReplaceTestRigCreate(false, 0);
+    dialog.openFor(materials[0]?.id ?? '');
+    const lists = ['find', 'with', 'scope'].map((suffix) =>
+      dialog.bodyRead().querySelector<HTMLSelectElement>(`.dialog-texture-replace-${suffix}`),
+    );
+    const valuesBefore = lists.map((list) => list?.value);
+    dialog.dispose();
+    lists.forEach((list) => {
+      if (!list) throw new Error('list missing');
+      const afterDispose = inputWheelTestDispatch(list, INPUT_WHEEL_TEST_NOTCH_DOWN);
+      expect(afterDispose.defaultPrevented).toBe(false);
+    });
+    expect(lists.map((list) => list?.value)).toEqual(valuesBefore);
   });
 
   it('is a floating content host whose body holds the rows and closes on Escape', () => {

@@ -17,7 +17,6 @@ import {
   IconHammerToolbarTransform,
   type IconHammerToolbarTransformName,
 } from './toolbar/icon_hammer_toolbar_transform.js';
-import { IconHammerToolbarView, type IconHammerToolbarViewName } from './toolbar/icon_hammer_toolbar_view.js';
 
 /** Name of one full-colour classic Hammer icon. */
 export type IconHammerName =
@@ -28,7 +27,6 @@ export type IconHammerName =
   | IconHammerToolbarGridName
   | IconHammerToolbarSelectionName
   | IconHammerToolbarCsgName
-  | IconHammerToolbarViewName
   | IconHammerToolbarTransformName
   | IconHammerToolbarRunName;
 
@@ -41,7 +39,6 @@ const ICON_HAMMER_DRAWERS: Readonly<Record<IconHammerName, IconHammerDrawer>> = 
   ...new IconHammerToolbarGrid().drawersRead(),
   ...new IconHammerToolbarSelection().drawersRead(),
   ...new IconHammerToolbarCsg().drawersRead(),
-  ...new IconHammerToolbarView().drawersRead(),
   ...new IconHammerToolbarTransform().drawersRead(),
   ...new IconHammerToolbarRun().drawersRead(),
 };

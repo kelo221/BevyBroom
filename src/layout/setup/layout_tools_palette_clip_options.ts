@@ -47,6 +47,7 @@ type LayoutToolsPaletteClipSwitchOptions = Pick<
   | 'switchToFaceSelect'
   | 'switchToEditSelect'
   | 'switchToGridTool'
+  | 'switchToPolygonTool'
   | 'onPrimaryToolChanged'
   | 'registerClipTool'
 >;
@@ -158,6 +159,7 @@ function layoutToolsPaletteClipSwitchOptionsCreate(
     switchToFaceSelect: () => host.toolEditorSystem?.switchToFaceSelect(),
     switchToEditSelect: () => host.toolEditorSystem?.switchToEditSelect(),
     switchToGridTool: () => host.toolEditorSystem?.switchToGridTool(),
+    switchToPolygonTool: (onLeft) => host.toolEditorSystem?.switchToPolygonTool(onLeft),
     onPrimaryToolChanged: () => layoutToolsPalettePrimaryToolChanged(host),
     registerClipTool: (placement, handler) => layoutToolsPaletteClipToolRegister(host, placement, handler),
   };

@@ -87,6 +87,23 @@ export function createDefaultKeyboardShortcutSettings(): KeyboardShortcutSetting
     ...createDefaultShadingSnapClipShortcuts(),
     ...createDefaultWindowShortcuts(),
     ...createDefaultFaceUvShortcuts(),
+    ...createDefaultSprinkleShortcuts(),
+  };
+}
+
+/**
+ * Default Sprinkle tool shortcuts: [ halves and ] doubles the brush radius
+ * while the Sprinkle tool is active.
+ *
+ * @returns Partial keyboard shortcut settings.
+ */
+function createDefaultSprinkleShortcuts(): Pick<
+  KeyboardShortcutSettings,
+  'sprinkle_radius_shrink' | 'sprinkle_radius_grow'
+> {
+  return {
+    sprinkle_radius_shrink: createShortcut('BracketLeft'),
+    sprinkle_radius_grow: createShortcut('BracketRight'),
   };
 }
 
@@ -173,7 +190,7 @@ function createDefaultWindowShortcuts(): Pick<
  * Default transform-mode, selection-tool, interaction-mode, and Edit Mode
  * component-mode shortcuts. Digit 1–3 select vertex / edge / face while Edit
  * Mode is active (object-mode shading keeps the same digits). Ctrl+Alt+S
- * activates the Sprinkle tool as in Hammer++.
+ * activates the Sprinkle tool as in Hammer++ and Shift+V the Vertex tool.
  *
  * @returns Partial keyboard shortcut settings.
  */
@@ -186,6 +203,7 @@ function createDefaultTransformShortcuts(): Pick<
   | 'face'
   | 'selection_object'
   | 'tool_sprinkle'
+  | 'tool_vertex'
   | 'interaction_mode'
   | 'component_vertex'
   | 'component_edge'
@@ -199,6 +217,7 @@ function createDefaultTransformShortcuts(): Pick<
     face: createShortcut('Tab', false, true),
     selection_object: createShortcut('KeyO'),
     tool_sprinkle: createShortcut('KeyS', true, false, true),
+    tool_vertex: createShortcut('KeyV', false, true),
     interaction_mode: createShortcut('Tab'),
     component_vertex: createShortcut('Digit1'),
     component_edge: createShortcut('Digit2'),

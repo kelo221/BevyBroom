@@ -288,6 +288,7 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
       isCtrlDown: () => this.keyboardShortcutHandler.modifiersStateRead().ctrl,
       statusShow: (message) => this.showStatusMessage(message),
       afterWorldMutation: () => this.refreshAfterWorldMutation(),
+      shortcutHost: this.keyboardShortcutHandler,
     });
   }
 
@@ -703,7 +704,6 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
       inputManager: this.inputManager,
       getEditorWindow: () => this.toolEditorSystem?.editorWindow ?? null,
       getPerspectiveViewports: () => this.collectPerspectiveViewports(),
-      getInteractiveViewports: () => this.getAllInteractiveViewports(),
       showStatusMessage: (message) => this.showStatusMessage(message),
     });
   }

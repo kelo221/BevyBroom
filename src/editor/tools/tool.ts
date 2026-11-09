@@ -40,6 +40,16 @@ export abstract class Tool implements IEditorEventReceiver {
   }
 
   /**
+   * Drops busy state that only a held pointer press justifies. Tools whose busy
+   * state outlives a press keep it.
+   *
+   * @returns False by default: nothing is dropped.
+   */
+  pointerPressHoldRelease(): boolean {
+    return false;
+  }
+
+  /**
    * Returns whether RMB/MMB must stay with the tool instead of fly/pan
    * navigation pass-through while the exclusive shield is active.
    *

@@ -1,7 +1,12 @@
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import type { ShadingMode } from '@/types/shading_mode.js';
-import { VIEWPORT_KIND_MENU_ORDER, ViewportKind, getViewportKindDisplayLabel } from '@/viewports/core/viewport_kind.js';
-import { VIEWPORT_SHADING_CHOICES } from './viewport_shading_choices.js';
+import type { ViewportKind } from '@/viewports/core/viewport_kind.js';
+import {
+  VIEWPORT_VIEW_CHOICES_2D,
+  VIEWPORT_VIEW_CHOICES_3D,
+  viewportViewChoiceIsCurrent,
+  type ViewportViewChoice,
+} from './viewport_view_choices.js';
 
 /** Live state of one viewport shown by the checks of its view menu. */
 export interface ViewportViewMenuState {
@@ -15,22 +20,18 @@ export interface ViewportViewMenuState {
   readonly projectedGridActive: boolean;
   /** Whether the viewport fills the workspace. */
   readonly maximized: boolean;
+  /** Whether the menu offers Play from here. */
+  readonly playFromHereAvailable: boolean;
 }
 
 /** Callbacks run by the rows of a viewport view menu. */
 export interface ViewportViewMenuActions {
   /**
-   * Switches the viewport to another view kind.
+   * Switches the viewport to a view kind and, when given, its shading mode.
    *
-   * @param kind Chosen view kind.
+   * @param choice Chosen view.
    */
-  onKindSelect(kind: ViewportKind): void;
-  /**
-   * Applies a shading mode.
-   *
-   * @param mode Chosen shading mode.
-   */
-  onShadingSelect(mode: ShadingMode): void;
+  onViewChoiceSelect(choice: ViewportViewChoice): void;
   /** Shows or hides content and brush wireframes. */
   onContentWireframesToggle(): void;
   /** Shows or hides the projected surface grid. */
@@ -39,6 +40,8 @@ export interface ViewportViewMenuActions {
   onFit(): void;
   /** Maximizes the viewport or restores the layout. */
   onMaximizeToggle(): void;
+  /** Starts play mode from the viewport camera. */
+  onPlayFromHere(): void;
 }
 
 /** Label of the view menu row that frames the selection. */
@@ -53,28 +56,13 @@ export const VIEWPORT_VIEW_MENU_WIREFRAMES_LABEL = 'Content and Brush Wireframes
 /** Label of the view menu row that toggles the projected surface grid. */
 export const VIEWPORT_VIEW_MENU_PROJECTED_GRID_LABEL = 'Projected Surface Grid';
 
-/**
- * Builds menu entries for switching a viewport pane kind, with a check mark on
- * the active kind.
- *
- * @param currentKind Currently active kind for the pane.
- * @param onSelect Invoked when the user chooses a kind.
- * @returns Menu entries for MenuPanel.
- */
-function buildViewportTypeMenuEntries(
-  currentKind: ViewportKind,
-  onSelect: (kind: ViewportKind) => void,
-): ToolbarMenuEntry[] {
-  return VIEWPORT_KIND_MENU_ORDER.map((kind) => ({
-    label: getViewportKindDisplayLabel(kind),
-    onClick: () => onSelect(kind),
-    isChecked: () => kind === currentKind,
-  }));
-}
+/** Label of the view menu row that starts play mode from the viewport camera. */
+export const VIEWPORT_VIEW_MENU_PLAY_FROM_HERE_LABEL = 'Play from here';
 
 /**
- * Builds the full view menu of a viewport: view kinds, shading modes, render
- * toggles, then Fit to Selection and Maximize.
+ * Builds the full view menu of a viewport: 2D views, 3D views with their
+ * shading, render toggles, Fit to Selection and Maximize, then Play from here
+ * when the state offers it.
  *
  * @param stateRead Returns the live viewport state for the check marks.
  * @param actions Callbacks of the rows.
@@ -85,36 +73,34 @@ export function buildViewportViewMenuEntries(
   actions: ViewportViewMenuActions,
 ): ToolbarMenuEntry[] {
   return [
-    ...buildViewportTypeMenuEntries(stateRead().kind, (kind) => actions.onKindSelect(kind)),
+    ...viewportViewMenuChoiceEntriesBuild(VIEWPORT_VIEW_CHOICES_2D, stateRead, actions),
     { kind: 'separator' },
-    ...viewportViewMenuShadingEntriesBuild(stateRead, actions),
+    ...viewportViewMenuChoiceEntriesBuild(VIEWPORT_VIEW_CHOICES_3D, stateRead, actions),
     { kind: 'separator' },
     ...viewportViewMenuRenderToggleEntriesBuild(stateRead, actions),
     { kind: 'separator' },
-    { label: VIEWPORT_VIEW_MENU_FIT_LABEL, shortcut: 'F', onClick: () => actions.onFit() },
-    {
-      label: VIEWPORT_VIEW_MENU_MAXIMIZE_LABEL,
-      isChecked: () => stateRead().maximized,
-      onClick: () => actions.onMaximizeToggle(),
-    },
+    ...viewportViewMenuLayoutEntriesBuild(stateRead, actions),
+    ...viewportViewMenuPlayEntriesBuild(stateRead, actions),
   ];
 }
 
 /**
- * Builds one checked row per shading mode.
+ * Builds one row per view choice, checked while it is the current view.
  *
+ * @param choices View choices in menu order.
  * @param stateRead Returns the live viewport state.
  * @param actions Callbacks of the rows.
- * @returns Shading rows.
+ * @returns View choice rows.
  */
-function viewportViewMenuShadingEntriesBuild(
+function viewportViewMenuChoiceEntriesBuild(
+  choices: readonly ViewportViewChoice[],
   stateRead: () => ViewportViewMenuState,
   actions: ViewportViewMenuActions,
 ): ToolbarMenuEntry[] {
-  return VIEWPORT_SHADING_CHOICES.map((choice) => ({
+  return choices.map((choice) => ({
     label: choice.label,
-    isChecked: () => stateRead().shadingMode === choice.mode,
-    onClick: () => actions.onShadingSelect(choice.mode),
+    isChecked: () => viewportViewChoiceIsCurrent(choice, stateRead().kind, stateRead().shadingMode),
+    onClick: () => actions.onViewChoiceSelect(choice),
   }));
 }
 
@@ -140,5 +126,47 @@ function viewportViewMenuRenderToggleEntriesBuild(
       isChecked: () => stateRead().projectedGridActive,
       onClick: () => actions.onProjectedGridToggle(),
     },
+  ];
+}
+
+/**
+ * Builds the Fit to Selection and checked Maximize Viewport rows.
+ *
+ * @param stateRead Returns the live viewport state.
+ * @param actions Callbacks of the rows.
+ * @returns Layout rows.
+ */
+function viewportViewMenuLayoutEntriesBuild(
+  stateRead: () => ViewportViewMenuState,
+  actions: ViewportViewMenuActions,
+): ToolbarMenuEntry[] {
+  return [
+    { label: VIEWPORT_VIEW_MENU_FIT_LABEL, shortcut: 'F', onClick: () => actions.onFit() },
+    {
+      label: VIEWPORT_VIEW_MENU_MAXIMIZE_LABEL,
+      isChecked: () => stateRead().maximized,
+      onClick: () => actions.onMaximizeToggle(),
+    },
+  ];
+}
+
+/**
+ * Builds the separated Play from here row, or nothing when the state does not
+ * offer it.
+ *
+ * @param stateRead Returns the live viewport state.
+ * @param actions Callbacks of the rows.
+ * @returns Play rows, possibly empty.
+ */
+function viewportViewMenuPlayEntriesBuild(
+  stateRead: () => ViewportViewMenuState,
+  actions: ViewportViewMenuActions,
+): ToolbarMenuEntry[] {
+  if (!stateRead().playFromHereAvailable) {
+    return [];
+  }
+  return [
+    { kind: 'separator' },
+    { label: VIEWPORT_VIEW_MENU_PLAY_FROM_HERE_LABEL, onClick: () => actions.onPlayFromHere() },
   ];
 }

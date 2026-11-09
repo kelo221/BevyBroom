@@ -286,6 +286,7 @@ describe('SettingsDialog', () => {
       { id: 'keyboard-reminder-fly-speed-boost', value: 'Shift', readOnly: true },
       { id: 'keyboard-reminder-view-pan', value: 'Middle Mouse Drag', readOnly: true },
       { id: 'keyboard-reminder-view-dolly', value: 'Alt + Middle Mouse Drag', readOnly: true },
+      { id: 'keyboard-reminder-sprinkle-radius-wheel', value: 'Alt + Mouse Wheel', readOnly: true },
     ]);
   });
 

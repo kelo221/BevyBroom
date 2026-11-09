@@ -10,14 +10,12 @@ import {
   BOUNDS_CUBE_NEAR_PIXELS,
   BOUNDS_CUBE_REFERENCE_VIEWPORT_HEIGHT,
   BOUNDS_CUBE_VISUAL_MIN_PIXELS,
-  BOUNDS_EAR_ALONG_PIXELS,
   BOUNDS_SILHOUETTE_EXTERIOR_PIXELS,
   computeBoundsCubeMaxWorldSizeForFace,
   computeBoundsCubePickPixels,
   computeBoundsCubeVisualPixels,
   computeBoundsCubeVisualWorldSizeForFace,
   computeBoundsCubeWorldSizeForFace,
-  computeBoundsEarScreenLayout,
   computeBoundsFaceMinFullEdge,
   computeBoundsFaceReferenceEdge,
   computeSilhouetteExteriorBandWorld,
@@ -164,73 +162,15 @@ describe('bounds handle size vs camera distance', () => {
     expect(pick).toBeLessThan(0.04);
   });
 
-  it('sizes orthographic ears and exterior bands in screen space', () => {
+  it('sizes the orthographic exterior resize band in screen space', () => {
     const zoomedIn = new THREE.OrthographicCamera(-5, 5, 5, -5, 0.1, 1000);
     const zoomedOut = new THREE.OrthographicCamera(-50, 50, 50, -50, 0.1, 1000);
     const height = 512;
-    const layoutIn = computeBoundsEarScreenLayout(zoomedIn, height);
-    const layoutOut = computeBoundsEarScreenLayout(zoomedOut, height);
-    // Same pixel target → larger world size when zoomed out (frustum taller).
-    expect(layoutOut.alongEdge).toBeGreaterThan(layoutIn.alongEdge);
-    expect(layoutOut.thickness).toBeGreaterThan(layoutIn.thickness);
-    // Pixel conversion consistency.
     const uppIn = worldUnitsPerPixel(zoomedIn, height);
-    expect(layoutIn.alongEdge).toBeCloseTo(uppIn * BOUNDS_EAR_ALONG_PIXELS, 5);
     const bandIn = computeSilhouetteExteriorBandWorld(zoomedIn, height);
     const bandOut = computeSilhouetteExteriorBandWorld(zoomedOut, height);
     expect(bandOut).toBeGreaterThan(bandIn);
     expect(bandIn).toBeCloseTo(uppIn * BOUNDS_SILHOUETTE_EXTERIOR_PIXELS, 5);
-  });
-
-  it('clamps 2D ear length to half the bounds side when zoomed out', () => {
-    const zoomedOut = new THREE.OrthographicCamera(-100, 100, 100, -100, 0.1, 1000);
-    const sideLength = 2;
-    const layout = computeBoundsEarScreenLayout(zoomedOut, 512, sideLength);
-    expect(layout.alongEdge).toBeLessThanOrEqual(sideLength * 0.5 + 1e-6);
-    expect(layout.alongEdge).toBeCloseTo(sideLength * 0.5, 5);
-  });
-
-  it('hides 2D ears when along-edge length would be under 8px', () => {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2, 0.2));
-    mesh.updateMatrixWorld(true);
-    const gizmo = new GizmoTransform(Theme);
-    gizmo.setMode(TransformMode.BOUNDS);
-    gizmo.setVisible(true);
-    gizmo.updateBoundsFromMeshes([mesh]);
-    const clone = gizmo.getHandleGroupClone('xz');
-    // Huge frustum → pixel size of clamped ear on a thin brush collapses.
-    const zoomedOut = new THREE.OrthographicCamera(-200, 200, 200, -200, 0.1, 1000);
-    gizmo.prepareBoundsCloneForCamera(clone, zoomedOut, 'xz', 512);
-    let anyVisibleEar = false;
-    clone.traverse((child) => {
-      if (!(child instanceof THREE.Mesh)) return;
-      if (child.userData['boundsHandleIsEar'] !== true) return;
-      if (child.visible) anyVisibleEar = true;
-    });
-    expect(anyVisibleEar).toBe(false);
-    gizmo.dispose();
-  });
-
-  it('applies screen-space ear sizing on orthographic clones', () => {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2));
-    mesh.updateMatrixWorld(true);
-    const gizmo = new GizmoTransform(Theme);
-    gizmo.setMode(TransformMode.BOUNDS);
-    gizmo.setVisible(true);
-    gizmo.updateBoundsFromMeshes([mesh]);
-    const clone = gizmo.getHandleGroupClone('xz');
-    const zoomedOut = new THREE.OrthographicCamera(-40, 40, 40, -40, 0.1, 1000);
-    gizmo.prepareBoundsCloneForCamera(clone, zoomedOut, 'xz', 512);
-    let earScaleX = 0;
-    clone.traverse((child) => {
-      if (!(child instanceof THREE.Mesh)) return;
-      if (child.userData['boundsHandleIsEar'] !== true) return;
-      earScaleX = Math.max(earScaleX, child.scale.x);
-    });
-    // Half-extent 1 → side length 2 → max ear 50% = 1 when zoomed far out.
-    const expected = computeBoundsEarScreenLayout(zoomedOut, 512, 2).alongEdge;
-    expect(earScaleX).toBeCloseTo(expected, 4);
-    gizmo.dispose();
   });
 });
 
@@ -241,9 +181,9 @@ describe('bounds handle size vs camera distance', () => {
  * @returns Uniform pick scale, or 0.
  */
 function readFirstHandleScale(gizmo: GizmoTransform): number {
-  const handles = gizmo.getHandles();
-  if (handles.length === 0) return 0;
-  return handles[0]!.getVisualMesh().scale.x;
+  const firstHandle = gizmo.getHandles()[0];
+  if (!firstHandle) return 0;
+  return firstHandle.getVisualMesh().scale.x;
 }
 
 /**
@@ -253,9 +193,9 @@ function readFirstHandleScale(gizmo: GizmoTransform): number {
  * @returns Visual edge length in world units, or 0.
  */
 function readFirstVisualScale(gizmo: GizmoTransform): number {
-  const handles = gizmo.getHandles();
-  if (handles.length === 0) return 0;
-  const pick = handles[0]!.getVisualMesh();
+  const firstHandle = gizmo.getHandles()[0];
+  if (!firstHandle) return 0;
+  const pick = firstHandle.getVisualMesh();
   let visualLocal = 1;
   pick.traverse((child) => {
     if (child.userData[BOUNDS_CUBE_VISUAL_KEY] === true) {

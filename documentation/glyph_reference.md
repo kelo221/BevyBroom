@@ -39,18 +39,25 @@ Choose **Geometry**, **Terrain**, or **Brushes**, then select the object type;
 the editor creates and selects it. **Tools > Solid Model…** opens the Solid
 Model panel rather than creating one.
 
-## Viewport header glyphs
+## Viewport glyphs that moved into the corner label menu
 
-Each viewport has its own shading and framing controls. A change made here applies to that viewport, allowing one view to remain solid while another displays wireframe geometry.
+The numbered plate still shows glyphs 16 to 19, but viewports no longer have
+icon buttons. Click the label in a viewport's top-left corner, such as **top
+(x/z)** or **camera**, to open its view menu. A change made there applies to
+that viewport only, so one view can stay textured while another shows
+wireframe.
 
-| No. | Glyph         | What it does                                                                                                        |
-| --- | ------------- | ------------------------------------------------------------------------------------------------------------------- |
-| 16  | Solid shading | Displays normally shaded surfaces. This is the clearest general-purpose view for judging form and materials.        |
-| 17  | Wireframe     | Displays mesh edges without filled surfaces, making hidden structure and overlapping shapes easier to inspect.      |
-| 18  | Flat shading  | Displays distinct polygon faces without smooth interpolation. Use it to inspect face boundaries and faceting.       |
-| 19  | Fit selection | Frames the current selection in that viewport. It is the button equivalent of pressing `F` while working in a view. |
+| No. | Former glyph  | Where the action lives now                                                                                     |
+| --- | ------------- | -------------------------------------------------------------------------------------------------------------- |
+| 16  | Solid shading | **3D Textured**: normally shaded surfaces, the clearest general-purpose view for judging form and materials.   |
+| 17  | Wireframe     | **3D Wireframe**: mesh edges without filled surfaces, so hidden structure and overlapping shapes show.         |
+| 18  | Flat shading  | **3D Flat**: unlit faces at full brightness, useful to inspect face boundaries.                                |
+| 19  | Fit selection | **Fit to Selection** frames the current selection in that viewport, like pressing `F` while working in a view. |
 
-Wireframe Overlay is available through the `4` shortcut but does not have a dedicated header glyph. It shows shaded surfaces and their wire edges together.
+The menu also offers **3D Wireframe Overlay** (shaded surfaces with their wire
+edges, also on the `4` shortcut), the **2D Top (x/z)**, **2D Front (x/y)**, and
+**2D Side (z/y)** views, the wireframe and projected grid toggles, **Maximize
+Viewport**, and, in 3D views, **Play from here**.
 
 ## Tool glyphs
 

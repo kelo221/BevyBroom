@@ -23,7 +23,7 @@ describe('bounds face edge highlight', () => {
     const b = createEdgeHighlight(BoundsFace.POS_Y);
     root.add(a, b);
 
-    applyBoundsFaceEdgeHighlight(root, BoundsFace.POS_X);
+    applyBoundsFaceEdgeHighlight(root, [BoundsFace.POS_X]);
 
     expect(a.visible).toBe(true);
     expect(b.visible).toBe(false);
@@ -37,18 +37,27 @@ describe('bounds face edge highlight', () => {
     const customSelectionColor = (Theme.selectionColor ^ 0x00ff00) & 0xffffff;
     const customTheme = { ...Theme, selectionColor: customSelectionColor } as unknown as typeof Theme;
 
-    applyBoundsFaceEdgeHighlight(root, BoundsFace.POS_Z, customTheme);
+    applyBoundsFaceEdgeHighlight(root, [BoundsFace.POS_Z], customTheme);
 
     expect(edge.visible).toBe(true);
     expect((edge.material as THREE.LineBasicMaterial).color.getHex()).toBe(customSelectionColor);
+  });
+
+  it('outlines both faces of a corner highlight and nothing else', () => {
+    const root = new THREE.Group();
+    const faces = [BoundsFace.POS_X, BoundsFace.NEG_Y, BoundsFace.POS_Z];
+    const outlines = faces.map((face) => createEdgeHighlight(face));
+    root.add(...outlines);
+    applyBoundsFaceEdgeHighlight(root, [BoundsFace.POS_X, BoundsFace.NEG_Y]);
+    expect(outlines.map((outline) => outline.visible)).toEqual([true, true, false]);
   });
 
   it('hides all edge outlines when highlight is cleared', () => {
     const root = new THREE.Group();
     const edge = createEdgeHighlight(BoundsFace.NEG_Z);
     root.add(edge);
-    applyBoundsFaceEdgeHighlight(root, BoundsFace.NEG_Z);
-    applyBoundsFaceEdgeHighlight(root, null);
+    applyBoundsFaceEdgeHighlight(root, [BoundsFace.NEG_Z]);
+    applyBoundsFaceEdgeHighlight(root, []);
     expect(edge.visible).toBe(false);
   });
 });

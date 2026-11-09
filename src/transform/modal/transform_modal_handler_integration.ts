@@ -16,9 +16,12 @@ import {
 import { transformModalApplyScaleFreeNumeric, transformModalApplyScaleNumeric } from './transform_modal_apply_scale.js';
 import {
   transformModalApplyBoundsMoveNumeric,
-  transformModalApplyBoundsResizeNumeric,
+  transformModalBoundsResizeStepsBuild,
+  type TransformModalBoundsResizeFaces,
 } from './transform_modal_apply_bounds.js';
+import type { BoundsFace } from '@/types/bounds_face.js';
 import { resolveMinimumBoundsHalfExtent } from '@/transform/bounds/bounds_resize_math.js';
+import { boundsResizeStepsApplyToObjects } from '@/transform/bounds/bounds_resize_steps.js';
 import { TransformProjectionMath } from '@/transform/core/transform_projection_math.js';
 import { transformModalConstrainTranslationDelta } from './transform_modal_delta_constrain.js';
 import { resolveKeyboardAxisOrientation } from './transform_modal_axis_orientation.js';
@@ -417,24 +420,62 @@ export class TransformModalHandlerIntegration implements TransformModalApplyHost
    * @returns True when applied.
    */
   private applyBoundsNumeric(value: number, axis: TransformModalAxis, objects: THREE.Object3D[]): boolean {
-    if (this.session.isBoundsResize && this.session.activeBoundsFace && this.session.startBounds) {
-      const gridSnap = this.transformExecutor.getGridSnap();
-      const minHalfExtent = resolveMinimumBoundsHalfExtent(gridSnap.isEnabled(), gridSnap.getInterval());
-      const ok = transformModalApplyBoundsResizeNumeric(
-        objects,
-        this.session.initialPositions,
-        this.session.initialScales,
-        this.session.startBounds,
-        this.session.activeBoundsFace,
-        value,
-        minHalfExtent,
-      );
-      if (ok) {
-        this.session.boundsDeltaAlongNormal = value;
-        this.callbacks?.rebakeTextures(objects, false, true);
-      }
-      return ok;
+    if (this.session.isBoundsResize) {
+      return this.applyBoundsResizeNumeric(value, axis, objects);
     }
+    return this.applyBoundsMoveNumeric(value, axis, objects);
+  }
+
+  /**
+   * Applies a typed distance to the faces of the active bounds resize drag
+   * (both faces of a corner drag unless the axis lock picks one).
+   *
+   * @param value Typed distance.
+   * @param axis Keyboard axis lock.
+   * @param objects Drag targets.
+   * @returns True when applied.
+   */
+  private applyBoundsResizeNumeric(value: number, axis: TransformModalAxis, objects: THREE.Object3D[]): boolean {
+    const primaryFace = this.session.activeBoundsFace;
+    const startBounds = this.session.startBounds;
+    if (!primaryFace || !startBounds) {
+      return false;
+    }
+    const steps = transformModalBoundsResizeStepsBuild(this.boundsResizeFacesRead(primaryFace), value, axis);
+    const gridSnap = this.transformExecutor.getGridSnap();
+    const minHalfExtent = resolveMinimumBoundsHalfExtent(gridSnap.isEnabled(), gridSnap.getInterval());
+    const { initialPositions, initialScales } = this.session;
+    boundsResizeStepsApplyToObjects(objects, initialPositions, initialScales, startBounds, steps, minHalfExtent);
+    this.session.boundsDeltaAlongNormal = steps[0]?.deltaAlongNormal ?? value;
+    this.callbacks?.rebakeTextures(objects, true, true);
+    return true;
+  }
+
+  /**
+   * Reads the faces of the active bounds resize drag and their last pointer
+   * travels.
+   *
+   * @param primaryFace Face the drag started on.
+   * @returns Drag faces and pointer travels.
+   */
+  private boundsResizeFacesRead(primaryFace: BoundsFace): TransformModalBoundsResizeFaces {
+    return {
+      primaryFace,
+      secondaryFace: this.session.secondaryBoundsFace,
+      primaryPointerDelta: this.session.lastPointerBoundsResizeDelta,
+      secondaryPointerDelta: this.session.lastPointerSecondaryBoundsResizeDelta,
+    };
+  }
+
+  /**
+   * Applies a typed distance as a bounds move along the locked axis.
+   *
+   * @param value Typed distance.
+   * @param axis Keyboard axis lock.
+   * @param objects Drag targets.
+   * @returns True when applied.
+   */
+  private applyBoundsMoveNumeric(value: number, axis: TransformModalAxis, objects: THREE.Object3D[]): boolean {
     const ok = transformModalApplyBoundsMoveNumeric(
       objects,
       this.session.initialPositions,

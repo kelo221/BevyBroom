@@ -6,21 +6,25 @@ import {
   type PolygonOutlineRecipe,
 } from './polygon_outline_recipe.js';
 import type { PolygonExtrusionFrame } from './polygon_convex_decomposer.js';
+import { PolygonSketchFrame } from './sketch/polygon_sketch_frame.js';
+import type { PolygonSketchClientProjector, PolygonSketchHit } from './sketch/polygon_sketch_projector.js';
 
 /** Listener notified when the active Polygon tool outline or depth changes. */
 export type StatePolygonToolListener = () => void;
 
 /**
  * Holds the interactive 2D outline vertices, sketching plane, extrusion depth,
- * and optional re-edit target for the Hammer++ Polygon brush tool.
+ * pointer cursor and optional re-edit target for the Hammer++ Polygon brush
+ * tool.
  */
 export class StatePolygonTool {
   private toolActive: boolean;
   private vertices: THREE.Vector2[];
   private frame: PolygonExtrusionFrame;
+  private cursorHit: PolygonSketchHit | null;
   private editingTarget: THREE.Object3D | null;
   private commitDelegate: ((recipe: PolygonOutlineRecipe, target: THREE.Object3D | null) => THREE.Mesh[]) | null;
-  private clientPointProjector: ((clientX: number, clientY: number) => THREE.Vector2 | null) | null;
+  private clientPointProjector: PolygonSketchClientProjector | null;
   private readonly listeners: Set<StatePolygonToolListener>;
 
   /**
@@ -31,6 +35,7 @@ export class StatePolygonTool {
     this.toolActive = false;
     this.vertices = [];
     this.frame = StatePolygonTool.defaultTopFrameCreate(2);
+    this.cursorHit = null;
     this.editingTarget = null;
     this.commitDelegate = null;
     this.clientPointProjector = null;
@@ -47,7 +52,8 @@ export class StatePolygonTool {
   }
 
   /**
-   * Sets whether the Polygon brush tool is currently active.
+   * Sets whether the Polygon brush tool is currently active. Turning the tool
+   * off discards the outline in progress and the pointer cursor.
    *
    * @param active True when active.
    */
@@ -56,32 +62,89 @@ export class StatePolygonTool {
       return;
     }
     this.toolActive = active;
+    if (!active) {
+      this.vertices = [];
+      this.editingTarget = null;
+      this.cursorHit = null;
+    }
     this.listenersNotify();
   }
 
   /**
-   * Registers the viewport client-point-to-2D-plane projector.
+   * Registers the viewport client-point-to-sketch-plane projector.
    *
-   * @param projector Callback mapping `(clientX, clientY)` to a 2D plane point.
+   * @param projector Projector mapping client points onto the sketch plane, or
+   *   null to clear.
    */
-  clientPointProjectorWrite(projector: ((clientX: number, clientY: number) => THREE.Vector2 | null) | null): void {
+  clientPointProjectorWrite(projector: PolygonSketchClientProjector | null): void {
     this.clientPointProjector = projector;
   }
 
   /**
    * Projects a viewport click onto the sketching plane and adds a 2D vertex.
+   * The first vertex adopts the plane of the view it was placed in.
    *
    * @param clientX Viewport client X.
    * @param clientY Viewport client Y.
    * @returns True when a vertex was added.
    */
   placeVertexAtClientPoint(clientX: number, clientY: number): boolean {
-    const pt = this.clientPointProjector ? this.clientPointProjector(clientX, clientY) : null;
-    if (!pt) {
+    const hit = this.sketchHitAtClientPoint(clientX, clientY);
+    if (!hit) {
       return false;
     }
-    this.vertexAdd(pt);
+    if (this.vertices.length === 0) {
+      this.frame = PolygonSketchFrame.copy(hit.frame);
+    }
+    this.vertexAdd(hit.point);
     return true;
+  }
+
+  /**
+   * Moves the pointer cursor of the rubber-band edge to a client point, or
+   * hides it when the point is off the sketch plane.
+   *
+   * @param clientX Pointer client X.
+   * @param clientY Pointer client Y.
+   */
+  cursorUpdateAtClientPoint(clientX: number, clientY: number): void {
+    const hit = this.sketchHitAtClientPoint(clientX, clientY);
+    if (StatePolygonTool.sketchHitsEqual(this.cursorHit, hit)) {
+      return;
+    }
+    this.cursorHit = hit;
+    this.listenersNotify();
+  }
+
+  /** Hides the pointer cursor of the rubber-band edge. */
+  cursorClear(): void {
+    if (!this.cursorHit) {
+      return;
+    }
+    this.cursorHit = null;
+    this.listenersNotify();
+  }
+
+  /**
+   * Returns the pointer cursor on the sketch plane.
+   *
+   * @returns Cursor sketch coordinate, or null when hidden.
+   */
+  cursorPointRead(): THREE.Vector2 | null {
+    return this.cursorHit?.point ?? null;
+  }
+
+  /**
+   * Returns the frame previews draw in: the outline frame once a vertex is
+   * placed, otherwise the frame under the pointer cursor.
+   *
+   * @returns Preview sketch frame.
+   */
+  previewFrameRead(): PolygonExtrusionFrame {
+    if (this.vertices.length === 0 && this.cursorHit) {
+      return this.cursorHit.frame;
+    }
+    return this.frame;
   }
 
   /**
@@ -153,14 +216,7 @@ export class StatePolygonTool {
    * @param frame Extrusion plane frame.
    */
   frameWrite(frame: PolygonExtrusionFrame): void {
-    this.frame = {
-      origin: frame.origin.clone(),
-      axisU: frame.axisU.clone(),
-      axisV: frame.axisV.clone(),
-      axisNormal: frame.axisNormal.clone(),
-      extrusionMin: frame.extrusionMin,
-      extrusionMax: frame.extrusionMax,
-    };
+    this.frame = PolygonSketchFrame.copy(frame);
     this.listenersNotify();
   }
 
@@ -190,6 +246,36 @@ export class StatePolygonTool {
    */
   editingTargetRead(): THREE.Object3D | null {
     return this.editingTarget;
+  }
+
+  /**
+   * Forgets the re-edit target once it is no longer part of the world, for
+   * example after undo removed it.
+   *
+   * @param worldObject World root the target must live under.
+   */
+  editingTargetForgetWhenDetached(worldObject: THREE.Object3D): void {
+    if (!this.editingTarget || StatePolygonTool.isDescendantOf(this.editingTarget, worldObject)) {
+      return;
+    }
+    this.editingTarget = null;
+    this.listenersNotify();
+  }
+
+  /**
+   * Returns whether an object lies under a root.
+   *
+   * @param object Object to test.
+   * @param root Root object.
+   * @returns True when the object is the root or one of its descendants.
+   */
+  private static isDescendantOf(object: THREE.Object3D, root: THREE.Object3D): boolean {
+    for (let current: THREE.Object3D | null = object; current; current = current.parent) {
+      if (current === root) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Clears the active polygon outline and resets re-edit target state. */
@@ -269,6 +355,40 @@ export class StatePolygonTool {
       extrusionMin: 0,
       extrusionMax: depth,
     };
+  }
+
+  /**
+   * Maps a client point onto the outline frame, or onto the plane of the view
+   * under the pointer before the first vertex is placed.
+   *
+   * @param clientX Pointer client X.
+   * @param clientY Pointer client Y.
+   * @returns Sketch hit, or null without a projector or when the point misses.
+   */
+  private sketchHitAtClientPoint(clientX: number, clientY: number): PolygonSketchHit | null {
+    if (!this.clientPointProjector) {
+      return null;
+    }
+    const lockedFrame = this.vertices.length > 0 ? this.frame : null;
+    return this.clientPointProjector(clientX, clientY, lockedFrame, this.extrusionDepthRead());
+  }
+
+  /**
+   * Returns whether two sketch hits name the same point on the same plane.
+   *
+   * @param first First hit, or null.
+   * @param second Second hit, or null.
+   * @returns True when both are null or both match.
+   */
+  private static sketchHitsEqual(first: PolygonSketchHit | null, second: PolygonSketchHit | null): boolean {
+    if (!first || !second) {
+      return first === second;
+    }
+    return (
+      first.point.equals(second.point) &&
+      first.frame.origin.equals(second.frame.origin) &&
+      first.frame.axisNormal.equals(second.frame.axisNormal)
+    );
   }
 
   /** Notifies all registered state listeners. */

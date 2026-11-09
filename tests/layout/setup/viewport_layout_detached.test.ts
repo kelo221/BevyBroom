@@ -17,9 +17,11 @@ function createHostStub(): {
   host: LayoutDetachedViewportHost;
   attachCadRulers: ReturnType<typeof vi.fn>;
   rebindFace: ReturnType<typeof vi.fn>;
+  refreshPlayerViewportChrome: ReturnType<typeof vi.fn>;
 } {
   const attachCadRulers = vi.fn();
   const rebindFace = vi.fn();
+  const refreshPlayerViewportChrome = vi.fn();
   const gizmoGroup = new THREE.Group();
   const host: LayoutDetachedViewportHost = {
     detachedViewportWindow: {} as never,
@@ -52,8 +54,9 @@ function createHostStub(): {
     wireClipCallbackOnViewport: vi.fn(),
     updateGizmoVisibility: vi.fn(),
     attachCadRulers,
+    refreshPlayerViewportChrome,
   };
-  return { host, attachCadRulers, rebindFace };
+  return { host, attachCadRulers, rebindFace, refreshPlayerViewportChrome };
 }
 
 /**
@@ -101,6 +104,20 @@ describe('layout_detached_viewport CAD rulers', () => {
     onDetachedViewportDisposed(host);
     expect(rebindFace).toHaveBeenCalledTimes(1);
     expect(attachCadRulers).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('layout_detached_viewport player menu entries', () => {
+  it('offers the player menu entries again when a detached viewport is wired', () => {
+    const { host, refreshPlayerViewportChrome } = createHostStub();
+    wireDetachedViewport(host, createViewportStub());
+    expect(refreshPlayerViewportChrome).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops the player menu entries of a disposed detached viewport', () => {
+    const { host, refreshPlayerViewportChrome } = createHostStub();
+    onDetachedViewportDisposed(host);
+    expect(refreshPlayerViewportChrome).toHaveBeenCalledTimes(1);
   });
 });
 

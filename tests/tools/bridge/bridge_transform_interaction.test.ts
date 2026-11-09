@@ -235,10 +235,10 @@ describe('TransformInteractionBridge', () => {
     );
     const hoverMove = new MouseEvent('pointermove', { clientX: handlePoint.clientX, clientY: handlePoint.clientY });
     bridge.onTransformEvent(hoverMove, typedViewport);
-    expect(transformGizmo.getHighlightedBoundsFace()).not.toBeNull();
+    expect(transformGizmo.getHighlightedBoundsFaces()).not.toHaveLength(0);
     viewport.setCameraNavigating(true);
     bridge.onTransformEvent(hoverMove, typedViewport);
-    expect(transformGizmo.getHighlightedBoundsFace()).toBeNull();
+    expect(transformGizmo.getHighlightedBoundsFaces()).toHaveLength(0);
   });
 
   it('clears bounds hover while right mouse button is held', () => {
@@ -253,14 +253,14 @@ describe('TransformInteractionBridge', () => {
       new MouseEvent('pointermove', { clientX: handlePoint.clientX, clientY: handlePoint.clientY }),
       typedViewport,
     );
-    expect(transformGizmo.getHighlightedBoundsFace()).not.toBeNull();
+    expect(transformGizmo.getHighlightedBoundsFaces()).not.toHaveLength(0);
     const rightHeldMove = new MouseEvent('pointermove', {
       clientX: handlePoint.clientX,
       clientY: handlePoint.clientY,
       buttons: 2,
     });
     bridge.onTransformEvent(rightHeldMove, typedViewport);
-    expect(transformGizmo.getHighlightedBoundsFace()).toBeNull();
+    expect(transformGizmo.getHighlightedBoundsFaces()).toHaveLength(0);
   });
 
   it('disables grid snap while Shift is held during a permanent gizmo drag move', () => {

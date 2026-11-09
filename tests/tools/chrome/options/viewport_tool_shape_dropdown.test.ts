@@ -3,6 +3,12 @@ import { ViewportToolShapeDropdown } from '@/tools/chrome/options/viewport_tool_
 import { ViewportToolShapeParameters } from '@/tools/chrome/options/viewport_tool_shape_parameters.js';
 import { ShapeDrawSettings } from '@/tools/shape_draw/shapes/shape_draw_settings.js';
 import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js';
+import { shapeDrawShapesList } from '@/tools/shape_draw/shapes/shape_draw_shape_registry.js';
+import {
+  INPUT_WHEEL_TEST_NOTCH_DOWN,
+  INPUT_WHEEL_TEST_NOTCH_UP,
+  inputWheelTestDispatch,
+} from '../../../ui/input/wheel/input_wheel_test_support.js';
 
 describe('ViewportToolShapeDropdown', () => {
   let host: HTMLElement;
@@ -59,6 +65,41 @@ describe('ViewportToolShapeDropdown', () => {
     coneRow.click();
     const icon = trigger.querySelector('.editor-icon');
     expect(icon?.getAttribute('data-icon')).toBe('shape-cone');
+    dropdown.dispose();
+  });
+
+  it('picks the next shape on wheel down and the previous on wheel up over the trigger', () => {
+    const settings = new ShapeDrawSettings();
+    const shapes = shapeDrawShapesList();
+    const chosen: string[] = [];
+    const dropdown = new ViewportToolShapeDropdown(host, settings, (shapeId) => chosen.push(shapeId));
+    host.appendChild(dropdown.getElement());
+    const trigger = host.querySelector('button') as HTMLButtonElement;
+    settings.shapeSelect(shapes[0]?.id ?? '');
+    inputWheelTestDispatch(trigger, INPUT_WHEEL_TEST_NOTCH_DOWN);
+    expect(settings.getSelectedShapeId()).toBe(shapes[1]?.id);
+    inputWheelTestDispatch(trigger, INPUT_WHEEL_TEST_NOTCH_UP);
+    expect(settings.getSelectedShapeId()).toBe(shapes[0]?.id);
+    const pastStart = inputWheelTestDispatch(trigger, INPUT_WHEEL_TEST_NOTCH_UP);
+    expect(pastStart.defaultPrevented).toBe(false);
+    expect(chosen).toEqual([shapes[1]?.id, shapes[0]?.id]);
+    dropdown.dispose();
+    inputWheelTestDispatch(trigger, INPUT_WHEEL_TEST_NOTCH_DOWN);
+    expect(chosen).toHaveLength(2);
+  });
+
+  it('closes an open shape menu when the wheel picks another shape', () => {
+    const settings = new ShapeDrawSettings();
+    const shapes = shapeDrawShapesList();
+    const dropdown = new ViewportToolShapeDropdown(host, settings, () => undefined);
+    host.appendChild(dropdown.getElement());
+    const trigger = host.querySelector('button') as HTMLButtonElement;
+    settings.shapeSelect(shapes[0]?.id ?? '');
+    trigger.click();
+    expect(dropdown.getMenuPanel()?.isOpen()).toBe(true);
+    inputWheelTestDispatch(trigger, INPUT_WHEEL_TEST_NOTCH_DOWN);
+    expect(settings.getSelectedShapeId()).toBe(shapes[1]?.id);
+    expect(dropdown.getMenuPanel()?.isOpen() ?? false).toBe(false);
     dropdown.dispose();
   });
 });

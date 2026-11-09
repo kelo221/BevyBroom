@@ -9,6 +9,7 @@ import {
   shellDockCompactFieldStyle,
   shellDockCompactRowStyle,
 } from '@/layout/shell/dock/shell_dock_compact.js';
+import { InputWheelBindingSelect } from '@/ui/input/wheel/input_wheel_binding_select.js';
 import { getPrefabCatalogStore, type PrefabCatalogStore } from '../prefab_catalog_store.js';
 import { CommandPrefabTemplateAdd } from '../commands/command_prefab_template_add.js';
 import { CommandPrefabEntityTie } from '../commands/command_prefab_entity_tie.js';
@@ -38,6 +39,7 @@ export class PanelPrefabDock {
   private readonly categorySelect: HTMLSelectElement;
   private readonly objectSelect: HTMLSelectElement;
   private readonly nameInput: HTMLInputElement;
+  private readonly selectWheelBindings: readonly InputWheelBindingSelect[];
   private readonly unsubscribeStore: () => void;
 
   /**
@@ -59,10 +61,23 @@ export class PanelPrefabDock {
     this.categorySelect = doc.createElement('select');
     this.objectSelect = doc.createElement('select');
     this.nameInput = doc.createElement('input');
+    this.selectWheelBindings = [this.categorySelect, this.objectSelect].map(
+      (select) => new InputWheelBindingSelect(select),
+    );
     this.buildLayout(doc);
     parent.appendChild(this.root);
-    this.unsubscribeStore = this.store.changeListenerAdd(() => this.syncSelectors());
+    this.unsubscribeStore = this.storeSyncStart();
+  }
+
+  /**
+   * Fills the selectors from the store and keeps them in sync with its changes.
+   *
+   * @returns Function that stops listening to the store.
+   */
+  private storeSyncStart(): () => void {
+    const unsubscribe = this.store.changeListenerAdd(() => this.syncSelectors());
     this.syncSelectors();
+    return unsubscribe;
   }
 
   /**
@@ -74,9 +89,10 @@ export class PanelPrefabDock {
     return this.root;
   }
 
-  /** Disposes store listeners and removes the panel from the DOM. */
+  /** Disposes store and wheel listeners and removes the panel from the DOM. */
   dispose(): void {
     this.unsubscribeStore();
+    this.selectWheelBindings.forEach((binding) => binding.dispose());
     this.root.remove();
   }
 

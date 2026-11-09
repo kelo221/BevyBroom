@@ -5,7 +5,7 @@ import { ICON_HAMMER_HIGHLIGHT, ICON_HAMMER_OUTLINE, ICON_HAMMER_RAMPS } from '.
 import { IconHammerShape } from '../core/icon_hammer_shape.js';
 
 /** Names of the build, run and game link toolbar icons. */
-export type IconHammerToolbarRunName = 'run_map' | 'run_preview' | 'run_player_spawn' | 'run_mcp';
+export type IconHammerToolbarRunName = 'run_map' | 'run_preview' | 'run_mcp';
 
 /** Corners of the green play triangle on the 32 by 32 grid. */
 const ICON_HAMMER_RUN_PLAY_TRIANGLE = [7.5, 3.5, 27.5, 16, 7.5, 28.5];
@@ -21,7 +21,6 @@ export class IconHammerToolbarRun extends IconHammerGroup<IconHammerToolbarRunNa
     return {
       run_map: (scope) => this.play(scope),
       run_preview: (scope) => this.preview(scope),
-      run_player_spawn: (scope) => this.playerSpawn(scope),
       run_mcp: (scope) => this.mcp(scope),
     };
   }
@@ -54,20 +53,6 @@ export class IconHammerToolbarRun extends IconHammerGroup<IconHammerToolbarRunNa
     );
     const play = IconHammerShape.polygon([13.5, 9.5, 21.5, 13.5, 13.5, 17.5], ICON_HAMMER_RAMPS.green.base);
     return screen.defs + bezel + display + stand + play;
-  }
-
-  /**
-   * Draws a standing figure in a blue shirt marking the player start.
-   *
-   * @param scope Id scope of the icon being rendered.
-   * @returns Icon markup.
-   */
-  private playerSpawn(scope: IconHammerIdScope): string {
-    const shirt = IconHammerGradient.rampLit(scope, 'shirt', ICON_HAMMER_RAMPS.blue);
-    const head = IconHammerShape.circle(16, 6.5, 4.5, ICON_HAMMER_RAMPS.orange.light);
-    const legs = IconHammerShape.path('M12.5 20.5H19.5V29.5H16.5V24.5H15.5V29.5H12.5Z', ICON_HAMMER_RAMPS.coal.base);
-    const torso = IconHammerShape.path('M9.5 12.5H22.5V21.5H9.5Z', shirt.paint);
-    return shirt.defs + legs + torso + head;
   }
 
   /**

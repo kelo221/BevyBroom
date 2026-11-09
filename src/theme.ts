@@ -42,6 +42,12 @@ export const Theme = Object.freeze({
   clipConstructionLineColor: 0x7a8a9a,
   /** Plane-brush cut edge silhouette. */
   clipCutEdgeColor: 0xff4040,
+  /** Placed Polygon tool outline edges and points. */
+  polygonOutlineColor: 0xffe040,
+  /** Polygon tool rubber-band edges from the outline to the pointer. */
+  polygonOutlineRubberBandColor: 0x9aa4ae,
+  /** Screen size in pixels of the Polygon tool outline points. */
+  polygonOutlinePointSizePx: 7,
   separatorColor: 0x808080,
   separatorGapPx: 3,
   boxColor: 0xffffff,
@@ -98,8 +104,10 @@ export const Theme = Object.freeze({
   gizmoCenterColor: 0xd8d8d8,
   gizmoHoverColor: 0xffffff,
   boundsWireColor: 0xffff00,
-  /** Fill of CAD-style mid-face resize grips. */
+  /** Fill of bounds resize grips (Hammer-style white squares in 2D). */
   boundsHandleColor: 0xffffff,
+  /** Thin border drawn around the 2D bounds resize squares. */
+  boundsHandleOutlineColor: 0x000000,
   /** Hover / active color for bounds resize grips. */
   boundsHandleHoverColor: 0xff2020,
   /** CAD size-dimension lines and ticks. */

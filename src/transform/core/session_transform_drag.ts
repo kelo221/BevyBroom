@@ -43,6 +43,8 @@ export class TransformDragSession {
   initialDistanceAlongAxis: number;
   rotationPlane: THREE.Plane;
   activeBoundsFace: BoundsFace | null;
+  /** Second face dragged together with the active face by a corner handle. */
+  secondaryBoundsFace: BoundsFace | null;
   startBounds: DataOrientedBounds | null;
   boundsDeltaAlongNormal: number;
   isBoundsResize: boolean;
@@ -56,6 +58,8 @@ export class TransformDragSession {
   lastPointerScaleFactor: number;
   /** Last pointer-driven bounds resize delta along the face normal. */
   lastPointerBoundsResizeDelta: number;
+  /** Last pointer-driven resize delta along the secondary (corner) face normal. */
+  lastPointerSecondaryBoundsResizeDelta: number;
   /** Keyboard modal axis lock mirrored for bounds drag paths. */
   modalAxisLock: TransformModalAxis;
   /**
@@ -98,6 +102,7 @@ export class TransformDragSession {
     this.initialDistanceAlongAxis = 1;
     this.rotationPlane = new THREE.Plane();
     this.activeBoundsFace = null;
+    this.secondaryBoundsFace = null;
     this.startBounds = null;
     this.boundsDeltaAlongNormal = 0;
     this.isBoundsResize = false;
@@ -106,6 +111,7 @@ export class TransformDragSession {
     this.lastPointerRotationAngle = 0;
     this.lastPointerScaleFactor = 1;
     this.lastPointerBoundsResizeDelta = 0;
+    this.lastPointerSecondaryBoundsResizeDelta = 0;
     this.modalAxisLock = TransformModalAxis.None;
     this.isSingleUseDrag = false;
     this.singleUseConfirmArmed = false;
@@ -157,15 +163,7 @@ export class TransformDragSession {
     this.dragRotationAngle = 0;
     this.dragScaleFactor = 1;
     this.initialDistanceAlongAxis = 1;
-    this.lastPointerWorldDelta.set(0, 0, 0);
-    this.lastPointerRotationAngle = 0;
-    this.lastPointerScaleFactor = 1;
-    this.lastPointerBoundsResizeDelta = 0;
-    this.modalAxisLock = TransformModalAxis.None;
-    this.isSingleUseDrag = false;
-    this.singleUseConfirmArmed = false;
-    this.frozenRotationAxisWorld = null;
-    this.initialScreenAngleRadians = 0;
+    this.pointerSamplesAndModalStateClear();
   }
 
   /** Clears handle, bounds, and pointer samples after pointer-up. */
@@ -173,10 +171,7 @@ export class TransformDragSession {
     this.dragActive = false;
     this.activeHandle = null;
     this.activeAxis = null;
-    this.activeBoundsFace = null;
-    this.startBounds = null;
-    this.isBoundsResize = false;
-    this.boundsDeltaAlongNormal = 0;
+    this.boundsTargetsClear();
     this.dragCamera = null;
     this.dragRenderer = null;
     this.initialMousePosition = null;
@@ -184,10 +179,28 @@ export class TransformDragSession {
     this.initialScreenPosition = null;
     this.useScreenSpaceRotation = false;
     this.dragObjects = [];
+    this.pointerSamplesAndModalStateClear();
+  }
+
+  /** Clears the dragged bounds faces, start bounds and resize state. */
+  private boundsTargetsClear(): void {
+    this.activeBoundsFace = null;
+    this.secondaryBoundsFace = null;
+    this.startBounds = null;
+    this.isBoundsResize = false;
+    this.boundsDeltaAlongNormal = 0;
+  }
+
+  /**
+   * Clears the last pointer samples, the keyboard axis lock, the single-use
+   * drag flags and the frozen rotation axis.
+   */
+  private pointerSamplesAndModalStateClear(): void {
     this.lastPointerWorldDelta.set(0, 0, 0);
     this.lastPointerRotationAngle = 0;
     this.lastPointerScaleFactor = 1;
     this.lastPointerBoundsResizeDelta = 0;
+    this.lastPointerSecondaryBoundsResizeDelta = 0;
     this.modalAxisLock = TransformModalAxis.None;
     this.isSingleUseDrag = false;
     this.singleUseConfirmArmed = false;

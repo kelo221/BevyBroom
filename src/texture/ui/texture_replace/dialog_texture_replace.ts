@@ -7,6 +7,7 @@ import type { TextureReplaceScope } from '@/texture/replace/handler_texture_repl
 import type { TextureReplaceRunResult } from '@/texture/replace/texture_replace_runner.js';
 import { faceInspectorCaptionCreate } from '@/texture/ui/face_inspector/face_inspector_controls.js';
 import { buttonCompactCreate } from '@/ui/button/button_compact.js';
+import { InputWheelBindingSelect } from '@/ui/input/wheel/input_wheel_binding_select.js';
 
 /** One material the replacement can find or paint. */
 export interface DialogTextureReplaceMaterial {
@@ -61,6 +62,7 @@ export class DialogTextureReplace extends PanelFloatingContentHost {
   private readonly replaceSelect: HTMLSelectElement;
   private readonly scopeSelect: HTMLSelectElement;
   private readonly resultCaption: HTMLElement;
+  private readonly selectWheelBindings: readonly InputWheelBindingSelect[];
 
   /**
    * Creates the replacement window.
@@ -75,9 +77,18 @@ export class DialogTextureReplace extends PanelFloatingContentHost {
     this.findSelect = this.selectCreate('dialog-texture-replace-find');
     this.replaceSelect = this.selectCreate('dialog-texture-replace-with');
     this.scopeSelect = this.selectCreate('dialog-texture-replace-scope');
+    this.selectWheelBindings = [this.findSelect, this.replaceSelect, this.scopeSelect].map(
+      (select) => new InputWheelBindingSelect(select),
+    );
     this.resultCaption = faceInspectorCaptionCreate('');
     this.resultCaption.classList.add('dialog-texture-replace-result');
     this.bodyRowsAppend(bodyGrid);
+  }
+
+  /** Removes the list wheel listeners, then hides and removes the window. */
+  override dispose(): void {
+    this.selectWheelBindings.forEach((binding) => binding.dispose());
+    super.dispose();
   }
 
   /**

@@ -6,8 +6,8 @@ import {
 } from '@/viewports/core/viewport_base.js';
 
 /**
- * Content fills the whole pane: the corner label and the hover icon row float
- * over it, and the floating tool panel reserves no layout space.
+ * Content fills the whole pane: the corner label floats over it, and the
+ * floating tool panel reserves no layout space.
  */
 describe('applyViewportContentDrawableStyles', () => {
   it('should fill the pane from its top edge', () => {

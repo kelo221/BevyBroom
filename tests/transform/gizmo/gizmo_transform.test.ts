@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Theme } from '@/theme.js';
 import { TransformMode, GizmoAxis } from '@/types/transform_mode.js';
 import { GizmoTransform } from '@/transform/gizmo/gizmo_transform.js';
+import type { GizmoHandle } from '@/transform/gizmo/gizmo_handle.js';
 import {
   GIZMO_ORTHOGRAPHIC_FRUSTUM_SCALE,
   GIZMO_PERSPECTIVE_DISTANCE_SCALE,
@@ -37,8 +38,17 @@ describe('GizmoTransform', () => {
     expect(gizmo.getMode()).toBe(TransformMode.SCALE);
   });
 
-  it('should produce 6 mid-face handles in BOUNDS mode', () => {
-    expect(gizmo.getHandles().length).toBe(6);
+  it('should produce 6 mid-face handles and 12 corner handles in BOUNDS mode', () => {
+    const handles = gizmo.getHandles();
+    const singleAxes = [GizmoAxis.X, GizmoAxis.Y, GizmoAxis.Z];
+    const planeAxes = [GizmoAxis.XY_PLANE, GizmoAxis.YZ_PLANE, GizmoAxis.XZ_PLANE];
+    expect(handles.filter((handle) => singleAxes.includes(handle.getAxis()))).toHaveLength(6);
+    expect(handles.filter((handle) => planeAxes.includes(handle.getAxis()))).toHaveLength(12);
+  });
+
+  it('should produce only the 6 mid-face handles in SHEAR mode', () => {
+    gizmo.setMode(TransformMode.SHEAR);
+    expect(gizmo.getHandles()).toHaveLength(6);
   });
 
   it('should produce three axis handles plus free-move center in TRANSLATE mode', () => {
@@ -88,12 +98,12 @@ describe('GizmoTransform', () => {
 
   it('should report active handle correctly via isHandleActive', () => {
     const handles = gizmo.getHandles();
-    const firstHandle = handles[0]!;
+    const firstHandle = handleAt(handles, 0);
     expect(gizmo.isHandleActive(firstHandle)).toBe(false);
     gizmo.setActiveHandle(firstHandle);
     expect(gizmo.isHandleActive(firstHandle)).toBe(true);
     if (handles.length > 1) {
-      expect(gizmo.isHandleActive(handles[1]!)).toBe(false);
+      expect(gizmo.isHandleActive(handleAt(handles, 1))).toBe(false);
     }
   });
 
@@ -109,11 +119,11 @@ describe('GizmoTransform', () => {
 
   it('should clear active highlight when setting new handle', () => {
     const handles = gizmo.getHandles();
-    const firstHandle = handles[0]!;
+    const firstHandle = handleAt(handles, 0);
     gizmo.setActiveHandle(firstHandle);
     expect(firstHandle.isHoveredState()).toBe(true);
     if (handles.length > 1) {
-      const secondHandle = handles[1]!;
+      const secondHandle = handleAt(handles, 1);
       gizmo.setActiveHandle(secondHandle);
       expect(firstHandle.isHoveredState()).toBe(false);
       expect(secondHandle.isHoveredState()).toBe(true);
@@ -122,7 +132,7 @@ describe('GizmoTransform', () => {
 
   it('should clear active highlight when handle is cleared', () => {
     const handles = gizmo.getHandles();
-    const firstHandle = handles[0]!;
+    const firstHandle = handleAt(handles, 0);
     gizmo.setActiveHandle(firstHandle);
     expect(firstHandle.isHoveredState()).toBe(true);
     gizmo.setActiveHandle(null);
@@ -249,7 +259,8 @@ describe('GizmoTransform', () => {
     const nearCamera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
     nearCamera.position.set(0, 2, 4);
     gizmo.updateBoundsFromMeshes([selected], nearCamera);
-    const childAfterFirst = clone.children[0]!;
+    const childAfterFirst = clone.children[0];
+    expect(childAfterFirst).toBeDefined();
     const farCamera = new THREE.PerspectiveCamera(60, 1, 0.1, 10000);
     farCamera.position.set(0, 40, 80);
     gizmo.updateBoundsFromMeshes([selected], farCamera);
@@ -386,4 +397,19 @@ function countVisibleBoundsPickHandles(group: THREE.Group): number {
     if (child.visible) count += 1;
   });
   return count;
+}
+
+/**
+ * Returns the handle at an index, failing the test when it is missing.
+ *
+ * @param handles Gizmo handles.
+ * @param index Wanted handle index.
+ * @returns Handle at the index.
+ */
+function handleAt(handles: readonly GizmoHandle[], index: number): GizmoHandle {
+  const handle = handles[index];
+  if (!handle) {
+    throw new Error(`No gizmo handle at index ${index}`);
+  }
+  return handle;
 }

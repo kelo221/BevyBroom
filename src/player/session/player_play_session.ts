@@ -13,8 +13,6 @@ import {
 } from '@/player/camera/player_camera_snapshot.js';
 import { PlayerCollisionWorld } from '@/player/collision/player_collision_world.js';
 import { playerViewModeToggle, type PlayerViewMode } from '@/player/player_mode.js';
-import type { PlayerSpawnState } from '@/player/player_spawn_state.js';
-import type { PlayerFigurineMarker } from '@/player/figurine/player_figurine_marker.js';
 import { PlayerCharacterAvatar } from '@/player/character/player_character_avatar.js';
 import { playerMovementResolveSimulationDeltaSeconds } from '@/player/movement/player_movement_input.js';
 import { playerSpawnResolveFeetUnderCamera } from '@/player/spawn/player_spawn_ground.js';
@@ -23,8 +21,6 @@ import { playerSpawnResolveFeetUnderCamera } from '@/player/spawn/player_spawn_g
 export interface PlayerPlaySessionHost {
   inputManager: ManagerInput;
   worldRoot: THREE.Object3D;
-  spawnState: PlayerSpawnState;
-  figurineMarker: PlayerFigurineMarker;
   collisionWorld: PlayerCollisionWorld;
   getPerspectiveViewports: () => readonly Viewport3D[];
   showStatusMessage: (message: string) => void;
@@ -89,10 +85,21 @@ export class PlayerPlaySession {
    * @returns True when play mode started.
    */
   tryEnter(): boolean {
+    return this.tryEnterOnViewport(this.resolvePlayViewport());
+  }
+
+  /**
+   * Attempts to enter play mode on one perspective viewport, starting on the
+   * ground under its camera.
+   *
+   * @param viewport Perspective viewport to play in, or null when there is
+   *   none.
+   * @returns True when play mode started.
+   */
+  tryEnterOnViewport(viewport: Viewport3D | null): boolean {
     if (this.isActive) {
       return false;
     }
-    const viewport = this.resolvePlayViewport();
     if (!viewport) {
       this.host.showStatusMessage('Play mode needs a perspective viewport');
       return false;
@@ -101,6 +108,17 @@ export class PlayerPlaySession {
     if (!(camera instanceof THREE.PerspectiveCamera)) {
       return false;
     }
+    this.sessionBegin(viewport, camera);
+    return true;
+  }
+
+  /**
+   * Starts the play session on a viewport camera.
+   *
+   * @param viewport Perspective viewport to play in.
+   * @param camera Perspective camera of that viewport.
+   */
+  private sessionBegin(viewport: Viewport3D, camera: THREE.PerspectiveCamera): void {
     this.activeViewport = viewport;
     this.activeCamera = camera;
     this.cameraSnapshot = playerCameraCapturePose(camera);
@@ -111,10 +129,8 @@ export class PlayerPlaySession {
     this.lastFrameTimeMs = performance.now();
     this.isActive = true;
     viewport.setFlyingCameraEnabled(false);
-    this.host.figurineMarker.hide();
     this.avatar.attach();
     this.host.showStatusMessage('Play mode — ESC exit, RMB third-person, Ctrl slow-mo');
-    return true;
   }
 
   /** Exits play mode and restores the editor camera. */
@@ -128,7 +144,6 @@ export class PlayerPlaySession {
     }
     this.activeViewport?.setFlyingCameraEnabled(true);
     this.avatar.detach();
-    this.host.figurineMarker.reveal();
     this.isActive = false;
     this.activeViewport = null;
     this.activeCamera = null;
@@ -220,19 +235,12 @@ export class PlayerPlaySession {
   }
 
   /**
-   * Places the body at the figurine spawn or on ground under the current
-   * camera.
+   * Places the body on the ground under the camera, facing the camera yaw.
    *
    * @param camera Active perspective camera.
    */
   private prepareSpawn(camera: THREE.PerspectiveCamera): void {
     const jumpHeld = this.host.inputManager.isKeyDown('Space');
-    if (this.host.spawnState.copySpawnFeetPositionTo(this.scratchSpawn)) {
-      const spawnYaw = this.host.spawnState.getSpawnYawRadians();
-      this.body.resetAt(this.scratchSpawn, this.host.collisionWorld, jumpHeld, spawnYaw);
-      this.look.setAngles(spawnYaw, 0);
-      return;
-    }
     playerSpawnResolveFeetUnderCamera(camera, this.host.collisionWorld, this.scratchSpawn);
     this.look.syncFromCamera(camera);
     this.body.resetAt(this.scratchSpawn, this.host.collisionWorld, jumpHeld, this.look.getYawRadians());

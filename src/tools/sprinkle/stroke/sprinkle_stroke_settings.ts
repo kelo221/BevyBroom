@@ -1,25 +1,8 @@
 import type { SprinkleDefinition } from '@/tools/sprinkle/definition/sprinkle_definition.js';
 import { SprinkleGridLayout } from '@/tools/sprinkle/grid/sprinkle_grid_layout.js';
-import {
-  SPRINKLE_RADIUS_MAX,
-  SPRINKLE_RADIUS_MIN,
-  type SprinkleConfig,
-  type SprinklePlacementMode,
-} from '@/tools/sprinkle/sprinkle_types.js';
+import type { SprinkleConfig, SprinklePlacementMode } from '@/tools/sprinkle/sprinkle_types.js';
+import { sprinkleRadiusClamp } from '@/tools/sprinkle/radius/sprinkle_radius_scale.js';
 import type { SprinkleStrokeSettings } from './sprinkle_stroke_types.js';
-
-/**
- * Clamps a radius to the Sprinkle radius range.
- *
- * @param radius Requested radius in meters.
- * @returns Radius between SPRINKLE_RADIUS_MIN and SPRINKLE_RADIUS_MAX.
- */
-export function sprinkleRadiusClamp(radius: number): number {
-  if (!Number.isFinite(radius)) {
-    return SPRINKLE_RADIUS_MIN;
-  }
-  return Math.min(SPRINKLE_RADIUS_MAX, Math.max(SPRINKLE_RADIUS_MIN, radius));
-}
 
 /**
  * Builds the settings of a stroke from the Sprinkle configuration.

@@ -4,6 +4,8 @@ import { DetachedViewportWindow } from '@/viewports/detached/detached_viewport_w
 import type { ViewportEditor } from '@/viewports/core/viewport_editor.js';
 import type { SharedWebGLSurface } from '@/viewports/shared/shared_webgl_surface.js';
 import { ViewportKind } from '@/viewports/core/viewport_kind.js';
+import { ShadingMode } from '@/types/shading_mode.js';
+import { VIEWPORT_VIEW_CHOICES_3D } from '@/ui/viewport_chrome/viewport_view_choices.js';
 
 /** Builds a fake popup document and window for open() tests. */
 function createFakePopup(): {
@@ -109,6 +111,23 @@ function createMockSurface(workspaceElement: HTMLElement): SharedWebGLSurface {
       }
     },
   } as unknown as SharedWebGLSurface;
+}
+
+/**
+ * Opens the view menu of a viewport and clicks the row ending with a label.
+ *
+ * @param viewport Viewport whose corner label menu is used.
+ * @param label Row label.
+ */
+function detachedTestMenuRowClick(viewport: ViewportEditor, label: string): void {
+  const toolbar = viewport.getViewportToolbar();
+  toolbar.getTitleElement().click();
+  const rows = Array.from(toolbar.getViewMenuPanel()?.getElement().querySelectorAll('button') ?? []);
+  const row = rows.find((button) => (button.textContent ?? '').trim().endsWith(label));
+  if (!row) {
+    throw new Error(`${label} row missing`);
+  }
+  row.click();
 }
 
 describe('DetachedViewportWindow', () => {
@@ -308,6 +327,27 @@ describe('DetachedViewportWindow', () => {
     topRow.click();
     expect(ready).toHaveBeenCalledTimes(2);
     expect(detached.getViewport()?.getViewportKind()).toBe(ViewportKind.TOP);
+    detached.dispose();
+  });
+
+  it('turns a 2D detached pane into a perspective pane with the shading of the chosen 3D menu row', () => {
+    const { fakeWindow } = createFakePopup();
+    vi.spyOn(window, 'open').mockReturnValue(fakeWindow);
+    const detached = new DetachedViewportWindow({ createSurface: createMockSurface });
+    detached.setRenderSource({ getScene: () => new THREE.Scene() });
+    expect(detached.open({ initialKind: ViewportKind.TOP })).toBe(true);
+    const previousViewport = detached.getViewport();
+    expect(previousViewport?.getViewportKind()).toBe(ViewportKind.TOP);
+    const flatChoice = VIEWPORT_VIEW_CHOICES_3D.find((choice) => choice.shadingMode === ShadingMode.FLAT);
+    if (!previousViewport || !flatChoice) {
+      throw new Error('Detached viewport or 3D Flat choice missing');
+    }
+    detachedTestMenuRowClick(previousViewport, flatChoice.label);
+    const recreated = detached.getViewport();
+    expect(recreated).not.toBe(previousViewport);
+    expect(recreated?.getViewportKind()).toBe(ViewportKind.PERSPECTIVE);
+    expect(recreated?.getShadingMode()).toBe(ShadingMode.FLAT);
+    expect(recreated?.getViewportToolbar().getActiveShadingMode()).toBe(ShadingMode.FLAT);
     detached.dispose();
   });
 

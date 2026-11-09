@@ -2,7 +2,8 @@ import { GameEntityClassRegistry } from '@/game_entity/class/game_entity_class_r
 import type { GameEntityClass } from '@/game_entity/class/game_entity_class_schema.js';
 import { GameEntityComponentsEdit } from '@/game_entity/component/game_entity_components_edit.js';
 import type { GameEntityComponentsCommit } from '@/game_entity/ui/game_entity_component_block.js';
-import { InputSelect, type InputSelectChoice } from '@/ui/input/input_select.js';
+import type { InputSelectChoice } from '@/ui/input/input_select.js';
+import { InputSelectAction } from '@/ui/input/input_select_action.js';
 import { panelPropertiesRowCreate } from '@/ui/properties/panel_properties_row.js';
 
 /** Label of the select's resting entry. */
@@ -25,7 +26,7 @@ export class GameEntityComponentAddSelect {
    */
   constructor(attachedTypePaths: readonly string[], pointsOnly: boolean, commit: GameEntityComponentsCommit) {
     const offered = GameEntityComponentAddSelect.classesOffered(attachedTypePaths, pointsOnly);
-    const input = new InputSelect(GameEntityComponentAddSelect.choicesCreate(offered), 'Add game component');
+    const input = new InputSelectAction(GameEntityComponentAddSelect.choicesCreate(offered), 'Add game component');
     input.setSharedValues(['']);
     input.bindCommit(() => {
       const typePath = input.getValue();

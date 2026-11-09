@@ -88,33 +88,6 @@ export class IconHammerCubeGeometry {
   }
 
   /**
-   * Returns the three edges meeting at the hidden back corner as path data.
-   *
-   * @returns Path data of the three hidden edges.
-   */
-  hiddenEdgesPathData(): string {
-    const corner = `M${this.backLeft} ${this.backBottom}`;
-    const toFront = `${corner}L${this.frontLeft} ${this.frontBottom}`;
-    return `${toFront}${corner}V${this.backTop}${corner}H${this.backRight}`;
-  }
-
-  /**
-   * Returns the outer outline of the whole cube.
-   *
-   * @returns Alternating x and y values of the six silhouette corners.
-   */
-  silhouettePoints(): number[] {
-    const left = this.frontLeft;
-    const bottom = this.frontBottom;
-    return [left, bottom, left, this.frontTop, this.backLeft, this.backTop, this.backRight, this.backTop].concat([
-      this.backRight,
-      this.backBottom,
-      this.frontRight,
-      bottom,
-    ]);
-  }
-
-  /**
    * Returns lines that split every visible face into equal cells.
    *
    * @param divisions Number of cells along each face edge.

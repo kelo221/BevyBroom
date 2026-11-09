@@ -1,5 +1,7 @@
 import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
+import { InputWheelBindingRange } from '@/ui/input/wheel/input_wheel_binding_range.js';
+import { InputWheelBindingSelect } from '@/ui/input/wheel/input_wheel_binding_select.js';
 
 /**
  * Shared form control factories for the settings dialog. Uses the same Theme
@@ -63,7 +65,7 @@ export function createSettingsControlRow(labelText: string, control: HTMLElement
 }
 
 /**
- * Creates a styled select dropdown.
+ * Creates a styled select dropdown whose option the mouse wheel steps.
  *
  * @param options Value/label pairs.
  * @param selectedValue Currently selected value.
@@ -85,11 +87,13 @@ export function createSettingsSelect(
   });
   select.value = selectedValue;
   select.addEventListener('change', () => onChange(select.value));
+  new InputWheelBindingSelect(select);
   return select;
 }
 
 /**
- * Creates a styled range slider with a live value readout.
+ * Creates a styled range slider with a live value readout. The mouse wheel over
+ * the slider or its readout steps the value.
  *
  * @param min Inclusive minimum.
  * @param max Inclusive maximum.
@@ -107,12 +111,74 @@ export function createSettingsSlider(
   formatValue: (value: number) => string,
   onChange: (value: number) => void,
 ): HTMLElement {
+  const wrapper = settingsSliderWrapperCreate();
+  const slider = settingsSliderRangeCreate(min, max, step, value);
+  const readout = settingsSliderReadoutCreate(formatValue(value));
+  settingsSliderInputBind(slider, readout, formatValue, onChange);
+  wrapper.append(slider, readout);
+  new InputWheelBindingRange(slider, wrapper);
+  return wrapper;
+}
+
+/**
+ * Creates the styled readout shown next to a settings slider.
+ *
+ * @param text Initial readout text.
+ * @returns Readout element.
+ */
+function settingsSliderReadoutCreate(text: string): HTMLElement {
+  const readout = document.createElement('span');
+  readout.textContent = text;
+  styleSettingsReadout(readout);
+  return readout;
+}
+
+/**
+ * Updates the readout and reports the value whenever the slider moves.
+ *
+ * @param slider Range input.
+ * @param readout Readout element next to the slider.
+ * @param formatValue Formats the numeric value for display.
+ * @param onChange Change handler for the numeric value.
+ */
+function settingsSliderInputBind(
+  slider: HTMLInputElement,
+  readout: HTMLElement,
+  formatValue: (value: number) => string,
+  onChange: (value: number) => void,
+): void {
+  slider.addEventListener('input', () => {
+    const nextValue = Number(slider.value);
+    readout.textContent = formatValue(nextValue);
+    onChange(nextValue);
+  });
+}
+
+/**
+ * Creates the row that holds a settings slider and its readout.
+ *
+ * @returns Wrapper element.
+ */
+function settingsSliderWrapperCreate(): HTMLElement {
   const wrapper = document.createElement('div');
   wrapper.style.display = 'flex';
   wrapper.style.alignItems = 'center';
   wrapper.style.gap = '10px';
   wrapper.style.flex = '0 1 220px';
   wrapper.style.maxWidth = '240px';
+  return wrapper;
+}
+
+/**
+ * Creates the styled range input of a settings slider.
+ *
+ * @param min Inclusive minimum.
+ * @param max Inclusive maximum.
+ * @param step Step increment.
+ * @param value Current value.
+ * @returns Range input.
+ */
+function settingsSliderRangeCreate(min: number, max: number, step: number, value: number): HTMLInputElement {
   const slider = document.createElement('input');
   slider.type = 'range';
   slider.min = String(min);
@@ -120,17 +186,7 @@ export function createSettingsSlider(
   slider.step = String(step);
   slider.value = String(value);
   styleSettingsSlider(slider);
-  const readout = document.createElement('span');
-  readout.textContent = formatValue(value);
-  styleSettingsReadout(readout);
-  slider.addEventListener('input', () => {
-    const nextValue = Number(slider.value);
-    readout.textContent = formatValue(nextValue);
-    onChange(nextValue);
-  });
-  wrapper.appendChild(slider);
-  wrapper.appendChild(readout);
-  return wrapper;
+  return slider;
 }
 
 /**

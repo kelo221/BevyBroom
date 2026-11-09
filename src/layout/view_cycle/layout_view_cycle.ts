@@ -63,7 +63,7 @@ export function viewCycleHoveredPane(
   if (!pane) {
     return false;
   }
-  onViewportKindChange(host, pane.getId(), viewCycleKindNext(pane.getKind()));
+  onViewportKindChange(host, pane.getId(), viewCycleKindNext(pane.getKind()), null);
   const replacedViewport = pane.getViewport();
   if (replacedViewport) {
     viewportFitToSelection(replacedViewport);

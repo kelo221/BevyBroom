@@ -145,7 +145,7 @@ describe('TransformHandler', () => {
       new MouseEvent('pointermove', { clientX: interior.clientX, clientY: interior.clientY }),
       setup.gizmoGroup,
     );
-    expect(gizmo.getHighlightedBoundsFace()).toBeNull();
+    expect(gizmo.getHighlightedBoundsFaces()).toEqual([]);
   });
 
   it('clears bounds hover highlight and stops re-issuing the hover cursor', () => {
@@ -157,10 +157,10 @@ describe('TransformHandler', () => {
       new MouseEvent('pointermove', { clientX: handlePoint.clientX, clientY: handlePoint.clientY }),
       setup.gizmoGroup,
     );
-    expect(gizmo.getHighlightedBoundsFace()).toBe(BoundsFace.POS_Z);
+    expect(gizmo.getHighlightedBoundsFaces()).toEqual([BoundsFace.POS_Z]);
     expect(managerMouseCursor.getAppliedTargetElement()).toBe(setup.pickElement);
     handler.clearBoundsHover(setup.pickElement);
-    expect(gizmo.getHighlightedBoundsFace()).toBeNull();
+    expect(gizmo.getHighlightedBoundsFaces()).toEqual([]);
     managerMouseCursor.update();
     managerMouseCursor.update();
     expect(managerMouseCursor.getAppliedCursorCss()).toBe('');

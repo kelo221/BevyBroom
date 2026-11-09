@@ -1,6 +1,7 @@
 import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
 import { InputNumeric } from './input_numeric.js';
+import { InputWheelBindingRange } from './wheel/input_wheel_binding_range.js';
 
 /** Range, precision and layout of a slider. */
 export interface InputSliderOptions {
@@ -21,7 +22,7 @@ export interface InputSliderOptions {
 /**
  * Range slider paired with a numeric box. Dragging updates the box live;
  * releasing the slider or committing the box commits the value, clamped to the
- * slider range.
+ * slider range. The mouse wheel over the row steps the slider and commits.
  */
 export class InputSlider {
   private readonly element: HTMLElement;
@@ -29,6 +30,7 @@ export class InputSlider {
   private readonly numeric: InputNumeric;
   private readonly rangeInputListener: () => void;
   private readonly rangeChangeListener: () => void;
+  private readonly wheelBinding: InputWheelBindingRange;
   private commitHandler: (() => void) | null = null;
 
   /**
@@ -49,6 +51,7 @@ export class InputSlider {
     this.range.addEventListener('change', this.rangeChangeListener);
     this.numeric.bindCommit(() => this.numericCommit());
     this.element = this.rowCreate();
+    this.wheelBinding = new InputWheelBindingRange(this.range, this.element, () => this.getValue() === null);
   }
 
   /**
@@ -102,10 +105,11 @@ export class InputSlider {
     this.commitHandler = onCommit;
   }
 
-  /** Removes the slider and number box listeners. */
+  /** Removes the slider, wheel and number box listeners. */
   dispose(): void {
     this.range.removeEventListener('input', this.rangeInputListener);
     this.range.removeEventListener('change', this.rangeChangeListener);
+    this.wheelBinding.dispose();
     this.numeric.dispose();
     this.commitHandler = null;
   }

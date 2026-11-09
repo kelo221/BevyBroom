@@ -86,6 +86,23 @@ export abstract class Widget implements IEditorEventReceiver {
     return this.isActive && this.wantsActive;
   }
 
+  /**
+   * Ends a handle press whose release never reached the widget: cancels the
+   * transform drag it started and clears the wantsActive latch of every
+   * widget.
+   *
+   * @returns True when this widget's latch was set and the press is now ended.
+   */
+  pointerPressHoldRelease(): boolean {
+    if (!this.wantsActive) {
+      return false;
+    }
+    this.editor?.getServices()?.cancelActiveTransformDrag();
+    this.clearWantsActiveLatch();
+    this.editor?.onPermanentGizmoHandleDragEnded();
+    return true;
+  }
+
   /** Called when the widget is activated. */
   onActivate(): void {}
 

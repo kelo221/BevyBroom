@@ -14,6 +14,7 @@ const PRIMARY_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, str
   ['selection_object', 'Object Selection'],
   ['face', 'Face Selection'],
   ['tool_sprinkle', 'Sprinkle Tool'],
+  ['tool_vertex', 'Vertex Tool'],
   ['delete_selected', 'Delete Selected Object / Dissolve Components'],
   ['component_vertex', 'Edit Mode Vertex Select'],
   ['component_edge', 'Edit Mode Edge Select'],
@@ -60,6 +61,12 @@ const CLIP_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, string
   ['clip_split', 'Split Clip'],
 ];
 
+/** Sprinkle tool shortcuts, active only while the Sprinkle tool is. */
+const SPRINKLE_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, string]> = [
+  ['sprinkle_radius_shrink', 'Halve Brush Radius'],
+  ['sprinkle_radius_grow', 'Double Brush Radius'],
+];
+
 /** View, play, panel and selection shortcuts. */
 const WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, string]> = [
   ['view_cycle', 'Cycle View Under Pointer'],
@@ -101,6 +108,7 @@ const KEYBOARD_REMINDER_ROWS: ReadonlyArray<readonly [string, string, string]> =
   ['fly-speed-boost', '3D Fly Speed Boost (hold RMB)', 'Shift'],
   ['view-pan', 'Pan Any View', 'Middle Mouse Drag'],
   ['view-dolly', '3D Move Forward / Back (Mouse settings)', 'Alt + Middle Mouse Drag'],
+  ['sprinkle-radius-wheel', 'Sprinkle Brush Radius (Sprinkle tool)', 'Alt + Mouse Wheel'],
 ];
 
 /** Keyboard tab content for rebinding primary editor actions. */
@@ -138,6 +146,7 @@ export class SettingsKeyboardTab {
       this.buildCategory('Commands', EDITOR_SHORTCUT_ROWS, settings),
       this.buildCategory('Shading', SHADING_SHORTCUT_ROWS, settings),
       this.buildCategory('Clip Plane Tool', CLIP_SHORTCUT_ROWS, settings),
+      this.buildCategory('Sprinkle Tool', SPRINKLE_SHORTCUT_ROWS, settings),
       this.buildCategory('Window and Views', WINDOW_SHORTCUT_ROWS, settings),
       this.buildReminderCategory(),
     );

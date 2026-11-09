@@ -32,17 +32,6 @@ export class PlayerLookState {
   }
 
   /**
-   * Sets yaw and pitch absolutely.
-   *
-   * @param yawRadians Yaw in radians.
-   * @param pitchRadians Pitch in radians.
-   */
-  setAngles(yawRadians: number, pitchRadians: number): void {
-    this.yawRadians = yawRadians;
-    this.pitchRadians = Math.max(-PLAYER_PITCH_LIMIT_RADIANS, Math.min(PLAYER_PITCH_LIMIT_RADIANS, pitchRadians));
-  }
-
-  /**
    * Returns the current yaw angle.
    *
    * @returns Yaw in radians.

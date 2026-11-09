@@ -6,12 +6,19 @@ import { iconSvgElementCreate } from '@/ui/icons/icon_svg.js';
 import { applyViewportToolOptionsTextButtonMetrics } from './viewport_tool_options_control_style.js';
 import type { ShapeDrawSettings } from '@/tools/shape_draw/shapes/shape_draw_settings.js';
 import { shapeDrawShapeFind, shapeDrawShapesList } from '@/tools/shape_draw/shapes/shape_draw_shape_registry.js';
+import { InputWheelBindingCallback } from '@/ui/input/wheel/input_wheel_binding_callback.js';
+import { inputWheelListIndexStep } from '@/ui/input/wheel/input_wheel_list_index.js';
+import type { InputWheelStep } from '@/ui/input/wheel/input_wheel_step.js';
 
-/** Options bar dropdown that picks the shape the draw tool creates. */
+/**
+ * Options bar dropdown that picks the shape the draw tool creates. The mouse
+ * wheel over the trigger picks the next or previous shape.
+ */
 export class ViewportToolShapeDropdown extends PanelMenuDropdown {
   private readonly settings: ShapeDrawSettings;
   private readonly onShapeChosen: (shapeId: string) => void;
   private readonly iconSlot: HTMLSpanElement;
+  private readonly wheelBinding: InputWheelBindingCallback;
 
   /**
    * Creates the Shape dropdown.
@@ -26,6 +33,16 @@ export class ViewportToolShapeDropdown extends PanelMenuDropdown {
     this.onShapeChosen = onShapeChosen;
     this.iconSlot = this.iconSlotCreate(shapeDrawShapeFind(settings.getSelectedShapeId()).icon);
     this.buildChrome();
+    this.wheelBinding = new InputWheelBindingCallback(this.button, {
+      wheelIgnoredRead: () => this.button.disabled,
+      wheelStepApply: (step) => this.shapeWheelStep(step),
+    });
+  }
+
+  /** Removes the wheel listener, then closes and removes the dropdown. */
+  override dispose(): void {
+    this.wheelBinding.dispose();
+    super.dispose();
   }
 
   /** Rebuilds the trigger icon from the currently selected shape. */
@@ -95,11 +112,37 @@ export class ViewportToolShapeDropdown extends PanelMenuDropdown {
       label: shape.label,
       icon: shape.icon,
       isChecked: () => this.settings.getSelectedShapeId() === shape.id,
-      onClick: () => {
-        this.closeMenu();
-        this.settings.shapeSelect(shape.id);
-        this.onShapeChosen(shape.id);
-      },
+      onClick: () => this.shapeChoose(shape.id),
     }));
+  }
+
+  /**
+   * Picks the shape one wheel notch away in catalogue order.
+   *
+   * @param step Wheel step to apply.
+   * @returns True when another shape was picked.
+   */
+  private shapeWheelStep(step: InputWheelStep): boolean {
+    const shapes = shapeDrawShapesList();
+    const currentIndex = shapes.findIndex((shape) => shape.id === this.settings.getSelectedShapeId());
+    const nextIndex = inputWheelListIndexStep(currentIndex, shapes.length, step, () => true);
+    const nextShape = nextIndex === null ? undefined : shapes[nextIndex];
+    if (!nextShape) {
+      return false;
+    }
+    this.shapeChoose(nextShape.id);
+    return true;
+  }
+
+  /**
+   * Closes the shape menu so no stale check mark stays visible, selects a shape
+   * and reports the choice.
+   *
+   * @param shapeId Identifier of the chosen shape.
+   */
+  private shapeChoose(shapeId: string): void {
+    this.closeMenu();
+    this.settings.shapeSelect(shapeId);
+    this.onShapeChosen(shapeId);
   }
 }

@@ -1,21 +1,20 @@
 import * as THREE from 'three';
 import { Theme } from '@/theme.js';
-import { GizmoAxis } from '@/types/transform_mode.js';
 import { BoundsFace, BOUNDS_FACE_USERDATA_KEY } from '@/types/bounds_face.js';
 import { GizmoHandle } from '@/transform/gizmo/gizmo_handle.js';
-import { getAllBoundsFaces, getBoundsFaceLocalNormal, DataOrientedBounds } from './builder_oriented_bounds.js';
+import {
+  getAllBoundsFaces,
+  getBoundsFaceHalfExtent,
+  getBoundsFaceLocalNormal,
+  DataOrientedBounds,
+} from './builder_oriented_bounds.js';
 import { BoundsGuideLines } from './bounds_guide_lines.js';
 import {
   applyBoundsFaceEdgeHighlight,
   BOUNDS_FACE_EDGE_HIGHLIGHT_KEY,
   createUnitFaceEdgeHighlightGeometry,
 } from './bounds_face_highlight.js';
-import {
-  BOUNDS_HANDLE_FACE_HALF_KEY,
-  BOUNDS_HANDLE_IS_EAR_KEY,
-  BOUNDS_HANDLE_WORLD_SIZE_KEY,
-  createCadResizeCubeGeometry,
-} from './bounds_cad_flap.js';
+import { BOUNDS_HANDLE_FACE_HALF_KEY, createBoundsHandlePickVolumeGeometry } from './bounds_handle_geometry.js';
 import { getHiddenBoundsAxesForViewPlane, type CadViewPlane } from '@/rulers/view/cad_view_plane.js';
 import {
   applyGizmoFrontRenderOrder,
@@ -31,18 +30,25 @@ import {
   BOUNDS_FACE_AXIS_USERDATA_KEY,
 } from './gizmo_bounds_keys.js';
 import { GizmoBoundsScreenStyle } from './gizmo_bounds_screen_style.js';
+import {
+  boundsFaceAxisLetter,
+  boundsHandleCornerFacePairsAll,
+  boundsHandleFacesGizmoAxis,
+  boundsHandleFacesWrite,
+} from './handle/bounds_handle_faces.js';
+import { BoundsHandleSquareStyler } from './handle/bounds_handle_square.js';
 
 export {
   BOUNDS_ARROW_VISUAL_GROUP_KEY,
   BOUNDS_CUBE_PICK_KEY,
   BOUNDS_CUBE_VISUAL_KEY,
-  BOUNDS_EAR_BASE_COLOR_KEY,
   BOUNDS_FACE_AXIS_USERDATA_KEY,
 } from './gizmo_bounds_keys.js';
 
 /**
- * CAD-style bounds gizmo: cyan wire OBB, axis-tinted resize arrows in 3D,
- * screen-space ears in 2D, and orange edge outlines for resize hover.
+ * Bounds gizmo: wire OBB, axis-tinted resize arrows in 3D, Hammer-style
+ * screen-space resize squares on edges and corners in 2D, and edge outlines for
+ * resize hover.
  */
 export class GizmoBounds {
   private theme: typeof Theme;
@@ -55,10 +61,11 @@ export class GizmoBounds {
   private currentBounds: DataOrientedBounds | null;
   private cubePickWorldSize: number;
   private cubeVisualWorldSize: number;
-  private earWorldSize: number;
+  private squareFallbackWorldSize: number;
   private guideLinesWanted: boolean;
   private resizeAllowed = true;
-  private highlightedFace: BoundsFace | null;
+  private cornerHandlesEnabled = false;
+  private highlightedFaces: BoundsFace[];
   private readonly screenStyle: GizmoBoundsScreenStyle;
 
   /**
@@ -78,33 +85,43 @@ export class GizmoBounds {
     this.currentBounds = null;
     this.cubePickWorldSize = 0.18;
     this.cubeVisualWorldSize = 0.12;
-    this.earWorldSize = 0.18;
+    this.squareFallbackWorldSize = 0.18;
     this.guideLinesWanted = false;
-    this.highlightedFace = null;
+    this.highlightedFaces = [];
     this.screenStyle = new GizmoBoundsScreenStyle({
       getCurrentBounds: () => this.currentBounds,
       isResizeAllowed: () => this.resizeAllowed,
-      getHighlightedFace: () => this.highlightedFace,
+      getHighlightedFaces: () => this.highlightedFaces,
       getTheme: () => this.theme,
-      subtleAxisTintColor: (face) => this.subtleAxisTintColor(face),
-      getEarWorldSize: () => this.earWorldSize,
+      getSquareFallbackWorldSize: () => this.squareFallbackWorldSize,
     });
   }
 
   /**
-   * Builds wireframe, mid-face resize handles, edge highlights, and guide
-   * lines.
+   * Enables or disables building corner resize squares the next time handles
+   * are created. Disabled by default.
+   *
+   * @param enabled Whether corner handles should be built.
+   */
+  setCornerHandlesEnabled(enabled: boolean): void {
+    this.cornerHandlesEnabled = enabled;
+  }
+
+  /**
+   * Builds wireframe, mid-face resize handles, corner handles when enabled,
+   * edge highlights, and guide lines.
    *
    * @returns Gizmo handles for raycast id matching.
    */
   createHandles(): GizmoHandle[] {
     this.disposeInternalResources();
     this.handles = [];
-    this.highlightedFace = null;
+    this.highlightedFaces = [];
     this.rootGroup = new THREE.Group();
     this.rootGroup.name = 'gizmo_bounds';
     this.createWireframe();
     this.createResizeHandles();
+    this.createCornerHandles();
     this.createEdgeHighlightMeshes();
     this.createGuideLines();
     this.applyResizeHandleVisibility();
@@ -134,29 +151,24 @@ export class GizmoBounds {
    *
    * @param bounds The OBB to display, or null to hide contents.
    * @param cubePickWorldSize World edge length for 3D pick volumes.
-   * @param earWorldSize Fallback world base size for 2D ears (screen path
-   *   preferred).
+   * @param squareFallbackWorldSize Fallback world pick size for 2D squares
+   *   (screen path preferred).
    * @param cubeVisualWorldSize World length for visible 3D arrows.
    */
   updateFromBounds(
     bounds: DataOrientedBounds | null,
     cubePickWorldSize: number = 0.18,
-    earWorldSize: number = 0.18,
+    squareFallbackWorldSize: number = 0.18,
     cubeVisualWorldSize: number = cubePickWorldSize * 0.7,
   ): void {
     this.currentBounds = bounds;
-    this.cubePickWorldSize = Math.max(1e-6, cubePickWorldSize);
-    this.cubeVisualWorldSize = Math.max(1e-6, Math.min(cubeVisualWorldSize, this.cubePickWorldSize));
-    this.earWorldSize = Math.max(0.08, earWorldSize);
+    this.handleSizesStore(cubePickWorldSize, squareFallbackWorldSize, cubeVisualWorldSize);
     if (!bounds) {
       this.rootGroup.visible = false;
       this.guideLines?.setVisible(false);
       return;
     }
-    this.rootGroup.visible = true;
-    this.rootGroup.position.copy(bounds.center);
-    this.rootGroup.quaternion.copy(bounds.quaternion);
-    this.rootGroup.scale.set(1, 1, 1);
+    this.rootPoseApply(bounds);
     this.updateWireframeGeometry(bounds.halfExtents);
     this.updateHandlePositions(bounds.halfExtents);
     this.updateEdgeHighlightGeometry(bounds.halfExtents);
@@ -166,32 +178,65 @@ export class GizmoBounds {
   }
 
   /**
-   * Highlights a bounds face for resize hover via an orange edge outline.
+   * Stores clamped handle sizes: 3D pick size, 3D arrow size no larger than the
+   * pick size, and the 2D square fallback size.
    *
-   * @param face Face to outline, or null to clear.
+   * @param cubePickWorldSize World edge length for 3D pick volumes.
+   * @param squareFallbackWorldSize Fallback world pick size for 2D squares.
+   * @param cubeVisualWorldSize World length for visible 3D arrows.
    */
-  setHighlightedFace(face: BoundsFace | null): void {
-    this.highlightedFace = face;
+  private handleSizesStore(
+    cubePickWorldSize: number,
+    squareFallbackWorldSize: number,
+    cubeVisualWorldSize: number,
+  ): void {
+    this.cubePickWorldSize = Math.max(1e-6, cubePickWorldSize);
+    this.cubeVisualWorldSize = Math.max(1e-6, Math.min(cubeVisualWorldSize, this.cubePickWorldSize));
+    this.squareFallbackWorldSize = Math.max(0.08, squareFallbackWorldSize);
+  }
+
+  /**
+   * Shows the root and moves it to the bounds center and orientation at unit
+   * scale.
+   *
+   * @param bounds Bounds to follow.
+   */
+  private rootPoseApply(bounds: DataOrientedBounds): void {
+    this.rootGroup.visible = true;
+    this.rootGroup.position.copy(bounds.center);
+    this.rootGroup.quaternion.copy(bounds.quaternion);
+    this.rootGroup.scale.set(1, 1, 1);
+  }
+
+  /**
+   * Highlights bounds faces for resize hover via edge outlines and hover-tinted
+   * squares.
+   *
+   * @param faces Faces to outline (two for a corner); empty to clear.
+   */
+  setHighlightedFaces(faces: readonly BoundsFace[]): void {
+    this.highlightedFaces = [...faces];
     this.applyHighlightedFace();
   }
 
   /**
-   * Returns the face currently highlighted for hover.
+   * Returns the faces currently highlighted for hover.
    *
-   * @returns Highlighted face, or null.
+   * @returns Highlighted faces; empty when nothing is hovered.
    */
-  getHighlightedFace(): BoundsFace | null {
-    return this.highlightedFace;
+  getHighlightedFaces(): readonly BoundsFace[] {
+    return this.highlightedFaces;
   }
 
   /**
-   * Re-applies edge-outline highlight on an arbitrary gizmo root.
+   * Re-applies edge-outline and square hover highlight on an arbitrary gizmo
+   * root.
    *
    * @param root Group tree containing bounds edge highlight objects.
    */
   applyHighlightToRoot(root: THREE.Object3D): void {
-    applyBoundsFaceEdgeHighlight(root, this.highlightedFace, this.theme);
-    this.screenStyle.applyEarHighlightColors(root);
+    applyBoundsFaceEdgeHighlight(root, this.highlightedFaces, this.theme);
+    this.screenStyle.applySquareHighlightColors(root);
   }
 
   /** Applies the stored edge highlight on the master root. */
@@ -221,7 +266,7 @@ export class GizmoBounds {
 
   /**
    * Allows or forbids resizing the current selection and shows or hides the
-   * mid-face resize grips (2D CAD ears and 3D face arrows) to match.
+   * resize grips (2D squares and 3D face arrows) to match.
    *
    * @param allowed Whether the selection may be resized.
    */
@@ -290,26 +335,54 @@ export class GizmoBounds {
     this.rootGroup.add(this.wireframe);
   }
 
-  /**
-   * Creates six 3D resize arrow grips (perspective default). Orthographic
-   * clones restyle them into CAD ears via {@link styleCloneForViewPlane}.
-   */
+  /** Creates six 3D resize arrow grips, one per bounds face. */
   private createResizeHandles(): void {
     getAllBoundsFaces().forEach((face) => {
       const mesh = this.createArrowHandleMesh(face);
-      const tint = this.subtleAxisTintColor(face);
-      const handle = new GizmoHandle(this.axisForFace(face), tint, mesh);
-      handle.setHoverColorValue(this.theme.boundsHandleHoverColor);
-      const handleId = handle.getHandleId();
-      mesh.userData['handleId'] = handleId;
+      const handleId = this.handleRegister(mesh, [face], this.subtleAxisTintColor(face));
       mesh.userData[BOUNDS_FACE_USERDATA_KEY] = face;
-      mesh.userData[BOUNDS_FACE_AXIS_USERDATA_KEY] = this.axisLetterForFace(face);
-      mesh.userData[BOUNDS_HANDLE_IS_EAR_KEY] = false;
+      mesh.userData[BOUNDS_FACE_AXIS_USERDATA_KEY] = boundsFaceAxisLetter(face);
       this.tagHandleIdOnDescendants(mesh, handleId, face);
       this.handleMeshes.set(face, mesh);
-      this.rootGroup.add(mesh);
-      this.handles.push(handle);
     });
+  }
+
+  /**
+   * Creates the twelve hidden corner pick squares when corner handles are
+   * enabled. Orthographic clones show the four whose axes lie in their plane.
+   */
+  private createCornerHandles(): void {
+    if (!this.cornerHandlesEnabled) {
+      return;
+    }
+    boundsHandleCornerFacePairsAll().forEach((faces) => {
+      const mesh = new THREE.Mesh(
+        BoundsHandleSquareStyler.squarePlaneGeometryCreate(),
+        BoundsHandleSquareStyler.squarePickMaterialCreate(),
+      );
+      mesh.name = `bounds_handle_corner_${faces.join('_')}`;
+      mesh.visible = false;
+      this.handleRegister(mesh, faces, this.theme.boundsHandleColor);
+    });
+  }
+
+  /**
+   * Creates the gizmo handle for a resize mesh, tags the mesh with its handle
+   * id and faces, and adds it to the root.
+   *
+   * @param mesh Handle pick root.
+   * @param faces Faces the handle drags (one, or two for a corner).
+   * @param color Idle handle colour.
+   * @returns The new handle id.
+   */
+  private handleRegister(mesh: THREE.Mesh, faces: readonly BoundsFace[], color: number): number {
+    const handle = new GizmoHandle(boundsHandleFacesGizmoAxis(faces), color, mesh);
+    handle.setHoverColorValue(this.theme.boundsHandleHoverColor);
+    mesh.userData['handleId'] = handle.getHandleId();
+    boundsHandleFacesWrite(mesh, faces);
+    this.rootGroup.add(mesh);
+    this.handles.push(handle);
+    return handle.getHandleId();
   }
 
   /**
@@ -325,7 +398,7 @@ export class GizmoBounds {
       if (!(child instanceof THREE.Mesh)) return;
       child.userData['handleId'] = handleId;
       child.userData[BOUNDS_FACE_USERDATA_KEY] = face;
-      child.userData[BOUNDS_FACE_AXIS_USERDATA_KEY] = this.axisLetterForFace(face);
+      child.userData[BOUNDS_FACE_AXIS_USERDATA_KEY] = boundsFaceAxisLetter(face);
     });
   }
 
@@ -337,9 +410,22 @@ export class GizmoBounds {
    * @returns The pick mesh (handle root).
    */
   private createArrowHandleMesh(face: BoundsFace): THREE.Mesh {
-    const pickGeometry = createCadResizeCubeGeometry();
-    // Pick volume only: skip transparent draw so large maps do not sort these
-    // with every brush edge each frame. Raycasts still hit Object3D.visible meshes.
+    const pickMesh = new THREE.Mesh(createBoundsHandlePickVolumeGeometry(), this.arrowPickMaterialCreate());
+    pickMesh.name = `bounds_handle_${face}`;
+    pickMesh.renderOrder = GizmoVisualStyle.frontRenderOrder;
+    pickMesh.userData[BOUNDS_CUBE_PICK_KEY] = true;
+    this.addArrowVisuals(pickMesh, this.subtleAxisTintColor(face));
+    return pickMesh;
+  }
+
+  /**
+   * Creates the never-drawn opaque material of an arrow pick volume. Skipping
+   * the draw keeps pick volumes out of transparent sorting; raycasts still hit
+   * the visible mesh.
+   *
+   * @returns Hidden pick material.
+   */
+  private arrowPickMaterialCreate(): THREE.MeshBasicMaterial {
     const pickMaterial = new THREE.MeshBasicMaterial({
       color: this.theme.boundsHandleColor,
       depthTest: false,
@@ -350,13 +436,7 @@ export class GizmoBounds {
       toneMapped: false,
     });
     pickMaterial.visible = false;
-    const pickMesh = new THREE.Mesh(pickGeometry, pickMaterial);
-    pickMesh.name = `bounds_handle_${face}`;
-    pickMesh.renderOrder = GizmoVisualStyle.frontRenderOrder;
-    pickMesh.userData[BOUNDS_CUBE_PICK_KEY] = true;
-    const tint = this.subtleAxisTintColor(face);
-    this.addArrowVisuals(pickMesh, tint);
-    return pickMesh;
+    return pickMaterial;
   }
 
   /**
@@ -375,24 +455,37 @@ export class GizmoBounds {
     const headLength = 0.38;
     const stemGeometry = new THREE.CylinderGeometry(0.12, 0.12, stemLength, 10);
     const headGeometry = new THREE.ConeGeometry(0.22, headLength, 10);
-    const stemFront = new THREE.Mesh(stemGeometry, createGizmoFrontMaterial(color));
-    applyGizmoFrontRenderOrder(stemFront);
-    stemFront.position.set(0, stemLength * 0.5, 0);
-    stemFront.userData[BOUNDS_CUBE_VISUAL_KEY] = true;
-    stemFront.name = 'bounds_handle_arrow_stem';
-    const headFront = new THREE.Mesh(headGeometry, createGizmoFrontMaterial(color));
-    applyGizmoFrontRenderOrder(headFront);
-    headFront.position.set(0, stemLength + headLength * 0.5, 0);
-    headFront.userData[BOUNDS_CUBE_VISUAL_KEY] = true;
-    headFront.name = 'bounds_handle_arrow_head';
-    const stemGhost = createGizmoOccludedMesh(stemGeometry, color);
-    stemGhost.position.copy(stemFront.position);
-    stemGhost.userData[BOUNDS_CUBE_VISUAL_KEY] = true;
-    const headGhost = createGizmoOccludedMesh(headGeometry, color);
-    headGhost.position.copy(headFront.position);
-    headGhost.userData[BOUNDS_CUBE_VISUAL_KEY] = true;
-    visualGroup.add(stemGhost, headGhost, stemFront, headFront);
+    this.arrowPartAdd(visualGroup, stemGeometry, color, stemLength * 0.5, 'bounds_handle_arrow_stem');
+    this.arrowPartAdd(visualGroup, headGeometry, color, stemLength + headLength * 0.5, 'bounds_handle_arrow_head');
     pickMesh.add(visualGroup);
+  }
+
+  /**
+   * Adds one arrow part to a visual group as an occluded ghost and a front mesh
+   * sharing one geometry, both lifted along local +Y.
+   *
+   * @param visualGroup Arrow visual group.
+   * @param geometry Part geometry centered on its origin.
+   * @param color Part fill color.
+   * @param heightAlongArrow Local +Y position of the part center.
+   * @param frontName Name of the front mesh.
+   */
+  private arrowPartAdd(
+    visualGroup: THREE.Group,
+    geometry: THREE.BufferGeometry,
+    color: number,
+    heightAlongArrow: number,
+    frontName: string,
+  ): void {
+    const ghost = createGizmoOccludedMesh(geometry, color);
+    ghost.position.set(0, heightAlongArrow, 0);
+    ghost.userData[BOUNDS_CUBE_VISUAL_KEY] = true;
+    const front = new THREE.Mesh(geometry, createGizmoFrontMaterial(color));
+    applyGizmoFrontRenderOrder(front);
+    front.position.set(0, heightAlongArrow, 0);
+    front.userData[BOUNDS_CUBE_VISUAL_KEY] = true;
+    front.name = frontName;
+    visualGroup.add(ghost, front);
   }
 
   /**
@@ -402,7 +495,7 @@ export class GizmoBounds {
    * @returns Hex color with a light axis tint.
    */
   private subtleAxisTintColor(face: BoundsFace): number {
-    const letter = this.axisLetterForFace(face);
+    const letter = boundsFaceAxisLetter(face);
     const axisHex =
       letter === 'x'
         ? this.theme.gizmoXAxisColor
@@ -417,8 +510,8 @@ export class GizmoBounds {
 
   /**
    * Styles a viewport gizmo clone for its view plane: arrows stay in 3D; 2D
-   * panes get flat CAD ears on in-plane faces and hide depth-axis resize
-   * grips.
+   * panes get flat resize squares on in-plane edges and corners and hide
+   * depth-axis resize grips.
    *
    * @param root Viewport gizmo clone root.
    * @param viewPlane Plane for this viewport (`xyz` = perspective).
@@ -429,8 +522,8 @@ export class GizmoBounds {
   }
 
   /**
-   * Applies per-frame screen-space sizing for a viewport bounds clone (2D ears
-   * constant on screen; 3D pick versus visual arrow sizes).
+   * Applies per-frame screen-space sizing for a viewport bounds clone (2D
+   * squares constant on screen; 3D pick versus visual arrow sizes).
    *
    * @param root Viewport gizmo clone.
    * @param viewPlane Plane for this viewport.
@@ -460,7 +553,7 @@ export class GizmoBounds {
       const lines = new THREE.LineSegments(geometry, material);
       lines.name = `bounds_face_edge_highlight_${face}`;
       lines.userData[BOUNDS_FACE_USERDATA_KEY] = face;
-      lines.userData[BOUNDS_FACE_AXIS_USERDATA_KEY] = this.axisLetterForFace(face);
+      lines.userData[BOUNDS_FACE_AXIS_USERDATA_KEY] = boundsFaceAxisLetter(face);
       lines.userData[BOUNDS_FACE_EDGE_HIGHLIGHT_KEY] = true;
       lines.visible = false;
       lines.renderOrder = 1001;
@@ -485,17 +578,13 @@ export class GizmoBounds {
   }
 
   /**
-   * Places 3D arrow grips just outside each face center. Orthographic clones
-   * restyle these into CAD ears via {@link styleCloneForViewPlane}.
+   * Places 3D arrow grips just outside each face center.
    *
    * @param halfExtents Local half extents of the OBB.
    */
   private updateHandlePositions(halfExtents: THREE.Vector3): void {
     this.handleMeshes.forEach((mesh, face) => {
-      const half = this.halfExtentForFace(halfExtents, face);
-      mesh.userData[BOUNDS_HANDLE_WORLD_SIZE_KEY] = this.earWorldSize;
-      mesh.userData[BOUNDS_HANDLE_FACE_HALF_KEY] = half;
-      mesh.userData[BOUNDS_HANDLE_IS_EAR_KEY] = false;
+      mesh.userData[BOUNDS_HANDLE_FACE_HALF_KEY] = getBoundsFaceHalfExtent(halfExtents, face);
       mesh.userData[BOUNDS_CUBE_PICK_KEY] = true;
       const faceMax = computeBoundsCubeMaxWorldSizeForFace(this.currentBounds, face);
       const pickSize = Math.min(this.cubePickWorldSize, faceMax);
@@ -525,7 +614,7 @@ export class GizmoBounds {
   private placeAndScaleFaceOverlay(object: THREE.Object3D, face: BoundsFace, halfExtents: THREE.Vector3): void {
     this.orientFaceMesh(object, face);
     const localNormal = getBoundsFaceLocalNormal(face);
-    const half = this.halfExtentForFace(halfExtents, face);
+    const half = getBoundsFaceHalfExtent(halfExtents, face);
     object.position.copy(localNormal.multiplyScalar(half));
     this.scaleFaceOverlay(object, face, halfExtents);
   }
@@ -572,43 +661,6 @@ export class GizmoBounds {
     });
   }
 
-  /**
-   * Maps a face to a gizmo axis for handle storage.
-   *
-   * @param face The bounds face.
-   * @returns The related GizmoAxis.
-   */
-  private axisForFace(face: BoundsFace): GizmoAxis {
-    if (face === BoundsFace.POS_X || face === BoundsFace.NEG_X) return GizmoAxis.X;
-    if (face === BoundsFace.POS_Y || face === BoundsFace.NEG_Y) return GizmoAxis.Y;
-    return GizmoAxis.Z;
-  }
-
-  /**
-   * Maps a face to an axis letter for orthographic depth filtering.
-   *
-   * @param face The bounds face.
-   * @returns Axis letter.
-   */
-  private axisLetterForFace(face: BoundsFace): 'x' | 'y' | 'z' {
-    if (face === BoundsFace.POS_X || face === BoundsFace.NEG_X) return 'x';
-    if (face === BoundsFace.POS_Y || face === BoundsFace.NEG_Y) return 'y';
-    return 'z';
-  }
-
-  /**
-   * Reads half extent for a face axis.
-   *
-   * @param halfExtents Full half extent vector.
-   * @param face The face.
-   * @returns Half size along the face axis.
-   */
-  private halfExtentForFace(halfExtents: THREE.Vector3, face: BoundsFace): number {
-    if (face === BoundsFace.POS_X || face === BoundsFace.NEG_X) return halfExtents.x;
-    if (face === BoundsFace.POS_Y || face === BoundsFace.NEG_Y) return halfExtents.y;
-    return halfExtents.z;
-  }
-
   /** Clears and disposes internal meshes without dropping the class instance. */
   private disposeInternalResources(): void {
     if (this.guideLines) {
@@ -622,7 +674,7 @@ export class GizmoBounds {
     this.edgeHighlightMeshes.clear();
     this.currentBounds = null;
     this.guideLinesWanted = false;
-    this.highlightedFace = null;
+    this.highlightedFaces = [];
   }
 
   /**
@@ -637,8 +689,10 @@ export class GizmoBounds {
         this.disposeMaterial(child.material);
       }
     });
-    while (root.children.length > 0) {
-      root.remove(root.children[0]!);
+    let firstChild = root.children[0];
+    while (firstChild) {
+      root.remove(firstChild);
+      firstChild = root.children[0];
     }
   }
 

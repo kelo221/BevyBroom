@@ -13,12 +13,13 @@ import { setGizmoWantedVisible } from './gizmo_viewport_visibility.js';
 import {
   computeBoundsCubeVisualWorldSize,
   computeBoundsCubeWorldSize,
-  computeBoundsEarWorldSize,
+  computeBoundsHandleFallbackWorldSize,
 } from '@/transform/bounds/bounds_handle_screen_size.js';
 import { computeGizmoCameraScale } from './gizmo_camera_scale.js';
 import { isGizmoAxisHiddenInViewPlane } from './gizmo_view_plane_axes.js';
 import { applyGizmoCloneDepthStyle } from './gizmo_depth_style.js';
 import { applyGizmoScaleFreeBillboards } from './gizmo_scale_free_billboard.js';
+import { boundsHandleFacesEqual } from '@/transform/bounds/handle/bounds_handle_faces.js';
 
 /**
  * Main orchestrator for the transform gizmo. Manages mode switching, handle
@@ -249,16 +250,16 @@ export class GizmoTransform {
     this.lastBoundsPoseSignature = poseSignature;
     const cubePickSize = computeBoundsCubeWorldSize(bounds, camera);
     const cubeVisualSize = computeBoundsCubeVisualWorldSize(bounds, camera);
-    const earSize = computeBoundsEarWorldSize(bounds);
+    const squareFallbackSize = computeBoundsHandleFallbackWorldSize(bounds);
     this.resetHandleGroupTransform();
-    this.gizmoBounds.updateFromBounds(bounds, cubePickSize, earSize, cubeVisualSize);
+    this.gizmoBounds.updateFromBounds(bounds, cubePickSize, squareFallbackSize, cubeVisualSize);
     this.syncMasterTransformToClones();
   }
 
   /**
    * Applies per-viewport screen-space bounds styling for the active camera
-   * (constant-size 2D ears; 3D pick versus visual arrow sizes). Call each frame
-   * before drawing a multi-view pane.
+   * (constant-size 2D squares; 3D pick versus visual arrow sizes). Call each
+   * frame before drawing a multi-view pane.
    *
    * @param group Viewport gizmo clone.
    * @param camera Pane camera.
@@ -372,27 +373,26 @@ export class GizmoTransform {
   }
 
   /**
-   * Highlights a bounds face for resize hover on master and all viewport
-   * clones.
+   * Highlights bounds faces for resize hover on master and all viewport clones.
    *
-   * @param face Face to highlight, or null to clear.
+   * @param faces Faces to highlight (two for a corner handle); empty to clear.
    */
-  setHighlightedBoundsFace(face: BoundsFace | null): void {
+  setHighlightedBoundsFaces(faces: readonly BoundsFace[]): void {
     if (!isBoundsWidgetMode(this.currentMode)) return;
-    if (this.gizmoBounds.getHighlightedFace() === face) {
+    if (boundsHandleFacesEqual(this.gizmoBounds.getHighlightedFaces(), faces)) {
       return;
     }
-    this.gizmoBounds.setHighlightedFace(face);
+    this.gizmoBounds.setHighlightedFaces(faces);
     this.applyBoundsFaceHighlightToAllGroups();
   }
 
   /**
-   * Returns the face currently highlighted for hover.
+   * Returns the faces currently highlighted for hover.
    *
-   * @returns Highlighted face, or null.
+   * @returns Highlighted faces; empty when nothing is hovered.
    */
-  getHighlightedBoundsFace(): BoundsFace | null {
-    return this.gizmoBounds.getHighlightedFace();
+  getHighlightedBoundsFaces(): readonly BoundsFace[] {
+    return this.gizmoBounds.getHighlightedFaces();
   }
 
   /** Re-applies face highlight materials on master and every viewport clone. */
@@ -496,22 +496,20 @@ export class GizmoTransform {
 
   /** Removes all children from the handle group. */
   private clearGroup(): void {
-    while (this.handleGroup.children.length > 0) {
-      const child = this.handleGroup.children[0]!;
-      this.handleGroup.remove(child);
-    }
+    this.clearViewportGroup(this.handleGroup);
     this.currentHandles = [];
   }
 
   /**
-   * Removes all children from a viewport-specific group clone.
+   * Removes all children from a group.
    *
-   * @param group The viewport group to clear.
+   * @param group The group to clear.
    */
   private clearViewportGroup(group: THREE.Group): void {
-    while (group.children.length > 0) {
-      const child = group.children[0]!;
-      group.remove(child);
+    let firstChild = group.children[0];
+    while (firstChild) {
+      group.remove(firstChild);
+      firstChild = group.children[0];
     }
   }
 
@@ -536,6 +534,7 @@ export class GizmoTransform {
       return;
     }
     if (isBoundsWidgetMode(mode)) {
+      this.gizmoBounds.setCornerHandlesEnabled(mode === TransformMode.BOUNDS);
       this.attachModeGizmo(this.gizmoBounds);
     }
   }
@@ -634,7 +633,7 @@ export class GizmoTransform {
   }
 
   /**
-   * Applies per-viewport handle filters: bounds CAD ears, and Global-space
+   * Applies per-viewport handle filters: bounds 2D squares, and Global-space
    * depth-axis hiding for translate/scale.
    *
    * @param group Viewport gizmo clone.

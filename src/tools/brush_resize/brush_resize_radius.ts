@@ -30,9 +30,37 @@ export function brushResizeRadiusCompute(
   horizontalTravelPx: number,
   limits: BrushResizeRadiusLimits,
 ): number {
-  const scaled = startRadius * Math.pow(2, horizontalTravelPx / BRUSH_RESIZE_PIXELS_PER_DOUBLING);
-  if (!Number.isFinite(scaled)) {
-    return limits.maximum;
+  return brushResizeRadiusScaleByDoublings(startRadius, horizontalTravelPx / BRUSH_RESIZE_PIXELS_PER_DOUBLING, limits);
+}
+
+/**
+ * Scales a brush radius by a power of two: one doubling doubles it, minus one
+ * halves it, fractions scale smoothly in between. The result is clamped.
+ *
+ * @param radius Radius in meters before scaling.
+ * @param doublings Number of doublings; negative values shrink the radius.
+ * @param limits Smallest and largest radius the result is clamped to.
+ * @returns Scaled radius in meters between the limits.
+ */
+export function brushResizeRadiusScaleByDoublings(
+  radius: number,
+  doublings: number,
+  limits: BrushResizeRadiusLimits,
+): number {
+  return brushResizeRadiusClamp(radius * Math.pow(2, doublings), limits);
+}
+
+/**
+ * Clamps a brush radius to its limits. A radius that is not a number becomes
+ * the smallest radius; infinite radii become the nearest limit.
+ *
+ * @param radius Requested radius in meters.
+ * @param limits Smallest and largest radius allowed.
+ * @returns Radius in meters between the limits.
+ */
+export function brushResizeRadiusClamp(radius: number, limits: BrushResizeRadiusLimits): number {
+  if (Number.isNaN(radius)) {
+    return limits.minimum;
   }
-  return Math.min(limits.maximum, Math.max(limits.minimum, scaled));
+  return Math.min(limits.maximum, Math.max(limits.minimum, radius));
 }

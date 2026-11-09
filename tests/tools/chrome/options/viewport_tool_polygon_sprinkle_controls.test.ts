@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ViewportToolPolygonSprinkleControls } from '@/tools/chrome/options/viewport_tool_polygon_sprinkle_controls.js';
 import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
 import { SPRINKLE_RADIUS_MAX, SPRINKLE_RADIUS_MIN } from '@/tools/sprinkle/sprinkle_types.js';
+import { sprinkleRadiusScaleByDoublings } from '@/tools/sprinkle/radius/sprinkle_radius_scale.js';
+import { SPRINKLE_RADIUS_WHEEL_NOTCH_DOUBLINGS } from '@/tools/sprinkle/radius/sprinkle_radius_wheel_consumer.js';
 
 /** Controls built by the running test. */
 let polygonSprinkleControlsTest: ViewportToolPolygonSprinkleControls | null = null;
@@ -52,6 +54,15 @@ describe('ViewportToolPolygonSprinkleControls sprinkle strip', () => {
     const changedRadius = (SPRINKLE_RADIUS_MIN + SPRINKLE_RADIUS_MAX) / 2;
     getStateSprinkleTool().configPatch({ radius: changedRadius });
     expect(Number(radiusInput.value)).toBe(changedRadius);
+  });
+
+  it('follows wheel and shortcut radius steps at once, showing at most three decimals', () => {
+    const radiusInput = sprinkleRadiusInputCreate();
+    getStateSprinkleTool().toolActiveWrite(true);
+    sprinkleRadiusScaleByDoublings(SPRINKLE_RADIUS_WHEEL_NOTCH_DOUBLINGS);
+    const steppedRadius = getStateSprinkleTool().configRead().radius;
+    expect(Number(radiusInput.value)).toBeCloseTo(steppedRadius, 3);
+    expect(radiusInput.value.split('.')[1]?.length ?? 0).toBeLessThanOrEqual(3);
   });
 
   it('stores typed radii clamped to the Sprinkle radius range and ignores text', () => {

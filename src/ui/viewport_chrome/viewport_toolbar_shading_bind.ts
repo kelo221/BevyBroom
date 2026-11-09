@@ -28,7 +28,7 @@ export interface ViewportToolbarShadingBindOptions {
 }
 
 /**
- * Syncs toolbar button state from the viewport's current shading preferences.
+ * Syncs toolbar menu state from the viewport's current shading preferences.
  *
  * @param viewport Viewport providing live shading preferences.
  */
@@ -37,6 +37,24 @@ export function syncViewportToolbarShadingState(viewport: ViewportToolbarShading
   toolbar.setActiveShadingMode(viewport.getShadingMode());
   toolbar.setContentWireframesActive(viewport.areContentWireframesVisible());
   toolbar.setProjectedGridActive(viewport.isProjectedGridVisible());
+}
+
+/**
+ * Applies a shading mode chosen together with a view kind to a viewport and
+ * shows it in the viewport toolbar; does nothing when no mode was chosen.
+ *
+ * @param viewport Viewport that receives the shading mode.
+ * @param shadingMode Chosen shading mode, or null to keep the current one.
+ */
+export function applyViewportToolbarShadingChoice(
+  viewport: ViewportToolbarShadingTarget,
+  shadingMode: ShadingMode | null,
+): void {
+  if (shadingMode === null) {
+    return;
+  }
+  viewport.setShadingMode(shadingMode);
+  syncViewportToolbarShadingState(viewport);
 }
 
 /**

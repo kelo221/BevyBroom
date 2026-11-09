@@ -7,6 +7,13 @@ import { ScaleWidget } from '@/editor/widgets/scale_widget.js';
 import { EditEdgeCutTool } from './edit_edge_cut_tool.js';
 import { EditLoopCutTool } from './edit_loop_cut_tool.js';
 import { openEditMergeMenu } from './edit_merge_menu.js';
+import { pointerDragThresholdExceeded } from '@/input/pointer_drag_threshold.js';
+
+/** Client point where a plain left press picked an Edit Mode component. */
+interface EditSelectComponentDragPress {
+  clientX: number;
+  clientY: number;
+}
 
 /**
  * Permanent Edit Mode selection tool. Routes left-click picks into the edit
@@ -23,6 +30,8 @@ export class EditSelectTool extends Tool {
    * off (Edit Mode default / press active mode again).
    */
   private hostedWidgetMode: TransformMode | null;
+  /** Client point of a plain left press that picked a component, or null. */
+  private componentDragPress: EditSelectComponentDragPress | null;
 
   /** Creates the edit select tool. */
   constructor() {
@@ -31,18 +40,20 @@ export class EditSelectTool extends Tool {
     this.rotationWidget = new RotationWidget();
     this.scaleWidget = new ScaleWidget();
     this.hostedWidgetMode = null;
+    this.componentDragPress = null;
   }
 
   /** Called when the tool is activated. */
   override onActivate(): void {
     this.hostedWidgetMode = null;
-    this.editor?.getServices()?.setStatusMessage('Edit Mode');
+    this.componentDragPress = null;
     this.syncPermanentTransformWidgets();
   }
 
   /** Called when the tool is deactivated. */
   override onDeactivate(): void {
     this.hostedWidgetMode = null;
+    this.componentDragPress = null;
     this.editor?.clearWidgets();
   }
 
@@ -65,13 +76,93 @@ export class EditSelectTool extends Tool {
     if (!services) {
       return;
     }
-    services.beginEditSelectPointerDown(
+    const picked = services.beginEditSelectPointerDown(
       this.editor.lastPointerClientX,
       this.editor.lastPointerClientY,
       this.editor.isShiftPressed,
       this.editor.isCtrlPressed,
       this.editor.lastPointerOwnerDocument,
     );
+    this.componentDragPressRecord(picked);
+  }
+
+  /**
+   * Remembers a plain press that picked a component so dragging it moves the
+   * picked components.
+   *
+   * @param picked True when the press picked a component.
+   */
+  private componentDragPressRecord(picked: boolean): void {
+    this.componentDragPress = null;
+    if (!picked || !this.editor || this.editor.isShiftPressed || this.editor.isCtrlPressed) {
+      return;
+    }
+    this.componentDragPress = { clientX: this.editor.lastPointerClientX, clientY: this.editor.lastPointerClientY };
+  }
+
+  /**
+   * Starts a single-use move of the picked components once a left-button press
+   * on a component travels past the drag threshold.
+   *
+   * @param button Mouse button index.
+   * @param _screenDelta Screen-space movement delta.
+   * @param _gridDelta Grid/world-space movement delta.
+   */
+  override onGlobalMouseDrag(button: number, screenDelta: Vector2, gridDelta: Vector2): void {
+    const press = this.componentDragPress;
+    if (button !== 0 || !press || !this.editor) {
+      return;
+    }
+    const { lastPointerClientX, lastPointerClientY } = this.editor;
+    if (!pointerDragThresholdExceeded(press.clientX, press.clientY, lastPointerClientX, lastPointerClientY)) {
+      return;
+    }
+    this.componentDragPress = null;
+    if (this.editor.selectedSegmentsCount > 0) {
+      this.componentMoveFromPressLaunch(press, screenDelta, gridDelta);
+    }
+  }
+
+  /**
+   * Starts the single-use move anchored at the press point, then feeds it the
+   * current pointer sample so the travel made before the threshold counts.
+   *
+   * @param press Client point of the press that picked the component.
+   * @param screenDelta Screen-space movement delta of the current sample.
+   * @param gridDelta Grid/world-space movement delta of the current sample.
+   */
+  private componentMoveFromPressLaunch(
+    press: EditSelectComponentDragPress,
+    screenDelta: Vector2,
+    gridDelta: Vector2,
+  ): void {
+    const editor = this.editor;
+    if (!editor) {
+      return;
+    }
+    const current = { clientX: editor.lastPointerClientX, clientY: editor.lastPointerClientY };
+    editor.lastPointerClientX = press.clientX;
+    editor.lastPointerClientY = press.clientY;
+    editor.useSingleUseTranslateTool();
+    editor.lastPointerClientX = current.clientX;
+    editor.lastPointerClientY = current.clientY;
+    editor.activeTool?.onGlobalMouseDrag(0, screenDelta, gridDelta);
+  }
+
+  /**
+   * Forgets a pending component press when the left button is released.
+   *
+   * @param button Mouse button index.
+   */
+  override onGlobalMouseUp(button: number): void {
+    if (button === 0) {
+      this.componentDragPress = null;
+    }
+  }
+
+  /** Forgets a pending component press when the tool loses input focus. */
+  override onFocusLost(): void {
+    this.componentDragPress = null;
   }
 
   /**

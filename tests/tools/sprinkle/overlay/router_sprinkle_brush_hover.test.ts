@@ -8,6 +8,10 @@ import {
 } from '@/tools/sprinkle/overlay/router_sprinkle_brush_hover.js';
 import { Theme } from '@/theme.js';
 import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
+import {
+  SPRINKLE_RADIUS_WHEEL_NOTCH_DOUBLINGS,
+  sprinkleRadiusWheelConsume,
+} from '@/tools/sprinkle/radius/sprinkle_radius_wheel_consumer.js';
 
 /** Side length, in pixels, of the fake viewport element. */
 const HOVER_TEST_VIEW_SIZE_PX = 200;
@@ -140,6 +144,16 @@ describe('RouterSprinkleBrushHover', () => {
     getStateSprinkleTool().configPatch({ radius: 2.5 });
     parts.router.frameRefresh();
     expect(parts.cursor.sphere.scale.x).toBeCloseTo(2.5, 9);
+  });
+
+  it('resizes on the next frame after an Alt+wheel radius step', () => {
+    const parts = hoverTestPartsCreate();
+    hoverTestPointerMove(parts, parts.view.event.clientX, parts.view.event.clientY);
+    const radiusBefore = getStateSprinkleTool().configRead().radius;
+    sprinkleRadiusWheelConsume(new WheelEvent('wheel', { deltaY: -1, altKey: true }));
+    parts.router.frameRefresh();
+    const expectedRadius = radiusBefore * Math.pow(2, SPRINKLE_RADIUS_WHEEL_NOTCH_DOUBLINGS);
+    expect(parts.cursor.sphere.scale.x).toBeCloseTo(expectedRadius, 9);
   });
 
   it('hides the cursor when the pointer leaves the viewport or the document', () => {

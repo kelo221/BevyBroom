@@ -9,7 +9,6 @@ import {
   boxSelectPointerSampleWithKeyReleased,
 } from './box_select_pointer_sample.js';
 import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js';
-import { getStatePolygonTool } from '@/tools/polygon/state_polygon_tool.js';
 import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
 import type { EditorServices } from '@/editor/window/editor_services.js';
 
@@ -77,8 +76,8 @@ export class BoxSelectTool extends Tool {
 
   /**
    * Returns whether the tool is idle for object double-clicks: it is no
-   * single-use launch, no object drag runs and no Entity, Polygon or Sprinkle
-   * placement takes the clicks.
+   * single-use launch, no object drag runs and no Entity or Sprinkle placement
+   * takes the clicks.
    *
    * @returns True when a double-click may open Object Properties.
    */
@@ -87,16 +86,26 @@ export class BoxSelectTool extends Tool {
   }
 
   /**
-   * Returns whether the Entity, Polygon or Sprinkle tool takes viewport clicks.
+   * Drops a stale object drag or Sprinkle press whose release never arrived.
+   *
+   * @returns True when a drag or press was dropped.
+   */
+  override pointerPressHoldRelease(): boolean {
+    if (!this.dragGesture.isSessionActive() && !this.sprinklePress.isPressActive()) {
+      return false;
+    }
+    this.dragGesture.reset();
+    this.sprinklePress.reset();
+    return true;
+  }
+
+  /**
+   * Returns whether the Entity or Sprinkle tool takes viewport clicks.
    *
    * @returns True while one of those tools is active.
    */
   private hammerToolActiveIs(): boolean {
-    return (
-      getStateEntityPlace().toolActiveRead() ||
-      getStatePolygonTool().toolActiveRead() ||
-      getStateSprinkleTool().toolActiveRead()
-    );
+    return getStateEntityPlace().toolActiveRead() || getStateSprinkleTool().toolActiveRead();
   }
 
   /**
@@ -170,35 +179,10 @@ export class BoxSelectTool extends Tool {
     if (this.dragGesture.isSessionActive()) {
       return this.handleDragSessionKeyDown(keyCode);
     }
-    if (getStatePolygonTool().toolActiveRead() && this.handlePolygonToolKeyDown(keyCode)) {
-      return true;
-    }
     if (this.isSingleUse || !this.editor) {
       return false;
     }
     return this.dispatchSingleUseLaunchKeys(keyCode);
-  }
-
-  /**
-   * Handles Enter, Backspace, and Escape while the Polygon brush tool is
-   * active.
-   *
-   * @param keyCode Key code string.
-   * @returns True when consumed.
-   */
-  private handlePolygonToolKeyDown(keyCode: string): boolean {
-    if (keyCode === 'Enter' || keyCode === 'NumpadEnter') {
-      return getStatePolygonTool().commit().length > 0;
-    }
-    if (keyCode === 'Backspace') {
-      getStatePolygonTool().vertexRemoveLast();
-      return true;
-    }
-    if (keyCode === 'Escape') {
-      getStatePolygonTool().clear();
-      return true;
-    }
-    return false;
   }
 
   /**
@@ -234,8 +218,8 @@ export class BoxSelectTool extends Tool {
   }
 
   /**
-   * Applies Hammer++ Entity/Polygon/Sprinkle placement, otherwise applies the
-   * object click at the last pointer position.
+   * Applies Hammer++ Entity/Sprinkle placement, otherwise applies the object
+   * click at the last pointer position.
    */
   private applyClickSelectionAtLastPointer(): void {
     if (!this.editor) {
@@ -274,8 +258,8 @@ export class BoxSelectTool extends Tool {
   }
 
   /**
-   * Dispatches viewport clicks to the Entity or Polygon tool when active; the
-   * Sprinkle tool paints on press and takes every click without selecting.
+   * Dispatches viewport clicks to the Entity tool when active; the Sprinkle
+   * tool paints on press and takes every click without selecting.
    *
    * @param clientX Viewport client X.
    * @param clientY Viewport client Y.
@@ -283,7 +267,6 @@ export class BoxSelectTool extends Tool {
    */
   private applyHammerToolClick(clientX: number, clientY: number): boolean {
     if (getStateEntityPlace().toolActiveRead()) return getStateEntityPlace().placeAtClientPoint(clientX, clientY);
-    if (getStatePolygonTool().toolActiveRead()) return getStatePolygonTool().placeVertexAtClientPoint(clientX, clientY);
     return getStateSprinkleTool().toolActiveRead();
   }
 

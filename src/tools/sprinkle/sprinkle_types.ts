@@ -1,4 +1,5 @@
 import type * as THREE from 'three';
+import type { BrushResizeRadiusLimits } from '@/tools/brush_resize/brush_resize_radius.js';
 
 /**
  * Sprinkle placement operation mode matching the Hammer++ Entity Sprinkle
@@ -22,6 +23,12 @@ export const SPRINKLE_RADIUS_MIN = 0.25;
 
 /** Largest Sprinkle radius in meters. */
 export const SPRINKLE_RADIUS_MAX = 256;
+
+/** Smallest and largest Sprinkle radius in meters. */
+export const SPRINKLE_RADIUS_LIMITS: BrushResizeRadiusLimits = Object.freeze({
+  minimum: SPRINKLE_RADIUS_MIN,
+  maximum: SPRINKLE_RADIUS_MAX,
+});
 
 /** Smallest Sprinkle grid cell size in meters. */
 export const SPRINKLE_GRID_SIZE_MIN = 0.05;

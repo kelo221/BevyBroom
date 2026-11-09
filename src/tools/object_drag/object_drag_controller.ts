@@ -19,7 +19,6 @@ import {
 } from '@/tools/shape_draw/shape_draw_reference_bounds.js';
 import { getStateBlockDrawSettings } from '@/tools/block/state_block_draw_settings.js';
 import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js';
-import { getStatePolygonTool } from '@/tools/polygon/state_polygon_tool.js';
 import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
 
 /** Selection members the drag controller needs. */
@@ -113,12 +112,7 @@ export class ObjectDragController {
       return null;
     }
     const source = this.deps.viewportAtClientPoint(press.clientX, press.clientY);
-    if (
-      !source ||
-      getStateEntityPlace().toolActiveRead() ||
-      getStatePolygonTool().toolActiveRead() ||
-      getStateSprinkleTool().toolActiveRead()
-    ) {
+    if (!source || getStateEntityPlace().toolActiveRead() || getStateSprinkleTool().toolActiveRead()) {
       return null;
     }
     const viewport = new ObjectDragViewport(source);
