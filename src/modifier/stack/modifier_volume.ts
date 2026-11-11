@@ -59,28 +59,39 @@ export class ModifierVolume {
    * @returns Unnamed volume mesh.
    */
   static create(settings: Partial<ModifierStackSettings>, geometry?: THREE.BufferGeometry): THREE.Mesh {
-    const color = Theme.modifierVolumeColor;
-    const mesh = new THREE.Mesh(geometry ?? new THREE.BoxGeometry(1, 1, 1), ModifierVolume.createMaterial(color));
+    const material = ModifierVolume.createMaterial(Theme.modifierVolumeColor);
+    const mesh = new THREE.Mesh(geometry ?? new THREE.BoxGeometry(1, 1, 1), material);
+    ModifierVolume.stamp(mesh, settings);
+    return mesh;
+  }
+
+  /**
+   * Turns a duplicated mesh into a volume like its source: the stack, the
+   * volume markers and the outline, with the fill hidden until selected.
+   *
+   * @param source Source volume.
+   * @param clone Duplicate mesh with copied geometry and material.
+   */
+  static copyOntoClone(source: THREE.Object3D, clone: THREE.Object3D): void {
+    if (!ModifierVolume.isVolume(source) || !(clone instanceof THREE.Mesh)) return;
+    ModifierVolume.stamp(clone, ModifierVolume.read(source));
+    ModifierVolume.setFillVisible(clone, false);
+  }
+
+  /**
+   * Marks a box mesh as a volume that face picking skips, records its geometry
+   * source, stores the stack and adds the outline.
+   *
+   * @param mesh Box mesh with the volume material.
+   * @param settings Stack to store.
+   */
+  private static stamp(mesh: THREE.Mesh, settings: Partial<ModifierStackSettings>): void {
     const source = detectGeometrySourceFromInstance(mesh.geometry);
     if (source) setGeometrySource(mesh, source);
     mesh.userData[MODIFIER_VOLUME_BEVEL_USERDATA_KEY] = true;
     mesh.userData[SKIP_FACE_PICK_USERDATA_KEY] = true;
     ModifierVolume.write(mesh, settings);
-    ModifierVolume.outlineAdd(mesh, color);
-    return mesh;
-  }
-
-  /**
-   * Copies the stack onto a duplicated mesh.
-   *
-   * @param source Source volume.
-   * @param clone Duplicate mesh.
-   */
-  static copyOntoClone(source: THREE.Object3D, clone: THREE.Object3D): void {
-    if (!ModifierVolume.isVolume(source)) return;
-    clone.userData[MODIFIER_VOLUME_BEVEL_USERDATA_KEY] = true;
-    ModifierVolume.write(clone, ModifierVolume.read(source));
-    ModifierVolume.setFillVisible(clone, false);
+    ModifierVolume.outlineAdd(mesh, Theme.modifierVolumeColor);
   }
 
   /**
