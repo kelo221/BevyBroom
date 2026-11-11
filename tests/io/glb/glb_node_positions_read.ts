@@ -75,6 +75,20 @@ export function glbPositionsCoincidentCountRead(
 }
 
 /**
+ * Lists the names of the nodes of a binary glTF file, and whether each holds a
+ * mesh.
+ *
+ * @param buffer GLB bytes.
+ * @returns One entry per node, in file order; unnamed nodes have an empty name.
+ */
+export function glbNodeNamesRead(buffer: ArrayBuffer): Array<{ name: string; hasMesh: boolean }> {
+  return (glbPositionJsonRead(buffer).nodes ?? []).map((node) => ({
+    name: node.name ?? '',
+    hasMesh: node.mesh !== undefined,
+  }));
+}
+
+/**
  * Parses the JSON chunk of a binary glTF file.
  *
  * @param buffer GLB bytes.
