@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import * as THREE from 'three';
 import type { McpBounds, McpToolResult, McpVec3 } from '@/ai/shared/mcp_protocol_types.js';
@@ -341,7 +341,7 @@ describe.skipIf(!isConfigured)('desktop app modifier volume end to end', () => {
       const built = toolDataRead<ModifierE2eLevelBuild>(
         await client.toolCallExpectOk('build_level', { levelName: LEVEL_NAME }),
       );
-      const bytes = readFileSync(`${built.levelDirectory}/${built.geometryFile}`);
+      const bytes = readFileSync(join(built.levelDirectory, built.geometryFile));
       const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
       expect(glbNodeNamesRead(buffer).map((node) => node.name)).not.toContain(volumeName);
       const exported = glbRegionBoundsRead(buffer);
