@@ -9,13 +9,14 @@ import {
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { HandlerPrimitiveCreation } from '@/tools/creation/handler_primitive_creation.js';
 import { ToolPrimitiveCreation } from '@/tools/creation/tool_primitive_creation.js';
+import { modifierVolumeTemplateCreate } from '@/modifier/stack/modifier_volume_templates.js';
 
 describe('primitive creation handler', () => {
   it('places a new bevel volume along the camera view', () => {
     const world = new THREE.Group();
     const camera = cameraLookingForward();
     const handler = createHandler(world, camera);
-    handler.createBevelVolume();
+    handler.createModifierVolume('bevel');
     const volume = requireCreatedVolume(world, null);
     const expected = computeCameraForwardSpawnPosition(camera, DEFAULT_SPAWN_DISTANCE);
     expect(volume.position.distanceTo(expected)).toBeLessThan(1e-4);
@@ -25,12 +26,12 @@ describe('primitive creation handler', () => {
   it('places a new bevel volume through an existing volume', () => {
     const world = new THREE.Group();
     const camera = cameraLookingAlongPositiveZ();
-    const room = ModifierVolumeBevel.create();
+    const room = modifierVolumeTemplateCreate('bevel');
     room.scale.set(6, 6, 6);
     world.add(room);
     world.updateMatrixWorld(true);
     const handler = createHandler(world, camera);
-    handler.createBevelVolume();
+    handler.createModifierVolume('bevel');
     const created = requireCreatedVolume(world, room);
     const expected = computeCameraForwardSpawnPosition(camera, DEFAULT_SPAWN_DISTANCE);
     const exit = room.localToWorld(new THREE.Vector3(0, 0, 0.5));
@@ -47,9 +48,9 @@ describe('primitive creation handler', () => {
     const activeCamera = cameraLookingForward();
     const overrideCamera = cameraLookingAlongPositiveZ();
     const handler = createHandler(world, activeCamera);
-    handler.spawnCameraOverrideRun(overrideCamera, () => handler.createBevelVolume());
+    handler.spawnCameraOverrideRun(overrideCamera, () => handler.createModifierVolume('bevel'));
     const overridden = requireCreatedVolume(world, null);
-    handler.createBevelVolume();
+    handler.createModifierVolume('bevel');
     const regular = requireCreatedVolume(world, overridden);
     const overrideSpawn = computeCameraForwardSpawnPosition(overrideCamera, DEFAULT_SPAWN_DISTANCE);
     const activeSpawn = computeCameraForwardSpawnPosition(activeCamera, DEFAULT_SPAWN_DISTANCE);

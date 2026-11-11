@@ -8,6 +8,8 @@ import { DECORATIVE_EDGE_USERDATA_KEY } from '@/utils/mesh_edge_sync.js';
 import { SOLID_BRUSH_EDGE_USERDATA_KEY } from '@/solid/model/solid_brush_edge_materials.js';
 import { SOLID_BRUSH_EDGE_BATCH_USERDATA_KEY } from '@/solid/model/solid_brush_edge_batch.js';
 import { EDIT_MODE_WIREFRAME_SUPPRESSED_USERDATA_KEY } from '@/utils/edit_mode_wireframe_suppress.js';
+import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
+import { modifierStackMirrorGuide } from '@/modifier/stack/kinds/array/modifier_stack_mirror_guide.js';
 
 /**
  * Builds a LineSegments helper with the given userData flag.
@@ -50,5 +52,20 @@ describe('content_wireframe_visibility', () => {
     applyContentWireframeVisibilityForRenderPass(root, true);
     expect(decorative.visible).toBe(true);
     expect(suppressed.visible).toBe(false);
+  });
+
+  it('hides and restores modifier volume box outlines with the toggle, but not mirror guides', () => {
+    const root = new THREE.Group();
+    const volumes = [ModifierVolume.create({}), ModifierVolume.create({})];
+    root.add(...volumes);
+    const outlines = volumes.map((node) => node.children.find(isContentBrushWireframeHelper));
+    const guide = modifierStackMirrorGuide(volumes[0] ?? root, { axis: 'x', space: 'volume' });
+    volumes[0]?.add(guide);
+    expect(outlines.every((outline) => outline instanceof THREE.LineSegments)).toBe(true);
+    applyContentWireframeVisibilityForRenderPass(root, false);
+    expect(outlines.map((outline) => outline?.visible)).toEqual([false, false]);
+    expect(guide.visible).toBe(true);
+    applyContentWireframeVisibilityForRenderPass(root, true);
+    expect(outlines.map((outline) => outline?.visible)).toEqual([true, true]);
   });
 });

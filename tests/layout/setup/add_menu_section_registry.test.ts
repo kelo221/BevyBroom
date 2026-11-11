@@ -16,7 +16,7 @@ function actionSpies(): AddMenuActions {
     onAddPlane: vi.fn(),
     onAddTerrain: vi.fn(),
     onAddSolidModel: vi.fn(),
-    onAddBevelVolume: vi.fn(),
+    onAddModifierVolume: vi.fn(),
     onAddPointLight: vi.fn(),
     onAddSpotLight: vi.fn(),
     onAddRoom: vi.fn(),

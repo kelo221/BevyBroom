@@ -4,11 +4,11 @@ import { PreviewStateObjectCollector } from '@/preview/state/preview_state_objec
 import { previewLightColorChannels } from '@/preview/state/preview_state_light_converter_color.js';
 import { LightOwner } from '@/light/model/light_owner.js';
 import { lightSettingsCreateDefault } from '@/light/model/light_settings.js';
-import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js';
 import { PortalOwner } from '@/portal/model/portal_owner.js';
 import { portalSettingsCreateDefault } from '@/portal/model/portal_settings.js';
 import { RoomOwner } from '@/portal/model/room_owner.js';
 import { PreviewGeometrySignature } from '@/preview/geometry/preview_geometry_signature.js';
+import { modifierVolumeTemplateCreate } from '@/modifier/stack/modifier_volume_templates.js';
 
 /** The authored state lists the document hierarchy without editor helpers. */
 describe('PreviewStateObjectCollector', () => {
@@ -49,7 +49,7 @@ describe('PreviewStateObjectCollector', () => {
 
   it('leaves out light visuals and modifier volumes', () => {
     const world = new THREE.Group();
-    world.add(LightOwner.createDefault('Lamp', 'point'), ModifierVolumeBevel.create());
+    world.add(LightOwner.createDefault('Lamp', 'point'), modifierVolumeTemplateCreate('bevel'));
     const objects = PreviewStateObjectCollector.collect(world);
     expect(objects).toHaveLength(1);
     expect(objects[0]?.kind).toBe('light');

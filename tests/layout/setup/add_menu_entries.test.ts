@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createAddMenuEntries, type AddMenuActions } from '@/layout/setup/add_menu_entries.js';
 import { isMenuAction, isMenuSubmenu, type ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
+import { modifierVolumeTemplates } from '@/modifier/stack/modifier_volume_templates.js';
 
 /**
  * Returns the child entries of a submenu and fails for any other entry type.
@@ -30,7 +31,7 @@ function getEntryLabels(entries: ToolbarMenuEntry[]): string[] {
 }
 
 /** Number of categories every Add menu starts with. */
-const BUILTIN_CATEGORY_COUNT = 6;
+const BUILTIN_CATEGORY_COUNT = 7;
 
 describe('createAddMenuEntries', () => {
   it('groups every creation action into the expected category', () => {
@@ -40,15 +41,19 @@ describe('createAddMenuEntries', () => {
       'Geometry',
       'Terrain',
       'Brushes',
+      'Modifiers',
       'Lights',
       'Portals',
       'Game Entities',
     ]);
     expect(getEntryLabels(getSubmenuChildren(entries[0]!))).toEqual(['Cube', 'Sphere', 'Cylinder', 'Plane']);
     expect(getEntryLabels(getSubmenuChildren(entries[1]!))).toEqual(['Terrain']);
-    expect(getEntryLabels(getSubmenuChildren(entries[2]!))).toEqual(['Solid Model', 'Bevel Volume']);
-    expect(getEntryLabels(getSubmenuChildren(entries[3]!))).toEqual(['Point Light', 'Spot Light']);
-    expect(getEntryLabels(getSubmenuChildren(entries[4]!))).toEqual(['Room', 'Portal']);
+    expect(getEntryLabels(getSubmenuChildren(entries[2]!))).toEqual(['Solid Model']);
+    expect(getEntryLabels(getSubmenuChildren(entries[3]!))).toEqual(
+      modifierVolumeTemplates.map((template) => template.label),
+    );
+    expect(getEntryLabels(getSubmenuChildren(entries[4]!))).toEqual(['Point Light', 'Spot Light']);
+    expect(getEntryLabels(getSubmenuChildren(entries[5]!))).toEqual(['Room', 'Portal']);
   });
 
   it('routes every built-in category item to its own creation callback', () => {
@@ -59,8 +64,10 @@ describe('createAddMenuEntries', () => {
       if (isMenuAction(entry)) entry.onClick();
     });
     Object.entries(actions)
-      .filter(([name]) => name !== 'onAddEntityPlaced')
+      .filter(([name]) => name !== 'onAddEntityPlaced' && name !== 'onAddModifierVolume')
       .forEach(([, callback]) => expect(callback).toHaveBeenCalledTimes(1));
+    const templateCalls = vi.mocked(actions.onAddModifierVolume).mock.calls.map(([templateId]) => templateId);
+    expect(templateCalls).toEqual(modifierVolumeTemplates.map((template) => template.id));
   });
 });
 
@@ -77,7 +84,7 @@ function createActionSpies(): AddMenuActions {
     onAddPlane: vi.fn(),
     onAddTerrain: vi.fn(),
     onAddSolidModel: vi.fn(),
-    onAddBevelVolume: vi.fn(),
+    onAddModifierVolume: vi.fn(),
     onAddPointLight: vi.fn(),
     onAddSpotLight: vi.fn(),
     onAddRoom: vi.fn(),
