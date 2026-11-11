@@ -17,6 +17,11 @@ import { SolidModelPanel } from '@/solid/ui/panel/solid_model_panel.js';
 import { SolidOperation, solidOperationToggleAdditiveSubtractive } from '@/solid/types/solid_operation.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidBrushEdgeBatch } from '@/solid/model/solid_brush_edge_batch.js';
+import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
+import {
+  modifierVolumeOperationCommands,
+  modifierVolumeOperationToggleCommands,
+} from '@/modifier/stack/modifier_volume_operation_command.js';
 import {
   findSolidModelRoot,
   getSolidGroupOperation,
@@ -398,7 +403,8 @@ export class SolidModelController {
   setOperationOnSelection(operation: SolidOperation): void {
     const groups = this.selectedSolidCsgGroupsCollect();
     const brushes = this.selectedSolidBrushMeshesOutsideGroupsCollect(groups);
-    if (brushes.length === 0 && groups.length === 0) {
+    const volumes = this.selectedModifierVolumesCollect();
+    if (brushes.length === 0 && groups.length === 0 && volumes.length === 0) {
       return;
     }
     if (brushes.length > 0) {
@@ -407,6 +413,35 @@ export class SolidModelController {
     if (groups.length > 0) {
       this.setGroupOperationForGroups(groups, operation);
     }
+    this.setVolumeOperationForVolumes(volumes, operation);
+  }
+
+  /**
+   * Stores a CSG operation on modifier volumes as one undo step; volumes that
+   * already have it are left out.
+   *
+   * @param volumes Modifier volumes.
+   * @param operation New operation of each volume box.
+   */
+  setVolumeOperationForVolumes(volumes: readonly THREE.Object3D[], operation: SolidOperation): void {
+    this.modifierVolumeOperationPush(modifierVolumeOperationCommands(volumes, operation), 'Updated volume operation');
+  }
+
+  /**
+   * Pushes operation edits of modifier volumes as one undo step.
+   *
+   * @param commands Commands from the volume operation builders.
+   * @param message Status text shown after the edit.
+   */
+  private modifierVolumeOperationPush(commands: readonly UndoCommand[], message: string): void {
+    if (commands.length === 0) {
+      return;
+    }
+    this.commandStack.push(new CommandUndoBatch([...commands]));
+    this.panel.refresh();
+    this.syncViewports?.();
+    this.refreshOutliner?.();
+    this.showStatus?.(message);
   }
 
   /**
@@ -417,16 +452,28 @@ export class SolidModelController {
   toggleAdditiveSubtractiveOnSelection(): void {
     const groups = this.selectedSolidCsgGroupsCollect();
     const brushes = this.selectedSolidBrushMeshesOutsideGroupsCollect(groups);
-    const commands = this.buildAdditiveSubtractiveToggleCommands(brushes, groups);
-    if (commands.length === 0) {
-      return;
+    const volumes = this.selectedModifierVolumesCollect();
+    const commands = [
+      ...this.buildAdditiveSubtractiveToggleCommands(brushes, groups),
+      ...modifierVolumeOperationToggleCommands(volumes),
+    ];
+    this.modifierVolumeOperationPush(commands, 'Toggled additive / subtractive');
+  }
+
+  /**
+   * Collects selected modifier volumes from viewport and inspector selection.
+   *
+   * @returns Unique modifier volumes.
+   */
+  private selectedModifierVolumesCollect(): THREE.Object3D[] {
+    const volumes = new Set<THREE.Object3D>();
+    const selected = [...this.selectionManager.getSelectedObjects(), ...this.selectionManager.getInspectorObjects()];
+    for (const object of selected) {
+      if (ModifierVolume.isVolume(object)) {
+        volumes.add(object);
+      }
     }
-    const command = commands.length === 1 ? commands[0]! : new CommandUndoBatch(commands);
-    this.commandStack.push(command);
-    this.panel.refresh();
-    this.syncViewports?.();
-    this.refreshOutliner?.();
-    this.showStatus?.('Toggled additive / subtractive');
+    return [...volumes];
   }
 
   /**

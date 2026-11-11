@@ -7,6 +7,7 @@ import { CommandModifierVolumeCreate } from '@/modifier/stack/command_modifier_v
 import { CommandModifierStackSet } from '@/modifier/stack/command_modifier_stack_set.js';
 import { CommandModifierVolumeBake } from '@/modifier/stack/bake/command_modifier_volume_bake.js';
 import { modifierStackStatusRead } from '@/modifier/stack/evaluate/modifier_stack_status.js';
+import { modifierStackOperationIssue } from '@/modifier/stack/evaluate/modifier_stack_operation_issue.js';
 import { modifierStackKinds } from '@/modifier/stack/modifier_stack_catalog.js';
 import type { ModifierStackField } from '@/modifier/stack/modifier_stack_types.js';
 import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
@@ -137,15 +138,14 @@ export class EditorApiModifierVolumes {
    * @param volume Modifier volume.
    * @param message Result message.
    * @param createdIds Ids to report as created, if any.
-   * @returns Result with id, name, stack and status.
+   * @returns Result with id, name, stack, status, and the reason a boolean
+   *   operation writes no box (empty when it applies).
    */
   private modifierStackDescribe(volume: THREE.Object3D, message: string, createdIds?: string[]): McpToolResult {
-    const data = {
-      id: volume.uuid,
-      name: volume.name,
-      stack: ModifierVolume.read(volume),
-      status: modifierStackStatusRead(volume),
-    };
+    const stack = ModifierVolume.read(volume);
+    const status = modifierStackStatusRead(volume);
+    const operationIssue = modifierStackOperationIssue(volume, stack, status);
+    const data = { id: volume.uuid, name: volume.name, stack, status, operationIssue };
     return okResult(message, data, createdIds ? { createdIds } : undefined);
   }
 

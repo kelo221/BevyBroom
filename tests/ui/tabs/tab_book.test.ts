@@ -122,6 +122,36 @@ describe('TabBook', () => {
     book.dispose();
   });
 
+  it('refuses to show a hidden tab until it is visible again', () => {
+    const { book } = tabBookCreate(['map', 'entity'], 'mounted');
+    book.tabVisibleSet('entity', false);
+    expect(book.tabShow('entity')).toBe(false);
+    expect(book.getActiveTabId()).toBe('map');
+    book.tabVisibleSet('entity', true);
+    expect(book.tabShow('entity')).toBe(true);
+    expect(visiblePageIds(book)).toEqual(['entity']);
+    book.dispose();
+  });
+
+  it('moves the view to the first visible tab when the active tab is hidden', () => {
+    const { book } = tabBookCreate(['map', 'entity', 'face'], 'mounted');
+    book.tabShow('face');
+    book.tabVisibleSet('entity', false);
+    book.tabVisibleSet('face', false);
+    expect(book.getActiveTabId()).toBe('map');
+    expect(visiblePageIds(book)).toEqual(['map']);
+    expect(book.visibleTabIdsList()).toEqual(['map']);
+    book.dispose();
+  });
+
+  it('lists only visible tabs in strip order while keeping every tab id', () => {
+    const { book } = tabBookCreate(['map', 'entity', 'face'], 'mounted');
+    book.tabVisibleSet('entity', false);
+    expect(book.visibleTabIdsList()).toEqual(['map', 'face']);
+    expect(book.tabIdsList()).toEqual(['map', 'entity', 'face']);
+    book.dispose();
+  });
+
   it('stops notifying a listener after it is removed', () => {
     const { book } = tabBookCreate(['map', 'entity'], 'mounted');
     const listener = vi.fn();

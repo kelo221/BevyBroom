@@ -47,6 +47,18 @@ export function modifierStackModelTransform(worldTransform: THREE.Matrix4, solid
 }
 
 /**
+ * Converts a frame-to-world placement into a frame-to-model placement, so
+ * geometry built in the frame lands at the same world spot inside the solid.
+ *
+ * @param frameToWorld Placement of the frame in world space.
+ * @param solidRoot Solid model root.
+ * @returns Placement of the frame in model space.
+ */
+export function modifierStackModelPlacement(frameToWorld: THREE.Matrix4, solidRoot: THREE.Object3D): THREE.Matrix4 {
+  return solidRoot.matrixWorld.clone().invert().multiply(frameToWorld);
+}
+
+/**
  * Measures every unit of a working set in a frame.
  *
  * @param units Working set.

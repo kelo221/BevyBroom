@@ -31,6 +31,17 @@ export function modifierStackStatusWrite(volume: THREE.Object3D, solidId: string
 }
 
 /**
+ * Records that a volume was evaluated and produced nothing, when no solid wrote
+ * feedback for it.
+ *
+ * @param volume Modifier volume.
+ */
+export function modifierStackStatusEnsure(volume: THREE.Object3D): void {
+  if (modifierStackStatusRead(volume)) return;
+  modifierStackStatusWrite(volume, '', { captured: 0, derived: 0, skipped: 0, unbevelled: 0, steps: [] });
+}
+
+/**
  * Drops every contribution, for example before a scene-wide rebuild.
  *
  * @param volume Modifier volume.

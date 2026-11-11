@@ -4,6 +4,7 @@ import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { PanelProperties } from '@/ui/properties/panel_properties.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
+import { findSolidModelSection } from './panel_properties_solid_section_helpers.js';
 
 describe('PropertiesPanel solid model section', () => {
   let container: HTMLElement;
@@ -78,17 +79,3 @@ describe('PropertiesPanel solid model section', () => {
     expect(section!.style.display).toBe('none');
   });
 });
-
-/**
- * Finds the Solid Model section element in the properties panel.
- *
- * @param panelRoot Properties panel container.
- * @returns Section element or null.
- */
-function findSolidModelSection(panelRoot: HTMLElement): HTMLElement | null {
-  for (const element of Array.from(panelRoot.querySelectorAll('div'))) {
-    const header = element.firstElementChild;
-    if (header?.textContent === 'Solid Model') return element;
-  }
-  return null;
-}

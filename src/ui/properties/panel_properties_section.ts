@@ -30,6 +30,11 @@ export interface PanelPropertiesSection {
    * it are not keyvalues.
    */
   keyvaluesSectionIs?(): boolean;
+  /**
+   * Returns the id of the Object Properties tab that hosts the section.
+   * Sections without it belong to the Properties tab.
+   */
+  objectPropertiesTabIdGet?(): string;
 }
 
 /** Creates one inspector section with the panel's chrome. */

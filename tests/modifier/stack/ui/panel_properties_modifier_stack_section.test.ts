@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CommandStack } from '@/commands/command_stack.js';
 import { PanelPropertiesModifierStackSection } from '@/modifier/stack/ui/panel_properties_modifier_stack_section.js';
@@ -13,6 +14,7 @@ import {
 } from '@/modifier/stack/ui/modifier_stack_ui_layout.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { stackFixture, stackFixtureRequired } from '../modifier_stack_fixture.js';
+import { operationFlatVolumeScene } from '../modifier_stack_operation_fixture.js';
 
 /**
  * Creates the inspector with plain chrome.
@@ -156,6 +158,53 @@ describe('modifier stack inspector', () => {
     expect(ModifierVolumeBevel.readDistance(fixture.volume)).toBeCloseTo(0.2);
     expect(stack.undo()).toBe(true);
     expect(ModifierVolumeBevel.readDistance(fixture.volume)).toBeCloseTo(0.05);
+  });
+
+  it('sets the volume operation from the Operation select as one undo step and shows the stored value', () => {
+    const fixture = stackFixture(['linear']);
+    const { section, root, stack } = inspector();
+    section.updateFromObjects([fixture.volume]);
+    const operation = root.querySelector<HTMLSelectElement>('select[aria-label="Operation"]');
+    if (!operation) throw new Error('No operation select');
+    expect(operation.value).toBe('none');
+    operation.value = 'subtract';
+    operation.dispatchEvent(new Event('change'));
+    expect(ModifierVolume.read(fixture.volume).operation).toBe('subtract');
+    expect(stack.undo()).toBe(true);
+    expect(ModifierVolume.read(fixture.volume).operation).toBe('none');
+    section.refresh();
+    expect(operation.value).toBe('none');
+  });
+
+  it('reports a subtractive volume clear of every brush as evaluated and capturing nothing', () => {
+    const fixture = stackFixture([]);
+    const brushBounds = new THREE.Box3().setFromObject(fixture.model.root);
+    const volumeBounds = new THREE.Box3().setFromObject(fixture.volume);
+    const clearance = brushBounds.max.x - volumeBounds.min.x + volumeBounds.getSize(new THREE.Vector3()).x;
+    fixture.volume.position.x += clearance;
+    fixture.refresh();
+    const { section, root } = inspector();
+    section.updateFromObjects([fixture.volume]);
+    const operation = root.querySelector<HTMLSelectElement>('select[aria-label="Operation"]');
+    if (!operation) throw new Error('No operation select');
+    operation.value = 'subtract';
+    operation.dispatchEvent(new Event('change'));
+    expect(root.textContent).not.toContain('Not evaluated yet');
+    expect(root.textContent).toContain('0 sources → 0 brushes');
+    expect(root.textContent).toContain('captures no brushes, so the Subtractive box is not written');
+    expect(root.textContent).not.toContain('add a modifier to start');
+  });
+
+  it('names the flat axis when a subtractive volume without thickness touches brushes', () => {
+    const scene = operationFlatVolumeScene();
+    const { section, root } = inspector();
+    section.updateFromObjects([scene.volume]);
+    const operation = root.querySelector<HTMLSelectElement>('select[aria-label="Operation"]');
+    if (!operation) throw new Error('No operation select');
+    operation.value = 'subtract';
+    operation.dispatchEvent(new Event('change'));
+    expect(root.textContent).toContain(`${scene.touchedBrushes} sources → 0 brushes`);
+    expect(root.textContent).toContain('no thickness on its Y axis, so the Subtractive box is not written');
   });
 
   it('asks for a single volume when several are selected and hides for other objects', () => {

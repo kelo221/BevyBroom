@@ -18,11 +18,11 @@ describe('RegistryObjectPropertiesTab', () => {
     expect(registry.listOrdered().map((item) => item.id)).toEqual(['class_info', 'visgroup']);
   });
 
-  it('starts the shared registry with Class Info, Outputs, Inputs, Properties and VisGroup in order', () => {
+  it('starts the shared registry with Class Info, Outputs, Inputs, Properties, Modifiers and VisGroup in order', () => {
     const ids = getRegistryObjectPropertiesTab()
       .listOrdered()
       .map((item) => item.id);
-    const expectedOrder = ['class_info', 'outputs', 'inputs', 'properties', 'visgroup'];
+    const expectedOrder = ['class_info', 'outputs', 'inputs', 'properties', 'modifiers', 'visgroup'];
     expect(ids.filter((id) => expectedOrder.includes(id))).toEqual(expectedOrder);
     expect(ids[0]).toBe('class_info');
   });

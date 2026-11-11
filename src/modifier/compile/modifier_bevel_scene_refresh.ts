@@ -9,7 +9,10 @@ import {
 } from '@/modifier/stack/modifier_volume.js';
 import { modifierStackBrushTouches } from '@/modifier/stack/evaluate/modifier_stack_capture.js';
 import { modifierStackDerivedByRoot } from '@/modifier/stack/evaluate/modifier_stack_compile.js';
-import { modifierStackStatusReset } from '@/modifier/stack/evaluate/modifier_stack_status.js';
+import {
+  modifierStackStatusEnsure,
+  modifierStackStatusReset,
+} from '@/modifier/stack/evaluate/modifier_stack_status.js';
 import { MODIFIER_STACK_KIND_BEVEL } from '@/modifier/volume/modifier_volume_record.js';
 import { modifierStackHelpersRefresh } from '@/modifier/stack/helpers/modifier_stack_helpers.js';
 import { ModifierBevelAffectedSet } from './modifier_bevel_affected_set.js';
@@ -31,7 +34,8 @@ export function modifierBevelRefreshIfVolumesMoved(
 
 /**
  * Re-evaluates every modifier volume: solids with derived output rebuild in
- * full, others rebuild the brushes that meet a volume or recently did.
+ * full, others rebuild the brushes that meet a volume or recently did. Active
+ * volumes no solid evaluated are recorded as evaluated with no output.
  *
  * @param sceneRoot Scene root.
  */
@@ -43,6 +47,7 @@ export function modifierBevelRefreshScene(sceneRoot: THREE.Object3D): void {
   const active = modifierVolumesActive(sceneRoot);
   const derives = active.some(modifierBevelVolumeDerives);
   for (const model of SolidModelRegistry.collectUnder(sceneRoot)) modifierBevelRefreshModel(model, active, derives);
+  for (const volume of active) modifierStackStatusEnsure(volume);
   modifierStackHelpersRefresh(all);
 }
 

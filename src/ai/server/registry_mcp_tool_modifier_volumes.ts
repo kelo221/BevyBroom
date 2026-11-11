@@ -1,4 +1,5 @@
 import { modifierVolumeTemplates } from '@/modifier/stack/modifier_volume_templates.js';
+import { MODIFIER_STACK_VOLUME_OPERATIONS } from '@/modifier/stack/modifier_stack_volume_operation.js';
 import { tool, vec3Schema, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
 /** JSON Schema of one modifier in a stack argument. */
@@ -28,6 +29,12 @@ const modifierStackSettingsProperties = {
     enum: ['compound', 'brush'],
     description: 'compound captures whole top-level groups; brush captures single brushes.',
   },
+  operation: {
+    type: 'string',
+    enum: [...MODIFIER_STACK_VOLUME_OPERATIONS],
+    description:
+      'Boolean role of the volume box in every solid whose brushes it captures: add writes the box as an additive brush, subtract cuts it out, intersect keeps only the overlap, none writes no box. A box without thickness on an axis is never written.',
+  },
   excludedIds: {
     type: 'array',
     items: { type: 'string' },
@@ -45,7 +52,7 @@ export const MCP_MODIFIER_VOLUME_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ),
   tool(
     'add_modifier_volume',
-    'Creates a modifier volume as one undo step: an editor-only box whose ordered modifier stack (arrays, mirror, shear, bevel, smooth shading) turns the solid brushes it overlaps into extra or reshaped brushes in the result geometry, the export and the game preview. Starts from template (default empty), then applies the given stack settings. Returns { id, name, stack }.',
+    'Creates a modifier volume as one undo step: an editor-only box whose ordered modifier stack (arrays, mirror, shear, bevel, smooth shading) turns the solid brushes it overlaps into extra or reshaped brushes in the result geometry, the export and the game preview. Starts from template (default empty), then applies the given stack settings. Returns { id, name, stack, status, operationIssue }, where operationIssue explains why a boolean operation writes no box (empty when it applies).',
     {
       type: 'object',
       properties: {
@@ -67,12 +74,12 @@ export const MCP_MODIFIER_VOLUME_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ),
   tool(
     'get_modifier_stack',
-    'Reads the stack of a modifier volume: settings, every modifier with its normalized parameters, and the feedback of the last evaluation. Returns { id, name, stack, status }.',
+    'Reads the stack of a modifier volume: settings, every modifier with its normalized parameters, and the feedback of the last evaluation. Returns { id, name, stack, status, operationIssue }.',
     { type: 'object', properties: { id: { type: 'string', description: 'Modifier volume id.' } }, required: ['id'] },
   ),
   tool(
     'set_modifier_stack',
-    'Edits the stack of a modifier volume as one undo step: replaces the modifier list (entries naming an existing id keep their other parameters), and sets grouping, excludedIds and enabled. Returns { id, name, stack }.',
+    'Edits the stack of a modifier volume as one undo step: replaces the modifier list (entries naming an existing id keep their other parameters), and sets grouping, operation, excludedIds and enabled. Returns { id, name, stack, status, operationIssue }.',
     {
       type: 'object',
       properties: { id: { type: 'string', description: 'Modifier volume id.' }, ...modifierStackSettingsProperties },

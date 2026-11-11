@@ -29,9 +29,10 @@ import { desktopE2eProjectPrepare, type DesktopE2eProject } from './desktop_e2e_
  * End-to-end acceptance of modifier volumes: the built desktop app builds a box
  * brush and a linear array modifier volume over it through its MCP tools, the
  * running game shows the box with its copies while the volume box never reaches
- * it, and Build Level writes geometry holding the copies and no volume. Needs
- * BROOM_E2E_DESKTOP_EXE, BROOM_E2E_PREVIEW_EXE, BROOM_E2E_PROJECT_DIR and cargo
- * on the PATH.
+ * it, and Build Level writes geometry holding the copies and no volume. A
+ * subtractive volume over half the box then cuts that half away in the game and
+ * in the built level. Needs BROOM_E2E_DESKTOP_EXE, BROOM_E2E_PREVIEW_EXE,
+ * BROOM_E2E_PROJECT_DIR and cargo on the PATH.
  */
 const desktopExecutable = process.env['BROOM_E2E_DESKTOP_EXE'] ? resolve(process.env['BROOM_E2E_DESKTOP_EXE']) : '';
 e2eRequiredConfigurationAssert(desktopExecutable !== '', ['BROOM_E2E_DESKTOP_EXE']);
@@ -45,6 +46,7 @@ const STEP_TIMEOUT_MILLISECONDS = 60000;
 const AABB_COMPONENT = 'bevy_camera::primitives::Aabb';
 const TIGHT_BOUNDS_COMPONENT = 'broom_bridge::level::bounds::TightBounds';
 const LEVEL_NAME = 'e2e_modifier_array';
+const LEVEL_NAME_CUT = 'e2e_modifier_subtract';
 const BOUNDS_TOLERANCE = 1e-3;
 
 /** Center of the source box, far from anything the project scene may hold. */
@@ -154,6 +156,8 @@ describe.skipIf(!isConfigured)('desktop app modifier volume end to end', () => {
   let project: DesktopE2eProject;
   let sourceBounds: McpBounds;
   let volumeName = '';
+  let arrayVolumeId = '';
+  let subtractVolumeName = '';
 
   /**
    * Waits until the managed game reaches a phase.
@@ -231,7 +235,7 @@ describe.skipIf(!isConfigured)('desktop app modifier volume end to end', () => {
    *
    * @returns Name of the new volume.
    */
-  async function arrayVolumeAdd(): Promise<string> {
+  async function arrayVolumeAdd(): Promise<{ id: string; name: string }> {
     const volumeEdge = SOURCE_EDGE + VOLUME_MARGIN * 2;
     const created = await client.toolCallExpectOk('add_modifier_volume', {
       template: 'linear',
@@ -240,7 +244,50 @@ describe.skipIf(!isConfigured)('desktop app modifier volume end to end', () => {
       name: `ModifierArrayVolume${Math.random().toString(36).slice(2, 8)}`,
       modifiers: [{ kind: 'linear', parameters: { mode: 'fixed', offsetX: COPY_STEP, count: COPY_COUNT } }],
     });
-    return toolDataRead<{ name: string }>(created).name;
+    return toolDataRead<{ id: string; name: string }>(created);
+  }
+
+  /**
+   * Adds a subtractive volume that covers the +X half of the source box and
+   * reaches past it on every other side.
+   *
+   * @returns Name of the new volume and why its box would not be written.
+   */
+  async function subtractVolumeAdd(): Promise<{ name: string; operationIssue: string }> {
+    const sourceBox = new THREE.Box3(vectorRead(sourceBounds.min), vectorRead(sourceBounds.max));
+    const sourceSize = sourceBox.getSize(new THREE.Vector3());
+    const reach = sourceSize.clone().addScalar(VOLUME_MARGIN * 2);
+    const created = await client.toolCallExpectOk('add_modifier_volume', {
+      center: { x: sourceBox.max.x, y: SOURCE_CENTER.y, z: SOURCE_CENTER.z },
+      size: { x: sourceSize.x, y: reach.y, z: reach.z },
+      name: `ModifierSubtractVolume${Math.random().toString(36).slice(2, 8)}`,
+      operation: 'subtract',
+    });
+    return toolDataRead<{ name: string; operationIssue: string }>(created);
+  }
+
+  /**
+   * Returns the bounds of the source box with its +X half cut away.
+   *
+   * @returns Expected bounds after the subtractive volume.
+   */
+  function cutBoundsExpected(): THREE.Box3 {
+    const box = new THREE.Box3(vectorRead(sourceBounds.min), vectorRead(sourceBounds.max));
+    box.max.x = box.getCenter(new THREE.Vector3()).x;
+    return box;
+  }
+
+  /**
+   * Builds a level and returns the bounds of its geometry around the source.
+   *
+   * @param levelName Level to build.
+   * @returns GLB bytes and the region bounds.
+   */
+  async function levelRegionBuild(levelName: string): Promise<{ buffer: ArrayBuffer; bounds: THREE.Box3 }> {
+    const built = toolDataRead<ModifierE2eLevelBuild>(await client.toolCallExpectOk('build_level', { levelName }));
+    const bytes = readFileSync(join(built.levelDirectory, built.geometryFile));
+    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    return { buffer, bounds: glbRegionBoundsRead(buffer) };
   }
 
   /**
@@ -328,7 +375,9 @@ describe.skipIf(!isConfigured)('desktop app modifier volume end to end', () => {
       sourceBounds = await sourceBuild();
       const sourceBox = new THREE.Box3(vectorRead(sourceBounds.min), vectorRead(sourceBounds.max));
       await gameRegionBoundsWait(sourceBox, 'the source box alone');
-      volumeName = await arrayVolumeAdd();
+      const arrayVolume = await arrayVolumeAdd();
+      volumeName = arrayVolume.name;
+      arrayVolumeId = arrayVolume.id;
       await gameRegionBoundsWait(arrayedBoundsExpected(sourceBounds), 'the source box and its copies');
       expect(await gameEntityNamesRead()).not.toContain(volumeName);
     },
@@ -338,15 +387,38 @@ describe.skipIf(!isConfigured)('desktop app modifier volume end to end', () => {
   it(
     'builds a level whose geometry holds the copies and no modifier volume',
     async () => {
-      const built = toolDataRead<ModifierE2eLevelBuild>(
-        await client.toolCallExpectOk('build_level', { levelName: LEVEL_NAME }),
-      );
-      const bytes = readFileSync(join(built.levelDirectory, built.geometryFile));
-      const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      const { buffer, bounds: exported } = await levelRegionBuild(LEVEL_NAME);
       expect(glbNodeNamesRead(buffer).map((node) => node.name)).not.toContain(volumeName);
-      const exported = glbRegionBoundsRead(buffer);
       expect(exported.isEmpty()).toBe(false);
       const expected = arrayedBoundsExpected(sourceBounds);
+      expect(exported.min.distanceTo(expected.min)).toBeLessThan(BOUNDS_TOLERANCE);
+      expect(exported.max.distanceTo(expected.max)).toBeLessThan(BOUNDS_TOLERANCE);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'cuts the covered half of the box in the running game with a subtractive volume',
+    async () => {
+      await client.toolCallExpectOk('set_modifier_stack', { id: arrayVolumeId, modifiers: [] });
+      const sourceBox = new THREE.Box3(vectorRead(sourceBounds.min), vectorRead(sourceBounds.max));
+      await gameRegionBoundsWait(sourceBox, 'the source box without copies');
+      const subtractVolume = await subtractVolumeAdd();
+      subtractVolumeName = subtractVolume.name;
+      expect(subtractVolume.operationIssue).toBe('');
+      await gameRegionBoundsWait(cutBoundsExpected(), 'the source box with its +X half cut away');
+      expect(await gameEntityNamesRead()).not.toContain(subtractVolumeName);
+    },
+    STEP_TIMEOUT_MILLISECONDS * 3,
+  );
+
+  it(
+    'builds a level whose geometry holds the cut box and no subtractive volume',
+    async () => {
+      const { buffer, bounds: exported } = await levelRegionBuild(LEVEL_NAME_CUT);
+      expect(glbNodeNamesRead(buffer).map((node) => node.name)).not.toContain(subtractVolumeName);
+      expect(exported.isEmpty()).toBe(false);
+      const expected = cutBoundsExpected();
       expect(exported.min.distanceTo(expected.min)).toBeLessThan(BOUNDS_TOLERANCE);
       expect(exported.max.distanceTo(expected.max)).toBeLessThan(BOUNDS_TOLERANCE);
     },

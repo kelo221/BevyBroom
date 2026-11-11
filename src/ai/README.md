@@ -393,13 +393,15 @@ These tools need the desktop app; the browser editor answers that it cannot star
 
 A modifier volume is an editor-only box with an ordered modifier stack. The solid brushes it overlaps run through the stack (arrays, mirror, shear, bevel, smooth shading); the results join the solid model's geometry, the export and the game preview, while the box itself is never exported.
 
-| Tool                   | What it does                                                                                                                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `list_modifier_kinds`  | Installed `kinds` with `fields` (key, type, default, choices, min, max) and `defaultParameters`, plus the Add menu `templates`                                                       |
-| `add_modifier_volume`  | One undo step: a volume from `template` at world `center` with `size`, optional `parentId`, `name`, `modifiers`, `grouping`, `excludedIds`, `enabled`; returns `{ id, name, stack }` |
-| `get_modifier_stack`   | The stack of volume `id` with the last evaluation's `status` (captured, derived, skipped, per-step reports)                                                                          |
-| `set_modifier_stack`   | One undo step: replaces `modifiers` (entries with an existing `id` keep their other parameters) and sets `grouping`, `excludedIds`, `enabled`                                        |
-| `bake_modifier_volume` | One undo step: turns the volume's outputs into ordinary brushes and removes the volume; returns `{ createdBrushIds }`                                                                |
+| Tool                   | What it does                                                                                                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list_modifier_kinds`  | Installed `kinds` with `fields` (key, type, default, choices, min, max) and `defaultParameters`, plus the Add menu `templates`                                                                                            |
+| `add_modifier_volume`  | One undo step: a volume from `template` at world `center` with `size`, optional `parentId`, `name`, `modifiers`, `grouping`, `operation`, `excludedIds`, `enabled`; returns `{ id, name, stack, status, operationIssue }` |
+| `get_modifier_stack`   | The stack of volume `id` with the last evaluation's `status` (captured, derived, skipped, per-step reports) and `operationIssue`                                                                                          |
+| `set_modifier_stack`   | One undo step: replaces `modifiers` (entries with an existing `id` keep their other parameters) and sets `grouping`, `operation`, `excludedIds`, `enabled`                                                                |
+| `bake_modifier_volume` | One undo step: turns the volume's outputs into ordinary brushes and removes the volume; returns `{ createdBrushIds }`                                                                                                     |
+
+`operation` (`none`, `add`, `subtract`, `intersect`) writes the volume box into every solid whose brushes the volume captures, as an additive, subtractive or intersecting brush. `operationIssue` explains in words why a boolean operation writes no box (the box has no thickness on an axis, or the volume captures no brushes); it is empty when the operation applies.
 
 ## Not in this build
 
