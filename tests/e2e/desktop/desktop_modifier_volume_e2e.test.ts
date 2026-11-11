@@ -19,7 +19,7 @@ import {
   previewE2eNameRead,
   type PreviewE2eEntityRow,
 } from '../preview_e2e_game_query.js';
-import { glbNodeNamesRead, glbNodePositionsRead } from '../../io/glb/glb_node_positions_read.js';
+import { glbMeshNodesScenePositionsRead, glbNodeNamesRead } from '../../io/glb/glb_node_positions_read.js';
 import { DesktopE2eAppProcess } from './desktop_e2e_app_process.js';
 import { DesktopE2eMcpClient } from './desktop_e2e_mcp_client.js';
 import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
@@ -159,16 +159,20 @@ describe.skipIf(!isConfigured)('desktop app modifier volume end to end', () => {
    * Waits until the managed game reaches a phase.
    *
    * @param phase Awaited phase.
+   * @param timeoutMilliseconds Longest wait.
    * @returns The matching status.
    */
-  async function phaseWait(phase: GameProcessPhase): Promise<ModifierE2eProjectStatus> {
+  async function phaseWait(
+    phase: GameProcessPhase,
+    timeoutMilliseconds = BUILD_TIMEOUT_MILLISECONDS,
+  ): Promise<ModifierE2eProjectStatus> {
     return desktopE2eWaitUntil(
       `the game to reach ${phase}`,
       async () => {
         const status = toolDataRead<ModifierE2eProjectStatus>(await client.toolCallExpectOk('project_status'));
         return status.phase === phase ? status : null;
       },
-      BUILD_TIMEOUT_MILLISECONDS,
+      timeoutMilliseconds,
     );
   }
 
@@ -270,18 +274,17 @@ describe.skipIf(!isConfigured)('desktop app modifier volume end to end', () => {
   }
 
   /**
-   * Returns the bounds of every mesh node of a GLB file that lies around the
-   * source box, in its parent node's space.
+   * Returns the scene-space bounds of every mesh node of a GLB file that lies
+   * around the source box. Mesh nodes are told apart by index, since every
+   * solid model names its result mesh node the same.
    *
    * @param buffer GLB bytes.
-   * @returns Union bounds of those mesh positions.
+   * @returns Union bounds of those mesh positions; empty when none lies there.
    */
   function glbRegionBoundsRead(buffer: ArrayBuffer): THREE.Box3 {
     const union = new THREE.Box3();
-    for (const node of glbNodeNamesRead(buffer)) {
-      if (!node.hasMesh || node.name === '') continue;
-      const positions = glbNodePositionsRead(buffer, node.name);
-      const nodeBounds = new THREE.Box3().setFromPoints(positions);
+    for (const node of glbMeshNodesScenePositionsRead(buffer)) {
+      const nodeBounds = new THREE.Box3().setFromPoints(node.positions);
       if (Math.abs(nodeBounds.getCenter(new THREE.Vector3()).x - SOURCE_CENTER.x) > REGION_HALF_WIDTH) continue;
       union.union(nodeBounds);
     }
@@ -307,8 +310,10 @@ describe.skipIf(!isConfigured)('desktop app modifier volume end to end', () => {
   }, LAUNCH_TIMEOUT_MILLISECONDS * 2);
 
   afterAll(async () => {
-    await client?.toolCall('game_stop').catch(() => undefined);
-    await phaseWait('stopped').catch(() => undefined);
+    if (client) {
+      await client.toolCall('game_stop').catch(() => undefined);
+      await phaseWait('stopped', STEP_TIMEOUT_MILLISECONDS / 2).catch(() => undefined);
+    }
     await app.stop();
     if (project) {
       previewE2eProjectRemove(project.directory);
@@ -340,10 +345,10 @@ describe.skipIf(!isConfigured)('desktop app modifier volume end to end', () => {
       const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
       expect(glbNodeNamesRead(buffer).map((node) => node.name)).not.toContain(volumeName);
       const exported = glbRegionBoundsRead(buffer);
+      expect(exported.isEmpty()).toBe(false);
       const expected = arrayedBoundsExpected(sourceBounds);
-      const exportedSize = exported.getSize(new THREE.Vector3());
-      const expectedSize = expected.getSize(new THREE.Vector3());
-      expect(exportedSize.distanceTo(expectedSize)).toBeLessThan(BOUNDS_TOLERANCE);
+      expect(exported.min.distanceTo(expected.min)).toBeLessThan(BOUNDS_TOLERANCE);
+      expect(exported.max.distanceTo(expected.max)).toBeLessThan(BOUNDS_TOLERANCE);
     },
     STEP_TIMEOUT_MILLISECONDS,
   );
