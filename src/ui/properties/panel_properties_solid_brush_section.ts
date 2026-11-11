@@ -31,6 +31,11 @@ export interface SolidBrushPropertyHandlers {
    * @param inverted True when CSG starts solid (carve rooms with subtract).
    */
   onSetInvertedWorld?: (inverted: boolean) => void;
+  /**
+   * Refreshes selection, outliner and views after a section changed the scene
+   * structure.
+   */
+  onSceneChanged?: () => void;
 }
 
 /** Builds and updates the inspector Solid Brush section (CSG ops + add brush). */
@@ -119,6 +124,8 @@ export class PanelPropertiesSolidBrushSection {
    */
   setHandlers(handlers: SolidBrushPropertyHandlers | null): void {
     this.handlers = handlers;
+    const sceneChanged = handlers?.onSceneChanged ?? null;
+    this.registeredSections.forEach((registeredSection) => registeredSection.setSceneChanged?.(sceneChanged));
   }
 
   /**

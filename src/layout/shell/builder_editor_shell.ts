@@ -48,7 +48,7 @@ export interface EditorToolbarActions {
   onAddPlane: () => void;
   onAddTerrain: () => void;
   onAddSolidModel: () => void;
-  onAddBevelVolume: () => void;
+  onAddModifierVolume: (templateId: string) => void;
   onAddPointLight: () => void;
   onAddSpotLight: () => void;
   onAddRoom: () => void;

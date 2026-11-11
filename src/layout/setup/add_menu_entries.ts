@@ -10,7 +10,8 @@ export interface AddMenuActions {
   onAddPlane: () => void;
   onAddTerrain: () => void;
   onAddSolidModel: () => void;
-  onAddBevelVolume: () => void;
+  /** Creates a modifier volume from a template such as `bevel` or `linear`. */
+  onAddModifierVolume: (templateId: string) => void;
   onAddPointLight: () => void;
   onAddSpotLight: () => void;
   onAddRoom: () => void;

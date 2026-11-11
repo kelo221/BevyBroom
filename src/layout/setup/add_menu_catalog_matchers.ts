@@ -3,7 +3,7 @@ import type { EntityOwner } from '@/entity/model/entity_owner.js';
 import { entityKindRead } from '@/entity/model/entity_owner_keys.js';
 import { LightOwner } from '@/light/model/light_owner.js';
 import type { LightKind } from '@/light/model/light_settings.js';
-import { MODIFIER_VOLUME_BEVEL_USERDATA_KEY } from '@/modifier/volume/modifier_volume_bevel_keys.js';
+import { modifierVolumeIs } from '@/modifier/volume/modifier_volume_is.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { resolveGeometrySourceType, type GeometrySourceType } from '@/texture/uv/geometry_source.js';
@@ -36,7 +36,7 @@ function addMenuCatalogPlainMeshIs(mesh: THREE.Mesh): boolean {
   if (SolidModel.isSolidModelObject(mesh) || SolidModel.isResultMesh(mesh) || SolidBrushVisual.isBrushObject(mesh)) {
     return false;
   }
-  if (mesh.userData[MODIFIER_VOLUME_BEVEL_USERDATA_KEY] === true) {
+  if (modifierVolumeIs(mesh)) {
     return false;
   }
   return entityKindRead(mesh) === null;
@@ -49,15 +49,6 @@ function addMenuCatalogPlainMeshIs(mesh: THREE.Mesh): boolean {
  */
 export function addMenuCatalogMatcherSolidModel(): AddMenuCatalogObjectMatcher {
   return (object) => SolidModel.isSolidModelObject(object);
-}
-
-/**
- * Returns a matcher for bevel modifier volumes.
- *
- * @returns Object matcher.
- */
-export function addMenuCatalogMatcherBevelVolume(): AddMenuCatalogObjectMatcher {
-  return (object) => object instanceof THREE.Mesh && object.userData[MODIFIER_VOLUME_BEVEL_USERDATA_KEY] === true;
 }
 
 /**
