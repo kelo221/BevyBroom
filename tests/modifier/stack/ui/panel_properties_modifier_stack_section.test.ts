@@ -11,7 +11,8 @@ import {
   MODIFIER_STACK_UI_STACK_BELOW_PX,
   modifierStackUiLayoutCss,
 } from '@/modifier/stack/ui/modifier_stack_ui_layout.js';
-import { stackFixture } from '../modifier_stack_fixture.js';
+import { ManagerSelection } from '@/selection/object/manager_selection.js';
+import { stackFixture, stackFixtureRequired } from '../modifier_stack_fixture.js';
 
 /**
  * Creates the inspector with plain chrome.
@@ -187,6 +188,28 @@ describe('modifier stack inspector', () => {
     button(root, 'Volume actions').click();
     clickMenu('Bake to Brushes');
     expect(fixture.volume.parent).toBeNull();
+  });
+
+  it('reports a bake as a scene change, so the editor drops the baked volume and undone brushes from the selection', () => {
+    const fixture = stackFixture([{ kind: 'linear', parameters: { mode: 'fixed', offsetX: 2 } }]);
+    fixture.refresh();
+    const selection = new ManagerSelection();
+    const { section, stack, root } = inspector();
+    section.setSceneChanged(() => selection.pruneSelectionNotInScene(fixture.world));
+    selection.setSelection([fixture.volume]);
+    section.updateFromObjects([fixture.volume]);
+    button(root, 'Volume actions').click();
+    clickMenu('Bake to Brushes');
+    expect(selection.getAllSelectedObjectsAsArray()).toEqual([]);
+    const bakedMesh = stackFixtureRequired(fixture.model.getBrushes().at(-1)?.mesh, 'a baked brush mesh');
+    selection.setSelection([bakedMesh]);
+    stack.undo();
+    selection.pruneSelectionNotInScene(fixture.world);
+    expect(selection.getAllSelectedObjectsAsArray()).toEqual([]);
+    selection.setSelection([fixture.volume]);
+    stack.redo();
+    selection.pruneSelectionNotInScene(fixture.world);
+    expect(selection.getAllSelectedObjectsAsArray()).toEqual([]);
   });
 
   it('keeps the header to the name and shows the summary only while folded', () => {
