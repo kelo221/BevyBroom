@@ -20,7 +20,7 @@ import { SolidModel } from '@/solid/model/solid_model.js';
 import { FaceSelection } from '@/selection/face/manager_face_selection.js';
 import { solidFaceTargetFromResultTriangle } from '@/selection/face/solid_face_target_resolver.js';
 import { mapPreviewTriangleToBrushFace } from '@/solid/model/brush_preview_face_map.js';
-import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js';
+import { modifierVolumeIs } from '@/modifier/volume/modifier_volume_is.js';
 
 /**
  * Callback for status messages after texture assignment.
@@ -183,14 +183,15 @@ export class ControllerTextureAssignment {
   }
 
   /**
-   * Paints selected objects, skipping a selection that is only bevel volumes.
+   * Paints selected objects, skipping a selection that is only modifier
+   * volumes.
    *
    * @param entry Texture identity and display name.
    */
   private assignObjectSelection(entry: TextureAssignmentChoice): void {
     const meshes = this.selectionManager.getAllSelectedObjectsAsArray();
-    if (this.selectionIsOnlyBevelVolumes(meshes)) {
-      this.statusCallback?.('Bevel volumes keep their texture in the volume settings');
+    if (this.selectionIsOnlyModifierVolumes(meshes)) {
+      this.statusCallback?.('Modifier volumes keep their texture in the modifier settings');
       return;
     }
     this.assignObjectTargets(meshes, entry);
@@ -346,18 +347,18 @@ export class ControllerTextureAssignment {
   private isContentTextureMesh(mesh: THREE.Mesh): boolean {
     if (SolidBrushVisual.isBrushObject(mesh)) return false;
     if (SolidModel.isResultMesh(mesh)) return false;
-    if (ModifierVolumeBevel.isVolume(mesh)) return false;
+    if (modifierVolumeIs(mesh)) return false;
     if (entityVisualPartIs(mesh)) return false;
     return true;
   }
 
   /**
-   * Returns whether every selected mesh is a bevel volume.
+   * Returns whether every selected mesh is a modifier volume.
    *
    * @param meshes Current object selection.
    * @returns True when there is nothing to paint except volumes.
    */
-  private selectionIsOnlyBevelVolumes(meshes: readonly THREE.Object3D[]): boolean {
-    return meshes.length > 0 && meshes.every((mesh) => ModifierVolumeBevel.isVolume(mesh));
+  private selectionIsOnlyModifierVolumes(meshes: readonly THREE.Object3D[]): boolean {
+    return meshes.length > 0 && meshes.every((mesh) => modifierVolumeIs(mesh));
   }
 }

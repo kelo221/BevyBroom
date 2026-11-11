@@ -6,7 +6,7 @@ import { serializeFaceTextureMapping } from '@/texture/uv/face_texture_mapping.j
 import { resolveGeometrySourceParams, resolveGeometrySourceType } from '@/texture/uv/geometry_source.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidModelCodec } from '@/solid/io/solid_model_codec.js';
-import { ModifierVolumeBevel, type ModifierBevelVolumeSettings } from '@/modifier/volume/modifier_volume_bevel.js';
+import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
 import { entityOwnerIs } from '@/entity/model/entity_owner_keys.js';
 import { EntityOwnerRegistry } from '@/entity/registry/entity_owner_registry.js';
 import { documentIdentityEnsure } from '@/io/document/document_identity.js';
@@ -16,9 +16,10 @@ import { ObjectDataContributorRegistry } from '@/object_data/object_data_contrib
  * Schema version for serialized scene files. Version 3 adds face texture maps
  * and optional buffer UV channels. Version 4 adds the document identifier and
  * authored light entries. Version 5 adds room and portal entries. Version 6
- * adds game components. Version 7 adds layers.
+ * adds game components. Version 7 adds layers. Version 8 stores modifier
+ * volumes as an ordered modifier stack instead of bevel-only settings.
  */
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 
 /**
  * Serializes a Three.js scene graph into a JSON-compatible structure. Walks the
@@ -256,65 +257,13 @@ export class SceneSerializer {
     entry.geometryType = geometryType;
     entry.materialColor = this.extractMaterialColor(mesh);
     this.attachFaceTextureMaps(mesh, entry);
-    this.attachBevelVolume(mesh, entry);
+    if (ModifierVolume.isVolume(mesh)) entry.modifierStack = ModifierVolume.read(mesh);
     if (geometryType === 'buffer') {
       entry.geometryData = this.bufferGeometryCodec.encode(mesh.geometry);
       return entry;
     }
     entry.geometryParams = this.extractGeometryParams(mesh.geometry, geometryType);
     return entry;
-  }
-
-  /**
-   * Records bevel-volume distance when the mesh is a modifier volume.
-   *
-   * @param mesh Source mesh.
-   * @param entry Entry to enrich.
-   */
-  private attachBevelVolume(mesh: THREE.Mesh, entry: ObjectEntry): void {
-    if (!ModifierVolumeBevel.isVolume(mesh)) return;
-    const settings = ModifierVolumeBevel.readSettings(mesh);
-    entry.modifierBevel = {
-      distance: settings.distance,
-      segments: settings.segments,
-      angleDegrees: settings.angleDegrees,
-      uvFlow: settings.uvFlow,
-      uvLayout: settings.uvLayout,
-      textureId: settings.textureId,
-    };
-    this.modifierBevelAttachBlacklist(entry.modifierBevel, settings.blacklist);
-    this.modifierBevelAttachPlacement(entry.modifierBevel, settings);
-  }
-
-  /**
-   * Stores generated UV scale, offset, and rotation.
-   *
-   * @param bevel Serialized bevel fields.
-   * @param settings Volume settings.
-   */
-  private modifierBevelAttachPlacement(
-    bevel: NonNullable<ObjectEntry['modifierBevel']>,
-    settings: ModifierBevelVolumeSettings,
-  ): void {
-    bevel.uvScaleU = settings.uvScaleU;
-    bevel.uvScaleV = settings.uvScaleV;
-    bevel.uvOffsetU = settings.uvOffsetU;
-    bevel.uvOffsetV = settings.uvOffsetV;
-    bevel.uvRotation = settings.uvRotation;
-    bevel.uvOwner = settings.uvOwner;
-    bevel.uvPivot = settings.uvPivot;
-    bevel.uvSpace = settings.uvSpace;
-  }
-
-  /**
-   * Stores ignored object ids when the volume has any.
-   *
-   * @param bevel Serialized bevel fields.
-   * @param ids Ignored object ids.
-   */
-  private modifierBevelAttachBlacklist(bevel: NonNullable<ObjectEntry['modifierBevel']>, ids: readonly string[]): void {
-    if (ids.length === 0) return;
-    bevel.blacklist = ids.slice();
   }
 
   /**

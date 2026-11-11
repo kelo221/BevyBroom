@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
 import { UndoCommand } from '@/commands/command_undo.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
+import { modifierBevelRefreshAfterVisibility } from '@/modifier/compile/modifier_bevel_scene_refresh.js';
 
 /** One object and the visibility a command gives it. */
 export interface ObjectVisibilityChange {
@@ -35,6 +36,7 @@ export class CommandObjectsVisibilitySet implements UndoCommand {
       return;
     }
     this.changes.forEach((change) => this.objectVisibilityApply(change.object, change.visible));
+    this.modifierVolumesRefresh();
     this.executed = true;
   }
 
@@ -43,6 +45,7 @@ export class CommandObjectsVisibilitySet implements UndoCommand {
     this.changes.forEach((change, index) =>
       this.objectVisibilityApply(change.object, this.previousVisibility[index] ?? change.object.visible),
     );
+    this.modifierVolumesRefresh();
     this.executed = false;
   }
 
@@ -53,6 +56,15 @@ export class CommandObjectsVisibilitySet implements UndoCommand {
    */
   getChangedObjectCount(): number {
     return this.changes.length;
+  }
+
+  /**
+   * Re-evaluates the modifier volumes of the changed scene, so a shown or
+   * hidden volume, group, captured brush or cap takes effect at once.
+   */
+  private modifierVolumesRefresh(): void {
+    const first = this.changes[0];
+    if (first) modifierBevelRefreshAfterVisibility(first.object);
   }
 
   /**

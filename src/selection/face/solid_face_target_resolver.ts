@@ -4,9 +4,11 @@ import { SOLID_TRIANGLE_SOURCES_USERDATA_KEY } from '@/solid/model/solid_model_k
 import type { SolidFaceTextureTarget } from '@/texture/commands/command_texture_solid_face_edit.js';
 import type { FaceSelection } from './manager_face_selection.js';
 import { findFirstTriangleForBrushSurface } from './solid_triangle_source_index.js';
+import { solidTriangleSourceIsDerived } from '@/solid/model/solid_triangle_source_derived.js';
 
 /**
  * Maps a solid result triangle back to the authored brush face it came from.
+ * Modifier output triangles map to nothing so a copy never edits its source.
  *
  * @param mesh Solid result mesh.
  * @param triangleIndex Triangle index on the result mesh.
@@ -19,9 +21,9 @@ export function solidFaceTargetFromResultTriangle(
   const model = SolidModel.fromObject(mesh);
   if (!model) return null;
   const sources = mesh.userData[SOLID_TRIANGLE_SOURCES_USERDATA_KEY] as
-    Array<{ brushId: string; surfaceIndex: number } | undefined> | undefined;
+    Array<{ brushId: string; surfaceIndex: number; derivedId?: string } | undefined> | undefined;
   const source = sources?.[triangleIndex];
-  if (!source?.brushId) return null;
+  if (!source?.brushId || solidTriangleSourceIsDerived(source)) return null;
   return { model, brushId: source.brushId, surfaceIndex: source.surfaceIndex };
 }
 
