@@ -289,10 +289,12 @@ export class PanelPropertiesBevelOptions {
   }
 
   /**
-   * Hides settings that cannot affect the current selection. @param field
-   * Contextual row. @param settings Bound volume settings. @param round
-   * Multi-segment profiles present. @param caps Actual eligible corners
-   * present.
+   * Hides settings that cannot affect the current selection.
+   *
+   * @param field Contextual row.
+   * @param settings Bound volume settings.
+   * @param round True when any bound volume has a multi-segment profile.
+   * @param caps True when any bound volume has corners eligible for caps.
    */
   private refreshVisibility(
     field: PanelBevelOptionField,

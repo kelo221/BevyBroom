@@ -170,25 +170,38 @@ export class PanelPropertiesModifierStackSection implements PanelPropertiesSecti
    */
   private createBody(): HTMLElement {
     const body = document.createElement('div');
+    Object.assign(this.status.style, { padding: '0 6px 6px' });
+    this.status.title = MODIFIER_STACK_SECTION_CAPTURE_HINT;
+    body.append(this.createToolbar(), this.status, this.cardsHost, this.createVolumeRows());
+    return body;
+  }
+
+  /**
+   * Builds the toolbar row holding the Add modifier button.
+   *
+   * @returns Toolbar element.
+   */
+  private createToolbar(): HTMLElement {
     const toolbar = document.createElement('div');
     Object.assign(toolbar.style, { display: 'flex', padding: '2px 6px 6px' });
     toolbar.append(modifierStackAddButton((anchor) => this.openAddMenu(anchor)));
-    Object.assign(this.status.style, { padding: '0 6px 6px' });
-    this.status.title = MODIFIER_STACK_SECTION_CAPTURE_HINT;
+    return toolbar;
+  }
+
+  /**
+   * Builds the volume-wide settings: the capture mode and the affects list.
+   *
+   * @returns Volume settings element.
+   */
+  private createVolumeRows(): HTMLElement {
     const volumeRows = document.createElement('div');
+    const captureTooltip = `Whole groups copy a compound with all its brushes. ${MODIFIER_STACK_SECTION_CAPTURE_HINT}`;
     volumeRows.append(
       modifierStackSectionCaption('Volume'),
-      modifierStackSectionRow(
-        modifierStackUiRow(
-          'Capture',
-          this.grouping.getElement(),
-          `Whole groups copy a compound with all its brushes. ${MODIFIER_STACK_SECTION_CAPTURE_HINT}`,
-        ),
-      ),
+      modifierStackSectionRow(modifierStackUiRow('Capture', this.grouping.getElement(), captureTooltip)),
       this.affects.getElement(),
     );
-    body.append(toolbar, this.status, this.cardsHost, volumeRows);
-    return body;
+    return volumeRows;
   }
 
   /**
