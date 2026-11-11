@@ -16,6 +16,7 @@ import {
 import { modifierStackCaptureUnits } from '@/modifier/stack/evaluate/modifier_stack_capture.js';
 import { PanelPropertiesModifierStackSection } from '@/modifier/stack/ui/panel_properties_modifier_stack_section.js';
 import { modifierVolumeTemplateCreate } from '@/modifier/stack/modifier_volume_templates.js';
+import { modifierVolumeTargetIdRead } from '@/modifier/volume/modifier_volume_target_id.js';
 
 describe('volume blacklist', () => {
   it('lists touching brushes and their groups, checked until excluded', () => {
@@ -24,7 +25,7 @@ describe('volume blacklist', () => {
     expect(rows.map((row) => row.name)).toEqual(['DefaultModel', 'Group2', 'BrushNear']);
     expect(rows.map((row) => row.depth)).toEqual([0, 1, 2]);
     expect(rows.every((row) => row.checked)).toBe(true);
-    modifierVolumeBlacklistWrite(scene.volume, [scene.far.uuid]);
+    modifierVolumeBlacklistWrite(scene.volume, [modifierVolumeTargetIdRead(scene.far)]);
     const kept = modifierVolumeTargetRows(scene.volume, scene.world);
     expect(kept.map((row) => row.name)).toContain('BrushFar');
     expect(kept.find((row) => row.name === 'BrushFar')?.checked).toBe(false);
@@ -42,9 +43,9 @@ describe('volume blacklist', () => {
 
   it('drops an exclusion after the object is gone', () => {
     const scene = coveredScene();
-    modifierVolumeBlacklistWrite(scene.volume, [scene.far.uuid, 'missing-object']);
+    modifierVolumeBlacklistWrite(scene.volume, [modifierVolumeTargetIdRead(scene.far), 'missing-object']);
     expect(modifierVolumeBlacklistPrune(scene.volume, scene.world)).toBe(true);
-    expect(modifierVolumeBlacklistRead(scene.volume)).toEqual([scene.far.uuid]);
+    expect(modifierVolumeBlacklistRead(scene.volume)).toEqual([modifierVolumeTargetIdRead(scene.far)]);
   });
 
   it('omits the unnamed world group under the scene', () => {
@@ -62,7 +63,7 @@ describe('volume blacklist', () => {
     const box = checkboxNamed(section.getElement(), 'BrushNear');
     box.checked = false;
     box.dispatchEvent(new Event('change'));
-    expect(ModifierVolumeBevel.readSettings(scene.volume).blacklist).toEqual([scene.near.uuid]);
+    expect(ModifierVolumeBevel.readSettings(scene.volume).blacklist).toEqual([modifierVolumeTargetIdRead(scene.near)]);
     box.checked = true;
     box.dispatchEvent(new Event('change'));
     expect(ModifierVolumeBevel.readSettings(scene.volume).blacklist).toEqual([]);

@@ -9,10 +9,11 @@ import { isEditorHelperObject } from '@/utils/mesh_edge_sync.js';
 import { getOutlinerContentChildren } from '@/outliner/ui/outliner_tree_hierarchy.js';
 import { modifierVolumeIs } from './modifier_volume_is.js';
 import { modifierVolumeBlacklistRead, modifierVolumeBlacklistWrite } from './modifier_volume_blacklist.js';
+import { modifierVolumeTargetIdRead } from './modifier_volume_target_id.js';
 
 /** One row in a volume's affect list. */
 export interface ModifierVolumeTargetRow {
-  /** Scene object id. */
+  /** Target id of the object: the brush id of a brush, else the uuid. */
   id: string;
   /** Outliner name. */
   name: string;
@@ -109,7 +110,7 @@ function modifierVolumeTargetVisibleSet(
   const visible = new Set<THREE.Object3D>();
   sceneRoot.traverse((object) => {
     if (object === sceneRoot || object === volume || !modifierVolumeTargetIsListed(object)) return;
-    if (!affected.has(object) && !ignored.has(object.uuid)) return;
+    if (!affected.has(object) && !ignored.has(modifierVolumeTargetIdRead(object))) return;
     visible.add(object);
     modifierVolumeTargetAddAncestors(object, sceneRoot, visible);
   });
@@ -172,12 +173,8 @@ function modifierVolumeTargetRow(
   depth: number,
   ignored: ReadonlySet<string>,
 ): ModifierVolumeTargetRow {
-  return {
-    id: object.uuid,
-    name: object.name || 'Object',
-    depth,
-    checked: !ignored.has(object.uuid),
-  };
+  const id = modifierVolumeTargetIdRead(object);
+  return { id, name: object.name || 'Object', depth, checked: !ignored.has(id) };
 }
 
 /**
@@ -201,7 +198,7 @@ function modifierVolumeTargetIsListed(object: THREE.Object3D): boolean {
 function modifierVolumeTargetLiveIds(sceneRoot: THREE.Object3D): Set<string> {
   const live = new Set<string>();
   sceneRoot.traverse((object) => {
-    if (modifierVolumeTargetIsListed(object)) live.add(object.uuid);
+    if (modifierVolumeTargetIsListed(object)) live.add(modifierVolumeTargetIdRead(object));
   });
   return live;
 }

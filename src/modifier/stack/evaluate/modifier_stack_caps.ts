@@ -3,12 +3,13 @@ import type { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import type { ModifierStackSettings, ModifierStackUnit } from '@/modifier/stack/modifier_stack_types.js';
 import { modifierStackCaptureEligible, modifierStackUnder } from './modifier_stack_capture.js';
 import { modifierStackIsDerived } from './modifier_stack_copy.js';
+import { modifierVolumeTargetFind } from '@/modifier/volume/modifier_volume_target_id.js';
 
-/** Parameter keys that name a cap piece by object id. */
+/** Parameter keys that name a cap piece by target id. */
 export const MODIFIER_STACK_CAP_KEYS = ['startCap', 'endCap'] as const;
 
 /**
- * Lists the object ids a stack names as caps.
+ * Lists the target ids a stack names as caps.
  *
  * @param settings Normalized stack.
  * @returns Distinct non-empty ids.
@@ -37,7 +38,7 @@ export function modifierStackCapsResolve(
 ): Map<string, ModifierStackUnit> {
   const caps = new Map<string, ModifierStackUnit>();
   for (const id of modifierStackCapIds(settings)) {
-    const node = solidRoot.getObjectByProperty('uuid', id);
+    const node = modifierVolumeTargetFind(solidRoot, id);
     if (!node || node === solidRoot || modifierStackIsDerived(node)) continue;
     const brushes = sources.filter(
       (source) => modifierStackCaptureEligible(source, volume) && modifierStackUnder(source.mesh, node),

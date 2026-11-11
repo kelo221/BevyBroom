@@ -10,6 +10,7 @@ import { modifierVolumeTargetRows } from '@/modifier/volume/modifier_volume_targ
 import { modifierVolumeBlacklistWrite } from '@/modifier/volume/modifier_volume_blacklist.js';
 import { CommandObjectDuplicate } from '@/outliner/commands/command_object_duplicate.js';
 import { stackFixtureRequired } from '../modifier_stack_fixture.js';
+import { modifierVolumeTargetIdRead } from '@/modifier/volume/modifier_volume_target_id.js';
 
 /**
  * A building: a 10 x 4 x 10 additive block, a subtracted room leaving 1-unit
@@ -190,7 +191,9 @@ describe('modifier volume scope: built geometry the volume touches', () => {
     expect(affected(scene, volume)).toEqual(PILLAR_NAMES);
     const rows = modifierVolumeTargetRows(volume, group).map((row) => row.name);
     expect(rows.sort()).toEqual(PILLAR_NAMES);
-    modifierVolumeBlacklistWrite(volume, [stackFixtureRequired(scene.pillars[0], 'a pillar').uuid]);
+    modifierVolumeBlacklistWrite(volume, [
+      modifierVolumeTargetIdRead(stackFixtureRequired(scene.pillars[0], 'a pillar')),
+    ]);
     const capture = modifierStackCaptureOf(volume, scene.model.getBrushes(), scene.model.root);
     expect(capture.units.map((unit) => unit.tree.name).sort()).toEqual(PILLAR_NAMES.slice(1));
   });

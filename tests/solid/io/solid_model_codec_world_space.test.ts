@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { SolidModelCodec } from '@/solid/io/solid_model_codec.js';
-import { remapSerializedSolidBrushIdentities } from '@/solid/model/solid_model_duplicate.js';
+import { remapSerializedSolidIdentities } from '@/solid/model/solid_model_duplicate.js';
 import { isSolidCsgGroup, markAsSolidCsgGroup } from '@/solid/model/solid_group.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
@@ -85,7 +85,7 @@ describe('SolidModelCodec world space nodes', () => {
     const target = placedModelCreate(world, new THREE.Vector3(10, -2, 4), -1.1);
     const existing = brushMeshAdd(target, new THREE.Vector3(0, 0, 0));
     const data = SolidModelCodec.encodeNodesWorldSpace(source, [brushMesh, group]);
-    remapSerializedSolidBrushIdentities(data);
+    remapSerializedSolidIdentities(data);
     const created = SolidModelCodec.decodeNodesInto(target, data);
     expect(created).toHaveLength(2);
     expect(target.root.children.indexOf(existing)).toBeLessThan(target.root.children.indexOf(created[0] ?? existing));

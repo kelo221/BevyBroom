@@ -5,13 +5,14 @@ import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { isSolidCsgGroup } from '@/solid/model/solid_group.js';
 import { modifierVolumeSceneRoot } from '@/modifier/stack/modifier_volume.js';
 import { modifierStackIsDerived } from '@/modifier/stack/evaluate/modifier_stack_copy.js';
+import { modifierVolumeTargetIdRead } from '@/modifier/volume/modifier_volume_target_id.js';
 
 /**
  * Lists the authored groups and brushes in the volume's scene, indented by
  * depth, for picking cap pieces.
  *
  * @param volume Modifier volume.
- * @returns Choices keyed by object id.
+ * @returns Choices keyed by target id.
  */
 export function modifierStackObjectChoices(volume: THREE.Object3D): InputSelectChoice[] {
   const choices: InputSelectChoice[] = [];
@@ -31,6 +32,6 @@ function modifierStackObjectChoicesAdd(node: THREE.Object3D, depth: number, choi
   const brush = SolidBrushVisual.isBrushObject(node);
   if ((!brush && !isSolidCsgGroup(node)) || modifierStackIsDerived(node)) return;
   const label = `${'\u00a0\u00a0'.repeat(depth)}${node.name || (brush ? 'Brush' : 'Group')}`;
-  choices.push({ value: node.uuid, label });
+  choices.push({ value: modifierVolumeTargetIdRead(node), label });
   for (const child of node.children) modifierStackObjectChoicesAdd(child, depth + 1, choices);
 }

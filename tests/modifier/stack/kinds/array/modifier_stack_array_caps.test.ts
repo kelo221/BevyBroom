@@ -5,11 +5,12 @@ import { modifierStackKindFind } from '@/modifier/stack/modifier_stack_catalog.j
 import { modifierStackStatusRead } from '@/modifier/stack/evaluate/modifier_stack_status.js';
 import { stackFixture } from '../../modifier_stack_fixture.js';
 import { arrayTestCentre } from './modifier_stack_array_test_helpers.js';
+import { modifierVolumeTargetIdRead } from '@/modifier/volume/modifier_volume_target_id.js';
 
 /**
  * Builds a three-copy linear array of the unit cube plus a cap brush.
  *
- * @param caps Cap parameters, given the cap mesh uuid.
+ * @param caps Cap parameters, given the cap brush's target id.
  * @returns Fixture and cap brush.
  */
 function capFixture(caps: (capId: string) => Record<string, unknown>) {
@@ -19,7 +20,7 @@ function capFixture(caps: (capId: string) => Record<string, unknown>) {
   cap.mesh?.scale.set(0.5, 0.5, 0.5);
   const stack = fixture.volume.userData;
   const step = (stack['modifierStack'] as { modifiers: { parameters: Record<string, unknown> }[] }).modifiers[0];
-  if (step) Object.assign(step.parameters, caps(cap.mesh?.uuid ?? ''));
+  if (step) Object.assign(step.parameters, caps(cap.mesh ? modifierVolumeTargetIdRead(cap.mesh) : ''));
   return { ...fixture, cap };
 }
 
@@ -80,7 +81,7 @@ describe('array caps', () => {
     if (fixture.source.mesh) group.add(fixture.source.mesh);
     const step = (fixture.volume.userData['modifierStack'] as { modifiers: { parameters: Record<string, unknown> }[] })
       .modifiers[0];
-    if (step) step.parameters['endCap'] = group.uuid;
+    if (step) step.parameters['endCap'] = modifierVolumeTargetIdRead(group);
     const instances = fixture.compile().instances;
     expect(copiesOf(instances, fixture.source.id)).toHaveLength(1);
     expect(copiesOf(instances, fixture.cap.id)).toHaveLength(2);

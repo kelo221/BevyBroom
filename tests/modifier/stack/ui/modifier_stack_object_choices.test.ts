@@ -5,7 +5,8 @@ import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { modifierStackObjectChoices } from '@/modifier/stack/ui/modifier_stack_object_choices.js';
 import { ModifierStackFieldRows } from '@/modifier/stack/ui/modifier_stack_field_rows.js';
 import { MODIFIER_STACK_ARRAY_CAP_FIELDS } from '@/modifier/stack/kinds/array/modifier_stack_array_caps.js';
-import { stackFixture } from '../modifier_stack_fixture.js';
+import { stackFixture, stackFixtureRequired } from '../modifier_stack_fixture.js';
+import { modifierVolumeTargetIdRead } from '@/modifier/volume/modifier_volume_target_id.js';
 
 describe('modifier stack object picker', () => {
   it('lists authored groups and brushes, indented, but no derived pieces', () => {
@@ -18,10 +19,12 @@ describe('modifier stack object picker', () => {
     if (inner.mesh) group.add(inner.mesh);
     fixture.compile();
     const choices = modifierStackObjectChoices(fixture.volume);
+    const sourceId = modifierVolumeTargetIdRead(stackFixtureRequired(fixture.source.mesh, 'the source mesh'));
+    const innerId = modifierVolumeTargetIdRead(stackFixtureRequired(inner.mesh, 'the grouped brush mesh'));
     expect(choices.map((choice) => choice.value)).toEqual(
-      expect.arrayContaining([fixture.source.mesh?.uuid, group.uuid, inner.mesh?.uuid]),
+      expect.arrayContaining([sourceId, modifierVolumeTargetIdRead(group), innerId]),
     );
-    expect(choices.find((choice) => choice.value === inner.mesh?.uuid)?.label.startsWith('\u00a0')).toBe(true);
+    expect(choices.find((choice) => choice.value === innerId)?.label.startsWith('\u00a0')).toBe(true);
     expect(choices).toHaveLength(3);
   });
 

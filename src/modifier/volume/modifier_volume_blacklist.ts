@@ -1,5 +1,6 @@
 import { modifierVolumeRecordExclusionStack } from './modifier_volume_record.js';
 import type * as THREE from 'three';
+import { modifierVolumeTargetIdRead } from './modifier_volume_target_id.js';
 
 /** UserData string array of scene object ids a volume ignores. */
 export const MODIFIER_VOLUME_BLACKLIST_KEY = 'modifierVolumeBlacklist';
@@ -8,7 +9,7 @@ export const MODIFIER_VOLUME_BLACKLIST_KEY = 'modifierVolumeBlacklist';
  * Reads the ids a volume ignores.
  *
  * @param volume Modifier volume.
- * @returns Object ids. Empty when every touching object is affected.
+ * @returns Target ids. Empty when every touching object is affected.
  */
 export function modifierVolumeBlacklistRead(volume: THREE.Object3D): string[] {
   const stack = modifierVolumeRecordExclusionStack(volume);
@@ -21,7 +22,7 @@ export function modifierVolumeBlacklistRead(volume: THREE.Object3D): string[] {
  * Stores the ids a volume ignores.
  *
  * @param volume Modifier volume.
- * @param ids Object ids. Duplicates are dropped.
+ * @param ids Target ids. Duplicates are dropped.
  */
 export function modifierVolumeBlacklistWrite(volume: THREE.Object3D, ids: readonly string[]): void {
   const unique = [...new Set(ids)];
@@ -53,7 +54,7 @@ export function modifierVolumeBlacklistIgnores(volume: THREE.Object3D, object: T
 function modifierVolumeBlacklistChainHits(ids: ReadonlySet<string>, object: THREE.Object3D): boolean {
   let current: THREE.Object3D | null = object;
   while (current) {
-    if (ids.has(current.uuid)) return true;
+    if (ids.has(modifierVolumeTargetIdRead(current))) return true;
     current = current.parent;
   }
   return false;

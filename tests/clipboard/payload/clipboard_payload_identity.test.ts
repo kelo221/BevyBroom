@@ -38,7 +38,7 @@ function mixedPayloadCreate(): ClipboardPayload {
  * @returns Group node ids.
  */
 function groupNodeIdsCollect(nodes: readonly SerializedSolidTreeNode[]): string[] {
-  return nodes.flatMap((node) => (node.kind === 'brush' ? [] : [node.id, ...groupNodeIdsCollect(node.children)]));
+  return nodes.flatMap((node) => (node.kind === 'group' ? [node.id, ...groupNodeIdsCollect(node.children)] : []));
 }
 
 /** Fresh identities and offsets applied to a clipboard payload before pasting. */
