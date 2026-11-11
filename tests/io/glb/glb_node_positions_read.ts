@@ -9,24 +9,34 @@ const GLB_CHUNK_HEADER_BYTES = 8;
 /** Bytes of one float32 XYZ position. */
 const GLB_POSITION_BYTES = 12;
 
+/** One node of the glTF JSON, with the fields needed to place its mesh. */
+interface GlbPositionNode {
+  name?: string;
+  mesh?: number;
+  children?: number[];
+  matrix?: number[];
+  translation?: number[];
+  rotation?: number[];
+  scale?: number[];
+}
+
 /** Parts of the glTF JSON needed to read node positions. */
 interface GlbPositionJson {
-  nodes?: Array<{
-    name?: string;
-    mesh?: number;
-    matrix?: number[];
-    translation?: number[];
-    rotation?: number[];
-    scale?: number[];
-  }>;
+  nodes?: GlbPositionNode[];
   meshes?: Array<{ primitives: Array<{ attributes: Record<string, number> }> }>;
   accessors?: Array<{ bufferView?: number; byteOffset?: number; count: number }>;
   bufferViews?: Array<{ byteOffset?: number; byteStride?: number }>;
 }
 
+/** Vertex positions of one mesh node of a GLB file. */
+export interface GlbMeshNodePositions {
+  name: string;
+  positions: THREE.Vector3[];
+}
+
 /**
- * Reads the vertex positions of the first primitive of a named mesh node of a
- * binary glTF file, placed by the node's own transform.
+ * Reads the vertex positions of the first primitive of the first node of a
+ * binary glTF file with a given name, placed by the node's own transform.
  *
  * @param buffer GLB bytes.
  * @param nodeName Name of the mesh node.
@@ -35,19 +45,92 @@ interface GlbPositionJson {
 export function glbNodePositionsRead(buffer: ArrayBuffer, nodeName: string): THREE.Vector3[] {
   const json = glbPositionJsonRead(buffer);
   const node = json.nodes?.find((candidate) => candidate.name === nodeName);
-  const accessorIndex = json.meshes?.[node?.mesh ?? -1]?.primitives[0]?.attributes['POSITION'];
-  const accessor = json.accessors?.[accessorIndex ?? -1];
-  const view = json.bufferViews?.[accessor?.bufferView ?? -1];
-  if (!node || !accessor || !view) {
+  if (!node) {
     throw new Error(`GLB has no mesh positions for node ${nodeName}`);
   }
-  const nodeMatrix = glbNodeMatrixRead(node);
+  return glbPrimitivePositionsRead(buffer, json, node, glbNodeMatrixRead(node));
+}
+
+/**
+ * Reads the vertex positions of the first primitive of every mesh node of a
+ * binary glTF file, placed in scene space by the transforms of the node and of
+ * all its ancestors, so nodes sharing a name stay apart.
+ *
+ * @param buffer GLB bytes.
+ * @returns One entry per mesh node, in file order.
+ */
+export function glbMeshNodesScenePositionsRead(buffer: ArrayBuffer): GlbMeshNodePositions[] {
+  const json = glbPositionJsonRead(buffer);
+  const nodes = json.nodes ?? [];
+  const parentByIndex = glbNodeParentsRead(nodes);
+  return nodes.flatMap((node, index) => {
+    if (node.mesh === undefined) return [];
+    const sceneMatrix = glbNodeSceneMatrixRead(nodes, parentByIndex, index);
+    return [{ name: node.name ?? '', positions: glbPrimitivePositionsRead(buffer, json, node, sceneMatrix) }];
+  });
+}
+
+/**
+ * Reads the positions of the first primitive of a mesh node.
+ *
+ * @param buffer GLB bytes.
+ * @param json Parsed glTF JSON of the same file.
+ * @param node Mesh node.
+ * @param placement Matrix applied to every position.
+ * @returns Placed positions.
+ */
+function glbPrimitivePositionsRead(
+  buffer: ArrayBuffer,
+  json: GlbPositionJson,
+  node: GlbPositionNode,
+  placement: THREE.Matrix4,
+): THREE.Vector3[] {
+  const accessorIndex = json.meshes?.[node.mesh ?? -1]?.primitives[0]?.attributes['POSITION'];
+  const accessor = json.accessors?.[accessorIndex ?? -1];
+  const view = json.bufferViews?.[accessor?.bufferView ?? -1];
+  if (!accessor || !view) {
+    throw new Error(`GLB has no mesh positions for node ${node.name ?? ''}`);
+  }
   const data = new DataView(buffer, glbBinaryChunkOffsetRead(buffer));
   const start = (view.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
   const stride = view.byteStride ?? GLB_POSITION_BYTES;
   return Array.from({ length: accessor.count }, (_unused, index) =>
-    glbPositionAtRead(data, start + index * stride).applyMatrix4(nodeMatrix),
+    glbPositionAtRead(data, start + index * stride).applyMatrix4(placement),
   );
+}
+
+/**
+ * Maps every child node index to the index of its parent node.
+ *
+ * @param nodes GlTF nodes.
+ * @returns Parent index per child index.
+ */
+function glbNodeParentsRead(nodes: readonly GlbPositionNode[]): Map<number, number> {
+  const parentByIndex = new Map<number, number>();
+  nodes.forEach((node, index) => node.children?.forEach((child) => parentByIndex.set(child, index)));
+  return parentByIndex;
+}
+
+/**
+ * Builds the matrix that places a node in scene space: its local matrix after
+ * the local matrices of all its ancestors.
+ *
+ * @param nodes GlTF nodes.
+ * @param parentByIndex Parent index per child index.
+ * @param nodeIndex Index of the node.
+ * @returns Scene-space matrix of the node.
+ */
+function glbNodeSceneMatrixRead(
+  nodes: readonly GlbPositionNode[],
+  parentByIndex: ReadonlyMap<number, number>,
+  nodeIndex: number,
+): THREE.Matrix4 {
+  const sceneMatrix = new THREE.Matrix4();
+  for (let index: number | undefined = nodeIndex; index !== undefined; index = parentByIndex.get(index)) {
+    const node = nodes[index];
+    if (node) sceneMatrix.premultiply(glbNodeMatrixRead(node));
+  }
+  return sceneMatrix;
 }
 
 /**
@@ -72,6 +155,20 @@ export function glbPositionsCoincidentCountRead(
     }
   });
   return coincident.length;
+}
+
+/**
+ * Lists the names of the nodes of a binary glTF file, and whether each holds a
+ * mesh.
+ *
+ * @param buffer GLB bytes.
+ * @returns One entry per node, in file order; unnamed nodes have an empty name.
+ */
+export function glbNodeNamesRead(buffer: ArrayBuffer): Array<{ name: string; hasMesh: boolean }> {
+  return (glbPositionJsonRead(buffer).nodes ?? []).map((node) => ({
+    name: node.name ?? '',
+    hasMesh: node.mesh !== undefined,
+  }));
 }
 
 /**
@@ -119,7 +216,7 @@ function glbPositionAtRead(data: DataView, byteOffset: number): THREE.Vector3 {
  * @param node GlTF node.
  * @returns Local node matrix.
  */
-function glbNodeMatrixRead(node: NonNullable<GlbPositionJson['nodes']>[number]): THREE.Matrix4 {
+function glbNodeMatrixRead(node: GlbPositionNode): THREE.Matrix4 {
   if (node.matrix) {
     return new THREE.Matrix4().fromArray(node.matrix);
   }

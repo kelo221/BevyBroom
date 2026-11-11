@@ -23,7 +23,7 @@ function actionsCreate(): { actions: AddMenuActions; factories: Array<() => THRE
     onAddPlane: doNothing,
     onAddTerrain: doNothing,
     onAddSolidModel: doNothing,
-    onAddBevelVolume: doNothing,
+    onAddModifierVolume: doNothing,
     onAddPointLight: doNothing,
     onAddSpotLight: doNothing,
     onAddRoom: doNothing,

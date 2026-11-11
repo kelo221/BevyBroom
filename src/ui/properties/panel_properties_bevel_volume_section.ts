@@ -1,4 +1,7 @@
+import { PanelPropertiesBevelOptions } from './panel_properties_bevel_options.js';
+import { modifierBevelOptionsNormalize } from '@/modifier/volume/modifier_volume_bevel_options.js';
 import type * as THREE from 'three';
+import { modifierStackUiRow } from '@/modifier/stack/ui/modifier_stack_ui_style.js';
 import type { CommandStack } from '@/commands/command_stack.js';
 import { CommandModifierBevelDistanceSet } from '@/modifier/volume/command_modifier_bevel_distance_set.js';
 import { ModifierVolumeBevel, type ModifierBevelVolumeSettings } from '@/modifier/volume/modifier_volume_bevel.js';
@@ -45,27 +48,27 @@ import {
   type ModifierBevelUvPivot,
   type ModifierBevelUvSpace,
 } from '@/modifier/volume/modifier_volume_bevel_keys.js';
-import { getTextureMapCache } from '@/texture/library/texture_map_cache.js';
+import { textureChoicesList } from '@/texture/library/texture_choices.js';
 import { InputNumeric } from '@/ui/input/input_numeric.js';
 import { inputNumericCreateUvField } from '@/ui/input/input_numeric_uv_field.js';
 import { UV_OFFSET_NUDGE } from '@/texture/uv/uv_trs_ops.js';
 import { InputSelect, type InputSelectChoice } from '@/ui/input/input_select.js';
-import { panelPropertiesRowCaptionPaint, panelPropertiesRowCreate } from '@/ui/properties/panel_properties_row.js';
-import { ModifierVolumeBlacklistList } from '@/modifier/volume/ui/modifier_volume_blacklist_list.js';
-import {
-  modifierVolumeBlacklistWithoutMissing,
-  modifierVolumeTargetRows,
-} from '@/modifier/volume/modifier_volume_target_tree.js';
 
-/** Inspector section for bevel volume chamfer controls. */
+/**
+ * Chamfer controls of one bevel modifier, embedded in the modifier stack
+ * inspector. Bound objects are the bevel proxies of the selected volumes.
+ */
 export class PanelPropertiesBevelVolumeSection {
   private readonly section: HTMLElement;
+  private readonly extra: PanelPropertiesBevelOptions;
   private readonly uvInput: InputSelect;
   private readonly layoutInput: InputSelect;
   private readonly textureInput: InputSelect;
   private readonly distanceInput: InputNumeric;
   private readonly segmentsInput: InputNumeric;
   private readonly angleInput: InputNumeric;
+  /** Max angle row, hidden while every bound volume bevels all edges. */
+  private angleRow: HTMLElement | null = null;
   private readonly uvFields: {
     owner: InputSelect;
     pivot: InputSelect;
@@ -76,33 +79,37 @@ export class PanelPropertiesBevelVolumeSection {
     offsetV: InputNumeric;
     rotation: InputNumeric;
   };
-  private readonly targets: ModifierVolumeBlacklistList;
   private readonly pivotRow: HTMLElement;
   private commandStack: CommandStack | null;
   private bound: THREE.Object3D[];
 
-  /**
-   * Creates the section.
-   *
-   * @param createSectionContainer Section chrome factory.
-   * @param createSectionHeader Header factory.
-   */
-  constructor(createSectionContainer: () => HTMLElement, createSectionHeader: (title: string) => HTMLElement) {
+  /** Creates the controls; bind proxies before showing them. */
+  constructor() {
     this.commandStack = null;
     this.bound = [];
-    this.section = createSectionContainer();
-    this.section.style.display = 'none';
-    this.section.appendChild(createSectionHeader('Bevel Volume'));
+    this.section = document.createElement('div');
+    this.extra = this.createExtraOptions();
     this.uvInput = this.createUvInput();
     this.layoutInput = new InputSelect(modifierBevelUvLayoutChoices(), 'Bevel layout');
     this.textureInput = new InputSelect(modifierBevelTextureChoices(''), 'Bevel texture');
     this.distanceInput = inputNumericCreateUvField(0.01, 'Bevel distance');
     this.segmentsInput = inputNumericCreateUvField(1, 'Bevel segments');
     this.angleInput = inputNumericCreateUvField(1, 'Bevel max angle');
-    this.targets = new ModifierVolumeBlacklistList();
     this.uvFields = this.createUvPlacement();
     this.bindCommits();
     this.pivotRow = this.appendRows();
+  }
+
+  /** Creates the contextual controls with the existing row and undo adapters. */
+  private createExtraOptions(): PanelPropertiesBevelOptions {
+    return new PanelPropertiesBevelOptions(
+      (label, input) => this.createRow(label, input),
+      (patch) =>
+        this.commitPatch((settings) => ({
+          ...settings,
+          options: patch(modifierBevelOptionsNormalize(settings.options)),
+        })),
+    );
   }
 
   /**
@@ -161,76 +168,43 @@ export class PanelPropertiesBevelVolumeSection {
 
   /** Adds the segment, distance, and angle rows. */
   private appendCutRows(): void {
-    this.section.appendChild(panelPropertiesRowCreate('Segments', this.segmentsInput));
-    this.section.appendChild(panelPropertiesRowCreate('Distance', this.distanceInput));
-    this.section.appendChild(panelPropertiesRowCreate('Max Angle', this.angleInput));
+    this.section.appendChild(this.createRow('Segments', this.segmentsInput));
+    this.section.appendChild(this.createRow('Distance', this.distanceInput));
+    this.extra.appendLimit(this.section);
+    this.angleRow = this.createRow('Max Angle', this.angleInput);
+    this.section.appendChild(this.angleRow);
+    this.extra.appendGeometry(this.section);
   }
 
   /** Adds the layout, texture, and placement rows. */
   private appendChartRows(): void {
-    this.section.appendChild(panelPropertiesRowCreate('Layout', this.layoutInput));
-    this.section.appendChild(panelPropertiesRowCreate('Texture', this.textureInput));
-    this.section.appendChild(panelPropertiesRowCreate('Owner', this.uvFields.owner));
-    this.section.appendChild(panelPropertiesRowCreate('UV', this.uvInput));
-    this.section.appendChild(panelPropertiesRowCreate('Space', this.uvFields.space));
+    this.section.appendChild(this.createRow('Layout', this.layoutInput));
+    this.section.appendChild(this.createRow('Texture', this.textureInput));
+    this.extra.appendCharts(this.section);
+    this.section.appendChild(this.createRow('Owner', this.uvFields.owner));
+    this.section.appendChild(this.createRow('UV', this.uvInput));
+    this.section.appendChild(this.createRow('Space', this.uvFields.space));
     this.appendScaleRows();
   }
 
   /** Adds the scale, offset, and rotation rows. */
   private appendScaleRows(): void {
-    this.section.appendChild(panelPropertiesRowCreate('U scale', this.uvFields.scaleU));
-    this.section.appendChild(panelPropertiesRowCreate('V scale', this.uvFields.scaleV));
-    this.section.appendChild(panelPropertiesRowCreate('U offset', this.uvFields.offsetU));
-    this.section.appendChild(panelPropertiesRowCreate('V offset', this.uvFields.offsetV));
-    this.section.appendChild(panelPropertiesRowCreate('Rotation', this.uvFields.rotation));
+    this.section.appendChild(this.createRow('U scale', this.uvFields.scaleU));
+    this.section.appendChild(this.createRow('V scale', this.uvFields.scaleV));
+    this.section.appendChild(this.createRow('U offset', this.uvFields.offsetU));
+    this.section.appendChild(this.createRow('V offset', this.uvFields.offsetV));
+    this.section.appendChild(this.createRow('Rotation', this.uvFields.rotation));
   }
 
   /**
-   * Adds the pivot and affects rows.
+   * Adds the pivot row.
    *
    * @returns Pivot row.
    */
   private appendPivotRow(): HTMLElement {
-    const pivotRow = panelPropertiesRowCreate('Pivot', this.uvFields.pivot);
+    const pivotRow = this.createRow('Pivot', this.uvFields.pivot);
     this.section.appendChild(pivotRow);
-    this.appendAffects();
     return pivotRow;
-  }
-
-  /** Adds the bold Affects caption and the full-width target list under it. */
-  private appendAffects(): void {
-    const block = document.createElement('div');
-    block.style.padding = '0 8px 8px';
-    block.appendChild(this.createAffectsLabel());
-    block.appendChild(this.createAffectsList());
-    this.section.appendChild(block);
-  }
-
-  /**
-   * Creates the Affects caption.
-   *
-   * @returns Bold caption.
-   */
-  private createAffectsLabel(): HTMLElement {
-    const label = document.createElement('span');
-    label.textContent = 'Affects';
-    label.style.display = 'block';
-    label.style.fontWeight = 'bold';
-    label.style.marginBottom = '4px';
-    panelPropertiesRowCaptionPaint(label);
-    return label;
-  }
-
-  /**
-   * Returns the target list sized to the row.
-   *
-   * @returns List element.
-   */
-  private createAffectsList(): HTMLElement {
-    const list = this.targets.getElement();
-    list.style.width = '100%';
-    list.style.boxSizing = 'border-box';
-    return list;
   }
 
   /**
@@ -252,16 +226,13 @@ export class PanelPropertiesBevelVolumeSection {
   }
 
   /**
-   * Shows the section when every selected object is a bevel volume.
+   * Binds the bevel proxies to edit and refreshes every field.
    *
-   * @param objects Current selection.
+   * @param proxies Bevel proxies, one per selected volume.
    */
-  updateFromObjects(objects: readonly THREE.Object3D[]): void {
-    this.bound = objects.filter((object) => ModifierVolumeBevel.isVolume(object));
-    const onlyVolumes = objects.length > 0 && this.bound.length === objects.length;
-    this.section.style.display = onlyVolumes ? 'block' : 'none';
-    if (!onlyVolumes) return;
-    this.writeSharedFields();
+  bind(proxies: readonly THREE.Object3D[]): void {
+    this.bound = proxies.slice();
+    if (this.bound.length > 0) this.writeSharedFields();
   }
 
   /**
@@ -282,7 +253,6 @@ export class PanelPropertiesBevelVolumeSection {
     this.segmentsInput.bindCommit(() => this.commitSegments());
     this.angleInput.bindCommit(() => this.commitAngle());
     this.bindUvPlacement();
-    this.targets.bindToggle((id, checked) => this.commitBlacklist(id, checked));
   }
 
   /** Binds the scale, offset, and rotation fields. */
@@ -367,8 +337,8 @@ export class PanelPropertiesBevelVolumeSection {
     this.writeTextureField(settings);
     this.writeNumericFields(settings);
     this.writeUvPlacement(settings);
+    this.extra.update(settings, this.bound, this.distanceInput);
     this.refreshPivotRow(settings);
-    this.refreshTargets();
   }
 
   /**
@@ -378,7 +348,7 @@ export class PanelPropertiesBevelVolumeSection {
    */
   private refreshPivotRow(settings: readonly ModifierBevelVolumeSettings[]): void {
     const turning = settings.some((entry) => !modifierBevelRotationIsIdle(entry.uvRotation));
-    this.pivotRow.style.display = turning ? 'flex' : 'none';
+    this.pivotRow.style.display = turning ? '' : 'none';
   }
 
   /**
@@ -399,6 +369,8 @@ export class PanelPropertiesBevelVolumeSection {
       settings.map((entry) => entry.angleDegrees),
       1,
     );
+    const limited = settings.some((entry) => entry.options?.limitMethod !== 'none');
+    if (this.angleRow) this.angleRow.style.display = limited ? '' : 'none';
   }
 
   /**
@@ -459,6 +431,17 @@ export class PanelPropertiesBevelVolumeSection {
     );
   }
 
+  /**
+   * Builds one labeled row in the shared modifier inspector layout.
+   *
+   * @param labelText Row caption.
+   * @param input Field that exposes its element.
+   * @returns Row element.
+   */
+  private createRow(labelText: string, input: { getElement(): HTMLElement }): HTMLElement {
+    return modifierStackUiRow(labelText, input.getElement());
+  }
+
   /** Writes a committed UV flow through the undo stack. */
   private commitUvFlow(): void {
     const next = modifierBevelUvFlowFromSelect(this.uvInput.getValue());
@@ -506,45 +489,6 @@ export class PanelPropertiesBevelVolumeSection {
     this.commitPatch((settings) => ({ ...settings, segments: Math.round(next) }));
   }
 
-  /**
-   * Adds or removes one object from the volume blacklist.
-   *
-   * @param id Scene object id.
-   * @param checked True when the object should be affected.
-   */
-  private commitBlacklist(id: string, checked: boolean): void {
-    this.commitPatch((settings) => ({
-      ...settings,
-      blacklist: modifierBevelBlacklistNext(settings.blacklist, id, checked),
-    }));
-    this.refreshTargets();
-  }
-
-  /** Fills the affect list and records a prune when a stored id is gone. */
-  private refreshTargets(): void {
-    const volume = this.bound.length === 1 ? this.bound[0] : undefined;
-    if (!volume) {
-      this.targets.setRows([], 'Select one volume');
-      return;
-    }
-    const root = modifierBevelSceneRoot(volume);
-    root.updateMatrixWorld(true);
-    this.commitPrunedBlacklist(volume, root);
-    this.targets.setRows(modifierVolumeTargetRows(volume, root));
-  }
-
-  /**
-   * Pushes an undo step when the blacklist names an object that left the scene.
-   *
-   * @param volume Selected bevel volume.
-   * @param root Scene root searched for listed objects.
-   */
-  private commitPrunedBlacklist(volume: THREE.Object3D, root: THREE.Object3D): void {
-    const pruned = modifierVolumeBlacklistWithoutMissing(volume, root);
-    if (!pruned) return;
-    this.commitPatch((settings) => ({ ...settings, blacklist: pruned }));
-  }
-
   /** Writes a committed angle limit through the undo stack. */
   private commitAngle(): void {
     const next = this.readCommittedNumber(this.angleInput);
@@ -568,34 +512,6 @@ export class PanelPropertiesBevelVolumeSection {
     else command.execute();
     this.writeSharedFields();
   }
-}
-
-/**
- * Returns the blacklist after one checkbox change.
- *
- * @param current Stored ids.
- * @param id Scene object id.
- * @param checked True when the object should be affected.
- * @returns Next id list.
- */
-function modifierBevelBlacklistNext(current: readonly string[], id: string, checked: boolean): string[] {
-  if (checked) return current.filter((entry) => entry !== id);
-  return current.includes(id) ? [...current] : [...current, id];
-}
-
-/**
- * Returns the group the affect list is drawn under.
- *
- * @param object Start object.
- * @returns World group under a scene, or the top object when there is no scene.
- */
-function modifierBevelSceneRoot(object: THREE.Object3D): THREE.Object3D {
-  let current = object;
-  while (current.parent) {
-    if (current.parent.type === 'Scene') return current;
-    current = current.parent;
-  }
-  return current;
 }
 
 /** Hover text for each UV flow, in menu order. */
@@ -713,12 +629,12 @@ const MODIFIER_BEVEL_UV_LAYOUT_CHOICES: InputSelectChoice[] = [
   modifierBevelUvChoice(
     MODIFIER_VOLUME_BEVEL_UV_LAYOUT_TILE,
     'Tile',
-    'Repeats the texture in world units along the bevel and across the whole curve. The pattern lines up with the parent face at the cut.',
+    'Repeats the texture in world units along the authored edge and across its whole profile. Use Continue to preserve the parent pattern at the cut.',
   ),
   modifierBevelUvChoice(
     MODIFIER_VOLUME_BEVEL_UV_LAYOUT_TRIM,
     'Trim',
-    'Fits one texture across the whole curve and repeats it along the length. The pattern lines up with the parent face at the cut.',
+    'Fits one texture across the whole profile and repeats it along the authored edge in world units. Use Continue to preserve the parent pattern at the cut.',
   ),
   modifierBevelUvChoice(
     MODIFIER_VOLUME_BEVEL_UV_LAYOUT_STRETCH,
@@ -738,17 +654,17 @@ const MODIFIER_BEVEL_UV_LAYOUT_CHOICES: InputSelectChoice[] = [
   modifierBevelUvChoice(
     MODIFIER_VOLUME_BEVEL_UV_LAYOUT_OVERHEAD,
     'Overhead',
-    'Projects the texture from above, using world X and Z, so a top-down pattern stays put.',
+    'Projects from above using X and Z in the selected Space. Local follows the brush; World stays fixed to the map.',
   ),
   modifierBevelUvChoice(
     MODIFIER_VOLUME_BEVEL_UV_LAYOUT_FRONT,
     'Front',
-    'Projects the texture from the front, using world X and Y, so a front-view pattern stays put.',
+    'Projects from the front using X and Y in the selected Space. Local follows the brush; World stays fixed to the map.',
   ),
   modifierBevelUvChoice(
     MODIFIER_VOLUME_BEVEL_UV_LAYOUT_SIDE,
     'Side',
-    'Projects the texture from the side, using world Z and Y, so a side-view pattern stays put.',
+    'Projects from the side using Z and Y in the selected Space. Local follows the brush; World stays fixed to the map.',
   ),
   modifierBevelUvChoice(
     MODIFIER_VOLUME_BEVEL_UV_LAYOUT_AXIS,
@@ -872,21 +788,13 @@ function modifierBevelUvSpaceFromSelect(value: string): ModifierBevelUvSpace | n
 }
 
 /**
- * Lists Inherit plus the textures currently in the library.
+ * Lists Inherit, the library's textures and the level's missing ones.
  *
  * @param extraId Stored id to keep visible when the library does not list it.
  * @returns Select entries.
  */
 function modifierBevelTextureChoices(extraId: string): InputSelectChoice[] {
-  const choices: InputSelectChoice[] = [{ value: MODIFIER_BEVEL_TEXTURE_INHERIT, label: 'Inherit' }];
-  const library = getTextureMapCache().getLibrary();
-  for (const entry of library?.getEntries() ?? []) {
-    choices.push({ value: entry.id, label: entry.displayName });
-  }
-  if (extraId && !choices.some((choice) => choice.value === extraId)) {
-    choices.push({ value: extraId, label: extraId });
-  }
-  return choices;
+  return [{ value: MODIFIER_BEVEL_TEXTURE_INHERIT, label: 'Inherit' }, ...textureChoicesList([extraId])];
 }
 
 /**

@@ -30,6 +30,12 @@ import {
   solidSerializedTransformSpaceChange,
   type SolidSerializedTransform,
 } from '@/solid/io/solid_model_codec_transform.js';
+import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
+import {
+  solidModelModifierDecode,
+  solidModelModifierEncode,
+  type SerializedSolidTreeModifierNode,
+} from '@/solid/io/solid_model_modifier_codec.js';
 
 /** Serializable snapshot of a solid brush instance. */
 export interface SerializedSolidBrush {
@@ -78,7 +84,7 @@ export interface SerializedSolidTreeBrushNode {
 /** Serializable solid CSG tree group branch. */
 export interface SerializedSolidTreeGroupNode {
   kind: 'group';
-  /** Stable group id for nesting references. */
+  /** Uuid of the group, kept so references to it survive a reload. */
   id: string;
   /** Display name. */
   name: string;
@@ -87,14 +93,15 @@ export interface SerializedSolidTreeGroupNode {
   position: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number };
   scale: { x: number; y: number; z: number };
-  /** Nested brushes and groups in evaluation order. */
+  /** Nested brushes, groups and modifier volumes in evaluation order. */
   children: SerializedSolidTreeNode[];
   /** Recipe of a group a shape draw tool created, when present. */
   shape?: SolidGroupShapeRecipe;
 }
 
 /** Serializable solid CSG tree node. */
-export type SerializedSolidTreeNode = SerializedSolidTreeBrushNode | SerializedSolidTreeGroupNode;
+export type SerializedSolidTreeNode =
+  SerializedSolidTreeBrushNode | SerializedSolidTreeGroupNode | SerializedSolidTreeModifierNode;
 
 /**
  * Serializable snapshot of a solid model (brushes + optional hierarchy; mesh
@@ -128,7 +135,7 @@ export class SolidModelCodec {
       payload.invertedWorld = true;
     }
     const hierarchy = this.encodeHierarchy(model.root);
-    if (hierarchy.length > 0 && hierarchy.some((node) => node.kind === 'group')) {
+    if (hierarchy.some((node) => node.kind !== 'brush')) {
       payload.hierarchy = hierarchy;
     }
     return payload;
@@ -240,7 +247,7 @@ export class SolidModelCodec {
     const nodeBrushes = this.encodeBrushesUnder(model, node);
     node.updateWorldMatrix(true, false);
     const ownTransform =
-      treeNode.kind === 'group' ? treeNode : nodeBrushes.find((brush) => brush.id === treeNode.brushId);
+      treeNode.kind === 'brush' ? nodeBrushes.find((brush) => brush.id === treeNode.brushId) : treeNode;
     if (ownTransform) {
       solidSerializedTransformAssignFromMatrix(ownTransform, node.matrixWorld);
     }
@@ -284,7 +291,8 @@ export class SolidModelCodec {
 
   /**
    * Returns the stored transforms of the top-level nodes of node data: group
-   * nodes themselves and, for brush leaves, their serialized brushes.
+   * and modifier volume nodes themselves and, for brush leaves, their
+   * serialized brushes.
    *
    * @param data Node data.
    * @returns Live references to the top-level transforms.
@@ -292,8 +300,8 @@ export class SolidModelCodec {
   static topLevelTransformsRead(data: SerializedSolidModel): SolidSerializedTransform[] {
     const brushById = new Map(data.brushes.map((brush) => [brush.id, brush] as const));
     return this.nodesHierarchyRead(data)
-      .map((node) => (node.kind === 'group' ? node : brushById.get(node.brushId)))
-      .filter((transform): transform is SerializedSolidTreeGroupNode | SerializedSolidBrush => transform !== undefined);
+      .map((node): SolidSerializedTransform | undefined => (node.kind === 'brush' ? brushById.get(node.brushId) : node))
+      .filter((transform): transform is SolidSerializedTransform => transform !== undefined);
   }
 
   /**
@@ -342,7 +350,8 @@ export class SolidModelCodec {
   }
 
   /**
-   * Encodes the solid root's hierarchical CSG tree (brushes + solid groups).
+   * Encodes the solid root's hierarchical CSG tree: brushes, solid groups and
+   * modifier volumes.
    *
    * @param solidRoot Solid model root group.
    * @returns Ordered top-level tree nodes.
@@ -360,10 +369,12 @@ export class SolidModelCodec {
    * Encodes one scene child under the solid hierarchy.
    *
    * @param child Scene child.
-   * @returns Tree node or null when not a CSG operand.
+   * @returns Tree node, or null when the child is neither a brush, a group nor
+   *   a modifier volume.
    */
   private static encodeHierarchyChild(child: THREE.Object3D): SerializedSolidTreeNode | null {
     if (isResultMesh(child)) return null;
+    if (ModifierVolume.isVolume(child)) return solidModelModifierEncode(child);
     if (SolidBrushVisual.isBrushObject(child)) {
       const brushId = SolidBrushVisual.getBrushId(child);
       if (!brushId) return null;
@@ -413,16 +424,17 @@ export class SolidModelCodec {
   }
 
   /**
-   * Returns whether a group has any solid brush descendant.
+   * Returns whether a group has any solid brush or modifier volume descendant.
    *
    * @param group Scene group.
-   * @returns True when a brush mesh is nested under the group.
+   * @returns True when a brush mesh or a modifier volume is nested under the
+   *   group.
    */
   private static groupHasBrushDescendant(group: THREE.Group): boolean {
     let found = false;
     group.traverse((object) => {
       if (found) return;
-      if (SolidBrushVisual.isBrushObject(object)) found = true;
+      if (SolidBrushVisual.isBrushObject(object) || ModifierVolume.isVolume(object)) found = true;
     });
     return found;
   }
@@ -458,13 +470,13 @@ export class SolidModelCodec {
   }
 
   /**
-   * Attaches one hierarchy node under a parent (reparents brushes / creates
-   * groups).
+   * Attaches one hierarchy node under a parent: reparents a brush, or creates a
+   * group or a modifier volume.
    *
    * @param parent Solid root or solid CSG group.
    * @param node Serialized node.
    * @param brushMeshById Brush meshes by id.
-   * @returns The attached brush mesh or created group, or null when the brush
+   * @returns The attached brush mesh, group or volume, or null when the brush
    *   is missing.
    */
   private static attachHierarchyNode(
@@ -474,6 +486,11 @@ export class SolidModelCodec {
   ): THREE.Object3D | null {
     if (node.kind === 'brush') {
       return this.attachBrushNode(parent, node.brushId, brushMeshById);
+    }
+    if (node.kind === 'modifier') {
+      const volume = solidModelModifierDecode(node);
+      parent.add(volume);
+      return volume;
     }
     return this.attachGroupNode(parent, node, brushMeshById);
   }
@@ -498,7 +515,8 @@ export class SolidModelCodec {
   }
 
   /**
-   * Creates a solid CSG group, restores transform, and attaches children.
+   * Creates a solid CSG group with its saved uuid, restores its transform, and
+   * attaches its children.
    *
    * @param parent Parent object.
    * @param node Serialized group node.
@@ -511,6 +529,7 @@ export class SolidModelCodec {
     brushMeshById: Map<string, THREE.Mesh>,
   ): THREE.Group {
     const group = new THREE.Group();
+    group.uuid = node.id;
     group.name = node.name || 'Group';
     hierarchyNameAllocator.noteExistingName(group.name);
     markAsSolidCsgGroup(group, node.operation);

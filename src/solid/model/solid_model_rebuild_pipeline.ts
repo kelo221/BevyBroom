@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import type { SolidBrushInstance } from './solid_brush_instance.js';
-import { modifierBevelCompileListBuild } from '@/modifier/compile/modifier_bevel_compile_list.js';
+import { modifierSmoothApply } from '@/modifier/smooth/modifier_smooth_shading.js';
+import { MODIFIER_STACK_SOURCE_ID_KEY } from '@/modifier/stack/evaluate/modifier_stack_copy.js';
+import { SolidModelRebuildModifierOutputs } from './solid_model_rebuild_modifier_outputs.js';
 import { ModifierBevelSurfaceOverlay } from '@/modifier/compile/modifier_bevel_surface_overlay.js';
 import { SolidCsgCompiler } from '@/solid/algorithm/compile/solid_csg_compiler.js';
 import type { SolidCompileOptions } from '@/solid/algorithm/compile/solid_compile_types.js';
@@ -35,6 +37,14 @@ export class SolidModelRebuildPipeline {
   private readonly chunkBuilder = new SolidBrushMeshChunkBuilder();
   private readonly resultBuffer = new SolidResultBuffer();
   private readonly displacementSurfaces = new DisplacementSurfacePresentation();
+  private readonly modifierOutputs = new SolidModelRebuildModifierOutputs({
+    fullRebuildRequiredIs: () => this.fullRebuildRequired,
+    markDirty: () => this.markDirty(),
+    markBrushesDirty: (brushIds) => this.markBrushesDirty(brushIds),
+    getLastBrushOrder: () => this.getLastBrushOrder(),
+    getCachedTouchPeerIds: (brushId) => this.getCachedTouchPeerIds(brushId),
+    invalidateBrush: (brushId) => this.invalidateBrush(brushId),
+  });
   private dirty = true;
   private fullRebuildRequired = true;
   private readonly dirtyBrushIds = new Set<string>();
@@ -282,7 +292,7 @@ export class SolidModelRebuildPipeline {
    */
   compileResultGeometry(liveDrag: boolean = false): void {
     this.syncBrushesBeforeCompile(liveDrag);
-    this.compiler.compile(this.instancesAfterBevelVolumes(), this.buildCompileOptions());
+    this.compiler.compile(this.instancesAfterModifierVolumes(), this.buildCompileOptions());
     this.rebuildDirtyMeshChunks();
     this.assembleResultFromCompiler();
     if (!liveDrag && !this.resultBuffer.wasLastWritePartial()) {
@@ -317,8 +327,8 @@ export class SolidModelRebuildPipeline {
    */
   async compileFullAsync(onProgress?: (ratio: number) => void): Promise<void> {
     await this.compiler.compileAsync(
-      this.instancesAfterBevelVolumes(),
-      { forceFull: true, skipPolygonAssembly: true, invertedWorld: this.invertedWorld },
+      this.instancesAfterModifierVolumes(),
+      { ...this.buildCompileOptions(), forceFull: true },
       onProgress,
     );
   }
@@ -330,6 +340,10 @@ export class SolidModelRebuildPipeline {
    * @returns True when polygon cache exists and was updated.
    */
   updateBrushPolygonTextures(brushId: string): boolean {
+    if (this.modifierOutputs.derivedActiveIs()) {
+      this.compileResultGeometry();
+      return true;
+    }
     const brush = this.host.findBrush(brushId);
     if (!brush) return false;
     return this.compiler.updateCachedPolygonTextures(brushId, (surfaceIndex) =>
@@ -339,11 +353,13 @@ export class SolidModelRebuildPipeline {
 
   /**
    * Rebuilds mesh chunks for specific brushes and patches the result mesh.
+   * Modifier copies of those brushes are re-evaluated first so they follow.
    *
    * @param brushIds Brushes whose chunks need UV rebake.
    */
   rebakeMeshChunksForBrushes(brushIds: Set<string>): void {
     if (brushIds.size === 0) return;
+    if (this.modifierOutputs.copyOfAnySourceIs(brushIds)) this.compileResultGeometry();
     const dirtyIds = this.rebuildChunksForBrushIds(brushIds);
     if (dirtyIds.length === 0) return;
     this.patchOrRebuildResult(dirtyIds);
@@ -445,28 +461,12 @@ export class SolidModelRebuildPipeline {
   }
 
   /**
-   * Returns the evaluation list, swapping chamfered stand-ins when bevel
-   * volumes exist.
+   * Returns the evaluation list after every modifier volume of the solid ran.
    *
    * @returns Instances for the compiler.
    */
-  private instancesAfterBevelVolumes(): SolidBrushInstance[] {
-    const root = this.resolveSolidRoot();
-    root?.updateMatrixWorld(true);
-    const scopeId = root?.uuid ?? 'solid';
-    const substituted = modifierBevelCompileListBuild(this.host.getEvaluationList(), scopeId, root ?? null);
-    this.markBevelDirtyBrushes(substituted.extraDirtyBrushIds);
-    return substituted.instances;
-  }
-
-  /**
-   * Marks brushes dirty when a chamfer appeared or disappeared.
-   *
-   * @param brushIds Brush ids that need a prepared-geometry refresh.
-   */
-  private markBevelDirtyBrushes(brushIds: readonly string[]): void {
-    if (brushIds.length === 0 || this.fullRebuildRequired) return;
-    this.markBrushesDirty(brushIds);
+  private instancesAfterModifierVolumes(): SolidBrushInstance[] {
+    return this.modifierOutputs.instancesAfterModifierVolumes(this.host.getEvaluationList(), this.resolveSolidRoot());
   }
 
   /**
@@ -486,7 +486,7 @@ export class SolidModelRebuildPipeline {
     }
     const solidRoot = this.resolveSolidRoot();
     if (solidRoot) {
-      options.solidRoot = solidRoot;
+      options.solidRoot = this.modifierOutputs.compileRootRead() ?? solidRoot;
     }
     return options;
   }
@@ -654,7 +654,7 @@ export class SolidModelRebuildPipeline {
    */
   private rebuildOneMeshChunk(brushId: string, worldMatrix: THREE.Matrix4): void {
     const polygons = this.compiler.getCachedPolygons(brushId) ?? [];
-    const brush = this.host.findBrush(brushId);
+    const brush = this.modifierOutputs.derivedBrushFind(brushId) ?? this.host.findBrush(brushId);
     const brushModelMatrix = this.composeBrushModelMatrix(brush);
     void worldMatrix;
     const surfaceByIndex = new Map<number, FaceSurfaceDescription>();
@@ -665,9 +665,29 @@ export class SolidModelRebuildPipeline {
       { brushModelMatrix },
       { surfaceCollapsed: () => brushCollapsed },
     );
+    modifierSmoothApply(brushId, chunk);
     ModifierBevelSurfaceOverlay.remapChunkToParents(brushId, chunk);
+    this.chunkSourcesToModifierSource(brushId, brush, chunk);
     this.meshChunkCache.set(brushId, chunk);
     this.displacementSurfaces.brushRefresh(brushId, brush, this.resolveSolidRoot());
+  }
+
+  /**
+   * Points the triangle sources of a modifier copy at its authored source brush
+   * and keeps the copy's own id as the derived id.
+   *
+   * @param brushId Chunk brush id.
+   * @param brush Chunk brush, or undefined.
+   * @param chunk Freshly built chunk.
+   */
+  private chunkSourcesToModifierSource(
+    brushId: string,
+    brush: SolidBrushInstance | undefined,
+    chunk: ReturnType<SolidBrushMeshChunkBuilder['build']>,
+  ): void {
+    const sourceId = brush?.mesh?.userData[MODIFIER_STACK_SOURCE_ID_KEY];
+    if (typeof sourceId !== 'string') return;
+    for (const source of chunk.triangleSources) Object.assign(source, { brushId: sourceId, derivedId: brushId });
   }
 
   /**

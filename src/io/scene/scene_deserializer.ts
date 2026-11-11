@@ -14,12 +14,11 @@ import { DEFAULT_CHECKER_TEXTURE_ID } from '@/texture/library/texture_id.js';
 import { CLIP_PREVIEW_USERDATA_KEY } from '@/tools/clip_plane/clip_plane_preview.js';
 import { SolidModelCodec } from '@/solid/io/solid_model_codec.js';
 import { SerializedSolidModel } from '@/solid/io/solid_model_codec.js';
-import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js';
+import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
 import {
-  modifierBevelClampUvOwner,
-  modifierBevelClampUvPivot,
-  modifierBevelClampUvSpace,
-} from '@/modifier/volume/modifier_volume_bevel_keys.js';
+  modifierStackLegacyBevelRestore,
+  modifierStackLegacyBevelStack,
+} from '@/modifier/stack/legacy/modifier_stack_legacy_bevel.js';
 import { modifierBevelRefreshScene } from '@/modifier/compile/modifier_bevel_scene_refresh.js';
 import { EntityOwnerRegistry } from '@/entity/registry/entity_owner_registry.js';
 import { entityScaleUnitEnsure } from '@/entity/scale/entity_scale_absorb.js';
@@ -185,10 +184,29 @@ export class SceneDeserializer {
     if (entity) {
       return entity;
     }
+    if (entry.type === 'mesh' && (entry.modifierStack || entry.modifierBevel)) {
+      return this.createModifierVolumeFromEntry(entry);
+    }
     if (entry.type === 'mesh') {
       return this.createMeshFromEntry(entry);
     }
     return this.createGroupFromEntry(entry);
+  }
+
+  /**
+   * Creates a modifier volume through the same factory as local creation, so it
+   * keeps its see-through material and outline. Bevel volumes of schema 7 and
+   * older load as a stack with one bevel modifier.
+   *
+   * @param entry The serialized volume entry.
+   * @returns Modifier volume mesh.
+   */
+  private createModifierVolumeFromEntry(entry: ObjectEntry): THREE.Mesh {
+    const stack = entry.modifierStack ?? modifierStackLegacyBevelStack();
+    const mesh = ModifierVolume.create(stack, this.reconstructGeometry(entry));
+    this.applyTransformToMesh(mesh, entry);
+    if (!entry.modifierStack && entry.modifierBevel) modifierStackLegacyBevelRestore(mesh, entry.modifierBevel);
+    return mesh;
   }
 
   /**
@@ -230,7 +248,6 @@ export class SceneDeserializer {
     this.applyFaceTextureData(mesh, entry);
     ensurePersistentMeshDocumentForOutlines(mesh);
     rebuildDecorativeEdges(mesh);
-    this.restoreBevelVolume(mesh, entry);
     return mesh;
   }
 
@@ -248,70 +265,6 @@ export class SceneDeserializer {
       model.root.uuid = entry.uuid;
     }
     return model.root;
-  }
-
-  /**
-   * Restores bevel-volume identity after a mesh is rebuilt from a box.
-   *
-   * @param mesh Loaded mesh.
-   * @param entry Serialized entry.
-   */
-  private restoreBevelVolume(mesh: THREE.Mesh, entry: ObjectEntry): void {
-    if (!entry.modifierBevel) return;
-    ModifierVolumeBevel.stamp(mesh, entry.modifierBevel.distance);
-    this.restoreBevelVolumeShape(mesh, entry.modifierBevel);
-    this.restoreBevelVolumeSurface(mesh, entry.modifierBevel);
-  }
-
-  /**
-   * Restores the clip shape stored on a bevel volume.
-   *
-   * @param mesh Loaded mesh.
-   * @param bevel Serialized bevel fields.
-   */
-  private restoreBevelVolumeShape(mesh: THREE.Mesh, bevel: NonNullable<ObjectEntry['modifierBevel']>): void {
-    if (bevel.segments !== undefined) ModifierVolumeBevel.writeSegments(mesh, bevel.segments);
-    if (bevel.angleDegrees !== undefined) ModifierVolumeBevel.writeAngleDegrees(mesh, bevel.angleDegrees);
-  }
-
-  /**
-   * Restores the UV flow, layout, and texture stored on a bevel volume.
-   *
-   * @param mesh Loaded mesh.
-   * @param bevel Serialized bevel fields.
-   */
-  private restoreBevelVolumeSurface(mesh: THREE.Mesh, bevel: NonNullable<ObjectEntry['modifierBevel']>): void {
-    if (bevel.uvFlow !== undefined) ModifierVolumeBevel.writeUvFlow(mesh, bevel.uvFlow);
-    if (bevel.uvLayout !== undefined) ModifierVolumeBevel.writeUvLayout(mesh, bevel.uvLayout);
-    if (bevel.textureId !== undefined) ModifierVolumeBevel.writeTextureId(mesh, bevel.textureId);
-    this.restoreBevelVolumePlacement(mesh, bevel);
-    if (bevel.blacklist) {
-      ModifierVolumeBevel.writeSettings(mesh, {
-        ...ModifierVolumeBevel.readSettings(mesh),
-        blacklist: bevel.blacklist,
-      });
-    }
-  }
-
-  /**
-   * Restores generated UV scale, offset, and rotation.
-   *
-   * @param mesh Loaded mesh.
-   * @param bevel Serialized bevel fields.
-   */
-  private restoreBevelVolumePlacement(mesh: THREE.Mesh, bevel: NonNullable<ObjectEntry['modifierBevel']>): void {
-    const current = ModifierVolumeBevel.readSettings(mesh);
-    ModifierVolumeBevel.writeSettings(mesh, {
-      ...current,
-      uvScaleU: bevel.uvScaleU ?? current.uvScaleU,
-      uvScaleV: bevel.uvScaleV ?? current.uvScaleV,
-      uvOffsetU: bevel.uvOffsetU ?? current.uvOffsetU,
-      uvOffsetV: bevel.uvOffsetV ?? current.uvOffsetV,
-      uvRotation: bevel.uvRotation ?? current.uvRotation,
-      uvOwner: modifierBevelClampUvOwner(bevel.uvOwner ?? current.uvOwner),
-      uvPivot: modifierBevelClampUvPivot(bevel.uvPivot ?? current.uvPivot),
-      uvSpace: modifierBevelClampUvSpace(bevel.uvSpace ?? current.uvSpace),
-    });
   }
 
   /**

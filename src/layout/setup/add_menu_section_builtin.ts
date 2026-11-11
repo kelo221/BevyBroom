@@ -5,6 +5,7 @@ import { portalSettingsCreateDefault } from '@/portal/model/portal_settings.js';
 import { RoomOwner } from '@/portal/model/room_owner.js';
 import { roomSettingsCreateDefault } from '@/portal/model/room_settings.js';
 import { gameEntityAddMenuSection } from '@/game_entity/ui/game_entity_add_menu_section.js';
+import { modifierStackAddMenuSection } from '@/modifier/stack/ui/modifier_stack_add_menu_section.js';
 import type { ToolbarMenuEntry } from '@/ui/toolbar/toolbar.js';
 import type { AddMenuActions } from '@/layout/setup/add_menu_entries.js';
 import type { AddMenuSectionFactory } from '@/layout/setup/add_menu_section_registry.js';
@@ -13,7 +14,6 @@ import type { GeometrySourceType } from '@/texture/uv/geometry_source.js';
 import type { EntityOwner } from '@/entity/model/entity_owner.js';
 import { addMenuCatalogActionCreate } from '@/layout/setup/add_menu_catalog.js';
 import {
-  addMenuCatalogMatcherBevelVolume,
   addMenuCatalogMatcherEntityOwner,
   addMenuCatalogMatcherLight,
   addMenuCatalogMatcherPrimitive,
@@ -30,6 +30,7 @@ export function addMenuSectionsBuiltin(): readonly AddMenuSectionFactory[] {
     addMenuSectionGeometry,
     addMenuSectionTerrain,
     addMenuSectionBrushes,
+    modifierStackAddMenuSection,
     addMenuSectionLights,
     addMenuSectionPortals,
     gameEntityAddMenuSection,
@@ -98,7 +99,7 @@ function addMenuSectionTerrain(actions: AddMenuActions): ToolbarMenuEntry {
 }
 
 /**
- * Builds the Brushes submenu with solid models and bevel volumes.
+ * Builds the Brushes submenu with solid models.
  *
  * @param actions Creation callbacks.
  * @returns Brushes submenu.
@@ -112,10 +113,6 @@ function addMenuSectionBrushes(actions: AddMenuActions): ToolbarMenuEntry {
       addMenuCatalogActionCreate(
         { label: 'Solid Model', icon: 'shape-outline', onClick: () => actions.onAddSolidModel() },
         { id: 'brushes.solid_model', objectMatches: addMenuCatalogMatcherSolidModel() },
-      ),
-      addMenuCatalogActionCreate(
-        { label: 'Bevel Volume', icon: 'rounded-corner', onClick: () => actions.onAddBevelVolume() },
-        { id: 'brushes.bevel_volume', objectMatches: addMenuCatalogMatcherBevelVolume() },
       ),
     ],
   };

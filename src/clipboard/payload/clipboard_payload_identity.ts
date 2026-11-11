@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { ObjectEntry } from '@/io/scene/io_types.js';
 import type { SerializedSolidModel, SerializedSolidTreeNode } from '@/solid/io/solid_model_codec.js';
-import { remapSerializedSolidBrushIdentities } from '@/solid/model/solid_model_duplicate.js';
+import { remapSerializedSolidIdentities } from '@/solid/model/solid_model_duplicate.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
 import type { ClipboardPayload } from '@/clipboard/payload/clipboard_payload_types.js';
 
@@ -52,28 +52,28 @@ function clipboardEntryNameRefresh(entry: ObjectEntry): void {
 }
 
 /**
- * Gives serialized solid content new brush ids, group ids and names.
+ * Gives serialized solid content new brush, group and volume ids and names.
  *
  * @param solid Solid content changed in place.
  */
 function clipboardSolidIdentitiesRefresh(solid: SerializedSolidModel): void {
-  remapSerializedSolidBrushIdentities(solid);
+  remapSerializedSolidIdentities(solid);
   solid.brushes.forEach((brush) => {
     brush.name = hierarchyNameAllocator.allocateFromSourceName(brush.name);
   });
-  (solid.hierarchy ?? []).forEach((node) => clipboardSolidTreeNodeIdentityRefresh(node));
+  (solid.hierarchy ?? []).forEach((node) => clipboardSolidTreeNodeNameRefresh(node));
 }
 
 /**
- * Gives a solid CSG group node and its nested groups new ids and names.
+ * Gives a solid CSG group or modifier volume node, and the groups and volumes
+ * nested in it, new hierarchy names.
  *
  * @param node Tree node changed in place; brush leaves are left alone.
  */
-function clipboardSolidTreeNodeIdentityRefresh(node: SerializedSolidTreeNode): void {
+function clipboardSolidTreeNodeNameRefresh(node: SerializedSolidTreeNode): void {
   if (node.kind === 'brush') {
     return;
   }
-  node.id = THREE.MathUtils.generateUUID();
   node.name = hierarchyNameAllocator.allocateFromSourceName(node.name);
-  node.children.forEach((child) => clipboardSolidTreeNodeIdentityRefresh(child));
+  if (node.kind === 'group') node.children.forEach((child) => clipboardSolidTreeNodeNameRefresh(child));
 }

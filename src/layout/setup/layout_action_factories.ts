@@ -164,7 +164,7 @@ function buildPrimitiveToolbarActions(
   | 'onAddPlane'
   | 'onAddTerrain'
   | 'onAddSolidModel'
-  | 'onAddBevelVolume'
+  | 'onAddModifierVolume'
   | 'onAddPointLight'
   | 'onAddSpotLight'
   | 'onAddRoom'
@@ -189,7 +189,7 @@ function buildPrimitiveToolbarActions(
     onAddPlane: () => host.getPrimitiveCreationHandler().createPlane(),
     onAddTerrain: () => host.onAddTerrain(),
     onAddSolidModel: () => host.onAddSolidModel(),
-    onAddBevelVolume: () => host.getPrimitiveCreationHandler().createBevelVolume(),
+    onAddModifierVolume: (templateId) => host.getPrimitiveCreationHandler().createModifierVolume(templateId),
     onAddPointLight: () => host.getPrimitiveCreationHandler().createPointLight(),
     onAddSpotLight: () => host.getPrimitiveCreationHandler().createSpotLight(),
     onAddRoom: () => host.getPrimitiveCreationHandler().createRoom(),
