@@ -11,6 +11,9 @@ import { modifierStackKinds } from '@/modifier/stack/modifier_stack_catalog.js';
 import type { ModifierStackField } from '@/modifier/stack/modifier_stack_types.js';
 import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
 import { modifierVolumeTemplateCreate, modifierVolumeTemplates } from '@/modifier/stack/modifier_volume_templates.js';
+import { SolidModel } from '@/solid/model/solid_model.js';
+import { isSolidCsgGroup } from '@/solid/model/solid_group.js';
+import { entityOwnerIs } from '@/entity/model/entity_owner_keys.js';
 
 /** Box size of a volume whose call names none. */
 const EDITOR_API_MODIFIER_VOLUME_DEFAULT_SIZE = 1;
@@ -75,9 +78,11 @@ export class EditorApiModifierVolumes {
    */
   private modifierVolumeAdd(args: Record<string, unknown>): McpToolResult {
     const parent = this.parentResolve(args['parentId']);
-    if (!parent) return failResult(`No object with id ${String(args['parentId'])}`);
+    if (typeof parent === 'string') return failResult(parent);
+    const size = editorApiModifierVolumeSize(args['size']);
+    if (typeof size === 'string') return failResult(size);
     const template = typeof args['template'] === 'string' ? args['template'] : 'empty';
-    const volume = modifierVolumeTemplateCreate(template, editorApiModifierVolumeGeometry(args['size']));
+    const volume = modifierVolumeTemplateCreate(template, new THREE.BoxGeometry(size.x, size.y, size.z));
     const stack = editorApiModifierStackApply(ModifierVolume.read(volume), args);
     if (typeof stack === 'string') return failResult(stack);
     ModifierVolume.write(volume, stack);
@@ -159,14 +164,22 @@ export class EditorApiModifierVolumes {
   }
 
   /**
-   * Resolves the parent a new volume goes under.
+   * Resolves the parent a new volume goes under: the world, a plain group, a
+   * solid model or a solid CSG group.
    *
    * @param parentId Parent id argument, or undefined for the world.
-   * @returns Parent object, or null when the id names nothing.
+   * @returns Parent object, or a message when the id names nothing or an object
+   *   that can not hold a volume.
    */
-  private parentResolve(parentId: unknown): THREE.Object3D | null {
-    if (typeof parentId !== 'string') return this.host.worldObject;
-    return this.host.worldObject.getObjectByProperty('uuid', parentId) ?? null;
+  private parentResolve(parentId: unknown): THREE.Object3D | string {
+    if (parentId === undefined) return this.host.worldObject;
+    const parent =
+      typeof parentId === 'string' ? this.host.worldObject.getObjectByProperty('uuid', parentId) : undefined;
+    if (!parent) return `No object with id ${String(parentId)}`;
+    if (!editorApiModifierVolumeParentIs(parent)) {
+      return `${parent.name || String(parentId)} can not hold a modifier volume; use the world, a group, a solid model or a CSG group`;
+    }
+    return parent;
   }
 
   /**
@@ -190,14 +203,31 @@ export class EditorApiModifierVolumes {
 }
 
 /**
- * Builds the box geometry of a new volume.
+ * Returns whether an object can hold a modifier volume: a plain group, a solid
+ * model root or a solid CSG group.
+ *
+ * @param object Candidate parent below the world.
+ * @returns True for those containers.
+ */
+function editorApiModifierVolumeParentIs(object: THREE.Object3D): boolean {
+  if (SolidModel.isSolidModelObject(object) || isSolidCsgGroup(object)) return true;
+  return object instanceof THREE.Group && object.type === 'Group' && !entityOwnerIs(object);
+}
+
+/**
+ * Reads the box size of a new volume.
  *
  * @param size Size argument, or undefined for the default size.
- * @returns Box geometry.
+ * @returns Edge lengths, or a message when a given edge length is not a
+ *   positive number.
  */
-function editorApiModifierVolumeGeometry(size: unknown): THREE.BoxGeometry {
+function editorApiModifierVolumeSize(size: unknown): THREE.Vector3 | string {
   const extent = editorApiModifierVector(size, EDITOR_API_MODIFIER_VOLUME_DEFAULT_SIZE);
-  return new THREE.BoxGeometry(Math.abs(extent.x), Math.abs(extent.y), Math.abs(extent.z));
+  const given = (size && typeof size === 'object' ? size : {}) as Record<string, unknown>;
+  const invalid = (['x', 'y', 'z'] as const).find(
+    (key) => given[key] !== undefined && !(Number.isFinite(given[key]) && Number(given[key]) > 0),
+  );
+  return invalid ? `size.${invalid} must be a positive number of meters` : extent;
 }
 
 /**

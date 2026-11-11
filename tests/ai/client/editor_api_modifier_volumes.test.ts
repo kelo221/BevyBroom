@@ -4,6 +4,8 @@ import { EditorApi } from '@/ai/client/editor_api.js';
 import { findMcpTool } from '@/ai/server/registry_mcp_tool.js';
 import type { CommandStack } from '@/commands/command_stack.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
+import { SolidOperation } from '@/solid/types/solid_operation.js';
+import { markAsSolidCsgGroup } from '@/solid/model/solid_group.js';
 import type { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
 import type { ModifierStackSettings } from '@/modifier/stack/modifier_stack_types.js';
@@ -166,5 +168,85 @@ describe('EditorApi modifier volumes', () => {
     expect(rig.commandStack.undo()).toBe(true);
     expect(rig.model.getBrushes()).toHaveLength(1);
     expect(rig.world.getObjectByProperty('uuid', created.id)).toBeDefined();
+  });
+});
+
+/**
+ * Adds a volume under a parent through the tool.
+ *
+ * @param rig Rig.
+ * @param parentId Parent id argument.
+ * @returns Tool result.
+ */
+function volumeAddUnder(rig: ModifierApiRig, parentId: string): { ok: boolean; message: string; data?: unknown } {
+  return rig.api.invokeTool('add_modifier_volume', { template: 'linear', parentId });
+}
+
+/**
+ * Expects a tool call to fail without leaving an undo step.
+ *
+ * @param rig Rig.
+ * @param result Tool result.
+ */
+function expectRefused(rig: ModifierApiRig, result: { ok: boolean; message: string }): void {
+  expect(result.ok, result.message).toBe(false);
+  expect(rig.commandStack.canUndo()).toBe(false);
+}
+
+describe('EditorApi modifier volume argument checks', () => {
+  it('parents a volume under the world, a plain group, a solid model or a CSG group only', () => {
+    const rig = modifierApiRigCreate();
+    const plainGroup = new THREE.Group();
+    rig.world.add(plainGroup);
+    const csgGroup = new THREE.Group();
+    markAsSolidCsgGroup(csgGroup, SolidOperation.Additive);
+    rig.model.root.add(csgGroup);
+    for (const parent of [plainGroup, rig.model.root, csgGroup]) {
+      const created = okData<{ id: string }>(volumeAddUnder(rig, parent.uuid));
+      expect(rig.world.getObjectByProperty('uuid', created.id)?.parent).toBe(parent);
+    }
+    const atWorld = okData<{ id: string }>(rig.api.invokeTool('add_modifier_volume', { template: 'linear' }));
+    expect(rig.world.getObjectByProperty('uuid', atWorld.id)?.parent).toBe(rig.world);
+  });
+
+  it('refuses a brush, another volume or an unknown id as the parent', () => {
+    const rig = modifierApiRigCreate();
+    const volume = ModifierVolume.create({});
+    rig.world.add(volume);
+    const brushMesh = rig.brush.mesh;
+    expect(brushMesh).toBeDefined();
+    for (const parentId of [brushMesh?.uuid ?? '', volume.uuid, 'missing-object']) {
+      expectRefused(rig, volumeAddUnder(rig, parentId));
+    }
+  });
+
+  it('refuses a size with an edge that is not a positive number, and fills missing edges', () => {
+    const rig = modifierApiRigCreate();
+    for (const size of [{ x: 0 }, { y: -2 }, { z: 'wide' }, { x: Number.NaN }]) {
+      expectRefused(rig, rig.api.invokeTool('add_modifier_volume', { template: 'linear', size }));
+    }
+    const edge = SOURCE_BOX_EDGE * 3;
+    const created = okData<{ id: string }>(rig.api.invokeTool('add_modifier_volume', { size: { x: edge } }));
+    const volume = rig.world.getObjectByProperty('uuid', created.id);
+    if (!(volume instanceof THREE.Mesh)) throw new Error('Expected a volume mesh');
+    const geometry = volume.geometry as THREE.BufferGeometry;
+    geometry.computeBoundingBox();
+    const size = (geometry.boundingBox ?? new THREE.Box3()).getSize(new THREE.Vector3());
+    expect(size.toArray()).toEqual([edge, 1, 1]);
+  });
+
+  it('refuses excludedIds that are not a list of strings and parameters that are not an object', () => {
+    const rig = modifierApiRigCreate();
+    const created = linearArrayAdd(rig);
+    const stackBefore = created.stack;
+    for (const excludedIds of ['one-id', [1, 2], { id: 'x' }, null]) {
+      expect(rig.api.invokeTool('set_modifier_stack', { id: created.id, excludedIds }).ok).toBe(false);
+    }
+    for (const parameters of [[1, 2], 'count=4', null]) {
+      const modifiers = [{ kind: 'linear', parameters }];
+      expect(rig.api.invokeTool('set_modifier_stack', { id: created.id, modifiers }).ok).toBe(false);
+    }
+    const volume = rig.world.getObjectByProperty('uuid', created.id);
+    expect(volume ? ModifierVolume.read(volume) : null).toEqual(stackBefore);
   });
 });

@@ -4,7 +4,8 @@ import type { ModifierStackEntry, ModifierStackSettings } from '@/modifier/stack
 
 /**
  * Applies the stack arguments of an MCP call to a stack: modifiers, grouping,
- * excludedIds and enabled. Arguments that are absent keep their current value.
+ * excludedIds and enabled. Arguments that are absent keep their current value;
+ * arguments of the wrong type are refused.
  *
  * @param current Stack before the call.
  * @param args Tool arguments.
@@ -20,13 +21,30 @@ export function editorApiModifierStackApply(
   if (grouping !== undefined && grouping !== 'compound' && grouping !== 'brush') {
     return 'grouping must be compound or brush';
   }
+  const excludedIds = editorApiModifierExcludedIdsParse(current, args['excludedIds']);
+  if (typeof excludedIds === 'string') return excludedIds;
   return modifierStackSettingsNormalize({
     ...current,
     modifiers,
     grouping: grouping ?? current.grouping,
-    excludedIds: Array.isArray(args['excludedIds']) ? (args['excludedIds'] as string[]) : current.excludedIds,
+    excludedIds,
     enabled: typeof args['enabled'] === 'boolean' ? args['enabled'] : current.enabled,
   });
+}
+
+/**
+ * Parses the excludedIds argument.
+ *
+ * @param current Stack before the call.
+ * @param value ExcludedIds argument, or undefined to keep the current list.
+ * @returns Ids, or a message when the argument is not a list of strings.
+ */
+function editorApiModifierExcludedIdsParse(current: ModifierStackSettings, value: unknown): string[] | string {
+  if (value === undefined) return current.excludedIds;
+  if (!Array.isArray(value) || !value.every((id) => typeof id === 'string')) {
+    return 'excludedIds must be a list of id strings';
+  }
+  return value;
 }
 
 /**
@@ -69,13 +87,28 @@ function editorApiModifierEntryParse(
   const input = (item && typeof item === 'object' ? item : {}) as Partial<ModifierStackEntry>;
   const base = editorApiModifierEntryBase(current, earlier, input);
   if (typeof base === 'string') return base;
-  const parameters = input.parameters && typeof input.parameters === 'object' ? input.parameters : {};
+  const parameters = editorApiModifierParametersParse(input.parameters);
+  if (typeof parameters === 'string') return parameters;
   return {
     ...base,
     name: typeof input.name === 'string' && input.name.trim() !== '' ? input.name : base.name,
     enabled: typeof input.enabled === 'boolean' ? input.enabled : base.enabled,
     parameters: { ...base.parameters, ...parameters },
   };
+}
+
+/**
+ * Parses the parameters of one modifier argument.
+ *
+ * @param value Parameters argument, or undefined for none.
+ * @returns Parameters by key, or a message when the argument is not an object.
+ */
+function editorApiModifierParametersParse(value: unknown): Record<string, unknown> | string {
+  if (value === undefined) return {};
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return 'parameters must be an object of parameter values by key';
+  }
+  return value as Record<string, unknown>;
 }
 
 /**

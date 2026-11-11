@@ -28,7 +28,11 @@ const modifierStackSettingsProperties = {
     enum: ['compound', 'brush'],
     description: 'compound captures whole top-level groups; brush captures single brushes.',
   },
-  excludedIds: { type: 'array', items: { type: 'string' }, description: 'Brush or group ids the volume ignores.' },
+  excludedIds: {
+    type: 'array',
+    items: { type: 'string' },
+    description: 'Brush ids and group or solid model ids the volume ignores.',
+  },
   enabled: { type: 'boolean', description: 'False disables the whole volume.' },
 };
 
@@ -47,8 +51,14 @@ export const MCP_MODIFIER_VOLUME_TOOL_DEFINITIONS: McpToolDefinition[] = [
       properties: {
         template: { type: 'string', enum: modifierVolumeTemplates.map((template) => template.id) },
         center: { ...vec3Schema, description: 'World center of the volume box.' },
-        size: { ...vec3Schema, description: 'Box size in meters. Default 1 x 1 x 1.' },
-        parentId: { type: 'string', description: 'Object id to parent the volume under. Default the world.' },
+        size: {
+          ...vec3Schema,
+          description: 'Box size in meters; every given edge must be positive. Default 1 x 1 x 1.',
+        },
+        parentId: {
+          type: 'string',
+          description: 'Id of the group, solid model or CSG group to parent the volume under. Default the world.',
+        },
         name: { type: 'string', description: 'Object name; defaults to the template label.' },
         ...modifierStackSettingsProperties,
       },
