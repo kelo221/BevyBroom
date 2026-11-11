@@ -60,8 +60,8 @@ export function modifierSmoothTagOf(brush: SolidBrushInstance): ModifierSmoothTa
 }
 
 /**
- * Reads smoothing stored in a brush's faces, such as a baked column. Faces of
- * another group or without smoothing stay flat.
+ * Reads smoothing stored in a brush's faces, such as a baked smooth array.
+ * Faces of another group or without smoothing stay flat.
  *
  * @param brush Brush.
  * @returns Smoothing, or undefined when no face stores any.

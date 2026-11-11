@@ -7,9 +7,8 @@ import { MODIFIER_VOLUME_OUTLINE_KEY } from '@/modifier/volume/modifier_volume_b
 /**
  * Applies the content/brush wireframe visibility preference for one multi-view
  * pane prepare pass. Edit Mode suppress always wins. When enabled, decorative
- * edges, static batches, and volume and generator box outlines are shown;
- * personal brush edges keep the visibility already set by the edge fader for
- * this pass.
+ * edges, static batches, and modifier volume box outlines are shown; personal
+ * brush edges keep the visibility already set by the edge fader for this pass.
  *
  * @param root World group or scene to walk.
  * @param enabled Whether content and brush wireframes should draw.
@@ -28,7 +27,7 @@ export function applyContentWireframeVisibilityForRenderPass(root: THREE.Object3
  *
  * @param object Scene object to test.
  * @returns True for decorative edges, personal brush edges, edge batches, and
- *   volume and generator box outlines.
+ *   modifier volume box outlines.
  */
 export function isContentBrushWireframeHelper(object: THREE.Object3D): boolean {
   if (isDecorativeEdge(object) || isSolidBrushEdge(object)) {
@@ -41,7 +40,7 @@ export function isContentBrushWireframeHelper(object: THREE.Object3D): boolean {
  * Returns whether a helper draws whenever content wireframes are enabled.
  *
  * @param object Scene object to test.
- * @returns True for edge batches and volume and generator box outlines.
+ * @returns True for edge batches and modifier volume box outlines.
  */
 function isAlwaysShownWireframeHelper(object: THREE.Object3D): boolean {
   return (

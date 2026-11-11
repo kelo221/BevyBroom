@@ -24,7 +24,7 @@ export class ControllerSelectionVisual {
   private shadingControllers: ControllerViewportShading[];
   /** Brush meshes currently showing a translucent hull fill. */
   private hullFillMeshes = new Set<THREE.Mesh>();
-  /** Modifier volumes and generator nodes currently showing their box fill. */
+  /** Modifier volumes currently showing their box fill. */
   private volumeFillMeshes = new Set<THREE.Mesh>();
   /**
    * When false, orange object selection outlines and solid-brush hull fills are
@@ -188,7 +188,7 @@ export class ControllerSelectionVisual {
     this.hullFillMeshes = new Set();
   }
 
-  /** Hides the box fill of every modifier volume and generator node tracked. */
+  /** Hides the box fill of every modifier volume tracked. */
   private hideAllVolumeFills(): void {
     for (const mesh of this.volumeFillMeshes) {
       ModifierVolume.setFillVisible(mesh, false);
@@ -197,9 +197,8 @@ export class ControllerSelectionVisual {
   }
 
   /**
-   * Shows the translucent box fill only for selected modifier volumes and
-   * generator nodes, as for brush hulls; unselected ones keep only their
-   * outline.
+   * Shows the translucent box fill only for selected modifier volumes, as for
+   * brush hulls; unselected ones keep only their outline.
    */
   private syncVolumeFills(): void {
     const nextFills = new Set<THREE.Mesh>();
