@@ -301,11 +301,12 @@ const hierarchyIndexByNodeIdCache = new WeakMap<object, Map<number, number>>();
 export function solidAlgorithmHierarchyIndexByNodeId(
   hierarchy: readonly SolidAlgorithmCompactNode[],
 ): ReadonlyMap<number, number> {
-  let map = hierarchyIndexByNodeIdCache.get(hierarchy);
-  if (!map) {
-    map = new Map();
-    for (let index = 0; index < hierarchy.length; index++) map.set(hierarchy[index]!.nodeId, index);
-    hierarchyIndexByNodeIdCache.set(hierarchy, map);
+  const cachedMap = hierarchyIndexByNodeIdCache.get(hierarchy);
+  if (cachedMap) {
+    return cachedMap;
   }
+  const map = new Map<number, number>();
+  hierarchy.forEach((node, index) => map.set(node.nodeId, index));
+  hierarchyIndexByNodeIdCache.set(hierarchy, map);
   return map;
 }

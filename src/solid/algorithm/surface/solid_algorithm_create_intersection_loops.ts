@@ -165,9 +165,8 @@ export class SolidAlgorithmCreateIntersectionLoops {
   ): SolidAlgorithmSurfaceLoop[] {
     const subject = prepared[subjectIndex];
     const peer = prepared[peerIndex];
-    const subjectLoops: SolidAlgorithmSurfaceLoop[] = [];
     if (!subject || !peer || this.boundsNearlyEqual(subject.bounds, peer.bounds, settings.fatPlaneEpsilon)) {
-      return subjectLoops;
+      return [];
     }
     const pair = SolidAlgorithmPrepareBrushPair.prepare(
       prepared,
@@ -178,9 +177,24 @@ export class SolidAlgorithmCreateIntersectionLoops {
       settings.fatPlaneEpsilon,
     );
     if (!pair || pair.type !== SolidAlgorithmIntersectionType.Intersection) {
-      return subjectLoops;
+      return [];
     }
-    for (const loop of this.executePair(prepared, pair)) {
+    return this.loopsOwnedBySubject(this.executePair(prepared, pair), subjectIndex);
+  }
+
+  /**
+   * Keeps the loops whose base face belongs to the subject brush.
+   *
+   * @param loops Loops of a brush pair.
+   * @param subjectIndex Subject index.
+   * @returns Subject-owned loops in their original order.
+   */
+  private static loopsOwnedBySubject(
+    loops: Iterable<SolidAlgorithmSurfaceLoop>,
+    subjectIndex: number,
+  ): SolidAlgorithmSurfaceLoop[] {
+    const subjectLoops: SolidAlgorithmSurfaceLoop[] = [];
+    for (const loop of loops) {
       if (loop.subjectBrushIndex === subjectIndex) {
         subjectLoops.push(loop);
       }

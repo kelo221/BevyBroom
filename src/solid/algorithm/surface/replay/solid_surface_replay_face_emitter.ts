@@ -21,6 +21,7 @@ import { SolidSurfaceReplayVertexDifference } from './solid_surface_replay_verte
 import {
   SolidSurfaceReplayFaceSplitter,
   type SolidSurfaceReplayCheckpoint,
+  type SolidSurfaceReplaySplit,
 } from './solid_surface_replay_face_splitter.js';
 
 /** Inputs shared by every face of one subject brush compile. */
@@ -346,19 +347,54 @@ export class SolidSurfaceReplayFaceEmitter {
       return null;
     }
     const faceVertices = context.subject.brush.getFaceVertices(face);
-    const checkpointAt = previousFace ? this.firstChangedLoopIndex(previousFace.loops, faceLoops) : -1;
-    const resumeFrom = this.usableCheckpoint(previousFace, checkpointAt);
-    const split = SolidSurfaceReplayFaceSplitter.split(
-      faceVertices,
-      faceLoops,
-      context.vertexTable,
-      resumeFrom,
-      checkpointAt,
-    );
+    const split = this.faceSplitResumingFromCheckpoint(context, faceVertices, faceLoops, previousFace);
     if (previousFace) {
       this.vertexDifference.recordReplacement(previousFace.insertedVertices, split.insertedVertices);
     }
-    const record: SolidSurfaceReplayFace = {
+    const record = this.faceRecordCreate(context, faceVertices, faceLoops, split, previousFace);
+    this.routeNewFragments(context, facePlane, face.surfaceIndex, record, split.pieces, previousFace);
+    return record;
+  }
+
+  /**
+   * Splits a face by its loops, resuming from the previous face's checkpoint
+   * when that checkpoint is still valid.
+   *
+   * @param context Subject compile context.
+   * @param faceVertices Vertices of the face polygon.
+   * @param faceLoops Loops of the face.
+   * @param previousFace Previous face record, when one exists.
+   * @returns Split result of the face.
+   */
+  private faceSplitResumingFromCheckpoint(
+    context: SolidSurfaceReplayBrushContext,
+    faceVertices: readonly THREE.Vector3[],
+    faceLoops: readonly SolidAlgorithmSurfaceLoop[],
+    previousFace: SolidSurfaceReplayFace | undefined,
+  ): SolidSurfaceReplaySplit {
+    const checkpointAt = previousFace ? this.firstChangedLoopIndex(previousFace.loops, faceLoops) : -1;
+    const resumeFrom = this.usableCheckpoint(previousFace, checkpointAt);
+    return SolidSurfaceReplayFaceSplitter.split(faceVertices, faceLoops, context.vertexTable, resumeFrom, checkpointAt);
+  }
+
+  /**
+   * Creates the face record of a freshly split face, without fragments.
+   *
+   * @param context Subject compile context.
+   * @param faceVertices Vertices of the face polygon.
+   * @param faceLoops Loops of the face.
+   * @param split Split result of the face.
+   * @param previousFace Previous face record, when one exists.
+   * @returns New face record with an empty fragment list.
+   */
+  private faceRecordCreate(
+    context: SolidSurfaceReplayBrushContext,
+    faceVertices: readonly THREE.Vector3[],
+    faceLoops: readonly SolidAlgorithmSurfaceLoop[],
+    split: SolidSurfaceReplaySplit,
+    previousFace: SolidSurfaceReplayFace | undefined,
+  ): SolidSurfaceReplayFace {
+    return {
       loops: faceLoops,
       insertedVertices: split.insertedVertices,
       reachBounds: this.faceReachBounds(faceVertices, faceLoops),
@@ -367,8 +403,6 @@ export class SolidSurfaceReplayFaceEmitter {
       routePlan: this.routePlanFor(context, this.piecesBounds(split.pieces), previousFace),
       fragments: [],
     };
-    this.routeNewFragments(context, facePlane, face.surfaceIndex, record, split.pieces, previousFace);
-    return record;
   }
 
   /**

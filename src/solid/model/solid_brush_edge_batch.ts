@@ -313,20 +313,21 @@ export class SolidBrushEdgeBatch {
   }
 
   /**
-   * Builds operation batches for a solid from every visible brush, including
-   * brushes currently marked individual by selection.
-   *
-   * @param solidRoot Solid model root.
-   * @param brushes Brush meshes under the solid.
-   */
-  /**
    * Solid root whose world matrices were refreshed for the current batch
    * rebuild.
    */
   private static freshMatrixRoot: THREE.Group | null = null;
+
+  /**
+   * Builds operation batches for a solid from every visible brush, including
+   * brushes currently marked individual by selection. The solid subtree's world
+   * matrices are refreshed once for the whole rebuild instead of once per
+   * brush.
+   *
+   * @param solidRoot Solid model root.
+   * @param brushes Brush meshes under the solid.
+   */
   private static rebuildBatchGeometryForSolid(solidRoot: THREE.Group, brushes: readonly THREE.Mesh[]): void {
-    // Refresh the solid subtree's world matrices once per rebuild instead of
-    // once per brush (each call walks the whole subtree: O(brushes^2)).
     solidRoot.updateMatrixWorld(false);
     this.freshMatrixRoot = solidRoot;
     let chunksByOperation;

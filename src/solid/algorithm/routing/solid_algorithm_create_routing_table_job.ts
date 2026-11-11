@@ -265,7 +265,9 @@ export class SolidAlgorithmCreateRoutingTableJob {
   }
 
   /**
-   * Queues ListItem/GetStackNode for a branch.
+   * Queues ListItem/GetStackNode for a branch. Only touched children are
+   * visited, in the same descending order a full scan over the branch range
+   * would use.
    *
    * @param currentNode Branch node.
    * @param currEvent Parent event.
@@ -300,8 +302,6 @@ export class SolidAlgorithmCreateRoutingTableJob {
       return outputLength;
     }
     const leftStackStartIndex = currEvent.outputStartIndex;
-    // Visit only touched children, in the same descending order a full scan
-    // over the branch range would (untouched children never queue events).
     const touchedIndices = touched.hierarchyIndicesIn(hierarchy, firstIndex + 1, lastIndex);
     for (const index of touchedIndices) {
       const child = hierarchy[index];

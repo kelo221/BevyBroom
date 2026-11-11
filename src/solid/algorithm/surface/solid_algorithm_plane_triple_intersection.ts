@@ -33,7 +33,9 @@ export class SolidAlgorithmPlaneTripleIntersection {
   }
 
   /**
-   * Intersects three planes given as (nx, ny, nz, d) components.
+   * Intersects three planes given as (nx, ny, nz, d) components. Works on
+   * scalars only and allocates nothing besides the result, so the engine keeps
+   * it optimized when plane components mix exact integers and doubles.
    *
    * @param a1 Plane1 nx.
    * @param b1 Plane1 ny.
@@ -63,10 +65,6 @@ export class SolidAlgorithmPlaneTripleIntersection {
     c3: number,
     d3: number,
   ): THREE.Vector3 | null {
-    // Scalar form of N0 / Nx / E (same operations and order as the vector
-    // helpers below). Kept allocation-free: the object-literal version fell into
-    // a V8 deopt loop ("not a Smi") when plane components mix exact integers
-    // (axis-aligned normals) and doubles.
     const n0x = d2 * b3 - b2 * d3;
     const n0y = c2 * a3 - a2 * c3;
     const n0z = b2 * d3 - d2 * b3;

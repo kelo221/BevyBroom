@@ -126,6 +126,19 @@ export class SolidAlgorithmRoutingTableCache {
     if (!tree.isFlat) {
       parts.push(`th:${this.treeKey(tree)}`);
     }
+    this.cacheKeyPeerPartsAppend(prepared, subject, parts);
+    return parts.join('|');
+  }
+
+  /**
+   * Appends one key part per overlapping peer of the subject: its index, id,
+   * operation and touch type against the subject.
+   *
+   * @param prepared Prepared brushes.
+   * @param subject Subject prepared brush.
+   * @param parts Key parts receiving the peer parts.
+   */
+  private cacheKeyPeerPartsAppend(prepared: readonly PreparedBrush[], subject: PreparedBrush, parts: string[]): void {
     for (const peerIndex of subject.overlappingPeerIndices) {
       const peer = prepared[peerIndex];
       if (!peer) {
@@ -140,7 +153,6 @@ export class SolidAlgorithmRoutingTableCache {
       );
       parts.push(`p:${peerIndex}:${peer.instance.id}:${peer.operation}:${touchType}`);
     }
-    return parts.join('|');
   }
 
   /**
