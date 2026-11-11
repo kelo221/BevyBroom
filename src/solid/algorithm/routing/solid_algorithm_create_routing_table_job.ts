@@ -80,7 +80,23 @@ export class SolidAlgorithmCreateRoutingTableJob {
    * @param hierarchy Compact hierarchy.
    * @returns Prepared index to node id map.
    */
+  /**
+   * Per-hierarchy prepared index to node id maps (hierarchies are immutable
+   * once built).
+   */
+  private static readonly preparedIndexToNodeIdCache = new WeakMap<object, Map<number, number>>();
+  /** Inverse maps, keyed by the forward map they were built from. */
+  private static readonly nodeIdToPreparedIndexCache = new WeakMap<object, Map<number, number>>();
   private static buildPreparedIndexToNodeIdMap(hierarchy: readonly SolidAlgorithmCompactNode[]): Map<number, number> {
+    const known = this.preparedIndexToNodeIdCache.get(hierarchy);
+    if (known) return known;
+    const built = this.buildPreparedIndexToNodeIdMapUncached(hierarchy);
+    this.preparedIndexToNodeIdCache.set(hierarchy, built);
+    return built;
+  }
+  private static buildPreparedIndexToNodeIdMapUncached(
+    hierarchy: readonly SolidAlgorithmCompactNode[],
+  ): Map<number, number> {
     const map = new Map<number, number>();
     for (const node of hierarchy) {
       if (node.kind === 'brush') {
@@ -249,7 +265,9 @@ export class SolidAlgorithmCreateRoutingTableJob {
   }
 
   /**
-   * Queues ListItem/GetStackNode for a branch.
+   * Queues ListItem/GetStackNode for a branch. Only touched children are
+   * visited, in the same descending order a full scan over the branch range
+   * would use.
    *
    * @param currentNode Branch node.
    * @param currEvent Parent event.
@@ -284,7 +302,8 @@ export class SolidAlgorithmCreateRoutingTableJob {
       return outputLength;
     }
     const leftStackStartIndex = currEvent.outputStartIndex;
-    for (let index = lastIndex - 1; index >= firstIndex + 1; index--) {
+    const touchedIndices = touched.hierarchyIndicesIn(hierarchy, firstIndex + 1, lastIndex);
+    for (const index of touchedIndices) {
       const child = hierarchy[index];
       if (!child) {
         continue;
@@ -446,6 +465,15 @@ export class SolidAlgorithmCreateRoutingTableJob {
    * @returns Inverted map.
    */
   private static invertPreparedIndexMap(preparedIndexToNodeId: ReadonlyMap<number, number>): Map<number, number> {
+    const known = this.nodeIdToPreparedIndexCache.get(preparedIndexToNodeId);
+    if (known) return known;
+    const built = this.invertPreparedIndexMapUncached(preparedIndexToNodeId);
+    this.nodeIdToPreparedIndexCache.set(preparedIndexToNodeId, built);
+    return built;
+  }
+  private static invertPreparedIndexMapUncached(
+    preparedIndexToNodeId: ReadonlyMap<number, number>,
+  ): Map<number, number> {
     const inverted = new Map<number, number>();
     for (const [preparedIndex, nodeId] of preparedIndexToNodeId) {
       inverted.set(nodeId, preparedIndex);

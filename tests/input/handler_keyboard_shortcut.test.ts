@@ -237,6 +237,36 @@ describe('KeyboardShortcutHandler', () => {
     document.body.removeChild(input);
   });
 
+  /**
+   * Editor undo and redo run from a focused dropdown or checkbox, while a text
+   * field keeps Ctrl+Z for its own text undo.
+   */
+  it('runs editor undo and redo from a dropdown or checkbox but never from a text field', () => {
+    const onUndo = vi.fn();
+    const onRedo = vi.fn();
+    handler.setOnUndo(onUndo);
+    handler.setOnRedo(onRedo);
+    const press = (target: HTMLElement, key: string): void => {
+      target.dispatchEvent(
+        new KeyboardEvent('keydown', { code: `Key${key.toUpperCase()}`, key, ctrlKey: true, bubbles: true }),
+      );
+    };
+    const select = document.createElement('select');
+    const checkbox = Object.assign(document.createElement('input'), { type: 'checkbox' });
+    const text = document.createElement('input');
+    document.body.append(select, checkbox, text);
+    press(select, 'z');
+    press(checkbox, 'z');
+    press(select, 'y');
+    expect(onUndo).toHaveBeenCalledTimes(2);
+    expect(onRedo).toHaveBeenCalledOnce();
+    press(text, 'z');
+    press(text, 'y');
+    expect(onUndo).toHaveBeenCalledTimes(2);
+    expect(onRedo).toHaveBeenCalledOnce();
+    for (const element of [select, checkbox, text]) element.remove();
+  });
+
   it('should invoke escape callback on Escape', () => {
     const onEscape = vi.fn();
     handler.setOnEscape(onEscape);

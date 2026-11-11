@@ -84,3 +84,28 @@ export function handlerKeyboardShortcutIsTypingTarget(target: EventTarget | null
   }
   return target.isContentEditable;
 }
+
+/** Input types that hold no typed text, so they have no text undo of their own. */
+const HANDLER_KEYBOARD_SHORTCUT_UNTYPED_INPUT_TYPES = new Set([
+  'checkbox',
+  'radio',
+  'range',
+  'color',
+  'button',
+  'submit',
+]);
+
+/**
+ * Returns whether a focused form field leaves undo and redo to the editor
+ * because it is a dropdown or an input type without typed text.
+ *
+ * @param event The keyboard event.
+ * @returns True when the editor's undo and redo shortcuts should run.
+ */
+export function handlerKeyboardShortcutFieldAllowsEditorUndo(event: KeyboardEvent): boolean {
+  const target = event.target;
+  if (target instanceof HTMLSelectElement) {
+    return true;
+  }
+  return target instanceof HTMLInputElement && HANDLER_KEYBOARD_SHORTCUT_UNTYPED_INPUT_TYPES.has(target.type);
+}
