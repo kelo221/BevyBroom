@@ -8,6 +8,14 @@ import type {
   SprinkleDefinitionFilesReadResult,
   SprinkleDefinitionOpenResult,
 } from '@/tools/sprinkle/definition/sprinkle_definition.js';
+import type {
+  ProjectLevelCreateRequest,
+  ProjectLevelListResult,
+  ProjectLevelReadResult,
+  ProjectLevelRenameRequest,
+  ProjectLevelWriteRequest,
+  ProjectLevelWriteResult,
+} from '@/project/level/project_level_types.js';
 
 /** Explanation shown where only the desktop app can manage a game. */
 export const GAME_PROCESS_DESKTOP_ONLY_MESSAGE =
@@ -91,6 +99,46 @@ export abstract class GameProcessControl {
    * @returns Success, or why the file was not opened.
    */
   abstract projectSprinkleDefinitionOpen(path: string): Promise<SprinkleDefinitionOpenResult>;
+
+  /**
+   * Lists the levels of the open project: the ones its project file lists and
+   * the scene documents of its document directory.
+   *
+   * @returns The levels, or why there are none.
+   */
+  abstract projectLevelList(): Promise<ProjectLevelListResult>;
+
+  /**
+   * Reads one level document of the open project.
+   *
+   * @param document Document path relative to the document directory.
+   * @returns The level and its text, or why the document is not returned.
+   */
+  abstract projectLevelRead(document: string): Promise<ProjectLevelReadResult>;
+
+  /**
+   * Writes the scene text of a level document of the open project.
+   *
+   * @param request Document, text and the modification time the editor knows.
+   * @returns The level afterwards, or why nothing was written.
+   */
+  abstract projectLevelWrite(request: ProjectLevelWriteRequest): Promise<ProjectLevelWriteResult>;
+
+  /**
+   * Creates a new level document in the open project.
+   *
+   * @param request Display name and scene text.
+   * @returns The new level, or why nothing was written.
+   */
+  abstract projectLevelCreate(request: ProjectLevelCreateRequest): Promise<ProjectLevelWriteResult>;
+
+  /**
+   * Renames a level of the open project by moving its document.
+   *
+   * @param request Document to move and the new display name.
+   * @returns The renamed level, or why nothing was moved.
+   */
+  abstract projectLevelRename(request: ProjectLevelRenameRequest): Promise<ProjectLevelWriteResult>;
 }
 
 /**
@@ -178,6 +226,51 @@ export class GameProcessControlUnavailable extends GameProcessControl {
    * @returns Failure result.
    */
   async projectSprinkleDefinitionOpen(): Promise<SprinkleDefinitionOpenResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that project levels need the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectLevelList(): Promise<ProjectLevelListResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that project levels need the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectLevelRead(): Promise<ProjectLevelReadResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that project levels need the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectLevelWrite(): Promise<ProjectLevelWriteResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that project levels need the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectLevelCreate(): Promise<ProjectLevelWriteResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that project levels need the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectLevelRename(): Promise<ProjectLevelWriteResult> {
     return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
   }
 

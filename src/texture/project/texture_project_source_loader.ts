@@ -1,8 +1,5 @@
 import type { GameProcessControl } from '@/project/control/game_process_control.js';
-import {
-  projectWorkbenchOpenKeyRead,
-  type ProjectWorkbenchOpenKeySource,
-} from '@/project/workbench/project_workbench_open_key.js';
+import { ProjectAssetFollower, type ProjectAssetFollowerWorkbench } from '@/project/assets/project_asset_follower.js';
 import {
   createTextureBrowserEntry,
   revokeTextureBrowserEntry,
@@ -30,15 +27,7 @@ export interface TextureProjectSourceSink {
 }
 
 /** The parts of the project workbench the loader follows. */
-export interface TextureProjectSourceWorkbench extends ProjectWorkbenchOpenKeySource {
-  /**
-   * Registers a callback run whenever the project status changes.
-   *
-   * @param listener Change callback.
-   * @returns Function that removes the callback.
-   */
-  changeListenerAdd(listener: () => void): () => void;
-}
+export type TextureProjectSourceWorkbench = ProjectAssetFollowerWorkbench;
 
 /** Collaborators of the project texture loader. */
 export interface TextureProjectSourceLoaderHosts {
@@ -55,15 +44,10 @@ export interface TextureProjectSourceLoaderHosts {
 /**
  * Loads the images of the open project's texture directories into the 'Project
  * textures' library source whenever a project is opened, and clears the source
- * when the project goes away. Results of a load overtaken by a newer project
- * are dropped.
+ * when the project goes away.
  */
-export class TextureProjectSourceLoader {
+export class TextureProjectSourceLoader extends ProjectAssetFollower {
   private readonly hosts: TextureProjectSourceLoaderHosts;
-  private readonly listenerRemove: () => void;
-  private shownProjectKey: string | null = null;
-  private loadGeneration = 0;
-  private pendingLoad: Promise<void> = Promise.resolve();
 
   /**
    * Creates the loader and starts following the workbench.
@@ -71,64 +55,23 @@ export class TextureProjectSourceLoader {
    * @param hosts Collaborators.
    */
   constructor(hosts: TextureProjectSourceLoaderHosts) {
+    super(hosts.workbench);
     this.hosts = hosts;
-    this.listenerRemove = hosts.workbench.changeListenerAdd(() => this.projectChangeHandle());
-    this.projectChangeHandle();
+    this.followStart();
   }
 
-  /**
-   * Waits for the newest load to finish.
-   *
-   * @returns Promise that settles once the newest load is done.
-   */
-  idle(): Promise<void> {
-    return this.pendingLoad;
-  }
-
-  /** Stops following the workbench and clears the project textures. */
-  dispose(): void {
-    this.listenerRemove();
-    this.loadGeneration += 1;
-    this.shownProjectKey = null;
+  /** Removes the project textures from the library. */
+  protected assetsClear(): void {
     this.hosts.sink.clearSource(TEXTURE_LIBRARY_SOURCE_PROJECT_TEXTURES);
   }
 
-  /** Starts a new load when the open project differs from the shown one. */
-  private projectChangeHandle(): void {
-    const projectKey = this.projectKeyRead();
-    if (projectKey === this.shownProjectKey) {
-      return;
-    }
-    this.shownProjectKey = projectKey;
-    this.loadGeneration += 1;
-    this.hosts.sink.clearSource(TEXTURE_LIBRARY_SOURCE_PROJECT_TEXTURES);
-    if (projectKey !== null) {
-      this.pendingLoad = this.loadRun(this.loadGeneration);
-    }
-  }
-
   /**
-   * Builds the key of the open project: its file and the open count.
+   * Shows why the project textures could not be loaded.
    *
-   * @returns Key, or null when no project is open.
+   * @param reason Failure message.
    */
-  private projectKeyRead(): string | null {
-    return projectWorkbenchOpenKeyRead(this.hosts.workbench);
-  }
-
-  /**
-   * Runs one load and reports failures instead of throwing.
-   *
-   * @param generation Load generation the load belongs to.
-   */
-  private async loadRun(generation: number): Promise<void> {
-    try {
-      await this.load(generation);
-    } catch (error) {
-      if (this.isCurrent(generation)) {
-        this.hosts.statusReport(`Project textures: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    }
+  protected loadFailureShow(reason: string): void {
+    this.hosts.statusReport(`Project textures: ${reason}`);
   }
 
   /**
@@ -137,13 +80,13 @@ export class TextureProjectSourceLoader {
    *
    * @param generation Load generation the load belongs to.
    */
-  private async load(generation: number): Promise<void> {
+  protected async assetsLoad(generation: number): Promise<void> {
     const listed = await this.hosts.control.projectTextureList();
     if (!this.isCurrent(generation)) {
       return;
     }
     if (!listed.ok) {
-      this.hosts.statusReport(`Project textures: ${listed.message}`);
+      this.loadFailureShow(listed.message);
       return;
     }
     const entries = await this.entriesRead(listed.texturePaths, generation);
@@ -190,15 +133,5 @@ export class TextureProjectSourceLoader {
     const fileName = texturePath.split('/').pop() ?? texturePath;
     const file = new File([base64ToBytes(read.bytesBase64)], fileName, { type: imageFileMimeType(fileName) });
     return createTextureBrowserEntry(file, texturePath, TEXTURE_LIBRARY_SOURCE_PROJECT_TEXTURES);
-  }
-
-  /**
-   * Returns whether a load is still the newest one.
-   *
-   * @param generation Load generation to check.
-   * @returns True while no newer load started.
-   */
-  private isCurrent(generation: number): boolean {
-    return generation === this.loadGeneration;
   }
 }

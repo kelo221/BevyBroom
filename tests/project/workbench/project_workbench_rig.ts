@@ -17,6 +17,16 @@ import type {
   SprinkleDefinitionFilesReadResult,
   SprinkleDefinitionOpenResult,
 } from '@/tools/sprinkle/definition/sprinkle_definition.js';
+import type {
+  ProjectLevelCreateRequest,
+  ProjectLevelListResult,
+  ProjectLevelReadResult,
+  ProjectLevelRenameRequest,
+  ProjectLevelSummary,
+  ProjectLevelWriteRequest,
+  ProjectLevelWriteResult,
+} from '@/project/level/project_level_types.js';
+import { projectLevelDocumentFromName, projectLevelIdFromDocument } from '@/project/model/project_level_entry.js';
 import { ProjectRecentStore } from '@/project/recent/project_recent_store.js';
 import { ProjectWorkbench, type ProjectWorkbenchLink } from '@/project/workbench/project_workbench.js';
 import { ProjectWorkbenchConsoleReporter } from '@/project/workbench/project_workbench_console_reporter.js';
@@ -43,6 +53,10 @@ export class GameProcessControlFake extends GameProcessControl {
   readonly openedSprinkleDefinitions: string[] = [];
   /** Answer of every sprinkle definition open request. */
   nextSprinkleOpenResult: SprinkleDefinitionOpenResult = { ok: true };
+  /** Level document texts by document path, per project file. */
+  readonly projectLevelDocuments = new Map<string, Map<string, string>>();
+  /** Modification time given to the next written level document. */
+  nextLevelModifiedMilliseconds = 1000;
 
   /** @inheritdoc */
   async projectChooseFile(): Promise<string | null> {
@@ -114,6 +128,87 @@ export class GameProcessControlFake extends GameProcessControl {
   async projectSprinkleDefinitionOpen(path: string): Promise<SprinkleDefinitionOpenResult> {
     this.openedSprinkleDefinitions.push(path);
     return this.nextSprinkleOpenResult;
+  }
+
+  /** @inheritdoc */
+  async projectLevelList(): Promise<ProjectLevelListResult> {
+    const projectFile = this.nextStatus?.project?.projectFile ?? null;
+    if (projectFile === null) {
+      return { ok: false, message: 'No project is open.' };
+    }
+    const documents = Array.from(this.projectLevelDocumentsRead(projectFile).keys()).sort();
+    const levels = documents.map((document) => this.projectLevelSummaryCreate(document));
+    return { ok: true, projectFile, documentDirectory: `${projectFile}/../broom/documents`, levels };
+  }
+
+  /** @inheritdoc */
+  async projectLevelRead(document: string): Promise<ProjectLevelReadResult> {
+    const text = this.projectLevelDocumentsRead(this.nextStatus?.project?.projectFile ?? '').get(document);
+    if (text === undefined) {
+      return { ok: false, message: `No level document ${document}` };
+    }
+    return { ok: true, level: this.projectLevelSummaryCreate(document), text };
+  }
+
+  /** @inheritdoc */
+  async projectLevelWrite(request: ProjectLevelWriteRequest): Promise<ProjectLevelWriteResult> {
+    this.projectLevelDocumentsRead(this.nextStatus?.project?.projectFile ?? '').set(request.document, request.text);
+    this.nextLevelModifiedMilliseconds += 1;
+    return { ok: true, level: this.projectLevelSummaryCreate(request.document) };
+  }
+
+  /** @inheritdoc */
+  async projectLevelCreate(request: ProjectLevelCreateRequest): Promise<ProjectLevelWriteResult> {
+    const document = projectLevelDocumentFromName(request.name);
+    if (this.projectLevelDocumentsRead(this.nextStatus?.project?.projectFile ?? '').has(document)) {
+      return { ok: false, message: `Level ${document} exists`, refusal: 'exists' };
+    }
+    return this.projectLevelWrite({ document, text: request.text, knownModifiedMilliseconds: null });
+  }
+
+  /** @inheritdoc */
+  async projectLevelRename(request: ProjectLevelRenameRequest): Promise<ProjectLevelWriteResult> {
+    const documents = this.projectLevelDocumentsRead(this.nextStatus?.project?.projectFile ?? '');
+    const text = documents.get(request.document);
+    const target = projectLevelDocumentFromName(request.name);
+    if (text === undefined || documents.has(target)) {
+      return { ok: false, message: `Cannot rename ${request.document}`, refusal: 'exists' };
+    }
+    documents.delete(request.document);
+    documents.set(target, text);
+    return { ok: true, level: this.projectLevelSummaryCreate(target) };
+  }
+
+  /**
+   * Returns the fake level documents of one project, creating the store.
+   *
+   * @param projectFile Project file path.
+   * @returns Document texts by document path.
+   */
+  projectLevelDocumentsRead(projectFile: string): Map<string, string> {
+    const existing = this.projectLevelDocuments.get(projectFile);
+    if (existing) {
+      return existing;
+    }
+    const created = new Map<string, string>();
+    this.projectLevelDocuments.set(projectFile, created);
+    return created;
+  }
+
+  /**
+   * Builds the summary of a fake level document.
+   *
+   * @param document Document path.
+   * @returns Level summary with the current fake modification time.
+   */
+  private projectLevelSummaryCreate(document: string): ProjectLevelSummary {
+    return {
+      id: projectLevelIdFromDocument(document),
+      name: document.replace(/\.json$/i, ''),
+      document,
+      modifiedMilliseconds: this.nextLevelModifiedMilliseconds,
+      isListed: false,
+    };
   }
 
   /**
