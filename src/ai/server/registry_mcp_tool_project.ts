@@ -4,8 +4,8 @@ import { emptySchema, tool, type McpToolDefinition } from './registry_mcp_tool_h
 const MCP_PROJECT_DESKTOP_NOTE = 'Desktop app only; the browser editor reports that it cannot manage games.';
 
 /**
- * Tools that open a game project and launch, rebuild, restart and stop the game
- * this editor manages.
+ * Tools that open a game project, launch, rebuild, restart and stop the game
+ * this editor manages, and list, open and save the project's levels.
  */
 export const MCP_PROJECT_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(
@@ -49,6 +49,32 @@ export const MCP_PROJECT_TOOL_DEFINITIONS: McpToolDefinition[] = [
       type: 'object',
       properties: {
         levelName: { type: 'string', description: 'Level name; defaults to the name derived from the scene file.' },
+      },
+    },
+  ),
+  tool(
+    'list_project_levels',
+    `List the levels of the open project: the entries of its broom.project.json "levels" list first, then every other scene document found in its document_directory. Returns { projectFile, documentDirectory, levels: [{ id, name, document, modifiedMilliseconds, isListed }], openLevel } where openLevel names the level the open scene was loaded from or last saved to, or null. ${MCP_PROJECT_DESKTOP_NOTE}`,
+    emptySchema(),
+  ),
+  tool(
+    'open_project_level',
+    `Replace the open scene with a level document of the open project, found by levelId or document path, and remember it so save_project_level and File > Save write back to it. Unsaved work is replaced without asking. ${MCP_PROJECT_DESKTOP_NOTE}`,
+    {
+      type: 'object',
+      properties: {
+        levelId: { type: 'string', description: 'Level id as listed by list_project_levels.' },
+        document: { type: 'string', description: 'Document path relative to the document directory, such as "castle_hall.json".' },
+      },
+    },
+  ),
+  tool(
+    'save_project_level',
+    `Save the open scene into the open project. Without a name it writes back into the open level and fails when none is open or another program changed the document since; with a name it creates a new level document named after the name and makes it the open level. Returns the level { id, name, document, modifiedMilliseconds, isListed }. ${MCP_PROJECT_DESKTOP_NOTE}`,
+    {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Display name of a new level; omit to write back into the open level.' },
       },
     },
   ),
