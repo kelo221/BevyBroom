@@ -35,6 +35,44 @@ BevyBroom supports both direct manipulation and keyboard-driven editing. Most sh
 
 Drag a colored axis or plane handle to constrain the edit. The exact handles depend on Bounds, Move, Rotate, or Scale mode.
 
+## macOS
+
+On macOS the editor follows Mac conventions. Windows and Linux are unchanged.
+
+### Keys
+
+- **Command (⌘) replaces Ctrl** in every shortcut: ⌘S saves, ⌘Z undoes,
+  ⌘D duplicates. **Control (⌃) takes the place of the Windows key.** Menus,
+  tooltips, hints and **Settings > Keyboard** show the Mac symbols ⌘ ⌥ ⌃ ⇧.
+- **Delete (⌫) and ⌘⌫ delete the selection**, like Delete on Windows. In Edit
+  Mode, ⌫ keeps its Edit Mode meaning. Fn+⌫ (forward delete, ⌦) still works.
+- **⌘W** closes the front floating window or dialog.
+
+### Mouse and trackpad
+
+- **Control+click** acts as a right click.
+- **Wheel in 2D views** (**Settings > Mouse**) chooses what scrolling does in
+  the 2D views:
+  - _Automatic_: a mouse wheel zooms; a two-finger trackpad scroll pans and a
+    pinch zooms.
+  - _Zoom_: scrolling always zooms.
+  - _Pan_: scrolling always pans and a pinch zooms.
+- **⌥ + left drag acts as the middle mouse button** (pan) when
+  **Settings > Mouse > ⌥ + left drag acts as middle mouse** is on, for
+  trackpads and mice without a middle button.
+
+### App
+
+- The menus live in the macOS menu bar, with an app menu (About, Settings ⌘,,
+  Hide, Quit ⌘Q) and a Window menu.
+- File > Load, Save and Save As use the native macOS open and save panels. Save
+  writes back to the file you opened or last saved.
+- Clicking the Dock icon brings back a minimized or hidden window. Quitting
+  also stops the running game preview and the MCP server.
+- **View > Look** picks the chrome look: _Automatic_ follows the system light
+  or dark appearance, or choose _macOS Glass Light_, _macOS Glass Dark_ or
+  _Classic (Hammer)_. The look changes after the page reloads.
+
 ## Default keyboard shortcuts
 
 Shortcuts can be changed in **Settings > Keyboard**. The table below describes the defaults.

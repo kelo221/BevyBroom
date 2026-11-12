@@ -6,9 +6,9 @@ import {
 } from '@/platform/window/platform_window_close_shortcut.js';
 
 /**
- * Creates the close window shortcut of an operating system family: macOS
- * closes the front floating window with Command+W, other platforms keep the
- * key for the page.
+ * Creates the close window shortcut of an operating system family: macOS closes
+ * the front floating window with Command+W, other platforms keep the key for
+ * the page.
  *
  * @param platformKind Operating system family.
  * @param closeTopmost Closes the topmost open floating window.

@@ -97,7 +97,13 @@ describe('PlatformWindowCloseShortcut', () => {
     panel.show();
     const input = document.createElement('input');
     document.body.appendChild(input);
-    const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, code: 'KeyW', key: 'w', metaKey: true });
+    const event = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      code: 'KeyW',
+      key: 'w',
+      metaKey: true,
+    });
     input.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);
     expect(panel.isOpen()).toBe(true);

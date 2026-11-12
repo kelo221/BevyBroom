@@ -185,7 +185,10 @@ export abstract class ViewportLayoutCore {
    * emulation.
    */
   protected readonly platformPointerRemap: PlatformPointerButtonRemap;
-  /** Closes the front floating window on the system close window shortcut, where the platform has one. */
+  /**
+   * Closes the front floating window on the system close window shortcut, where
+   * the platform has one.
+   */
   protected readonly platformWindowCloseShortcut: PlatformWindowCloseShortcut | null;
   protected objectActionHandler!: HandlerObjectAction;
   protected alignmentHandler!: HandlerAlignment;

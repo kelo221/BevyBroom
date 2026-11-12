@@ -38,6 +38,11 @@ export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   ),
   tool(
+    'get_platform',
+    'Read-only: what the editor adapted to its operating system. Returns platform (mac, windows, linux or other), themeLook (classic, mac_glass or mac_glass_dark) and deleteSelectionShortcuts (labels of every default key binding that deletes the selection, e.g. ["Del"] on Windows, ["⌦", "⌫", "⌘⌫"] on macOS).',
+    emptySchema(),
+  ),
+  tool(
     'get_shell_layout',
     'Read-only screen rectangles ({x, y, width, height} in CSS pixels) of the main window areas: views (map views above the info panel), infoPanel (Console / Issues panel) and inspector (right dock). Hidden areas are zero sized.',
     emptySchema(),

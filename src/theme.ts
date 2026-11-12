@@ -1,5 +1,6 @@
 import { ThemePaletteHammer, type ThemePalette } from '@/theme/theme_palette_hammer.js';
 import { ThemePaletteMacGlass } from '@/theme/theme_palette_mac_glass.js';
+import { ThemePaletteMacGlassDark } from '@/theme/theme_palette_mac_glass_dark.js';
 import { THEME_LOOK_CURRENT } from '@/theme/theme_look_current.js';
 import type { ThemeLook } from '@/theme/theme_look.js';
 
@@ -10,8 +11,15 @@ import type { ThemeLook } from '@/theme/theme_look.js';
  * @returns Frozen palette of that look.
  */
 export function themePaletteForLook(look: ThemeLook): ThemePalette {
-  return look === 'mac_glass' ? ThemePaletteMacGlass : ThemePaletteHammer;
+  return THEME_PALETTES_BY_LOOK[look];
 }
+
+/** Palette of every chrome look. */
+const THEME_PALETTES_BY_LOOK: Readonly<Record<ThemeLook, ThemePalette>> = Object.freeze({
+  classic: ThemePaletteHammer,
+  mac_glass: ThemePaletteMacGlass,
+  mac_glass_dark: ThemePaletteMacGlassDark,
+});
 
 /**
  * Editor theme tokens of the chrome look this page started with: the classic
