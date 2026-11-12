@@ -7,6 +7,7 @@ import type {
 import type { ModifierStackContext } from './modifier_stack_context.js';
 import { modifierStackKindFind } from '@/modifier/stack/modifier_stack_catalog.js';
 import { modifierStackValidUnits } from './modifier_stack_validity.js';
+import { modifierStackOperationBoxAppend } from './modifier_stack_operation_box.js';
 
 /** Context fields shared by every modifier of one solid's compile. */
 export type ModifierStackSharedContext = Omit<ModifierStackContext, 'volume' | 'step' | 'report'>;
@@ -21,7 +22,9 @@ export interface ModifierStackRun {
 
 /**
  * Runs a volume's modifiers in exact stack order. Each modifier receives the
- * previous modifier's output; muted modifiers pass their input through.
+ * previous modifier's output; muted modifiers pass their input through. A
+ * boolean volume operation adds the volume box only when the volume captured
+ * brushes of this solid.
  *
  * @param volume Modifier volume.
  * @param settings Normalized stack settings.
@@ -45,6 +48,7 @@ export function modifierStackEvaluateVolume(
       units = modifierStackValidStepUnits(kind.apply(units, { ...shared, volume, step, report }), report);
     report.outputs = modifierStackBrushCount(units);
   });
+  if (captured.length > 0) units = modifierStackOperationBoxAppend(units, volume, settings.operation, shared.solidRoot);
   return { units, reports };
 }
 

@@ -16,6 +16,12 @@ import {
 } from '@/modifier/stack/modifier_stack_operations.js';
 import { MODIFIER_STACK_MAX_MODIFIERS } from '@/modifier/stack/modifier_stack_settings.js';
 import type { ModifierStackSettings } from '@/modifier/stack/modifier_stack_types.js';
+import {
+  MODIFIER_STACK_VOLUME_OPERATION_LABELS,
+  MODIFIER_STACK_VOLUME_OPERATIONS,
+  modifierStackVolumeOperationNormalize,
+} from '@/modifier/stack/modifier_stack_volume_operation.js';
+import { modifierStackOperationIssue } from '@/modifier/stack/evaluate/modifier_stack_operation_issue.js';
 import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
 import type { PanelPropertiesSection } from '@/ui/properties/panel_properties_section.js';
 import { modifierStackPickNoteTake, type ModifierStackPickNote } from '@/modifier/stack/pick/modifier_stack_pick.js';
@@ -37,6 +43,9 @@ import {
 } from './modifier_stack_ui_style.js';
 import { MODIFIER_STACK_UI_CLASSES, modifierStackUiStylesheetEnsure } from './modifier_stack_ui_layout.js';
 
+/** Id of the Object Properties tab that hosts the modifier stack. */
+export const MODIFIER_STACK_OBJECT_PROPERTIES_TAB_ID = 'modifiers';
+
 /** Explains why volumes only capture authored brushes. */
 export const MODIFIER_STACK_SECTION_CAPTURE_HINT =
   "A volume captures authored brushes only, never another volume's output, so volumes cannot feed each other in a loop. Stack modifiers in one volume to chain them.";
@@ -57,6 +66,10 @@ export class PanelPropertiesModifierStackSection implements PanelPropertiesSecti
       { value: 'brush', label: 'Single Brushes' },
     ],
     'Capture',
+  );
+  private readonly operation = new InputSelect(
+    MODIFIER_STACK_VOLUME_OPERATIONS.map((value) => ({ value, label: MODIFIER_STACK_VOLUME_OPERATION_LABELS[value] })),
+    'Operation',
   );
   private readonly affects: ModifierStackAffects;
   private cards = new Map<string, ModifierStackCard>();
@@ -84,14 +97,25 @@ export class PanelPropertiesModifierStackSection implements PanelPropertiesSecti
     this.status = modifierStackUiText('div', '', true);
     this.cardsHost = document.createElement('div');
     this.affects = new ModifierStackAffects((excludedIds) => this.edit((stack) => ({ ...stack, excludedIds })));
-    this.grouping.bindCommit(() =>
-      this.edit((stack) => ({ ...stack, grouping: this.grouping.getValue() === 'brush' ? 'brush' : 'compound' })),
-    );
+    this.volumeInputsBind();
     this.body = this.createBody();
     Object.assign(this.note.style, { padding: '6px' });
     modifierStackUiStylesheetEnsure();
     this.body.classList.add(MODIFIER_STACK_UI_CLASSES.root);
     this.section.append(this.note, this.body);
+  }
+
+  /**
+   * Makes the Capture and Operation selects store their value as an undoable
+   * edit.
+   */
+  private volumeInputsBind(): void {
+    this.grouping.bindCommit(() =>
+      this.edit((stack) => ({ ...stack, grouping: this.grouping.getValue() === 'brush' ? 'brush' : 'compound' })),
+    );
+    this.operation.bindCommit(() =>
+      this.edit((stack) => ({ ...stack, operation: modifierStackVolumeOperationNormalize(this.operation.getValue()) })),
+    );
   }
 
   /**
@@ -110,6 +134,15 @@ export class PanelPropertiesModifierStackSection implements PanelPropertiesSecti
    */
   setCommandStack(stack: CommandStack | null): void {
     this.commandStack = stack;
+  }
+
+  /**
+   * Returns the id of the Object Properties tab that shows the stack.
+   *
+   * @returns Modifiers tab id.
+   */
+  objectPropertiesTabIdGet(): string {
+    return MODIFIER_STACK_OBJECT_PROPERTIES_TAB_ID;
   }
 
   /**
@@ -144,6 +177,7 @@ export class PanelPropertiesModifierStackSection implements PanelPropertiesSecti
     if (!this.volume) return;
     const settings = ModifierVolume.read(this.volume);
     this.grouping.setSharedValues([settings.grouping]);
+    this.operation.setSharedValues([settings.operation]);
     this.writeStatus(settings);
     this.syncCards(this.volume, settings);
     this.affects.update(this.volume, settings.excludedIds);
@@ -196,9 +230,12 @@ export class PanelPropertiesModifierStackSection implements PanelPropertiesSecti
   private createVolumeRows(): HTMLElement {
     const volumeRows = document.createElement('div');
     const captureTooltip = `Whole groups copy a compound with all its brushes. ${MODIFIER_STACK_SECTION_CAPTURE_HINT}`;
+    const operationTooltip =
+      'Writes the volume box into the solid as a brush with this CSG operation. Subtractive cuts a hole, Intersecting keeps only the overlap, Additive adds the box. None keeps the volume as a plain modifier stack.';
     volumeRows.append(
       modifierStackSectionCaption('Volume'),
       modifierStackSectionRow(modifierStackUiRow('Capture', this.grouping.getElement(), captureTooltip)),
+      modifierStackSectionRow(modifierStackUiRow('Operation', this.operation.getElement(), operationTooltip)),
       this.affects.getElement(),
     );
     return volumeRows;
@@ -211,14 +248,27 @@ export class PanelPropertiesModifierStackSection implements PanelPropertiesSecti
    */
   private writeStatus(settings: ModifierStackSettings): void {
     const status = this.volume ? modifierStackStatusRead(this.volume) : null;
-    const empty = settings.modifiers.length === 0 ? ' · add a modifier to start' : '';
+    const empty = settings.modifiers.length === 0 && settings.operation === 'none' ? ' · add a modifier to start' : '';
     const made = status ? `${status.derived} brush${status.derived === 1 ? '' : 'es'}` : '';
     const sources = status ? `${status.captured} source${status.captured === 1 ? '' : 's'} → ` : '';
     const summary = `${sources}${made}`;
     this.status.textContent =
       (status ? `${summary}${this.skippedText(status)}${empty}` : `Not evaluated yet${empty}`) +
+      this.operationIssueText(settings, status) +
       this.pickedText(settings) +
       (this.notice ? ` · ${this.notice}` : '');
+  }
+
+  /**
+   * Explains why the volume's boolean operation writes no box.
+   *
+   * @param settings Current stack.
+   * @param status Volume feedback, or null before evaluation.
+   * @returns Suffix for the status line, or empty.
+   */
+  private operationIssueText(settings: ModifierStackSettings, status: ModifierStackStatus | null): string {
+    const issue = this.volume ? modifierStackOperationIssue(this.volume, settings, status) : '';
+    return issue ? ` · ${issue}` : '';
   }
 
   /**

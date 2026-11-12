@@ -1,11 +1,15 @@
 import { modifierStackKindFind, modifierStackKinds } from '@/modifier/stack/modifier_stack_catalog.js';
 import { modifierStackEntryCreate, modifierStackSettingsNormalize } from '@/modifier/stack/modifier_stack_settings.js';
 import type { ModifierStackEntry, ModifierStackSettings } from '@/modifier/stack/modifier_stack_types.js';
+import {
+  MODIFIER_STACK_VOLUME_OPERATIONS,
+  modifierStackVolumeOperationNormalize,
+} from '@/modifier/stack/modifier_stack_volume_operation.js';
 
 /**
  * Applies the stack arguments of an MCP call to a stack: modifiers, grouping,
- * excludedIds and enabled. Arguments that are absent keep their current value;
- * arguments of the wrong type are refused.
+ * operation, excludedIds and enabled. Arguments that are absent keep their
+ * current value; arguments of the wrong type are refused.
  *
  * @param current Stack before the call.
  * @param args Tool arguments.
@@ -17,19 +21,42 @@ export function editorApiModifierStackApply(
 ): ModifierStackSettings | string {
   const modifiers = args['modifiers'] === undefined ? current.modifiers : editorApiModifierListParse(current, args);
   if (typeof modifiers === 'string') return modifiers;
-  const grouping = args['grouping'];
-  if (grouping !== undefined && grouping !== 'compound' && grouping !== 'brush') {
-    return 'grouping must be compound or brush';
-  }
+  const choices = editorApiModifierChoicesParse(current, args);
+  if (typeof choices === 'string') return choices;
   const excludedIds = editorApiModifierExcludedIdsParse(current, args['excludedIds']);
   if (typeof excludedIds === 'string') return excludedIds;
   return modifierStackSettingsNormalize({
     ...current,
+    ...choices,
     modifiers,
-    grouping: grouping ?? current.grouping,
     excludedIds,
     enabled: typeof args['enabled'] === 'boolean' ? args['enabled'] : current.enabled,
   });
+}
+
+/**
+ * Parses the grouping and operation arguments.
+ *
+ * @param current Stack before the call.
+ * @param args Tool arguments.
+ * @returns Grouping and operation, or a message when one is not a known value.
+ */
+function editorApiModifierChoicesParse(
+  current: ModifierStackSettings,
+  args: Record<string, unknown>,
+): Pick<ModifierStackSettings, 'grouping' | 'operation'> | string {
+  const grouping = args['grouping'];
+  if (grouping !== undefined && grouping !== 'compound' && grouping !== 'brush') {
+    return 'grouping must be compound or brush';
+  }
+  const operation = args['operation'];
+  if (operation !== undefined && !MODIFIER_STACK_VOLUME_OPERATIONS.some((known) => known === operation)) {
+    return `operation must be one of ${MODIFIER_STACK_VOLUME_OPERATIONS.join(', ')}`;
+  }
+  return {
+    grouping: grouping ?? current.grouping,
+    operation: modifierStackVolumeOperationNormalize(operation ?? current.operation),
+  };
 }
 
 /**

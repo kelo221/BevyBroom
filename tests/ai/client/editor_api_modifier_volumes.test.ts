@@ -249,4 +249,36 @@ describe('EditorApi modifier volume argument checks', () => {
     const volume = rig.world.getObjectByProperty('uuid', created.id);
     expect(volume ? ModifierVolume.read(volume) : null).toEqual(stackBefore);
   });
+
+  it('adds a subtractive volume that cuts the covered half and sets the operation back to none', () => {
+    const rig = modifierApiRigCreate();
+    const widthBefore = resultWidth(rig.model);
+    const half = SOURCE_BOX_EDGE / 2;
+    const created = okData<{ id: string; stack: ModifierStackSettings; operationIssue: string }>(
+      rig.api.invokeTool('add_modifier_volume', {
+        center: { x: half, y: 0, z: 0 },
+        size: { x: SOURCE_BOX_EDGE, y: SOURCE_BOX_EDGE * 2, z: SOURCE_BOX_EDGE * 2 },
+        operation: 'subtract',
+      }),
+    );
+    expect(created.stack.operation).toBe('subtract');
+    expect(created.operationIssue).toBe('');
+    expect(resultWidth(rig.model)).toBeCloseTo(widthBefore - half, 5);
+    const reset = okData<{ stack: ModifierStackSettings }>(
+      rig.api.invokeTool('set_modifier_stack', { id: created.id, operation: 'none' }),
+    );
+    expect(reset.stack.operation).toBe('none');
+    expect(resultWidth(rig.model)).toBeCloseTo(widthBefore, 5);
+  });
+
+  it('refuses an unknown operation and explains a boolean volume that captures nothing', () => {
+    const rig = modifierApiRigCreate();
+    const clear = { x: SOURCE_BOX_EDGE * 4, y: 0, z: 0 };
+    expect(rig.api.invokeTool('add_modifier_volume', { center: clear, operation: 'carve' }).ok).toBe(false);
+    const created = okData<{ operationIssue: string }>(
+      rig.api.invokeTool('add_modifier_volume', { center: clear, operation: 'intersect' }),
+    );
+    expect(created.operationIssue).toBe('the volume captures no brushes, so the Intersecting box is not written');
+    expect(resultWidth(rig.model)).toBeCloseTo(SOURCE_BOX_EDGE, 5);
+  });
 });

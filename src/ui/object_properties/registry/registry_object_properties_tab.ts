@@ -50,6 +50,11 @@ export interface ObjectPropertiesTabRegistration {
   readonly label: string;
   readonly order: number;
   readonly mount: (context: ObjectPropertiesTabContext) => ObjectPropertiesTabInstance;
+  /**
+   * Returns false when the tab does not apply to the selection, which hides its
+   * button. Tabs without it apply to every selection.
+   */
+  readonly appliesToIs?: (selectedObjects: readonly THREE.Object3D[]) => boolean;
 }
 
 /**

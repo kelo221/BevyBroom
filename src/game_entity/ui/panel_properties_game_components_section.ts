@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
 import type { CommandStack } from '@/commands/command_stack.js';
 import { entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
+import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
 import { CommandGameEntityComponentsSet } from '@/game_entity/commands/command_game_entity_components_set.js';
 import { GameEntityClassRegistry } from '@/game_entity/class/game_entity_class_registry.js';
 import {
@@ -73,7 +74,7 @@ export class PanelPropertiesGameComponentsSection implements PanelPropertiesSect
    * @param objects Current inspector selection.
    */
   updateFromObjects(objects: readonly THREE.Object3D[]): void {
-    this.boundObjects = objects.filter((object) => !entityVisualPartIs(object));
+    this.boundObjects = objects.filter((object) => gameComponentsAcceptedIs(object));
     const shown = objects.length > 0 && this.boundObjects.length === objects.length;
     this.section.style.display = shown ? 'block' : 'none';
     if (shown) {
@@ -171,4 +172,15 @@ export class PanelPropertiesGameComponentsSection implements PanelPropertiesSect
       .filter((typePath) => others.every((components) => components[typePath] !== undefined))
       .sort();
   }
+}
+
+/**
+ * Returns whether an object may carry game components. Entity visuals and
+ * editor-only modifier volumes never do.
+ *
+ * @param object Scene object.
+ * @returns True for objects the section edits.
+ */
+function gameComponentsAcceptedIs(object: THREE.Object3D): boolean {
+  return !entityVisualPartIs(object) && !ModifierVolume.isVolume(object);
 }

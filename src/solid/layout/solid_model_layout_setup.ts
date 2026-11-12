@@ -93,6 +93,8 @@ function wireSolidBrushPropertyHandlers(host: SolidModelLayoutHost, controller: 
       controller.setBrushOperationForMeshes(meshes, operation),
     onSetGroupOperation: (groups: THREE.Group[], operation: SolidOperation) =>
       controller.setGroupOperationForGroups(groups, operation),
+    onSetVolumeOperation: (volumes: THREE.Object3D[], operation: SolidOperation) =>
+      controller.setVolumeOperationForVolumes(volumes, operation),
     onAddBoxBrush: () => controller.addBoxBrush(),
     onMoveToFirst: (nodes: THREE.Object3D[]) => controller.moveBrushesInOrder(nodes, 'first'),
     onMoveToLast: (nodes: THREE.Object3D[]) => controller.moveBrushesInOrder(nodes, 'last'),

@@ -1,5 +1,6 @@
 import type { ModifierStackEntry, ModifierStackSettings } from './modifier_stack_types.js';
 import { modifierStackKindFind } from './modifier_stack_catalog.js';
+import { modifierStackVolumeOperationNormalize } from './modifier_stack_volume_operation.js';
 
 /** Most modifiers one volume may hold. */
 export const MODIFIER_STACK_MAX_MODIFIERS = 32;
@@ -18,6 +19,7 @@ export function modifierStackSettingsNormalize(input: Partial<ModifierStackSetti
     version: 2,
     enabled: input.enabled !== false,
     grouping: input.grouping === 'brush' ? 'brush' : 'compound',
+    operation: modifierStackVolumeOperationNormalize(input.operation),
     excludedIds: modifierStackStringList(input.excludedIds),
     modifiers: modifiers.map((entry) => modifierStackEntryNormalize(entry, used)),
   };

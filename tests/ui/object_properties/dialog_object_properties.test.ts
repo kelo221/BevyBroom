@@ -6,6 +6,7 @@ import { GameEntityComponentStore } from '@/game_entity/component/game_entity_co
 import { GameEntityLogicStore } from '@/game_entity/logic/game_entity_logic_store.js';
 import { GameEntityOwner } from '@/game_entity/owner/game_entity_owner.js';
 import { LightOwner } from '@/light/model/light_owner.js';
+import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { DialogObjectProperties } from '@/ui/object_properties/dialog_object_properties.js';
 import { TEST_DOOR_TYPE_PATH, testClassesInstall } from '../../game_entity/game_entity_test_classes.js';
@@ -388,8 +389,53 @@ describe('DialogObjectProperties', () => {
   it('lists the tabs on one compact row', () => {
     const { dialog } = dialogRigCreate();
     dialog.open();
-    expect(dialog.tabIdsRead()).toEqual(['class_info', 'outputs', 'inputs', 'properties', 'visgroup']);
+    expect(dialog.tabIdsRead()).toEqual(['class_info', 'outputs', 'inputs', 'properties', 'modifiers', 'visgroup']);
     expect(dialog.getRootElement().querySelector('.tab-book-variant-compact')).not.toBeNull();
+  });
+
+  it('lists the Modifiers tab and hides Outputs and Inputs for a modifier volume', () => {
+    const { dialog, selectionManager, worldObject } = dialogRigCreate();
+    const volume = ModifierVolume.create({});
+    worldObject.add(volume);
+    selectionManager.setSelection([], [volume]);
+    dialog.open();
+    expect(dialog.tabHostRead().tabBookRead().visibleTabIdsList()).toEqual([
+      'class_info',
+      'properties',
+      'modifiers',
+      'visgroup',
+    ]);
+  });
+
+  it('hides the Modifiers tab for a plain brush and keeps Outputs and Inputs listed', () => {
+    const { dialog, selectionManager, worldObject } = dialogRigCreate();
+    const brush = new THREE.Group();
+    worldObject.add(brush);
+    selectionManager.setSelection([], [brush]);
+    dialog.open();
+    const visibleTabIds = dialog.tabHostRead().tabBookRead().visibleTabIdsList();
+    expect(visibleTabIds).not.toContain('modifiers');
+    expect(visibleTabIds).toContain('outputs');
+    expect(visibleTabIds).toContain('inputs');
+  });
+
+  it('keeps the stack section out of the Properties tab for a modifier volume', () => {
+    const { dialog, selectionManager, worldObject } = dialogRigCreate();
+    const volume = ModifierVolume.create({});
+    worldObject.add(volume);
+    selectionManager.setSelection([], [volume]);
+    dialog.open();
+    const tabBook = dialog.tabHostRead().tabBookRead();
+    tabBook.tabShow('properties');
+    const propertiesPage = dialog
+      .getRootElement()
+      .querySelector<HTMLElement>('[data-object-properties-tab="properties"]');
+    expect(propertiesPage?.textContent).not.toContain('Add Modifier');
+    tabBook.tabShow('modifiers');
+    const modifiersPage = dialog
+      .getRootElement()
+      .querySelector<HTMLElement>('[data-object-properties-tab="modifiers"]');
+    expect(modifiersPage?.textContent).toContain('Add Modifier');
   });
 
   it('points the edited object at an object picked by selecting it', () => {

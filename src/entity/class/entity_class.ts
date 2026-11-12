@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
 import type { EntityClassObjectState } from '@/entity/class/entity_class_object_state.js';
 import { entityOwnerIs, entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
+import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 
 /**
@@ -118,13 +119,13 @@ export abstract class EntityClassBrush extends EntityClass {
   readonly placement: EntityClassPlacement = 'brush';
 
   /**
-   * Returns whether an object is scene content other than an entity, which any
-   * brush class fits.
+   * Returns whether an object is scene geometry other than an entity or a
+   * modifier volume, which the brush classes never take.
    *
    * @param object Scene object.
-   * @returns True for objects that are neither entity owners nor their visuals.
+   * @returns True for brush geometry.
    */
   canApplyTo(object: THREE.Object3D): boolean {
-    return !entityOwnerIs(object) && !entityVisualPartIs(object);
+    return !entityOwnerIs(object) && !entityVisualPartIs(object) && !ModifierVolume.isVolume(object);
   }
 }

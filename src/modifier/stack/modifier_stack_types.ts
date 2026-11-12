@@ -20,6 +20,9 @@ export interface ModifierStackEntry {
   parameters: Record<string, unknown>;
 }
 
+/** Boolean role of a volume's own box among the brushes it outputs. */
+export type ModifierStackVolumeOperation = 'none' | 'add' | 'subtract' | 'intersect';
+
 /** Serialized authored state of one modifier volume. Outputs are never saved. */
 export interface ModifierStackSettings {
   /** Stack format version. */
@@ -28,6 +31,11 @@ export interface ModifierStackSettings {
   enabled: boolean;
   /** Compound captures whole top-level groups; brush captures single brushes. */
   grouping: 'compound' | 'brush';
+  /**
+   * 'none' outputs only the stack; the others also add the box with that CSG
+   * operation.
+   */
+  operation: ModifierStackVolumeOperation;
   /** Authored object ids the volume ignores. */
   excludedIds: string[];
   /** Modifiers evaluated exactly in this order. */
