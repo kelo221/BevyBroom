@@ -8,6 +8,7 @@ import { EditEdgeCutTool } from './edit_edge_cut_tool.js';
 import { EditLoopCutTool } from './edit_loop_cut_tool.js';
 import { openEditMergeMenu } from './edit_merge_menu.js';
 import { pointerDragThresholdExceeded } from '@/input/pointer_drag_threshold.js';
+import { PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT } from '@/platform/keyboard/platform_keyboard_modifier_map_current.js';
 
 /** Client point where a plain left press picked an Edit Mode component. */
 interface EditSelectComponentDragPress {
@@ -214,7 +215,8 @@ export class EditSelectTool extends Tool {
   }
 
   /**
-   * Handles knife, loop cut, merge, and dissolve keys.
+   * Handles knife, loop cut, merge, and dissolve keys. Loop cut takes R with
+   * the primary modifier of the platform (Control, or Command on macOS).
    *
    * @param keyCode Key code.
    * @param event Keyboard event.
@@ -225,7 +227,7 @@ export class EditSelectTool extends Tool {
       this.editor?.useTool(new EditEdgeCutTool());
       return true;
     }
-    if (keyCode === 'KeyR' && event?.ctrlKey) {
+    if (keyCode === 'KeyR' && event !== undefined && PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT.primaryDown(event)) {
       this.editor?.useTool(new EditLoopCutTool());
       return true;
     }

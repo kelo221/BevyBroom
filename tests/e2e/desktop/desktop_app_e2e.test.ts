@@ -32,6 +32,7 @@ import type { ShellMainWindowState } from '@/layout/shell/actions/shell_main_win
 import type { ShellMainWindowLayout } from '@/layout/shell/actions/shell_main_window_layout.js';
 import { themePaletteForLook } from '@/theme.js';
 import { THEME_LOOKS } from '@/theme/theme_look.js';
+import type { PlatformReport } from '@/platform/report/platform_report.js';
 
 /**
  * End-to-end acceptance of the built desktop app, driven through its MCP server
@@ -302,6 +303,25 @@ describe.skipIf(desktopExecutable === '')('desktop app end to end', () => {
       }
       const layout = await shellLayoutRead();
       expect(layout.views.height).toBeGreaterThan(0);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'adapts its keys and look to the operating system: Mac delete keys and glass on macOS, unchanged elsewhere',
+    async () => {
+      const report = toolDataRead<PlatformReport>(await client.toolCallExpectOk('get_platform'));
+      const state = toolDataRead<ShellMainWindowState>(await client.toolCallExpectOk('get_main_window'));
+      expect(report.themeLook).toBe(state.themeLook);
+      if (process.platform === 'darwin') {
+        expect(report.platform).toBe('mac');
+        expect(report.deleteSelectionShortcuts).toEqual(expect.arrayContaining(['⌫', '⌘⌫']));
+        expect(report.themeLook).not.toBe('classic');
+      } else {
+        expect(report.platform).not.toBe('mac');
+        expect(report.deleteSelectionShortcuts).toHaveLength(1);
+        expect(report.themeLook).toBe('classic');
+      }
     },
     STEP_TIMEOUT_MILLISECONDS,
   );

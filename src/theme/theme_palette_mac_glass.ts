@@ -52,6 +52,13 @@ export const ThemePaletteMacGlass: ThemePalette = Object.freeze({
   viewportLabelRadiusPx: 5,
   glassBackdropFilter: 'blur(28px) saturate(180%)',
   windowBackground: 'rgba(248, 248, 250, 0.86)',
+  glassWallpaperGradient:
+    'radial-gradient(1200px 600px at 8% -10%, rgba(122, 170, 255, 0.45), transparent 60%), ' +
+    'radial-gradient(900px 500px at 105% 0%, rgba(255, 170, 210, 0.35), transparent 60%), ' +
+    'radial-gradient(900px 700px at 50% 120%, rgba(150, 230, 210, 0.30), transparent 60%), ' +
+    'linear-gradient(180deg, #eef1f6 0%, #e2e6ee 100%)',
+  glassDockShadow: '0 8px 30px rgba(30, 40, 60, 0.12), 0 1px 2px rgba(30, 40, 60, 0.08)',
+  glassButtonShadow: '0 0.5px 1.5px rgba(0, 0, 0, 0.16), inset 0 0.5px 0 rgba(255, 255, 255, 0.9)',
   uiFontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif',
   uiFontSizePx: 12,
   toolbarHeightPx: 38,

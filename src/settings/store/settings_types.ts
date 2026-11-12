@@ -1,5 +1,6 @@
 import type { CoordinateSpaceDefinition } from '@/settings/coordinate/coordinate_space_types.js';
 import type { ImperialUnit, MetricUnit, UnitSystem } from '@/settings/units/unit_presets.js';
+import type { PlatformPointerWheelPreference } from '@/platform/pointer/platform_pointer_wheel_gesture_map.js';
 
 /** Settings dialog tab identifiers. */
 export type SettingsTabId = 'games' | 'view' | 'mouse' | 'keyboard' | 'update';
@@ -133,6 +134,13 @@ export interface MouseSettings {
   altMiddleMouseDragMovesCamera: boolean;
   invertAltMiddleMouseDragZAxis: boolean;
   moveCameraTowardsCursor: boolean;
+  /**
+   * What the plain wheel does over 2D views: zoom, pan, or whatever the
+   * platform tells a mouse wheel from a trackpad scroll.
+   */
+  wheelIn2dViews: PlatformPointerWheelPreference;
+  /** Alt (Option) held with the left button acts as the middle button. */
+  altLeftDragEmulatesMiddleMouse: boolean;
 }
 
 /** Preferences controlling when the standalone updater checks for releases. */

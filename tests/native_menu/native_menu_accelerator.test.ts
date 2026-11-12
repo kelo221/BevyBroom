@@ -4,6 +4,7 @@ import {
   nativeMenuAcceleratorKeyName,
 } from '@/native_menu/native_menu_accelerator.js';
 import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
+import { platformKeyboardKeyMapCreate } from '@/platform/keyboard/platform_keyboard_key_map_current.js';
 
 describe('native menu accelerators', () => {
   it('turns every primary modifier shortcut into a command key equivalent with its other modifiers', () => {
@@ -26,6 +27,23 @@ describe('native menu accelerators', () => {
     const plain = { code: 'KeyG', ctrl: false, shift: true, alt: false, meta: false };
     expect(nativeMenuAcceleratorFromShortcut(plain)).toBeUndefined();
     expect(nativeMenuAcceleratorFromShortcut(undefined)).toBeUndefined();
+  });
+
+  it('gives the Delete row the Command+delete key equivalent of its Mac alias, and none elsewhere', () => {
+    const deleteShortcut = createDefaultKeyboardShortcutSettings().delete_selected;
+    expect(deleteShortcut.code).toBe('Delete');
+    expect(nativeMenuAcceleratorFromShortcut(deleteShortcut, platformKeyboardKeyMapCreate('mac'))).toBe(
+      'command+backspace',
+    );
+    expect(nativeMenuAcceleratorFromShortcut(deleteShortcut, platformKeyboardKeyMapCreate('windows'))).toBeUndefined();
+  });
+
+  it('prefers the configured binding over its aliases when both have key equivalents', () => {
+    const commandDelete = { code: 'Delete', ctrl: true, shift: true, alt: false, meta: false };
+    const macMap = platformKeyboardKeyMapCreate('mac');
+    expect(nativeMenuAcceleratorFromShortcut(commandDelete, macMap)).toBe('command+shift+backspace');
+    const commandLetter = { code: 'KeyD', ctrl: true, shift: false, alt: false, meta: false };
+    expect(nativeMenuAcceleratorFromShortcut(commandLetter, macMap)).toBe('command+d');
   });
 
   it('names letters, digits and special keys the way native menus expect', () => {

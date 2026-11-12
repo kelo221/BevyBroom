@@ -66,9 +66,10 @@ describe('layout_settings_system orthographic-only safety', () => {
   it('gives every orthographic viewport the pan speed factor of the pan sensitivity, half speed by default', () => {
     const setPanSpeedFactorFirst = vi.fn();
     const setPanSpeedFactorSecond = vi.fn();
+    const setWheelPreference = vi.fn();
     const viewports = [
-      { setPanSpeedFactor: setPanSpeedFactorFirst },
-      { setPanSpeedFactor: setPanSpeedFactorSecond },
+      { setPanSpeedFactor: setPanSpeedFactorFirst, setWheelPreference },
+      { setPanSpeedFactor: setPanSpeedFactorSecond, setWheelPreference },
     ] as unknown as Viewport2D[];
     const defaults = createDefaultMouseSettings();
     applyOrthographicPanMouseSettings(viewports, defaults);
@@ -78,6 +79,16 @@ describe('layout_settings_system orthographic-only safety', () => {
     expect(setPanSpeedFactorFirst).toHaveBeenLastCalledWith(1);
     expect(panSpeedFactorFromSensitivity(defaults.panSensitivity / 2)).toBeCloseTo(0.25, 9);
     expect(() => applyOrthographicPanMouseSettings([], defaults)).not.toThrow();
+  });
+
+  it('gives every orthographic viewport the 2D view wheel preference, automatic by default', () => {
+    const setWheelPreference = vi.fn();
+    const viewports = [{ setPanSpeedFactor: vi.fn(), setWheelPreference }] as unknown as Viewport2D[];
+    const defaults = createDefaultMouseSettings();
+    applyOrthographicPanMouseSettings(viewports, defaults);
+    expect(setWheelPreference).toHaveBeenCalledWith('auto');
+    applyOrthographicPanMouseSettings(viewports, { ...defaults, wheelIn2dViews: 'pan' });
+    expect(setWheelPreference).toHaveBeenLastCalledWith('pan');
   });
 
   it('writes the wheel fly speed of the perspective viewport back to the mouse move speed setting', () => {

@@ -23,6 +23,16 @@ export interface HandlerKeyboardShortcutActionHost {
   matchesShortcut(event: KeyboardEvent, action: keyof KeyboardShortcutSettings): boolean;
 
   /**
+   * Checks whether an event matches the configured binding of a shortcut
+   * itself, ignoring the bindings the platform key map adds.
+   *
+   * @param event Keyboard event to compare.
+   * @param action Configured action identifier.
+   * @returns True when the key and modifier state match the configured binding.
+   */
+  matchesConfiguredShortcut(event: KeyboardEvent, action: keyof KeyboardShortcutSettings): boolean;
+
+  /**
    * Invokes the given action callback three times for a large snap step.
    *
    * @param action Callback to invoke three times.
@@ -286,7 +296,10 @@ function tryHandleEditComponentBackspace(host: HandlerKeyboardShortcutActionHost
 }
 
 /**
- * Returns whether plain Backspace should delete Edit Mode components.
+ * Returns whether plain Backspace should delete Edit Mode components: Edit Mode
+ * is active and the delete shortcut itself is not configured on Backspace.
+ * Platform aliases of the delete shortcut keep Backspace free here, so Mac
+ * keyboards delete components with their delete key as other keyboards do.
  *
  * @param host Action host.
  * @param event Keyboard event.
@@ -299,7 +312,7 @@ function canDeleteEditComponentsWithBackspace(host: HandlerKeyboardShortcutActio
   if (!isPlainBackspaceEvent(event)) {
     return false;
   }
-  return !host.matchesShortcut(event, 'delete_selected');
+  return !host.matchesConfiguredShortcut(event, 'delete_selected');
 }
 
 /**

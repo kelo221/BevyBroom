@@ -7,6 +7,7 @@ import {
   type ShellMainWindowControl,
 } from '@/layout/shell/actions/shell_main_window_control.js';
 import { SHELL_FLOATING_WINDOW_IDS, type ShellFloatingWindowId } from '@/layout/shell/actions/shell_floating_window.js';
+import { platformReportBuild, platformReportSourcesCurrent } from '@/platform/report/platform_report.js';
 
 /** Fields of set_main_window that take true or false. */
 const EDITOR_API_MAIN_WINDOW_FLAG_FIELDS = [
@@ -47,6 +48,8 @@ export class EditorApiMainWindow {
         return this.withControl((control) => this.mainWindowSet(control, args));
       case 'get_shell_layout':
         return this.withControl((control) => okResult('Main window layout', { ...control.layoutRead() }));
+      case 'get_platform':
+        return okResult('Platform adaptations', { ...platformReportBuild(platformReportSourcesCurrent()) });
       default:
         return null;
     }

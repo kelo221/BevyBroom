@@ -148,6 +148,23 @@ export const ThemePaletteHammer = Object.freeze({
    * opaque.
    */
   glassBackdropFilter: 'none',
+  /**
+   * Window background behind translucent glass chrome; unused by the classic
+   * look.
+   */
+  glassWallpaperGradient: 'linear-gradient(180deg, #d4d0c8 0%, #d4d0c8 100%)',
+  /** Frosted face of glass bars and docks. */
+  glassPanelFace: 'rgba(255, 255, 255, 0.52)',
+  /** Overlay of hovered glass controls. */
+  glassControlHover: 'rgba(0, 0, 0, 0.06)',
+  /** Face of resting glass push buttons. */
+  glassControlFace: 'rgba(255, 255, 255, 0.72)',
+  /** Hairline rim of glass surfaces. */
+  glassRimColor: 'rgba(255, 255, 255, 0.65)',
+  /** Shadow under floating glass docks. */
+  glassDockShadow: '0 0 0 rgba(0, 0, 0, 0)',
+  /** Shadow under resting glass push buttons. */
+  glassButtonShadow: '0 0 0 rgba(0, 0, 0, 0)',
   /** Face of dialogs and floating windows. */
   windowBackground: '#f0f0f0',
   uiFontFamily: 'Tahoma, "Segoe UI", system-ui, sans-serif',

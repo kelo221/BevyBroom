@@ -16,6 +16,10 @@ import {
   RENDERER_FONT_SIZE_MAX,
   RENDERER_FONT_SIZE_MIN,
 } from './settings_types.js';
+import {
+  PLATFORM_POINTER_WHEEL_PREFERENCES,
+  type PlatformPointerWheelPreference,
+} from '@/platform/pointer/platform_pointer_wheel_gesture_map.js';
 
 /**
  * Clamps a number into an inclusive range.
@@ -136,7 +140,28 @@ export function mergeMouseSettings(defaults: MouseSettings, candidate: Partial<M
       defaults.invertAltMiddleMouseDragZAxis,
     ),
     moveCameraTowardsCursor: sanitizeBoolean(candidate.moveCameraTowardsCursor, defaults.moveCameraTowardsCursor),
+    wheelIn2dViews: sanitizeWheelPreference(candidate.wheelIn2dViews, defaults.wheelIn2dViews),
+    altLeftDragEmulatesMiddleMouse: sanitizeBoolean(
+      candidate.altLeftDragEmulatesMiddleMouse,
+      defaults.altLeftDragEmulatesMiddleMouse,
+    ),
   };
+}
+
+/**
+ * Validates a 2D view wheel preference value.
+ *
+ * @param value Candidate value.
+ * @param fallback Safe fallback value.
+ * @returns Known wheel preference.
+ */
+export function sanitizeWheelPreference(
+  value: unknown,
+  fallback: PlatformPointerWheelPreference,
+): PlatformPointerWheelPreference {
+  return typeof value === 'string' && (PLATFORM_POINTER_WHEEL_PREFERENCES as readonly string[]).includes(value)
+    ? (value as PlatformPointerWheelPreference)
+    : fallback;
 }
 
 /**

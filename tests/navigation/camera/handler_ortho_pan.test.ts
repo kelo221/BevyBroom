@@ -1,7 +1,15 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
-import { HandlerOrthoPan, ORTHO_PAN_SPEED_FACTOR_DEFAULT } from '@/navigation/camera/handler_ortho_pan.js';
+import {
+  HandlerOrthoPan,
+  ORTHO_PAN_SPEED_FACTOR_DEFAULT,
+  ORTHO_PINCH_ZOOM_RATE_PER_PIXEL,
+  ORTHO_WHEEL_ZOOM_IN_FACTOR,
+  ORTHO_WHEEL_ZOOM_OUT_FACTOR,
+} from '@/navigation/camera/handler_ortho_pan.js';
 import { managerPointerLock } from '@/input/manager_pointer_lock.js';
+import { platformPointerWheelGestureMapCreate } from '@/platform/pointer/platform_pointer_wheel_gesture_map_current.js';
+import type { PlatformKind } from '@/platform/platform_kind.js';
 
 /** Canvas, camera and handler used by one pan scenario. */
 interface OrthoPanRig {
@@ -13,19 +21,42 @@ interface OrthoPanRig {
 /**
  * Builds a sized canvas and a tilted orthographic camera with a pan handler.
  *
+ * @param platform Operating system family whose wheel gesture map the handler
+ *   uses; the test DOM platform by default.
+ * @param zoomCallback Zoom callback of the handler.
  * @returns Rig ready to receive pointer events.
  */
-function orthoPanRigCreate(): OrthoPanRig {
+function orthoPanRigCreate(platform: PlatformKind = 'other', zoomCallback = vi.fn()): OrthoPanRig {
   const canvas = document.createElement('canvas');
   Object.defineProperty(canvas, 'clientWidth', { value: 800, configurable: true });
   Object.defineProperty(canvas, 'clientHeight', { value: 600, configurable: true });
+  Object.defineProperty(canvas, 'getBoundingClientRect', {
+    value: () => ({ left: 0, top: 0, width: 800, height: 600, right: 800, bottom: 600 }),
+  });
   const camera = new THREE.OrthographicCamera(-8, 8, 6, -6, 0.1, 1000);
   camera.position.set(2, 30, 1);
   camera.up.set(0, 0, -1);
   camera.lookAt(new THREE.Vector3(2, 0, 1));
   camera.updateMatrixWorld(true);
-  const handler = new HandlerOrthoPan(canvas, camera, vi.fn());
+  const handler = new HandlerOrthoPan(canvas, camera, zoomCallback, platformPointerWheelGestureMapCreate(platform));
   return { canvas, camera, handler };
+}
+
+/**
+ * Dispatches a wheel event carrying the legacy wheel delta browsers report.
+ *
+ * @param rig Rig whose canvas receives the wheel.
+ * @param init Deltas and modifiers of the wheel event.
+ * @param wheelDeltaY Legacy wheel delta in notches of 120, when reported.
+ * @returns The dispatched event.
+ */
+function orthoPanWheelDispatch(rig: OrthoPanRig, init: WheelEventInit, wheelDeltaY?: number): WheelEvent {
+  const event = new WheelEvent('wheel', { cancelable: true, clientX: 200, clientY: 150, ...init });
+  if (wheelDeltaY !== undefined) {
+    Object.defineProperty(event, 'wheelDeltaY', { value: wheelDeltaY });
+  }
+  rig.canvas.dispatchEvent(event);
+  return event;
 }
 
 /** PointerEvent.buttons bit for each mouse button index used by pan. */
@@ -109,6 +140,80 @@ describe('OrthoPanHandler', () => {
     expect(factor).toBeGreaterThan(1);
     expect(pointerU).toBeCloseTo(0.25);
     expect(pointerV).toBeCloseTo(0.5);
+  });
+
+  it('pans a 2D view with a trackpad scroll on macOS so the content follows the fingers, and zooms on a mouse notch', () => {
+    const zoomCallback = vi.fn();
+    const rig = orthoPanRigCreate('mac', zoomCallback);
+    const before = rig.camera.position.clone();
+    const scroll = orthoPanWheelDispatch(rig, { deltaX: -3, deltaY: 7 }, -21);
+    expect(scroll.defaultPrevented).toBe(true);
+    expect(zoomCallback).not.toHaveBeenCalled();
+    const expectedWorldX = (3 * (rig.camera.right - rig.camera.left)) / 800;
+    const expectedWorldY = (7 * (rig.camera.top - rig.camera.bottom)) / 600;
+    expect(rig.camera.position.distanceTo(before)).toBeCloseTo(Math.hypot(expectedWorldX, expectedWorldY), 6);
+    const afterScroll = rig.camera.position.clone();
+    orthoPanWheelDispatch(rig, { deltaY: 4 }, -120);
+    expect(rig.camera.position.distanceTo(afterScroll)).toBe(0);
+    expect(zoomCallback).toHaveBeenCalledWith(ORTHO_WHEEL_ZOOM_OUT_FACTOR, 0.25, 0.25);
+    rig.handler.dispose();
+  });
+
+  it('zooms a 2D view in proportion to a trackpad pinch on macOS and keeps every wheel a zoom notch on Windows', () => {
+    const macZoom = vi.fn();
+    const macRig = orthoPanRigCreate('mac', macZoom);
+    orthoPanWheelDispatch(macRig, { deltaY: -10, ctrlKey: true }, 30);
+    expect(macZoom).toHaveBeenCalledWith(Math.exp(-10 * ORTHO_PINCH_ZOOM_RATE_PER_PIXEL), 0.25, 0.25);
+    macRig.handler.dispose();
+    const windowsZoom = vi.fn();
+    const windowsRig = orthoPanRigCreate('windows', windowsZoom);
+    const before = windowsRig.camera.position.clone();
+    orthoPanWheelDispatch(windowsRig, { deltaX: -3, deltaY: 7 }, -21);
+    orthoPanWheelDispatch(windowsRig, { deltaY: -10, ctrlKey: true }, 30);
+    expect(windowsRig.camera.position.distanceTo(before)).toBe(0);
+    expect(windowsZoom).toHaveBeenNthCalledWith(1, ORTHO_WHEEL_ZOOM_OUT_FACTOR, 0.25, 0.25);
+    expect(windowsZoom).toHaveBeenNthCalledWith(2, ORTHO_WHEEL_ZOOM_IN_FACTOR, 0.25, 0.25);
+    windowsRig.handler.dispose();
+  });
+
+  it('follows the wheel preference: pan forces the mouse notch to pan and zoom forces the scroll to zoom', () => {
+    const zoomCallback = vi.fn();
+    const rig = orthoPanRigCreate('mac', zoomCallback);
+    rig.handler.setWheelPreference('pan');
+    const before = rig.camera.position.clone();
+    orthoPanWheelDispatch(rig, { deltaY: 4 }, -120);
+    expect(rig.camera.position.distanceTo(before)).toBeGreaterThan(0);
+    expect(zoomCallback).not.toHaveBeenCalled();
+    rig.handler.setWheelPreference('zoom');
+    const afterPan = rig.camera.position.clone();
+    orthoPanWheelDispatch(rig, { deltaX: -3, deltaY: 7 }, -21);
+    expect(rig.camera.position.distanceTo(afterPan)).toBe(0);
+    expect(zoomCallback).toHaveBeenCalledWith(ORTHO_WHEEL_ZOOM_OUT_FACTOR, 0.25, 0.25);
+    rig.handler.dispose();
+  });
+
+  it('zooms at the pointer for each step of a WebKit pinch gesture and ignores the gesture after dispose', () => {
+    const zoomCallback = vi.fn();
+    const rig = orthoPanRigCreate('mac', zoomCallback);
+    const gestureDispatch = (type: string, scale: number): Event => {
+      const event = new UIEvent(type, { cancelable: true });
+      Object.defineProperties(event, {
+        scale: { value: scale },
+        clientX: { value: 400 },
+        clientY: { value: 300 },
+      });
+      rig.canvas.dispatchEvent(event);
+      return event;
+    };
+    expect(gestureDispatch('gesturestart', 1).defaultPrevented).toBe(true);
+    gestureDispatch('gesturechange', 1.25);
+    gestureDispatch('gesturechange', 1.5);
+    gestureDispatch('gestureend', 1.5);
+    expect(zoomCallback).toHaveBeenNthCalledWith(1, 1 / 1.25, 0.5, 0.5);
+    expect(zoomCallback).toHaveBeenNthCalledWith(2, 1.25 / 1.5, 0.5, 0.5);
+    rig.handler.dispose();
+    gestureDispatch('gesturechange', 2);
+    expect(zoomCallback).toHaveBeenCalledTimes(2);
   });
 
   it('should attempt pointer lock on right button down', () => {

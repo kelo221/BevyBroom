@@ -107,6 +107,7 @@ export type McpToolName =
   | 'get_main_window'
   | 'set_main_window'
   | 'get_shell_layout'
+  | 'get_platform'
   | 'get_object_properties_dialog'
   | 'set_object_properties_dialog'
   | 'set_object_class'
