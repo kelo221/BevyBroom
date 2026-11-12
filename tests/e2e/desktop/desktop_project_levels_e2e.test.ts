@@ -125,7 +125,9 @@ describe.skipIf(!isConfigured)('desktop app project levels end to end', () => {
       const saved = toolDataRead<{ level: ProjectLevelSummary }>(
         await client.toolCallExpectOk('save_project_level', { name: levelName }),
       );
-      expect(saved.level.name).toBe(levelName);
+      expect(saved.level.document.endsWith('.json')).toBe(true);
+      expect(saved.level.id.length).toBeGreaterThan(0);
+      expect(saved.level.isListed).toBe(false);
       const documentPath = join(documentDirectoryRead(), saved.level.document);
       expect(existsSync(documentPath)).toBe(true);
       expect(sceneObjectNamesRead(readFileSync(documentPath, 'utf8'))).toEqual(sceneObjectNamesRead(sceneBefore));

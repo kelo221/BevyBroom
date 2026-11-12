@@ -46,9 +46,7 @@ import { EditorToolId } from '@/types/editor_tool_id.js';
  */
 export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinators {
   protected readonly fileActions = new LayoutViewportFileActions(() => this.fileActionsContextRead());
-  protected readonly projectLevelActions = new LayoutViewportProjectLevelActions(() =>
-    this.projectLevelActionsContextRead(),
-  );
+  private projectLevelActions: LayoutViewportProjectLevelActions | null = null;
   private solidBrushTools: HandlerSolidBrushTools | null = null;
   private selectionVisibility: HandlerSelectionVisibility | null = null;
   private objectPropertiesDialog: DialogObjectProperties | null = null;
@@ -73,7 +71,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
       onSceneLoaded: () => this.onSceneLoaded(),
       refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
       sceneRecoveryRead: () => this.sceneRecovery,
-      projectLevelActionsRead: () => this.projectLevelActions,
+      projectLevelActionsRead: () => this.projectLevelActionsRead(),
     };
   }
 
@@ -98,11 +96,13 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
   }
 
   /**
-   * Returns the actions on the open project's levels.
+   * Returns the actions on the open project's levels, creating them on first
+   * use; the base layout reads them while it is still being constructed.
    *
    * @returns Project level actions.
    */
   protected projectLevelActionsRead(): ProjectLevelActions {
+    this.projectLevelActions ??= new LayoutViewportProjectLevelActions(() => this.projectLevelActionsContextRead());
     return this.projectLevelActions;
   }
 
@@ -116,7 +116,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
   protected override sceneDocumentTextLoad(sceneJson: string): boolean {
     const isLoaded = super.sceneDocumentTextLoad(sceneJson);
     if (isLoaded) {
-      this.projectLevelActions.serviceRead().openLevelForget();
+      this.projectLevelActionsRead().serviceRead().openLevelForget();
     }
     return isLoaded;
   }
@@ -415,7 +415,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
       statusBar: this.statusBar,
       faceController: this.faceModeCoordinator.getFaceExtrusionController(),
       addMenuActions: this.createToolbarShellActionsBundle(),
-      projectLevelActions: this.projectLevelActions,
+      projectLevelActions: this.projectLevelActionsRead(),
       surfaceShadingRefresh: () => this.shadingModeCoordinator?.updateShadingMeshes(),
       refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
       selectionFrameAll: () => this.cameraFitCoordinator.onFitAllViewports(),
