@@ -30,7 +30,8 @@ import { desktopE2eBoundsTopFaceGripPoint } from './desktop_e2e_bounds.js';
 import { shellMenusBuiltinCreate } from '@/layout/shell/menubar/shell_menu_bar.js';
 import type { ShellMainWindowState } from '@/layout/shell/actions/shell_main_window_control.js';
 import type { ShellMainWindowLayout } from '@/layout/shell/actions/shell_main_window_layout.js';
-import { Theme } from '@/theme.js';
+import { themePaletteForLook } from '@/theme.js';
+import { THEME_LOOKS } from '@/theme/theme_look.js';
 
 /**
  * End-to-end acceptance of the built desktop app, driven through its MCP server
@@ -288,12 +289,31 @@ describe.skipIf(desktopExecutable === '')('desktop app end to end', () => {
   );
 
   it(
+    'moves the menus into the native menu bar and uses the glass look on macOS only',
+    async () => {
+      const state = toolDataRead<ShellMainWindowState>(await client.toolCallExpectOk('get_main_window'));
+      const isMac = process.platform === 'darwin';
+      expect(state.menuBarInWindow).toBe(!isMac);
+      expect(state.menus).toEqual(shellMenusBuiltinCreate().map((menu) => menu.label));
+      if (isMac) {
+        expect(THEME_LOOKS).toContain(state.themeLook);
+      } else {
+        expect(state.themeLook).toBe('classic');
+      }
+      const layout = await shellLayoutRead();
+      expect(layout.views.height).toBeGreaterThan(0);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
     'starts with the info panel folded to its strip and gives the views the space it frees',
     async () => {
       const initial = toolDataRead<ShellMainWindowState>(await client.toolCallExpectOk('get_main_window'));
       expect(initial.infoPanelCollapsed).toBe(true);
       const folded = await shellLayoutRead();
-      expect(Math.abs(folded.infoPanel.height - Theme.infoStripHeightPx)).toBeLessThanOrEqual(2);
+      const stripHeightPx = themePaletteForLook(initial.themeLook).infoStripHeightPx;
+      expect(Math.abs(folded.infoPanel.height - stripHeightPx)).toBeLessThanOrEqual(2);
       await mainWindowChange({ infoPanelCollapsed: false });
       const unfolded = await desktopE2eWaitUntil(
         'the info panel to unfold',

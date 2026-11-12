@@ -15,7 +15,9 @@ export class ShellMenuHelp extends ShellMenu {
     const actions = context.toolbarActions;
     return [
       this.actionEntry(context, 'Documentation', () => actions.onOpenDocumentation()),
-      this.actionEntry(context, 'About BevyBroom…', () => actions.onOpenAboutDialog()),
+      this.actionEntry(context, 'About BevyBroom…', () => actions.onOpenAboutDialog(), {
+        nativeApplicationSlot: 'about',
+      }),
       this.separatorEntry(),
       this.actionEntry(context, 'MCP Server…', () => actions.onOpenMcpDialog()),
       this.actionEntry(context, 'AI Captures (Debug)…', () => actions.onToggleAiCaptureDebugPanel()),

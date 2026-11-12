@@ -132,7 +132,7 @@ export abstract class InputSelectBase {
     this.element.style.width = '100%';
     this.element.style.boxSizing = 'border-box';
     this.element.style.padding = '4px 6px';
-    this.element.style.borderRadius = '2px';
+    this.element.style.borderRadius = `${Theme.controlRadiusPx}px`;
     this.element.style.border = `1px solid ${Theme.inputBorderColor}`;
     this.element.style.background = Theme.inputBackgroundColor;
     this.element.style.color = Theme.inputTextColor;

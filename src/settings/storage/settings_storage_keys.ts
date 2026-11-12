@@ -12,5 +12,8 @@ export const MOUSE_SETTINGS_STORAGE_KEY = 'bevybroom.settings.mouse';
 /** Storage key for standalone updater preferences JSON. */
 export const UPDATE_SETTINGS_STORAGE_KEY = 'bevybroom.settings.update';
 
+/** Storage key of the chosen chrome look ('classic' or 'mac_glass'). */
+export const THEME_LOOK_STORAGE_KEY = 'bevybroom.settings.theme_look';
+
 /** Listener notified when any settings value changes. */
 export type EditorSettingsListener = (snapshot: EditorSettingsSnapshot) => void;

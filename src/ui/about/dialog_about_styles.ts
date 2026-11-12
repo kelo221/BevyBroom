@@ -155,7 +155,7 @@ export function styleAboutPanel(panel: HTMLElement): void {
   panel.style.overflow = 'hidden';
   panel.style.display = 'flex';
   panel.style.flexDirection = 'column';
-  panel.style.borderRadius = '2px';
+  panel.style.borderRadius = `${Theme.controlRadiusPx}px`;
   panel.style.border = `1px solid ${Theme.chromeBorderColor}`;
   panel.style.background = hexToRgb(Theme.propertiesPanelBackground);
   panel.style.fontFamily = Theme.uiFontFamily;
@@ -236,7 +236,7 @@ export function styleAboutCreditLine(paragraph: HTMLElement): void {
 export function styleAboutProclamation(proclamation: HTMLElement): void {
   proclamation.style.margin = '0';
   proclamation.style.padding = '8px 10px';
-  proclamation.style.borderRadius = '2px';
+  proclamation.style.borderRadius = `${Theme.controlRadiusPx}px`;
   proclamation.style.fontSize = `${Theme.uiFontSizePx}px`;
   proclamation.style.lineHeight = '1.5';
   proclamation.style.fontStyle = 'italic';

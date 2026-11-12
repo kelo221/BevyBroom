@@ -141,6 +141,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
         toolChromeRead: () => layout.toolsPaletteController,
         playModeStart: () => layout.playerSystem?.playModeStart(),
         shortcutLabelRead: (action: KeyboardShortcutAction) => layout.fileActions.shortcutLabelRead(action),
+        shortcutBindingRead: (action: KeyboardShortcutAction) => layout.fileActions.shortcutBindingRead(action),
         clipboardEditCommandsRead: () => layout.clipboardSystem?.editCommands ?? null,
         solidBrushToolsRead: () => layout.solidBrushToolsEnsure(),
         selectionVisibilityRead: () => layout.selectionVisibilityEnsure(),

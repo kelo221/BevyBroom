@@ -106,7 +106,7 @@ function buildThumbCss(): string {
   margin: 0;
   padding: 0;
   border: none;
-  border-radius: 2px;
+  border-radius: ${Theme.controlRadiusPx}px;
   background-color: ${Theme.textureThumbnailBackground};
   background-position: center center;
   background-repeat: no-repeat;

@@ -10,7 +10,7 @@ export function applyImportOverlayPanelStyles(panel: HTMLElement): void {
   panel.style.minWidth = '320px';
   panel.style.maxWidth = '420px';
   panel.style.padding = '20px 24px';
-  panel.style.borderRadius = '2px';
+  panel.style.borderRadius = `${Theme.controlRadiusPx}px`;
   panel.style.background = hexToRgb(Theme.propertiesPanelBackground);
   panel.style.border = `1px solid ${Theme.chromeBorderColor}`;
   panel.style.boxShadow = Theme.dialogShadow;

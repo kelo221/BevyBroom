@@ -1,3 +1,4 @@
+import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
 import type { SelectionQueryId } from '@/selection/query/selection_query.js';
 import { vi, type Mock } from 'vitest';
 import type { EditorToolbarActions } from '@/layout/shell/builder_editor_shell.js';
@@ -138,6 +139,10 @@ export class ShellTestWindowActions implements ShellWindowActions {
   );
   /** Spy that returns the fake shortcut label of an action. */
   readonly shortcutLabelRead = vi.fn((action: KeyboardShortcutAction) => shellTestShortcutLabelFormat(action));
+  /** Spy that returns the default key and modifiers of an action. */
+  readonly shortcutBindingRead = vi.fn(
+    (action: KeyboardShortcutAction) => createDefaultKeyboardShortcutSettings()[action],
+  );
   /** Whether the clipboard commands see selected objects. */
   clipboardSelectionHasObjects = false;
   /** Spy for copying the selection. */

@@ -1,3 +1,4 @@
+import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
 import { describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
@@ -59,6 +60,7 @@ function fixtureCreate(
     toolChromeRead: () => toolChrome,
     playModeStart: vi.fn(),
     shortcutLabelRead: (action) => `label:${action}`,
+    shortcutBindingRead: (action) => createDefaultKeyboardShortcutSettings()[action],
     clipboardEditCommandsRead: () => clipboardEditCommands,
     solidBrushToolsRead: () => null,
     selectionVisibilityRead: () => null,

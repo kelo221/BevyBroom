@@ -204,6 +204,15 @@ export class ShellFrame {
   }
 
   /**
+   * Returns whether the menu bar row is shown inside the window.
+   *
+   * @returns True while shown.
+   */
+  isMenuBarVisible(): boolean {
+    return this.menuBarHost.style.display !== 'none';
+  }
+
+  /**
    * Returns whether the main toolbar is shown.
    *
    * @returns True while shown.

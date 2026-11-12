@@ -15,7 +15,7 @@ export const BUTTON_CLASSIC_HOVER_BACKGROUND = hexToRgb(Theme.buttonHoverColor);
  */
 export function buttonClassicStyleApply(button: HTMLElement): void {
   button.style.border = `1px solid ${Theme.chromeBorderColor}`;
-  button.style.borderRadius = '2px';
+  button.style.borderRadius = `${Theme.controlRadiusPx}px`;
   button.style.background = BUTTON_CLASSIC_REST_BACKGROUND;
   button.style.color = Theme.buttonTextColor;
   button.style.fontFamily = Theme.uiFontFamily;

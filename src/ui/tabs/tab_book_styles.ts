@@ -106,7 +106,7 @@ function tabBookPillCss(): string {
   const root = `.${tabBookVariantClass('pill')}`;
   return `
 ${root} > .${TAB_BOOK_STRIP_CLASS} { gap: 4px; padding: 6px 10px; background: ${hexToRgb(Theme.toolbarBackground)}; border-bottom: 1px solid ${Theme.chromeBorderColor}; }
-${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS} { padding: 3px 10px; border-radius: 2px; }
+${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS} { padding: 3px 10px; border-radius: ${Theme.controlRadiusPx}px; }
 ${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}:hover { background: ${hexToRgb(Theme.buttonHoverColor)}; border-color: ${Theme.chromeBorderColor}; }
 ${root} > .${TAB_BOOK_STRIP_CLASS} > .${TAB_BOOK_TAB_CLASS}[aria-selected="true"] { color: ${Theme.buttonTextColor}; background: ${Theme.buttonPressedBackground}; border-color: ${Theme.toggleActiveBorder}; }
 `.trim();

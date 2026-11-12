@@ -59,6 +59,7 @@ function windowActionsSpyCreate(): ShellWindowActions {
     gridIntervalSet: vi.fn(),
     gridIntervalChangeListenerAdd: vi.fn(),
     shortcutLabelRead: () => '',
+    shortcutBindingRead: (action) => createDefaultKeyboardShortcutSettings()[action],
     ...windowActionsEditSpyCreate(),
   };
 }

@@ -282,7 +282,7 @@ function styleSettingsSelect(select: HTMLSelectElement): void {
   select.style.width = '100%';
   select.style.boxSizing = 'border-box';
   select.style.padding = '4px 6px';
-  select.style.borderRadius = '2px';
+  select.style.borderRadius = `${Theme.controlRadiusPx}px`;
   select.style.border = `1px solid ${Theme.inputBorderColor}`;
   select.style.background = Theme.inputBackgroundColor;
   select.style.color = Theme.inputTextColor;
@@ -346,7 +346,7 @@ function styleSettingsTextInput(input: HTMLInputElement): void {
   input.style.width = '100%';
   input.style.boxSizing = 'border-box';
   input.style.padding = '4px 6px';
-  input.style.borderRadius = '2px';
+  input.style.borderRadius = `${Theme.controlRadiusPx}px`;
   input.style.border = `1px solid ${Theme.inputBorderColor}`;
   input.style.background = Theme.inputBackgroundColor;
   input.style.color = Theme.inputTextColor;

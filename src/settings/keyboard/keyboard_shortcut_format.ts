@@ -1,19 +1,15 @@
 import type { KeyboardShortcut } from '@/settings/store/settings_types.js';
+import { PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT } from '@/platform/keyboard/platform_keyboard_modifier_map_current.js';
 
 /**
- * Converts a shortcut binding to a short UI label such as "Ctrl+Shift+E".
+ * Converts a shortcut binding to a short UI label in the style of the current
+ * platform, such as "Ctrl+Shift+E" or "⇧⌘E".
  *
  * @param shortcut Configured key and modifiers.
  * @returns User-facing shortcut label.
  */
 export function formatKeyboardShortcut(shortcut: KeyboardShortcut): string {
-  const modifiers = [
-    shortcut.ctrl ? 'Ctrl' : '',
-    shortcut.shift ? 'Shift' : '',
-    shortcut.alt ? 'Alt' : '',
-    shortcut.meta ? 'Meta' : '',
-  ].filter(Boolean);
-  return [...modifiers, formatKeyboardCode(shortcut.code)].join('+');
+  return PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT.labelFormat(shortcut, formatKeyboardCode(shortcut.code));
 }
 
 /**

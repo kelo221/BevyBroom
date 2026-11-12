@@ -106,7 +106,7 @@ export class WorkspaceSwitcherBar extends PanelMenuDropdown {
     this.button.style.height = `${Theme.toolbarButtonPx}px`;
     this.button.style.padding = '0 6px';
     this.button.style.border = `1px solid ${Theme.chromeBorderColor}`;
-    this.button.style.borderRadius = '2px';
+    this.button.style.borderRadius = `${Theme.controlRadiusPx}px`;
     this.button.style.background = Theme.panelBackground;
     this.button.style.color = Theme.buttonTextColor;
     this.button.style.fontFamily = Theme.uiFontFamily;

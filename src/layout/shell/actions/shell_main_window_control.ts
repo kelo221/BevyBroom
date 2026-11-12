@@ -5,6 +5,8 @@ import {
   type ShellInfoPanelTabId,
 } from '@/layout/shell/info_panel/shell_info_panel.js';
 import type { Toolbar } from '@/ui/toolbar/toolbar.js';
+import type { ThemeLook } from '@/theme/theme_look.js';
+import { THEME_LOOK_CURRENT } from '@/theme/theme_look_current.js';
 import type { ShellDockCommands } from './shell_dock_commands.js';
 import { SHELL_FLOATING_WINDOW_IDS, type ShellFloatingWindowId } from './shell_floating_window.js';
 import { shellMainWindowLayoutRead, type ShellMainWindowLayout } from './shell_main_window_layout.js';
@@ -26,12 +28,21 @@ export interface ShellMainWindowState {
   toolbarVisible: boolean;
   /** Menu bar titles in display order. */
   menus: string[];
+  /**
+   * True while the menus sit in the window; false once they moved into the
+   * native menu bar.
+   */
+  menuBarInWindow: boolean;
+  /** Chrome look the window started with. */
+  themeLook: ThemeLook;
   /** True while each registered floating window is shown. */
   floatingWindows: Record<ShellFloatingWindowId, boolean>;
 }
 
 /** Changes to the main window arrangement; omitted fields stay as they are. */
-export type ShellMainWindowChanges = Partial<Omit<ShellMainWindowState, 'menus' | 'floatingWindows'>> & {
+export type ShellMainWindowChanges = Partial<
+  Omit<ShellMainWindowState, 'menus' | 'menuBarInWindow' | 'themeLook' | 'floatingWindows'>
+> & {
   floatingWindows?: Partial<Record<ShellFloatingWindowId, boolean>>;
 };
 
@@ -65,6 +76,8 @@ export class ShellMainWindowControl {
       infoPanelTab: this.infoPanelTabRead(),
       toolbarVisible: this.parts.frame.isToolbarVisible(),
       menus: this.menuTitlesRead(),
+      menuBarInWindow: this.parts.frame.isMenuBarVisible(),
+      themeLook: THEME_LOOK_CURRENT,
       floatingWindows: this.floatingWindowsRead(),
     };
   }

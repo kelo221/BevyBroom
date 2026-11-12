@@ -36,7 +36,43 @@ export type ElectrobunWindowOptions = {
   frame?: ElectrobunWindowFrame;
   hidden?: boolean;
   activate?: boolean;
+  /**
+   * Native title bar style; hiddenInset keeps the macOS window buttons over the
+   * page.
+   */
+  titleBarStyle?: 'hidden' | 'hiddenInset' | 'default';
   rpc?: unknown;
+};
+
+/** One item of the native application menu. */
+export type ElectrobunApplicationMenuItem =
+  | { type: 'divider' | 'separator' }
+  | {
+      label?: string;
+      action?: string;
+      role?: string;
+      enabled?: boolean;
+      checked?: boolean;
+      accelerator?: string;
+      submenu?: ElectrobunApplicationMenuItem[];
+    };
+
+/** Native application menu (the macOS menu bar). */
+export const ApplicationMenu = {
+  /**
+   * Replaces the native application menu.
+   *
+   * @param _menu Top-level menus with their items.
+   */
+  setApplicationMenu(_menu: ElectrobunApplicationMenuItem[]): void {},
+
+  /**
+   * Subscribes to clicks on application menu items.
+   *
+   * @param _name Event name.
+   * @param _handler Receives the click event with its action string.
+   */
+  on(_name: 'application-menu-clicked', _handler: (event: unknown) => void): void {},
 };
 
 /** Configuration for defineRPC on the Bun side. */

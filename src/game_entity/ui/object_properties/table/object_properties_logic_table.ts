@@ -190,7 +190,7 @@ export class ObjectPropertiesLogicTable {
     badge.style.display = 'inline-block';
     badge.style.minWidth = '12px';
     badge.style.marginRight = '4px';
-    badge.style.borderRadius = '2px';
+    badge.style.borderRadius = `${Theme.controlRadiusPx}px`;
     badge.style.background = Theme.logicTargetBrokenColor;
     badge.style.color = Theme.inverseTextColor;
     badge.style.textAlign = 'center';

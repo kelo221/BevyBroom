@@ -1,3 +1,4 @@
+import { PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT } from '@/platform/keyboard/platform_keyboard_modifier_map_current.js';
 import type { EditorSettingsStore } from '@/settings/store/editor_settings_store.js';
 import { formatKeyboardShortcut } from '@/settings/keyboard/keyboard_shortcut_format.js';
 import type { KeyboardShortcutAction, KeyboardShortcutSettings } from '@/settings/store/settings_types.js';
@@ -236,10 +237,10 @@ export class SettingsKeyboardTab {
     if (isModifierCode(event.code)) return;
     this.store.setKeyboardShortcut(action, {
       code: keyboardShortcutCodeFromEvent(event),
-      ctrl: event.ctrlKey,
+      ctrl: PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT.primaryDown(event),
       shift: event.shiftKey,
       alt: event.altKey,
-      meta: event.metaKey,
+      meta: PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT.secondaryDown(event),
     });
   }
 }

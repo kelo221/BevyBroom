@@ -1,4 +1,10 @@
-import type { ToolbarMenuAction, ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
+import type {
+  ToolbarMenuAction,
+  ToolbarMenuEntry,
+  ToolbarMenuNativeApplicationSlot,
+  ToolbarMenuNativeRole,
+  ToolbarMenuTextEditCommand,
+} from '@/ui/menu/menu_types.js';
 import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
 import type { EditorToolbarActions } from '@/layout/shell/builder_editor_shell.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
@@ -24,6 +30,12 @@ export interface ShellMenuActionOptions {
   readonly isChecked?: () => boolean;
   /** Live enablement. */
   readonly isEnabled?: () => boolean;
+  /** System role a native menu bar runs instead of the action. */
+  readonly nativeRole?: ToolbarMenuNativeRole;
+  /** Text editing command a native menu bar runs inside text fields. */
+  readonly textEditCommand?: ToolbarMenuTextEditCommand;
+  /** Application menu slot the row moves into in a native menu bar. */
+  readonly nativeApplicationSlot?: ToolbarMenuNativeApplicationSlot;
 }
 
 /** One top-level menu of the main window menu bar. */
@@ -45,7 +57,7 @@ export abstract class ShellMenu {
    * @param context Actions and docks; used for shortcut labels.
    * @param label Row text.
    * @param onClick Function run when the row is chosen.
-   * @param options Shortcut, checked state and enablement.
+   * @param options Shortcut, checked state, enablement and native menu parts.
    * @returns Menu action entry.
    */
   protected actionEntry(
@@ -54,17 +66,37 @@ export abstract class ShellMenu {
     onClick: () => void,
     options: ShellMenuActionOptions = {},
   ): ToolbarMenuAction {
-    const shortcutAction = options.shortcutAction;
-    const shortcut = shortcutAction
-      ? () => context.windowActions.shortcutLabelRead(shortcutAction)
-      : options.shortcutText;
     return {
       label,
       onClick,
-      ...(shortcut ? { shortcut } : {}),
+      ...this.actionEntryShortcutParts(context, options),
       ...(options.isChecked ? { isChecked: options.isChecked } : {}),
       ...(options.isEnabled ? { isEnabled: options.isEnabled } : {}),
+      ...(options.nativeRole ? { nativeRole: options.nativeRole } : {}),
+      ...(options.textEditCommand ? { textEditCommand: options.textEditCommand } : {}),
+      ...(options.nativeApplicationSlot ? { nativeApplicationSlot: options.nativeApplicationSlot } : {}),
     };
+  }
+
+  /**
+   * Builds the shortcut label and key binding parts of one action row.
+   *
+   * @param context Actions and docks; used to read configured shortcuts.
+   * @param options Shortcut action or fixed shortcut text.
+   * @returns Shortcut parts of the action entry.
+   */
+  private actionEntryShortcutParts(
+    context: ShellMenuContext,
+    options: ShellMenuActionOptions,
+  ): Pick<ToolbarMenuAction, 'shortcut' | 'shortcutBinding'> {
+    const shortcutAction = options.shortcutAction;
+    if (shortcutAction) {
+      return {
+        shortcut: () => context.windowActions.shortcutLabelRead(shortcutAction),
+        shortcutBinding: () => context.windowActions.shortcutBindingRead(shortcutAction),
+      };
+    }
+    return options.shortcutText ? { shortcut: options.shortcutText } : {};
   }
 
   /**

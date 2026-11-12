@@ -195,7 +195,7 @@ export class PanelVisGroups {
     list.style.overflowY = 'auto';
     list.style.boxSizing = 'border-box';
     list.style.border = `1px solid ${Theme.inputBorderColor}`;
-    list.style.borderRadius = '2px';
+    list.style.borderRadius = `${Theme.controlRadiusPx}px`;
     list.style.background = hexToRgb(Theme.outlinerBackground);
     return list;
   }

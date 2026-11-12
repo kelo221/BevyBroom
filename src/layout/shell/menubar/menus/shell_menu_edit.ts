@@ -2,6 +2,18 @@ import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import { selectionQueriesList } from '@/selection/query/selection_query_registry.js';
 import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
+import { formatKeyboardShortcut } from '@/settings/keyboard/keyboard_shortcut_format.js';
+
+/**
+ * Builds the label of a fixed primary modifier shortcut such as Ctrl+C, or ⌘C
+ * on macOS.
+ *
+ * @param code Keyboard event code of the key.
+ * @returns Shortcut label.
+ */
+function shellMenuEditPrimaryShortcutLabel(code: string): string {
+  return formatKeyboardShortcut({ code, ctrl: true, shift: false, alt: false, meta: false });
+}
 
 /** Edit menu: history, selection, grouping, CSG and alignment commands. */
 export class ShellMenuEdit extends ShellMenu {
@@ -16,8 +28,14 @@ export class ShellMenuEdit extends ShellMenu {
   entriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
     const actions = context.toolbarActions;
     return [
-      this.actionEntry(context, 'Undo', () => actions.onUndo(), { shortcutAction: 'undo' }),
-      this.actionEntry(context, 'Redo', () => actions.onRedo(), { shortcutAction: 'redo' }),
+      this.actionEntry(context, 'Undo', () => actions.onUndo(), {
+        shortcutAction: 'undo',
+        textEditCommand: 'undo',
+      }),
+      this.actionEntry(context, 'Redo', () => actions.onRedo(), {
+        shortcutAction: 'redo',
+        textEditCommand: 'redo',
+      }),
       this.separatorEntry(),
       ...this.clipboardEntriesBuild(context),
       this.actionEntry(context, 'Duplicate', () => actions.onDuplicateSelected(), { shortcutAction: 'duplicate' }),
@@ -47,9 +65,20 @@ export class ShellMenuEdit extends ShellMenu {
     const window = context.windowActions;
     const isEnabled = (): boolean => window.clipboardSelectionHasObjectsIs();
     return [
-      this.actionEntry(context, 'Cut', () => window.clipboardCut(), { isEnabled, shortcutText: 'Ctrl+X' }),
-      this.actionEntry(context, 'Copy', () => window.clipboardCopy(), { isEnabled, shortcutText: 'Ctrl+C' }),
-      this.actionEntry(context, 'Paste', () => window.clipboardPaste(), { shortcutText: 'Ctrl+V' }),
+      this.actionEntry(context, 'Cut', () => window.clipboardCut(), {
+        isEnabled,
+        shortcutText: shellMenuEditPrimaryShortcutLabel('KeyX'),
+        nativeRole: 'cut',
+      }),
+      this.actionEntry(context, 'Copy', () => window.clipboardCopy(), {
+        isEnabled,
+        shortcutText: shellMenuEditPrimaryShortcutLabel('KeyC'),
+        nativeRole: 'copy',
+      }),
+      this.actionEntry(context, 'Paste', () => window.clipboardPaste(), {
+        shortcutText: shellMenuEditPrimaryShortcutLabel('KeyV'),
+        nativeRole: 'paste',
+      }),
       this.actionEntry(context, 'Paste at Original Position', () => window.clipboardPasteAtOriginalPosition(), {
         shortcutAction: 'paste_original',
       }),
@@ -80,7 +109,10 @@ export class ShellMenuEdit extends ShellMenu {
   private selectionEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
     const window = context.windowActions;
     return [
-      this.actionEntry(context, 'Select All', () => window.selectAll(), { shortcutAction: 'select_all' }),
+      this.actionEntry(context, 'Select All', () => window.selectAll(), {
+        shortcutAction: 'select_all',
+        textEditCommand: 'selectAll',
+      }),
       this.actionEntry(context, 'Select None', () => window.selectNone(), { shortcutAction: 'select_none' }),
       this.selectSubmenuBuild(context),
     ];

@@ -4,7 +4,7 @@ import type { EditorSettingsStore } from '@/settings/store/editor_settings_store
 import type { SolidModelController } from '@/solid/controller/solid_model_controller.js';
 import type { HandlerSceneIo } from '@/tools/io/handler_scene_io.js';
 import type { StatusBar } from '@/ui/status/status_bar.js';
-import type { GameProfile, KeyboardShortcutAction } from '@/settings/store/settings_types.js';
+import type { GameProfile, KeyboardShortcut, KeyboardShortcutAction } from '@/settings/store/settings_types.js';
 import {
   runLayoutExportFbx,
   runLayoutExportGlb,
@@ -167,8 +167,18 @@ export class LayoutViewportFileActions {
    * @returns Shortcut text such as "Ctrl+S".
    */
   shortcutLabelRead(action: KeyboardShortcutAction): string {
+    return formatKeyboardShortcut(this.shortcutBindingRead(action));
+  }
+
+  /**
+   * Returns the configured key and modifiers of an action.
+   *
+   * @param action Shortcut action.
+   * @returns Shortcut binding.
+   */
+  shortcutBindingRead(action: KeyboardShortcutAction): KeyboardShortcut {
     const settings = this.host.settingsStore?.getKeyboardShortcutSettings() ?? createDefaultKeyboardShortcutSettings();
-    return formatKeyboardShortcut(settings[action]);
+    return settings[action];
   }
 
   /**

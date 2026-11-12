@@ -173,7 +173,7 @@ export class InputNumeric {
     this.element.style.background = Theme.inputBackgroundColor;
     this.element.style.color = Theme.inputTextColor;
     this.element.style.border = `1px solid ${Theme.inputBorderColor}`;
-    this.element.style.borderRadius = '2px';
+    this.element.style.borderRadius = `${Theme.controlRadiusPx}px`;
     this.element.style.padding = '2px 4px';
     this.element.style.fontSize = '11px';
     this.element.style.fontFamily = 'monospace';

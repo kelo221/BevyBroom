@@ -492,7 +492,7 @@ export class OutlinerItem {
     this.rowElement.style.fontSize = `${Theme.uiFontSizePx}px`;
     this.rowElement.style.lineHeight = '1';
     this.rowElement.style.color = Theme.buttonTextColor;
-    this.rowElement.style.borderRadius = '2px';
+    this.rowElement.style.borderRadius = `${Theme.controlRadiusPx}px`;
     this.rowElement.style.userSelect = 'none';
     this.rowElement.style.height = `${OUTLINER_ROW_HEIGHT_PX}px`;
     this.rowElement.style.minHeight = `${OUTLINER_ROW_HEIGHT_PX}px`;
