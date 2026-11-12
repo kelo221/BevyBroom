@@ -17,13 +17,26 @@ describe('tool_instruction', () => {
     expect(text).toBe('Move (W)\n\nDrag axes to translate.');
   });
 
+  it('fills modifier and key placeholders of the title shortcut and description for the platform', () => {
+    const tooltip = formatToolInstructionTooltip({
+      title: 'Loop Cut',
+      shortcut: '{ctrl}+R',
+      description: '{alt}+click slides, {keyname:Delete} dissolves',
+    });
+    expect(tooltip).toMatch(/^Loop Cut \((Ctrl|⌘)\+R\)\n\n(Alt|⌥)\+click slides, (Delete|⌦) dissolves$/);
+    expect(tooltip).not.toContain('{');
+  });
+
   it('omits blank description blocks', () => {
     expect(formatToolInstructionTooltip({ title: 'Clip', description: '  ' })).toBe('Clip');
   });
 
   it('provides catalog entries for primary tools', () => {
     expect(toolInstructionForEditorTool(EditorToolId.OBJECT).title).toBe('Object Select');
-    expect(toolInstructionForEditorTool(EditorToolId.FACE).shortcut).toBe('Shift+Tab');
+    expect(toolInstructionForEditorTool(EditorToolId.FACE).shortcut).toBe('{shift}+Tab');
+    expect(formatToolInstructionTooltip(toolInstructionForEditorTool(EditorToolId.FACE))).toMatch(
+      /^Face Select \((Shift\+|⇧\+)Tab\)/,
+    );
     expect(toolInstructionForEditorTool(EditorToolId.OBJECT).shortcut).toBe('O');
     expect(toolInstructionForEditorTool(EditorToolId.CLIP_PLANE).title).toContain('Clip');
     expect(toolInstructionForEditorTool(EditorToolId.GRID).title).toBe('Grid');

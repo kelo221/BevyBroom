@@ -16,6 +16,7 @@ import {
 } from '@/displacement/model/displacement_types.js';
 import { formLayoutFieldLabelCreate, formLayoutRowCreate } from '@/ui/form/form_layout.js';
 import { DialogDisplacementPaintBase } from './dialog_displacement_paint_base.js';
+import { keyboardHintFormat } from '@/settings/keyboard/keyboard_hint_format.js';
 
 /** Visible names of the Paint Geometry effects. */
 const DIALOG_DISPLACEMENT_EFFECT_LABELS: Readonly<Record<DisplacementSculptEffect, string>> = {
@@ -87,7 +88,9 @@ export class DialogDisplacementPaintGeometry extends DialogDisplacementPaintBase
    * @returns Status bar hint text.
    */
   bindingHintRead(): string {
-    return 'Paint Geometry: LMB paint · RMB or Ctrl invert · Shift smooth · Shift+RMB drag resize brush';
+    return keyboardHintFormat(
+      'Paint Geometry: LMB paint · RMB or {control} invert · {shift} smooth · {shift}+RMB drag resize brush',
+    );
   }
 
   /**
@@ -117,7 +120,7 @@ export class DialogDisplacementPaintGeometry extends DialogDisplacementPaintBase
       'dialog-displacement-paint-effect',
       formLayoutRowCreate([
         this.effectRadio.getElement(),
-        faceEditSheetCheckboxLabelCreate(this.raiseCheckbox, 'Raise (Ctrl lowers)'),
+        faceEditSheetCheckboxLabelCreate(this.raiseCheckbox, keyboardHintFormat('Raise ({control} lowers)')),
       ]),
       faceEditSheetCheckboxLabelCreate(this.spatialCheckbox, 'Spatial'),
     );

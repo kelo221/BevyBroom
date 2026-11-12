@@ -7,6 +7,7 @@ import {
   type MouseSettings,
 } from '@/settings/store/settings_types.js';
 import { createSettingsCategory, createSettingsControlRow, createSettingsSlider } from './settings_form_controls.js';
+import { keyboardHintFormat } from '@/settings/keyboard/keyboard_hint_format.js';
 
 /** Mouse navigation preferences for look, pan, and movement. */
 export class SettingsMouseTab {
@@ -96,7 +97,7 @@ export class SettingsMouseTab {
     );
     body.appendChild(
       this.createCheckboxRow(
-        'Alt + middle mouse drag to move camera',
+        keyboardHintFormat('{alt} + middle mouse drag to move camera'),
         'alt-middle-mouse-drag-moves-camera',
         settings.altMiddleMouseDragMovesCamera,
         'altMiddleMouseDragMovesCamera',
@@ -104,7 +105,7 @@ export class SettingsMouseTab {
     );
     body.appendChild(
       this.createCheckboxRow(
-        'Invert Z axis in Alt + middle mouse drag',
+        keyboardHintFormat('Invert Z axis in {alt} + middle mouse drag'),
         'invert-alt-middle-mouse-drag-z-axis',
         settings.invertAltMiddleMouseDragZAxis,
         'invertAltMiddleMouseDragZAxis',

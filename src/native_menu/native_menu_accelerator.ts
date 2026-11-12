@@ -1,4 +1,6 @@
 import type { KeyboardShortcut } from '@/settings/store/settings_types.js';
+import type { PlatformKeyboardKeyMap } from '@/platform/keyboard/platform_keyboard_key_map.js';
+import { PLATFORM_KEYBOARD_KEY_MAP_CURRENT } from '@/platform/keyboard/platform_keyboard_key_map_current.js';
 
 /** Native key names of keyboard event codes that are not letters or digits. */
 const NATIVE_MENU_ACCELERATOR_KEY_NAMES: Readonly<Record<string, string>> = Object.freeze({
@@ -46,25 +48,51 @@ export function nativeMenuAcceleratorKeyName(code: string): string | null {
 
 /**
  * Converts a shortcut binding to a native key equivalent such as
- * "command+shift+s". Only shortcuts that use the primary modifier become key
- * equivalents, so plain keys keep reaching text fields and map views.
+ * "command+shift+s": the first of the configured binding and its platform
+ * aliases that uses the primary modifier. Plain keys get none, so they keep
+ * reaching text fields and map views.
  *
  * @param shortcut Shortcut binding, or undefined.
+ * @param keyMap Platform key map adding the bindings of keys the keyboard
+ *   lacks; defaults to the map of the platform this page runs on.
  * @returns Native key equivalent, or undefined when the row gets none.
  */
-export function nativeMenuAcceleratorFromShortcut(shortcut: KeyboardShortcut | undefined): string | undefined {
-  if (!shortcut || !shortcut.ctrl) {
+export function nativeMenuAcceleratorFromShortcut(
+  shortcut: KeyboardShortcut | undefined,
+  keyMap: PlatformKeyboardKeyMap = PLATFORM_KEYBOARD_KEY_MAP_CURRENT,
+): string | undefined {
+  if (!shortcut) {
     return undefined;
   }
-  const keyName = nativeMenuAcceleratorKeyName(shortcut.code);
+  for (const binding of keyMap.shortcutBindings(shortcut)) {
+    const accelerator = nativeMenuAcceleratorFromBinding(binding);
+    if (accelerator !== undefined) {
+      return accelerator;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Converts one binding to a native key equivalent when it uses the primary
+ * modifier and a key native menus can show.
+ *
+ * @param binding Key and modifiers.
+ * @returns Native key equivalent, or undefined.
+ */
+function nativeMenuAcceleratorFromBinding(binding: KeyboardShortcut): string | undefined {
+  if (!binding.ctrl) {
+    return undefined;
+  }
+  const keyName = nativeMenuAcceleratorKeyName(binding.code);
   if (keyName === null) {
     return undefined;
   }
   const modifierNames = [
     'command',
-    shortcut.meta ? 'control' : '',
-    shortcut.alt ? 'option' : '',
-    shortcut.shift ? 'shift' : '',
+    binding.meta ? 'control' : '',
+    binding.alt ? 'option' : '',
+    binding.shift ? 'shift' : '',
   ].filter(Boolean);
   return [...modifierNames, keyName].join('+');
 }

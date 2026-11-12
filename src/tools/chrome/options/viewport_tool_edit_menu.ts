@@ -1,5 +1,21 @@
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import type { TopologyVertexMergeMode } from '@/edit/topology/topology_vertex_merge_mode.js';
+import { keyboardHintFormat } from '@/settings/keyboard/keyboard_hint_format.js';
+
+/**
+ * Shortcut text of the loop cut, shown with the primary modifier of the
+ * platform.
+ */
+const VIEWPORT_TOOL_EDIT_MENU_LOOP_CUT_SHORTCUT = '{ctrl}+R';
+
+/** Shortcut text of the component delete, the delete key of the platform. */
+const VIEWPORT_TOOL_EDIT_MENU_DELETE_SHORTCUT = '{keyname:Backspace}';
+
+/**
+ * Shortcut text of the component dissolve, the forward delete key of the
+ * platform.
+ */
+const VIEWPORT_TOOL_EDIT_MENU_DISSOLVE_SHORTCUT = '{keyname:Delete}';
 
 /** Callbacks for Edit Mode Mesh / Vertex / Edge / Face menus. */
 export interface ViewportToolEditMenuActions {
@@ -19,13 +35,23 @@ export interface ViewportToolEditMenuActions {
 export function buildViewportToolMeshMenuEntries(actions: ViewportToolEditMenuActions): ToolbarMenuEntry[] {
   return [
     createAction('Knife Topology Tool', 'K', 'Insert a vertex on a hovered edge', actions.onKnife),
-    createAction('Loop Cut', 'Ctrl+R', 'Cut a convex edge belt and slide it', actions.onLoopCut),
+    createAction(
+      'Loop Cut',
+      VIEWPORT_TOOL_EDIT_MENU_LOOP_CUT_SHORTCUT,
+      'Cut a convex edge belt and slide it',
+      actions.onLoopCut,
+    ),
     { kind: 'separator' },
     createMergeSubmenu(actions.onMerge),
-    createAction('Delete', 'Backspace', 'Delete the current component selection', actions.onDelete),
+    createAction(
+      'Delete',
+      VIEWPORT_TOOL_EDIT_MENU_DELETE_SHORTCUT,
+      'Delete the current component selection',
+      actions.onDelete,
+    ),
     createAction(
       'Dissolve',
-      'Delete',
+      VIEWPORT_TOOL_EDIT_MENU_DISSOLVE_SHORTCUT,
       'Dissolve the current component selection into the surrounding faces',
       actions.onDissolve,
     ),
@@ -43,13 +69,13 @@ export function buildViewportToolVertexMenuEntries(actions: ViewportToolEditMenu
     createMergeSubmenu(actions.onMerge),
     createAction(
       'Delete Vertices',
-      'Backspace',
+      VIEWPORT_TOOL_EDIT_MENU_DELETE_SHORTCUT,
       'Delete selected vertices and the faces that use them',
       actions.onDelete,
     ),
     createAction(
       'Dissolve Vertices',
-      'Delete',
+      VIEWPORT_TOOL_EDIT_MENU_DISSOLVE_SHORTCUT,
       'Dissolve selected vertices into the surrounding faces',
       actions.onDissolve,
     ),
@@ -64,13 +90,23 @@ export function buildViewportToolVertexMenuEntries(actions: ViewportToolEditMenu
  */
 export function buildViewportToolEdgeMenuEntries(actions: ViewportToolEditMenuActions): ToolbarMenuEntry[] {
   return [
-    createAction('Loop Cut', 'Ctrl+R', 'Cut a convex edge belt and slide it', actions.onLoopCut),
+    createAction(
+      'Loop Cut',
+      VIEWPORT_TOOL_EDIT_MENU_LOOP_CUT_SHORTCUT,
+      'Cut a convex edge belt and slide it',
+      actions.onLoopCut,
+    ),
     createAction('Knife Topology Tool', 'K', 'Insert a vertex on a hovered edge', actions.onKnife),
     { kind: 'separator' },
-    createAction('Delete Edges', 'Backspace', 'Delete edge vertices and every face that used them', actions.onDelete),
+    createAction(
+      'Delete Edges',
+      VIEWPORT_TOOL_EDIT_MENU_DELETE_SHORTCUT,
+      'Delete edge vertices and every face that used them',
+      actions.onDelete,
+    ),
     createAction(
       'Dissolve Edges',
-      'Delete',
+      VIEWPORT_TOOL_EDIT_MENU_DISSOLVE_SHORTCUT,
       'Join the faces beside the selected edges into one face',
       actions.onDissolve,
     ),
@@ -87,11 +123,16 @@ export function buildViewportToolFaceMenuEntries(actions: ViewportToolEditMenuAc
   return [
     createAction(
       'Delete Faces',
-      'Backspace',
+      VIEWPORT_TOOL_EDIT_MENU_DELETE_SHORTCUT,
       'Delete the selected faces and leave the others unchanged',
       actions.onDelete,
     ),
-    createAction('Dissolve Faces', 'Delete', 'Join two adjacent selected faces into one', actions.onDissolve),
+    createAction(
+      'Dissolve Faces',
+      VIEWPORT_TOOL_EDIT_MENU_DISSOLVE_SHORTCUT,
+      'Join two adjacent selected faces into one',
+      actions.onDissolve,
+    ),
   ];
 }
 
@@ -116,14 +157,15 @@ function createMergeSubmenu(onMerge: (mode: TopologyVertexMergeMode) => void): T
 }
 
 /**
- * Builds one labeled action row.
+ * Builds one labeled action row whose shortcut text is filled with the modifier
+ * and key names of the platform.
  *
  * @param label Visible label.
- * @param shortcut Shortcut text.
+ * @param shortcut Shortcut text template.
  * @param tooltip Hover help.
  * @param onClick Click handler.
  * @returns Menu action.
  */
 function createAction(label: string, shortcut: string, tooltip: string, onClick: () => void): ToolbarMenuEntry {
-  return { label, shortcut, tooltip, onClick };
+  return { label, shortcut: keyboardHintFormat(shortcut), tooltip, onClick };
 }

@@ -16,6 +16,7 @@ import { playerViewModeToggle, type PlayerViewMode } from '@/player/player_mode.
 import { PlayerCharacterAvatar } from '@/player/character/player_character_avatar.js';
 import { playerMovementResolveSimulationDeltaSeconds } from '@/player/movement/player_movement_input.js';
 import { playerSpawnResolveFeetUnderCamera } from '@/player/spawn/player_spawn_ground.js';
+import { keyboardHintFormat } from '@/settings/keyboard/keyboard_hint_format.js';
 
 /** Host callbacks required by the play session. */
 export interface PlayerPlaySessionHost {
@@ -130,7 +131,7 @@ export class PlayerPlaySession {
     this.isActive = true;
     viewport.setFlyingCameraEnabled(false);
     this.avatar.attach();
-    this.host.showStatusMessage('Play mode — ESC exit, RMB third-person, Ctrl slow-mo');
+    this.host.showStatusMessage(keyboardHintFormat('Play mode — ESC exit, RMB third-person, {control} slow-mo'));
   }
 
   /** Exits play mode and restores the editor camera. */
