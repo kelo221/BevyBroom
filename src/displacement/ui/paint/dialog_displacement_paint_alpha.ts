@@ -7,6 +7,7 @@ import {
 } from '@/displacement/state/state_displacement_sculpt.js';
 import { DISPLACEMENT_ALPHA_MAX } from '@/displacement/model/displacement_types.js';
 import { DialogDisplacementPaintBase } from './dialog_displacement_paint_base.js';
+import { keyboardHintFormat } from '@/settings/keyboard/keyboard_hint_format.js';
 
 /**
  * Hammer++ style Displacement Paint Alpha window: the alpha value dabs paint
@@ -49,7 +50,9 @@ export class DialogDisplacementPaintAlpha extends DialogDisplacementPaintBase {
    * @returns Status bar hint text.
    */
   bindingHintRead(): string {
-    return 'Paint Alpha: LMB paint alpha · RMB or Ctrl paint toward 0 · Shift+RMB drag resize brush';
+    return keyboardHintFormat(
+      'Paint Alpha: LMB paint alpha · RMB or {control} paint toward 0 · {shift}+RMB drag resize brush',
+    );
   }
 
   /**

@@ -320,6 +320,25 @@ describe('SettingsDialog', () => {
     expect(mouse.moveCameraTowardsCursor).toBe(true);
   });
 
+  it('persists the 2D view wheel preference and the Alt+left middle mouse emulation from the Mouse tab', () => {
+    dialog.show();
+    dialog.showTab('mouse');
+    const content = dialog.getContentElement();
+    const wheelSelect = content.querySelector('[data-settings-field="wheel-in-2d-views"]') as HTMLSelectElement;
+    expect(wheelSelect.value).toBe('auto');
+    expect(Array.from(wheelSelect.options).map((option) => option.value)).toEqual(['auto', 'zoom', 'pan']);
+    wheelSelect.value = 'pan';
+    wheelSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    const emulation = content.querySelector(
+      '[data-settings-field="alt-left-drag-emulates-middle-mouse"]',
+    ) as HTMLInputElement;
+    expect(emulation.checked).toBe(false);
+    emulation.click();
+    const mouse = store.getMouseSettings();
+    expect(mouse.wheelIn2dViews).toBe('pan');
+    expect(mouse.altLeftDragEmulatesMiddleMouse).toBe(true);
+  });
+
   it('should close when Escape is pressed', () => {
     dialog.show();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));

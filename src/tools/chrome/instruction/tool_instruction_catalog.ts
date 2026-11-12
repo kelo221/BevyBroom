@@ -64,7 +64,7 @@ export const TOOL_INSTRUCTION_FACE_INSPECTOR: ToolInstruction = {
 /** Instruction for face extrude. */
 export const TOOL_INSTRUCTION_EXTRUDE: ToolInstruction = {
   title: 'Extrude',
-  shortcut: 'Shift+E',
+  shortcut: '{shift}+E',
   description: 'Extrude the selected face regions into a new solid prism along their normals.',
 };
 

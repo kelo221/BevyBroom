@@ -32,6 +32,7 @@ import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session
 import { getStateTextureStampTool } from '@/tools/texture_stamp/state_texture_stamp_tool.js';
 import { toolInstructionForEditorTool } from '@/tools/chrome/instruction/tool_instruction_catalog.js';
 import { POLYGON_TOOL_STATUS_READY } from '@/editor/tools/polygon/polygon_tool.js';
+import { keyboardHintFormat } from '@/settings/keyboard/keyboard_hint_format.js';
 
 /** Status shown when the Vertex tool opens Edit Mode on the selection. */
 export const VIEWPORT_TOOL_CHROME_STATUS_VERTEX_READY =
@@ -645,7 +646,9 @@ export class ControllerViewportToolChrome {
     this.refreshChromeContext();
     this.notifyPrimaryToolChanged();
     this.deps.showStatusMessage(
-      'Sprinkle tool · LMB drag to paint, Ctrl+LMB drag to erase, RMB drag, Alt+wheel or [ ] to change radius',
+      keyboardHintFormat(
+        'Sprinkle tool · LMB drag to paint, {control}+LMB drag to erase, RMB drag, {alt}+wheel or [ ] to change radius',
+      ),
     );
   }
 

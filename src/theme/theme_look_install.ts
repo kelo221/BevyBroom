@@ -12,7 +12,7 @@ export const THEME_LOOK_STYLE_ELEMENT_ID = 'theme-look-stylesheet';
  * @returns CSS text, empty for the classic look.
  */
 export function themeLookStylesheetBuild(look: ThemeLook): string {
-  return look === 'mac_glass' ? themeMacGlassStylesheetBuild() : '';
+  return look === 'classic' ? '' : themeMacGlassStylesheetBuild();
 }
 
 /**

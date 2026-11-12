@@ -1,32 +1,7 @@
 import { Theme } from '@/theme.js';
 
 /** Root selector that scopes every rule to the macOS glass look. */
-export const THEME_MAC_GLASS_ROOT_SELECTOR = "html[data-theme-look='mac_glass']";
-
-/** Soft wallpaper drawn behind the translucent chrome. */
-const THEME_MAC_GLASS_WALLPAPER =
-  'radial-gradient(1200px 600px at 8% -10%, rgba(122, 170, 255, 0.45), transparent 60%), ' +
-  'radial-gradient(900px 500px at 105% 0%, rgba(255, 170, 210, 0.35), transparent 60%), ' +
-  'radial-gradient(900px 700px at 50% 120%, rgba(150, 230, 210, 0.30), transparent 60%), ' +
-  'linear-gradient(180deg, #eef1f6 0%, #e2e6ee 100%)';
-
-/** Frosted face of the bars and docks. */
-const THEME_MAC_GLASS_PANEL_FACE = 'rgba(255, 255, 255, 0.52)';
-
-/** Brighter frosted face of hovered controls. */
-const THEME_MAC_GLASS_CONTROL_HOVER = 'rgba(0, 0, 0, 0.06)';
-
-/** Face of resting push buttons inside docks. */
-const THEME_MAC_GLASS_CONTROL_FACE = 'rgba(255, 255, 255, 0.72)';
-
-/** Hairline that rims glass surfaces. */
-const THEME_MAC_GLASS_RIM = 'rgba(255, 255, 255, 0.65)';
-
-/** Soft drop shadow under the floating docks. */
-const THEME_MAC_GLASS_DOCK_SHADOW = '0 8px 30px rgba(30, 40, 60, 0.12), 0 1px 2px rgba(30, 40, 60, 0.08)';
-
-/** Shadow under resting push buttons. */
-const THEME_MAC_GLASS_BUTTON_SHADOW = '0 0.5px 1.5px rgba(0, 0, 0, 0.16), inset 0 0.5px 0 rgba(255, 255, 255, 0.9)';
+export const THEME_MAC_GLASS_ROOT_SELECTOR = "html[data-theme-look^='mac_glass']";
 
 /** Gap between the floating docks in pixels. */
 const THEME_MAC_GLASS_GAP_PX = 6;
@@ -66,7 +41,7 @@ function themeMacGlassSurface(face: string): string {
  */
 function themeMacGlassFrameRules(): string[] {
   return [
-    themeMacGlassRule('body, .shell-frame', `background: ${THEME_MAC_GLASS_WALLPAPER} !important;`),
+    themeMacGlassRule('body, .shell-frame', `background: ${Theme.glassWallpaperGradient} !important;`),
     themeMacGlassRule(
       '.editor-menubar, .editor-toolbar',
       `${themeMacGlassSurface('transparent')} border: none !important; box-shadow: none !important;`,
@@ -90,7 +65,7 @@ function themeMacGlassFrameRules(): string[] {
  * @returns CSS rules.
  */
 function themeMacGlassDockRules(): string[] {
-  const card = `border-radius: ${THEME_MAC_GLASS_DOCK_RADIUS_PX}px !important; box-shadow: ${THEME_MAC_GLASS_DOCK_SHADOW}, inset 0 0 0 0.5px ${THEME_MAC_GLASS_RIM} !important; border: none !important; overflow: hidden;`;
+  const card = `border-radius: ${THEME_MAC_GLASS_DOCK_RADIUS_PX}px !important; box-shadow: ${Theme.glassDockShadow}, inset 0 0 0 0.5px ${Theme.glassRimColor} !important; border: none !important; overflow: hidden;`;
   return [
     themeMacGlassRule(
       '.shell-frame-body',
@@ -99,11 +74,11 @@ function themeMacGlassDockRules(): string[] {
     themeMacGlassRule('.editor-viewport-corner-label', 'padding: 0 7px !important;'),
     themeMacGlassRule(
       '.shell-tools-palette-host',
-      `${themeMacGlassSurface(THEME_MAC_GLASS_PANEL_FACE)} ${card} margin-right: ${THEME_MAC_GLASS_GAP_PX}px;`,
+      `${themeMacGlassSurface(Theme.glassPanelFace)} ${card} margin-right: ${THEME_MAC_GLASS_GAP_PX}px;`,
     ),
     themeMacGlassRule('.editor-viewport-area', `${card} background: ${Theme.viewportBackground} !important;`),
-    themeMacGlassRule('.shell-inspector', `${themeMacGlassSurface(THEME_MAC_GLASS_PANEL_FACE)} ${card}`),
-    themeMacGlassRule('.shell-info-panel', `${themeMacGlassSurface(THEME_MAC_GLASS_PANEL_FACE)} ${card}`),
+    themeMacGlassRule('.shell-inspector', `${themeMacGlassSurface(Theme.glassPanelFace)} ${card}`),
+    themeMacGlassRule('.shell-info-panel', `${themeMacGlassSurface(Theme.glassPanelFace)} ${card}`),
     themeMacGlassRule(
       '.shell-frame-body > .splitter-box-divider, .shell-frame-body > .splitter-box-pane-first > .splitter-box > .splitter-box-divider',
       `background: transparent !important; flex-basis: ${THEME_MAC_GLASS_GAP_PX}px !important;`,
@@ -152,7 +127,7 @@ function themeMacGlassButtonRules(): string[] {
     ),
     themeMacGlassRule(
       '.editor-toolbar button:not([data-active="true"]):hover, .editor-menubar button:hover, .editor-viewport-tool-rail button:not([data-active="true"]):hover',
-      `background: ${THEME_MAC_GLASS_CONTROL_HOVER} !important;`,
+      `background: ${Theme.glassControlHover} !important;`,
     ),
     themeMacGlassRule(
       '.editor-toolbar button[data-active="true"], .editor-viewport-tool-rail button[data-active="true"]',
@@ -160,11 +135,11 @@ function themeMacGlassButtonRules(): string[] {
     ),
     themeMacGlassRule(
       '.shell-dock-compact-control, .shell-inspector button, .shell-info-panel button:not(.tab-book-tab)',
-      `border-radius: ${Theme.controlRadiusPx}px !important; border: none !important; box-shadow: ${THEME_MAC_GLASS_BUTTON_SHADOW} !important;`,
+      `border-radius: ${Theme.controlRadiusPx}px !important; border: none !important; box-shadow: ${Theme.glassButtonShadow} !important;`,
     ),
     themeMacGlassRule(
       'button.shell-dock-compact-control:not([data-active="true"])',
-      `background: ${THEME_MAC_GLASS_CONTROL_FACE} !important;`,
+      `background: ${Theme.glassControlFace} !important;`,
     ),
   ];
 }
@@ -212,6 +187,23 @@ function themeMacGlassScrollbarRules(): string[] {
 }
 
 /**
+ * Builds the rules that make the chrome behave like native macOS chrome: no
+ * elastic overscroll, crisp font smoothing and no accidental text selection
+ * outside text fields.
+ *
+ * @returns CSS rules.
+ */
+function themeMacGlassNativeFeelRules(): string[] {
+  return [
+    themeMacGlassRule('body', 'overscroll-behavior: none; -webkit-font-smoothing: antialiased;'),
+    themeMacGlassRule(
+      '.editor-menubar, .editor-toolbar, .shell-tools-palette-host, .editor-status-bar, .tab-book-strip, .editor-viewport-corner-label',
+      '-webkit-user-select: none; user-select: none;',
+    ),
+  ];
+}
+
+/**
  * Builds the complete stylesheet of the macOS glass look.
  *
  * @returns CSS text scoped to the glass root selector.
@@ -224,5 +216,6 @@ export function themeMacGlassStylesheetBuild(): string {
     ...themeMacGlassButtonRules(),
     ...themeMacGlassFieldRules(),
     ...themeMacGlassScrollbarRules(),
+    ...themeMacGlassNativeFeelRules(),
   ].join('\n');
 }

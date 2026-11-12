@@ -7,6 +7,7 @@ import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
+import { keyboardHintFormat } from '@/settings/keyboard/keyboard_hint_format.js';
 
 /**
  * Coordinates mesh CSG boolean actions from the toolbar menu. Only regular
@@ -108,7 +109,7 @@ export class HandlerCsgAction {
    */
   private validateMeshBooleanSelection(selected: THREE.Mesh[]): boolean {
     if (selected.length < 2) {
-      this.emitStatus('CSG needs two regular meshes — Ctrl+click to multi-select');
+      this.emitStatus(keyboardHintFormat('CSG needs two regular meshes — {ctrl}+click to multi-select'));
       return false;
     }
     return this.rejectSolidSelectionIfPresent(selected);

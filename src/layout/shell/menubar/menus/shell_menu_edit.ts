@@ -39,7 +39,10 @@ export class ShellMenuEdit extends ShellMenu {
       this.separatorEntry(),
       ...this.clipboardEntriesBuild(context),
       this.actionEntry(context, 'Duplicate', () => actions.onDuplicateSelected(), { shortcutAction: 'duplicate' }),
-      this.actionEntry(context, 'Delete', () => actions.onDeleteSelected(), { shortcutAction: 'delete_selected' }),
+      this.actionEntry(context, 'Delete', () => actions.onDeleteSelected(), {
+        shortcutAction: 'delete_selected',
+        textEditCommand: 'delete',
+      }),
       this.objectPropertiesEntryBuild(context),
       this.separatorEntry(),
       ...this.selectionEntriesBuild(context),

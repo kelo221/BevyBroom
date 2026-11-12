@@ -2,7 +2,16 @@ import type { KeyboardShortcut } from '@/settings/store/settings_types.js';
 import {
   PlatformKeyboardModifierMap,
   type PlatformKeyboardModifierFlags,
+  type PlatformKeyboardModifierName,
 } from '@/platform/keyboard/platform_keyboard_modifier_map.js';
+
+/** Modifier symbols of the macOS menus: Command, Shift, Option and Control. */
+const PLATFORM_KEYBOARD_MODIFIER_LABELS_MAC: Readonly<Record<PlatformKeyboardModifierName, string>> = Object.freeze({
+  ctrl: '⌘',
+  shift: '⇧',
+  alt: '⌥',
+  meta: '⌃',
+});
 
 /**
  * MacOS modifier map: Command is the primary modifier and Control is the
@@ -48,11 +57,31 @@ export class PlatformKeyboardModifierMapMac extends PlatformKeyboardModifierMap 
    */
   labelFormat(shortcut: KeyboardShortcut, keyLabel: string): string {
     const modifierSymbols = [
-      shortcut.meta ? '⌃' : '',
-      shortcut.alt ? '⌥' : '',
-      shortcut.shift ? '⇧' : '',
-      shortcut.ctrl ? '⌘' : '',
+      shortcut.meta ? this.modifierLabel('meta') : '',
+      shortcut.alt ? this.modifierLabel('alt') : '',
+      shortcut.shift ? this.modifierLabel('shift') : '',
+      shortcut.ctrl ? this.modifierLabel('ctrl') : '',
     ].join('');
     return `${modifierSymbols}${keyLabel}`;
+  }
+
+  /**
+   * Returns the modifier symbol, such as "⌘" for the primary modifier or "⌃"
+   * for the secondary one.
+   *
+   * @param modifier Platform neutral modifier.
+   * @returns Modifier symbol.
+   */
+  modifierLabel(modifier: PlatformKeyboardModifierName): string {
+    return PLATFORM_KEYBOARD_MODIFIER_LABELS_MAC[modifier];
+  }
+
+  /**
+   * Returns "⌃": the physical Control key is the secondary modifier.
+   *
+   * @returns Control key name.
+   */
+  controlKeyLabel(): string {
+    return this.modifierLabel('meta');
   }
 }

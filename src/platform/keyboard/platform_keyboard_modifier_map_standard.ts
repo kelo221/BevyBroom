@@ -3,7 +3,12 @@ import {
   PlatformKeyboardModifierMap,
   type PlatformKeyboardControlKeyTracker,
   type PlatformKeyboardModifierFlags,
+  type PlatformKeyboardModifierName,
 } from '@/platform/keyboard/platform_keyboard_modifier_map.js';
+
+/** Modifier names shown on Windows and Linux. */
+const PLATFORM_KEYBOARD_MODIFIER_LABELS_STANDARD: Readonly<Record<PlatformKeyboardModifierName, string>> =
+  Object.freeze({ ctrl: 'Ctrl', shift: 'Shift', alt: 'Alt', meta: 'Meta' });
 
 /**
  * Windows and Linux modifier map: Control is the primary modifier and the
@@ -49,11 +54,30 @@ export class PlatformKeyboardModifierMapStandard extends PlatformKeyboardModifie
    */
   labelFormat(shortcut: KeyboardShortcut, keyLabel: string): string {
     const modifierLabels = [
-      shortcut.ctrl ? 'Ctrl' : '',
-      shortcut.shift ? 'Shift' : '',
-      shortcut.alt ? 'Alt' : '',
-      shortcut.meta ? 'Meta' : '',
+      shortcut.ctrl ? this.modifierLabel('ctrl') : '',
+      shortcut.shift ? this.modifierLabel('shift') : '',
+      shortcut.alt ? this.modifierLabel('alt') : '',
+      shortcut.meta ? this.modifierLabel('meta') : '',
     ].filter(Boolean);
     return [...modifierLabels, keyLabel].join('+');
+  }
+
+  /**
+   * Returns the modifier word, such as "Ctrl" or "Alt".
+   *
+   * @param modifier Platform neutral modifier.
+   * @returns Modifier word.
+   */
+  modifierLabel(modifier: PlatformKeyboardModifierName): string {
+    return PLATFORM_KEYBOARD_MODIFIER_LABELS_STANDARD[modifier];
+  }
+
+  /**
+   * Returns "Ctrl": the physical Control key is the primary modifier.
+   *
+   * @returns Control key name.
+   */
+  controlKeyLabel(): string {
+    return this.modifierLabel('ctrl');
   }
 }

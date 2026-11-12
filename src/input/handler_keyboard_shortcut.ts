@@ -1,7 +1,13 @@
 import { PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT } from '@/platform/keyboard/platform_keyboard_modifier_map_current.js';
+import { PLATFORM_KEYBOARD_KEY_MAP_CURRENT } from '@/platform/keyboard/platform_keyboard_key_map_current.js';
+import type { PlatformKeyboardKeyMap } from '@/platform/keyboard/platform_keyboard_key_map.js';
 import { ManagerInput } from './manager_input.js';
 import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
-import type { KeyboardShortcutAction, KeyboardShortcutSettings } from '@/settings/store/settings_types.js';
+import type {
+  KeyboardShortcut,
+  KeyboardShortcutAction,
+  KeyboardShortcutSettings,
+} from '@/settings/store/settings_types.js';
 import {
   handlerKeyboardShortcutIsTypingInFormField,
   handlerKeyboardShortcutFieldAllowsEditorUndo,
@@ -87,6 +93,8 @@ export class HandlerKeyboardShortcut {
   /** Callbacks of shortcut actions registered through {@link actionCallbackSet}. */
   private readonly actionCallbacks: Map<KeyboardShortcutAction, ActionRegistration>;
   private readonly getKeyboardShortcuts: () => KeyboardShortcutSettings;
+  /** Platform key map that adds the bindings of keys the keyboard lacks. */
+  private readonly keyMap: PlatformKeyboardKeyMap;
 
   /**
    * Returns whether a layout-stable keyboard code is currently held.
@@ -121,13 +129,18 @@ export class HandlerKeyboardShortcut {
    * Creates a new keyboard shortcut handler.
    *
    * @param inputManager The input manager providing key state queries.
+   * @param getKeyboardShortcuts Reads the configured shortcut bindings.
+   * @param keyMap Platform key map adding the bindings of keys the keyboard
+   *   lacks; defaults to the map of the platform this page runs on.
    */
   constructor(
     inputManager: ManagerInput,
     getKeyboardShortcuts: () => KeyboardShortcutSettings = createDefaultKeyboardShortcutSettings,
+    keyMap: PlatformKeyboardKeyMap = PLATFORM_KEYBOARD_KEY_MAP_CURRENT,
   ) {
     this.inputManager = inputManager;
     this.getKeyboardShortcuts = getKeyboardShortcuts;
+    this.keyMap = keyMap;
     this.onTransformMode = null;
     this.onDeleteSelected = null;
     this.onDeleteEditComponents = null;
@@ -655,6 +668,7 @@ export class HandlerKeyboardShortcut {
   private toActionHost(): HandlerKeyboardShortcutActionHost {
     return {
       matchesShortcut: (event, action) => this.matchesShortcut(event, action),
+      matchesConfiguredShortcut: (event, action) => this.matchesConfiguredShortcut(event, action),
       runSnapIntervalAction: (action) => this.runSnapIntervalAction(action),
       onTransformMode: this.onTransformMode,
       onDeleteSelected: this.onDeleteSelected,
@@ -709,33 +723,46 @@ export class HandlerKeyboardShortcut {
   }
 
   /**
-   * Checks whether an event matches a configured shortcut.
+   * Checks whether an event matches a configured shortcut or one of the
+   * bindings the platform key map adds for it.
    *
    * @param event Keyboard event to compare.
    * @param action Configured action identifier.
-   * @returns True when the key and modifier state match exactly.
+   * @returns True when the key and modifier state match one binding exactly.
    */
   private matchesShortcut(event: KeyboardEvent, action: keyof KeyboardShortcutSettings): boolean {
     const shortcut = this.getKeyboardShortcuts()[action];
-    return (
-      this.matchesShortcutCode(event, action, shortcut.code) &&
-      this.isCtrlDown(event) === shortcut.ctrl &&
-      this.isShiftDown(event) === shortcut.shift &&
-      this.isAltActiveForEvent(event) === shortcut.alt &&
-      PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT.secondaryDown(event) === shortcut.meta
-    );
+    return this.keyMap.shortcutBindings(shortcut).some((binding) => this.matchesBinding(event, binding));
   }
 
   /**
-   * Matches a shortcut code in a layout-safe way (QWERTZ Y/Z, AZERTY, etc.).
+   * Checks whether an event matches the configured binding of a shortcut
+   * itself, ignoring the bindings the platform key map adds.
    *
-   * @param event Keyboard event to inspect.
-   * @param _action Unused; kept for call-site compatibility.
-   * @param code Configured keyboard event code.
-   * @returns True when the event matches the configured key.
+   * @param event Keyboard event to compare.
+   * @param action Configured action identifier.
+   * @returns True when the key and modifier state match the configured binding.
    */
-  private matchesShortcutCode(event: KeyboardEvent, _action: keyof KeyboardShortcutSettings, code: string): boolean {
-    return keyboardEventMatchesCode(event, code);
+  private matchesConfiguredShortcut(event: KeyboardEvent, action: keyof KeyboardShortcutSettings): boolean {
+    return this.matchesBinding(event, this.getKeyboardShortcuts()[action]);
+  }
+
+  /**
+   * Checks whether an event matches one binding: its key in a layout-safe way
+   * (QWERTZ Y/Z, AZERTY, etc.) and its modifier state exactly.
+   *
+   * @param event Keyboard event to compare.
+   * @param binding Key and modifiers to match.
+   * @returns True when the key and modifier state match exactly.
+   */
+  private matchesBinding(event: KeyboardEvent, binding: KeyboardShortcut): boolean {
+    return (
+      keyboardEventMatchesCode(event, binding.code) &&
+      this.isCtrlDown(event) === binding.ctrl &&
+      this.isShiftDown(event) === binding.shift &&
+      this.isAltActiveForEvent(event) === binding.alt &&
+      PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT.secondaryDown(event) === binding.meta
+    );
   }
 
   /**

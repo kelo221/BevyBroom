@@ -18,6 +18,9 @@ const THEME_LAYOUT_TOKEN_SUFFIX = 'Px';
 /** Name suffix of theme tokens that hold font stacks instead of colors. */
 const THEME_FONT_TOKEN_SUFFIX = 'FontFamily';
 
+/** Name suffix of theme tokens that hold CSS gradients instead of single colors. */
+const THEME_GRADIENT_TOKEN_SUFFIX = 'Gradient';
+
 /** Name suffix of theme tokens that hold CSS filters instead of colors. */
 const THEME_FILTER_TOKEN_SUFFIX = 'Filter';
 
@@ -48,6 +51,7 @@ function themeColorTokenNamesRead(): string[] {
       !name.endsWith(THEME_FONT_TOKEN_SUFFIX) &&
       !name.endsWith(THEME_SHADOW_TOKEN_SUFFIX) &&
       !name.endsWith(THEME_FILTER_TOKEN_SUFFIX) &&
+      !name.endsWith(THEME_GRADIENT_TOKEN_SUFFIX) &&
       !name.endsWith(THEME_COLOR_GROUP_TOKEN_SUFFIX) &&
       name !== THEME_WIRE_PALETTE_TOKEN,
   );

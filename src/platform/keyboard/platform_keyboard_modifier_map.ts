@@ -6,6 +6,12 @@ export interface PlatformKeyboardModifierFlags {
   readonly metaKey: boolean;
 }
 
+/**
+ * Platform neutral shortcut modifiers: ctrl is the primary modifier, meta the
+ * secondary one.
+ */
+export type PlatformKeyboardModifierName = 'ctrl' | 'shift' | 'alt' | 'meta';
+
 /** Input state that knows whether a Control key is held. */
 export interface PlatformKeyboardControlKeyTracker {
   /**
@@ -54,4 +60,21 @@ export abstract class PlatformKeyboardModifierMap {
    * @returns Shortcut label.
    */
   abstract labelFormat(shortcut: KeyboardShortcut, keyLabel: string): string;
+
+  /**
+   * Returns the user facing name of a platform neutral modifier, such as "Ctrl"
+   * or "⌘" for the primary modifier.
+   *
+   * @param modifier Platform neutral modifier.
+   * @returns Modifier name shown in labels and hints.
+   */
+  abstract modifierLabel(modifier: PlatformKeyboardModifierName): string;
+
+  /**
+   * Returns the user facing name of the physical Control key, such as "Ctrl" or
+   * "⌃", for hints about keys read directly from the keyboard.
+   *
+   * @returns Control key name.
+   */
+  abstract controlKeyLabel(): string;
 }

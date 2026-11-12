@@ -13,7 +13,7 @@ export type ToolbarMenuNativeRole = 'cut' | 'copy' | 'paste';
 export type ToolbarMenuNativeApplicationSlot = 'about' | 'settings';
 
 /** Text editing commands that replace a row's action inside text fields. */
-export type ToolbarMenuTextEditCommand = 'undo' | 'redo' | 'selectAll';
+export type ToolbarMenuTextEditCommand = 'undo' | 'redo' | 'selectAll' | 'delete';
 
 /** Clickable menu row with optional enablement and shortcut label. */
 export interface ToolbarMenuAction {

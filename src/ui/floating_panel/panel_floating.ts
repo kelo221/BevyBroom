@@ -135,7 +135,12 @@ export abstract class PanelFloating {
     this.boundDocumentKeyDown = (event) => this.onDocumentKeyDown(event);
     this.root = this.createShellRoot();
     this.backdrop = this.modal ? this.createModalBackdrop(options) : null;
-    FloatingPanelStack.register(this.getStackElement(), () => this.clampToScreenIfVisible(), this.stackLayer);
+    FloatingPanelStack.register(
+      this.getStackElement(),
+      () => this.clampToScreenIfVisible(),
+      this.stackLayer,
+      () => this.hide(true),
+    );
     this.bindBringToFrontOnPointer();
   }
 

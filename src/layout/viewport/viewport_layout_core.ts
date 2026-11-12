@@ -92,6 +92,11 @@ import { WorkspaceStore } from '@/layout/workspace/workspace_store.js';
 import { ControllerWorkspace } from '@/layout/workspace/controller_workspace.js';
 import { WorkspaceSwitcherBar } from '@/ui/workspace/workspace_switcher_bar.js';
 import { LayoutGamePreview } from '@/preview/layout/layout_game_preview.js';
+import { createLayoutPlatformPointerRemap } from '@/layout/setup/layout_platform_pointer_input.js';
+import type { PlatformPointerButtonRemap } from '@/platform/pointer/platform_pointer_button_remap.js';
+import type { PlatformWindowCloseShortcut } from '@/platform/window/platform_window_close_shortcut.js';
+import { platformWindowCloseShortcutCreateCurrent } from '@/platform/window/platform_window_close_shortcut_current.js';
+import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js';
 import {
   type WorkspaceAreaWiringHost,
   wireWorkspaceSystem,
@@ -175,6 +180,16 @@ export abstract class ViewportLayoutCore {
   protected viewportSyncManager!: ManagerViewportSync;
   protected primitiveCreationHandler!: HandlerPrimitiveCreation;
   protected keyboardShortcutHandler!: HandlerKeyboardShortcut;
+  /**
+   * Delivers the platform's secondary click and the Alt+left middle button
+   * emulation.
+   */
+  protected readonly platformPointerRemap: PlatformPointerButtonRemap;
+  /**
+   * Closes the front floating window on the system close window shortcut, where
+   * the platform has one.
+   */
+  protected readonly platformWindowCloseShortcut: PlatformWindowCloseShortcut | null;
   protected objectActionHandler!: HandlerObjectAction;
   protected alignmentHandler!: HandlerAlignment;
   protected sceneIOHandler!: HandlerSceneIo;
@@ -227,12 +242,18 @@ export abstract class ViewportLayoutCore {
     this.container = editorContainer;
     this.isDisposed = false;
     this.renderLoop = new LayoutRenderLoop();
+    this.platformPointerRemap = createLayoutPlatformPointerRemap(() => this.settingsStore?.getMouseSettings() ?? null);
+    this.platformPointerRemap.installOnWindow(window);
+    this.platformWindowCloseShortcut = platformWindowCloseShortcutCreateCurrent(() =>
+      FloatingPanelStack.closeTopmostOpen(),
+    );
+    this.platformWindowCloseShortcut?.installOnWindow(window);
     this.detachedViewportWindow = new DetachedViewportWindow({
       hooks: {
         onViewportReady: (viewport) => this.wireDetachedViewport(viewport),
         onViewportDisposed: (viewport) => this.onDetachedViewportDisposed(viewport),
-        onPopupWindowReady: (popup) => this.keyboardShortcutHandler?.registerOnWindow(popup),
-        onPopupWindowClosed: (popup) => this.keyboardShortcutHandler?.unregisterFromWindow(popup),
+        onPopupWindowReady: (popup) => this.popupWindowInputRegister(popup),
+        onPopupWindowClosed: (popup) => this.popupWindowInputUnregister(popup),
         prepareViewportPass: (viewport) => {
           this.cadRulerSystem.prepareForCamera(viewport.getCamera());
           this.prepareDetachedGizmoBoundsScreenSpace(viewport);
@@ -245,6 +266,30 @@ export abstract class ViewportLayoutCore {
     this.wireHandlersAndCoordinators();
     this.bindRenderLoop();
     this.watchResize();
+  }
+
+  /**
+   * Gives a detached popup window the editor shortcuts and the platform pointer
+   * remap.
+   *
+   * @param popup Popup window that just opened.
+   */
+  private popupWindowInputRegister(popup: Window): void {
+    this.keyboardShortcutHandler?.registerOnWindow(popup);
+    this.platformPointerRemap.installOnWindow(popup);
+    this.platformWindowCloseShortcut?.installOnWindow(popup);
+  }
+
+  /**
+   * Removes the editor shortcuts and the platform pointer remap from a closing
+   * popup window.
+   *
+   * @param popup Popup window that is closing.
+   */
+  private popupWindowInputUnregister(popup: Window): void {
+    this.keyboardShortcutHandler?.unregisterFromWindow(popup);
+    this.platformPointerRemap.uninstallFromWindow(popup);
+    this.platformWindowCloseShortcut?.uninstallFromWindow(popup);
   }
 
   /** Assigns core managers that do not depend on DOM layout. */

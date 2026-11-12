@@ -2,10 +2,15 @@ import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { StatusBar } from '@/ui/status/status_bar.js';
 import { SelectionMode } from '@/types/selection_mode.js';
 import { faceModeStatusLabelSelectionMode } from './face_mode_status_labels.js';
+import { keyboardHintFormat } from '@/settings/keyboard/keyboard_hint_format.js';
 
-/** Face-mode guidance shown when Face Select becomes active. */
-export const COORDINATOR_FACE_MODE_ENTER_GUIDANCE =
-  'Face mode: drag to select · drag selected face to slide UVs · G/R/S UV transform · hold M to smear · Extrude / Shift+E';
+/**
+ * Face-mode guidance shown when Face Select becomes active, with the modifier
+ * names of the platform.
+ */
+export const COORDINATOR_FACE_MODE_ENTER_GUIDANCE = keyboardHintFormat(
+  'Face mode: drag to select · drag selected face to slide UVs · G/R/S UV transform · hold M to smear · Extrude / {shift}+E',
+);
 
 /**
  * Clears object selection, refreshes face-pickable meshes, and shows face-mode

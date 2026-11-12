@@ -1,6 +1,7 @@
 import { PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT } from '@/platform/keyboard/platform_keyboard_modifier_map_current.js';
 import type { EditorSettingsStore } from '@/settings/store/editor_settings_store.js';
 import { formatKeyboardShortcut } from '@/settings/keyboard/keyboard_shortcut_format.js';
+import { keyboardHintFormat } from '@/settings/keyboard/keyboard_hint_format.js';
 import type { KeyboardShortcutAction, KeyboardShortcutSettings } from '@/settings/store/settings_types.js';
 import { createSettingsCategory, createSettingsControlRow, createSettingsTextInput } from './settings_form_controls.js';
 import { keyboardShortcutCodeFromEvent } from '@/input/keyboard_event_match.js';
@@ -88,28 +89,29 @@ const WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, stri
 
 /**
  * Fixed keyboard reminders for the clipboard, face editing and 3D fly
- * navigation.
+ * navigation. Modifier placeholders are filled with the names of the current
+ * platform when the rows are built.
  */
 const KEYBOARD_REMINDER_ROWS: ReadonlyArray<readonly [string, string, string]> = [
-  ['object-click-toggle', 'Add / Remove Object (Object Select)', 'Ctrl + Click'],
-  ['object-click-face-edit', 'Edit Clicked Brush Face (Object Select)', 'Shift + Click'],
-  ['face-click-add', 'Add Face (Face Select)', 'Shift + Click'],
-  ['face-click-remove', 'Remove Face (Face Select)', 'Ctrl + Click'],
-  ['clipboard-cut', 'Cut Selected', 'Ctrl+X'],
-  ['clipboard-copy', 'Copy Selected', 'Ctrl+C'],
-  ['clipboard-paste', 'Paste Under Pointer', 'Ctrl+V'],
+  ['object-click-toggle', 'Add / Remove Object (Object Select)', '{ctrl} + Click'],
+  ['object-click-face-edit', 'Edit Clicked Brush Face (Object Select)', '{shift} + Click'],
+  ['face-click-add', 'Add Face (Face Select)', '{shift} + Click'],
+  ['face-click-remove', 'Remove Face (Face Select)', '{ctrl} + Click'],
+  ['clipboard-cut', 'Cut Selected', '{ctrl}+X'],
+  ['clipboard-copy', 'Copy Selected', '{ctrl}+C'],
+  ['clipboard-paste', 'Paste Under Pointer', '{ctrl}+V'],
   ['edit-knife', 'Knife (add vertex on edge, Edit Mode)', 'K'],
-  ['edit-loop-cut', 'Loop Cut (Edit Mode)', 'Ctrl+R'],
+  ['edit-loop-cut', 'Loop Cut (Edit Mode)', '{ctrl}+R'],
   ['edit-merge', 'Merge Vertices (Edit Mode)', 'M'],
   ['uv-smear', 'UV Smear (hold while dragging faces)', 'M'],
   ['uv-transform', 'UV Move / Rotate / Scale (Face Select)', 'G / R / S'],
   ['fly-forward-backward', '3D Fly Forward / Backward (hold RMB)', 'W / S'],
   ['fly-left-right', '3D Fly Left / Right (hold RMB)', 'A / D'],
   ['fly-down-up', '3D Fly Down / Up (hold RMB)', 'Q / E'],
-  ['fly-speed-boost', '3D Fly Speed Boost (hold RMB)', 'Shift'],
+  ['fly-speed-boost', '3D Fly Speed Boost (hold RMB)', '{shift}'],
   ['view-pan', 'Pan Any View', 'Middle Mouse Drag'],
-  ['view-dolly', '3D Move Forward / Back (Mouse settings)', 'Alt + Middle Mouse Drag'],
-  ['sprinkle-radius-wheel', 'Sprinkle Brush Radius (Sprinkle tool)', 'Alt + Mouse Wheel'],
+  ['view-dolly', '3D Move Forward / Back (Mouse settings)', '{alt} + Middle Mouse Drag'],
+  ['sprinkle-radius-wheel', 'Sprinkle Brush Radius (Sprinkle tool)', '{alt} + Mouse Wheel'],
 ];
 
 /** Keyboard tab content for rebinding primary editor actions. */
@@ -203,7 +205,7 @@ export class SettingsKeyboardTab {
   private buildReminderCategory(): HTMLElement {
     const { section, body } = createSettingsCategory('Navigation & Modifiers');
     KEYBOARD_REMINDER_ROWS.forEach(([id, label, shortcut]) => {
-      body.appendChild(this.createReminderRow(id, label, shortcut));
+      body.appendChild(this.createReminderRow(id, label, keyboardHintFormat(shortcut)));
     });
     return section;
   }

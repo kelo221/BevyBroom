@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import { SelectionMode } from '@/types/selection_mode.js';
 import type { ControllerFaceExtrusion } from './controller_face_extrusion.js';
 import { faceModeStatusLabelExtrude } from './face_mode_status_labels.js';
+import { keyboardHintFormat } from '@/settings/keyboard/keyboard_hint_format.js';
 
 /** Status and world-refresh callbacks used while extruding faces. */
 export interface CoordinatorFaceModeExtrudeHost {
@@ -29,7 +30,7 @@ export function faceModeEnsureFaceSelectionActive(
     return true;
   }
   controller.setSelectionMode(SelectionMode.FACE);
-  host.showStatusMessage('Face mode: drag faces to select, G/R/S for UVs, Extrude (Shift+E)');
+  host.showStatusMessage(keyboardHintFormat('Face mode: drag faces to select, G/R/S for UVs, Extrude ({shift}+E)'));
   return false;
 }
 
@@ -47,7 +48,7 @@ export function faceModeEnsureFacesSelected(
   if (controller.getSelectedFaceCount() > 0) {
     return true;
   }
-  host.showStatusMessage('Select a face first, then Extrude (Shift+E)');
+  host.showStatusMessage(keyboardHintFormat('Select a face first, then Extrude ({shift}+E)'));
   return false;
 }
 
