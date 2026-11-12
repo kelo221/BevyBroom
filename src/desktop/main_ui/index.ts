@@ -29,11 +29,16 @@ new Electroview({ rpc: desktopRpc as never });
 window.bevybroomStandaloneUpdater = createElectrobunUpdaterBridge(desktopRpc);
 window.bevybroomMcpBridge = createMcpDesktopBridge(desktopRpc);
 window.bevybroomGameProcessControl = new GameProcessControlDesktop(desktopRpc);
-window.bevybroomFileDialogDesktop = { textFileOpen: (params) => desktopRpc.request.textFileOpen(params) };
 if (platformIsMac()) {
   nativeMenuBridge = new NativeMenuBridgeDesktop(desktopRpc);
   window.bevybroomNativeMenuBridge = nativeMenuBridge;
   desktopWindowChromeMacInstall(document);
+  window.bevybroomFileDialogDesktop = {
+    textFileOpen: (params) => desktopRpc.request.textFileOpen(params),
+    savePathPick: (params) => desktopRpc.request.savePathPick(params),
+    textFileWrite: (params) => desktopRpc.request.textFileWrite(params),
+    fileStat: (params) => desktopRpc.request.fileStat(params),
+  };
 }
 storageMigrationLegacyPrefixRunInBrowser();
 await import('@/app.js');

@@ -4,24 +4,21 @@ import {
   fileDialogDesktopAllowedFileTypesFromAccept,
   fileDialogDesktopBridgeResolve,
 } from '@/io/dialog/desktop/file_dialog_desktop_bridge.js';
+import { FileDialogDesktopTestBridge } from './file_dialog_desktop_test_bridge.js';
 
-/** Scene text returned by the fake native dialog. */
-const FILE_DIALOG_DESKTOP_TEST_SCENE = JSON.stringify({ version: 8, objects: [] });
+/** Scene file on the fake desktop disk. */
+const DESKTOP_TEST_SCENE_PATH = '/levels/store.scene.json';
 
 /**
- * Installs a fake desktop bridge that answers with a file or a cancel.
+ * Installs a fake desktop bridge holding one scene file.
  *
- * @param isCancelled Whether the fake dialog is cancelled.
- * @returns Spy of the native open request.
+ * @returns Fake bridge.
  */
-function fileDialogDesktopTestBridgeInstall(isCancelled: boolean) {
-  const textFileOpen = vi.fn(async () =>
-    isCancelled
-      ? null
-      : { path: '/levels/store.scene.json', fileName: 'store.scene.json', text: FILE_DIALOG_DESKTOP_TEST_SCENE },
-  );
-  window.bevybroomFileDialogDesktop = { textFileOpen };
-  return textFileOpen;
+function desktopTestBridgeInstall(): FileDialogDesktopTestBridge {
+  const bridge = new FileDialogDesktopTestBridge();
+  bridge.fileSet(DESKTOP_TEST_SCENE_PATH, JSON.stringify({ version: 8, objects: [] }));
+  window.bevybroomFileDialogDesktop = bridge;
+  return bridge;
 }
 
 describe('desktop file dialog bridge', () => {
@@ -40,18 +37,47 @@ describe('desktop file dialog bridge', () => {
     expect(fileDialogDesktopBridgeResolve()).toBeNull();
   });
 
-  it('loads a scene through the native dialog without clicking a hidden file input', async () => {
-    const textFileOpen = fileDialogDesktopTestBridgeInstall(false);
+  it('loads through the native dialog and saves back to the same file without asking', async () => {
+    const bridge = desktopTestBridgeInstall();
+    bridge.openAnswer = DESKTOP_TEST_SCENE_PATH;
     const inputClick = vi.spyOn(HTMLInputElement.prototype, 'click');
-    const text = await new ManagerFileDialog().loadSceneDocument();
-    expect(text).toBe(FILE_DIALOG_DESKTOP_TEST_SCENE);
-    expect(textFileOpen).toHaveBeenCalledWith({ allowedFileTypes: 'json' });
+    const manager = new ManagerFileDialog();
+    const loaded = await manager.loadSceneDocument();
+    expect(loaded).toBe(bridge.files.get(DESKTOP_TEST_SCENE_PATH));
     expect(inputClick).not.toHaveBeenCalled();
+    const edited = JSON.stringify({ version: 8, objects: [{ name: 'Shelf moved' }] });
+    expect(await manager.saveSceneDocument(edited, 'ignored.json')).toBe('store.scene.json');
+    expect(bridge.files.get(DESKTOP_TEST_SCENE_PATH)).toBe(edited);
+    expect(bridge.savePathPick).not.toHaveBeenCalled();
   });
 
-  it('returns null when the native dialog is cancelled', async () => {
-    fileDialogDesktopTestBridgeInstall(true);
-    expect(await new ManagerFileDialog().loadSceneDocument()).toBeNull();
-    expect(await new ManagerFileDialog().loadTextFile('.vmf', 'VMF', ['.vmf'])).toBeNull();
+  it('notices when another program changed the opened file', async () => {
+    const bridge = desktopTestBridgeInstall();
+    bridge.openAnswer = DESKTOP_TEST_SCENE_PATH;
+    const manager = new ManagerFileDialog();
+    await manager.loadSceneDocument();
+    expect(await manager.sceneDocumentChangedOnDiskIs()).toBe(false);
+    bridge.fileSet(DESKTOP_TEST_SCENE_PATH, '{}');
+    expect(await manager.sceneDocumentChangedOnDiskIs()).toBe(true);
+  });
+
+  it('asks for a path on first save, writes there and remembers it', async () => {
+    const bridge = desktopTestBridgeInstall();
+    bridge.saveAnswer = '/levels/new level.json';
+    const manager = new ManagerFileDialog();
+    expect(await manager.saveSceneDocument('{"a":1}', 'scene.json')).toBe('new level.json');
+    expect(bridge.savePathPick).toHaveBeenCalledWith({ suggestedName: 'scene.json', defaultExtension: 'json' });
+    await manager.saveSceneDocument('{"a":2}', 'scene.json');
+    expect(bridge.savePathPick).toHaveBeenCalledTimes(1);
+    expect(bridge.files.get('/levels/new level.json')).toBe('{"a":2}');
+  });
+
+  it('returns null and writes nothing when the dialogs are cancelled', async () => {
+    const bridge = desktopTestBridgeInstall();
+    const manager = new ManagerFileDialog();
+    expect(await manager.loadSceneDocument()).toBeNull();
+    expect(await manager.saveSceneDocumentAs('{}', 'scene.json')).toBeNull();
+    expect(await manager.loadTextFile('.vmf', 'VMF', ['.vmf'])).toBeNull();
+    expect(bridge.textFileWrite).not.toHaveBeenCalled();
   });
 });

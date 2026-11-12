@@ -1,9 +1,13 @@
 import type {
+  FileDialogDesktopFileStat,
+  FileDialogDesktopFileStatParams,
+  FileDialogDesktopSavePickParams,
   FileDialogDesktopTextFile,
   FileDialogDesktopTextFileOpenParams,
+  FileDialogDesktopTextFileWriteParams,
 } from '@/io/dialog/desktop/file_dialog_desktop_types.js';
 
-/** Native file dialogs offered by the desktop app. */
+/** Native file dialogs and file access offered by the desktop app. */
 export interface FileDialogDesktopBridge {
   /**
    * Shows the native open dialog and reads the chosen text file.
@@ -12,6 +16,30 @@ export interface FileDialogDesktopBridge {
    * @returns Chosen file with its text, or null when cancelled.
    */
   textFileOpen(params: FileDialogDesktopTextFileOpenParams): Promise<FileDialogDesktopTextFile | null>;
+
+  /**
+   * Shows the native save dialog.
+   *
+   * @param params Suggested name and default extension.
+   * @returns Chosen absolute path, or null when cancelled.
+   */
+  savePathPick(params: FileDialogDesktopSavePickParams): Promise<string | null>;
+
+  /**
+   * Replaces a text file with new contents.
+   *
+   * @param params Path and contents.
+   * @returns Modification time after the write.
+   */
+  textFileWrite(params: FileDialogDesktopTextFileWriteParams): Promise<FileDialogDesktopFileStat>;
+
+  /**
+   * Reads the modification time of a file.
+   *
+   * @param params Path of the file.
+   * @returns Modification time, or null when the file is missing.
+   */
+  fileStat(params: FileDialogDesktopFileStatParams): Promise<FileDialogDesktopFileStat | null>;
 }
 
 declare global {
@@ -22,7 +50,7 @@ declare global {
 
 /**
  * Returns the native file dialogs installed by the desktop app, or null in a
- * browser.
+ * browser and in desktop builds that keep the browser file pickers.
  *
  * @returns Desktop file dialog bridge, or null.
  */

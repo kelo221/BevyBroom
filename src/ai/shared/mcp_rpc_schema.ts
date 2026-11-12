@@ -11,8 +11,12 @@ import type {
 } from '@/tools/sprinkle/definition/sprinkle_definition.js';
 import type { NativeMenuActionRunParams, NativeMenuBarWire } from '@/native_menu/native_menu_types.js';
 import type {
+  FileDialogDesktopFileStat,
+  FileDialogDesktopFileStatParams,
+  FileDialogDesktopSavePickParams,
   FileDialogDesktopTextFile,
   FileDialogDesktopTextFileOpenParams,
+  FileDialogDesktopTextFileWriteParams,
 } from '@/io/dialog/desktop/file_dialog_desktop_types.js';
 import type {
   McpHostStartResult,
@@ -41,6 +45,9 @@ export interface ElectrobunDesktopRpcSchema {
       projectSprinkleDefinitionOpen: { params: { path: string }; response: SprinkleDefinitionOpenResult };
       nativeMenuBarSet: { params: NativeMenuBarWire; response: void };
       textFileOpen: { params: FileDialogDesktopTextFileOpenParams; response: FileDialogDesktopTextFile | null };
+      savePathPick: { params: FileDialogDesktopSavePickParams; response: string | null };
+      textFileWrite: { params: FileDialogDesktopTextFileWriteParams; response: FileDialogDesktopFileStat };
+      fileStat: { params: FileDialogDesktopFileStatParams; response: FileDialogDesktopFileStat | null };
     };
     messages: {};
   };
@@ -72,6 +79,9 @@ export interface ElectrobunDesktopBunRpcClient {
     projectSprinkleDefinitionOpen: (params: { path: string }) => Promise<SprinkleDefinitionOpenResult>;
     nativeMenuBarSet: (bar: NativeMenuBarWire) => Promise<void>;
     textFileOpen: (params: FileDialogDesktopTextFileOpenParams) => Promise<FileDialogDesktopTextFile | null>;
+    savePathPick: (params: FileDialogDesktopSavePickParams) => Promise<string | null>;
+    textFileWrite: (params: FileDialogDesktopTextFileWriteParams) => Promise<FileDialogDesktopFileStat>;
+    fileStat: (params: FileDialogDesktopFileStatParams) => Promise<FileDialogDesktopFileStat | null>;
   };
 }
 
