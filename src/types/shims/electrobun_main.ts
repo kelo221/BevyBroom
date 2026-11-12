@@ -119,7 +119,30 @@ export class BrowserWindow {
 
   /** Shows and activates the native window. */
   show(): void {}
+
+  /**
+   * Returns whether the native window is minimized.
+   *
+   * @returns True while minimized.
+   */
+  isMinimized(): boolean {
+    return false;
+  }
+
+  /** Restores a minimized native window. */
+  unminimize(): void {}
 }
+
+/** Application level events and lifecycle of the running app. */
+export const app = {
+  /**
+   * Subscribes to an application event such as "reopen" or "before-quit".
+   *
+   * @param _name Event name.
+   * @param _handler Receives the event payload.
+   */
+  on(_name: string, _handler: (payload: unknown) => void): void {},
+};
 
 /** Native screen information exposed by Electrobun. */
 export const Screen = {

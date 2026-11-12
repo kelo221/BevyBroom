@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js';
 import { UiStackLayers } from '@/ui/stack/ui_stack_layers.js';
 
@@ -47,6 +47,33 @@ describe('FloatingPanelStack', () => {
     expect(Number(b.style.zIndex)).toBe(UiStackLayers.floatingPanelBase);
     expect(Number(c.style.zIndex)).toBe(UiStackLayers.floatingPanelBase + 1);
     expect(FloatingPanelStack.getRegisteredCount()).toBe(3);
+  });
+
+  it('closes the topmost open panel that registered a close callback and skips hidden ones', () => {
+    const lower = document.createElement('div');
+    const upper = document.createElement('div');
+    const hidden = document.createElement('div');
+    document.body.append(lower, upper, hidden);
+    hidden.style.display = 'none';
+    const closeLower = vi.fn();
+    const closeUpper = vi.fn();
+    const closeHidden = vi.fn();
+    FloatingPanelStack.register(lower, undefined, 'tool', closeLower);
+    FloatingPanelStack.register(upper, undefined, 'tool', closeUpper);
+    FloatingPanelStack.register(hidden, undefined, 'tool', closeHidden);
+    expect(FloatingPanelStack.closeTopmostOpen()).toBe(true);
+    expect(closeUpper).toHaveBeenCalledOnce();
+    expect(closeLower).not.toHaveBeenCalled();
+    expect(closeHidden).not.toHaveBeenCalled();
+    FloatingPanelStack.bringToFront(lower);
+    expect(FloatingPanelStack.closeTopmostOpen()).toBe(true);
+    expect(closeLower).toHaveBeenCalledOnce();
+    FloatingPanelStack.unregister(lower);
+    FloatingPanelStack.unregister(upper);
+    expect(FloatingPanelStack.closeTopmostOpen()).toBe(false);
+    lower.remove();
+    upper.remove();
+    hidden.remove();
   });
 
   it('reports whether an event target lies inside a registered window surface', () => {

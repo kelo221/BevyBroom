@@ -35,6 +35,8 @@ export class FloatingPanelStack {
   private static readonly registeredPanels: HTMLElement[] = [];
   private static readonly clampHandlers = new Map<HTMLElement, () => void>();
   private static readonly panelLayers = new Map<HTMLElement, FloatingPanelStackLayer>();
+  /** Closes a registered panel the way its close control does. */
+  private static readonly closeHandlers = new Map<HTMLElement, () => void>();
   /**
    * Open menu roots (and similar chrome) that block viewport pointer routing
    * without participating in tool-panel z-index reassignment.
@@ -43,13 +45,24 @@ export class FloatingPanelStack {
   private static windowResizeBound = false;
 
   /**
-   * Registers a floating panel for stacking and optional resize clamping.
+   * Registers a floating panel for stacking, optional resize clamping and the
+   * close window shortcut.
    *
    * @param panel Panel root or modal backdrop element.
    * @param onWindowResize Optional callback when the browser window resizes.
    * @param layer Stacking band for this panel.
+   * @param onCloseRequest Optional callback that closes the panel when the
+   *   close window shortcut targets it.
    */
-  static register(panel: HTMLElement, onWindowResize?: () => void, layer: FloatingPanelStackLayer = 'tool'): void {
+  static register(
+    panel: HTMLElement,
+    onWindowResize?: () => void,
+    layer: FloatingPanelStackLayer = 'tool',
+    onCloseRequest?: () => void,
+  ): void {
+    if (onCloseRequest) {
+      this.closeHandlers.set(panel, onCloseRequest);
+    }
     if (this.registeredPanels.includes(panel)) {
       this.panelLayers.set(panel, layer);
       return;
@@ -64,6 +77,34 @@ export class FloatingPanelStack {
   }
 
   /**
+   * Closes the topmost open panel that registered a close callback, the one the
+   * user interacted with last.
+   *
+   * @returns True when a panel was closed.
+   */
+  static closeTopmostOpen(): boolean {
+    for (let index = this.registeredPanels.length - 1; index >= 0; index--) {
+      const panel = this.registeredPanels[index];
+      const closeHandler = panel === undefined ? undefined : this.closeHandlers.get(panel);
+      if (panel !== undefined && closeHandler !== undefined && this.panelIsOpen(panel)) {
+        closeHandler();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether a registered panel is in the document and displayed.
+   *
+   * @param panel Panel root or modal backdrop element.
+   * @returns True while the panel is open.
+   */
+  private static panelIsOpen(panel: HTMLElement): boolean {
+    return panel.isConnected && panel.style.display !== 'none';
+  }
+
+  /**
    * Unregisters a panel when it is disposed.
    *
    * @param panel Panel root or modal backdrop element.
@@ -75,6 +116,7 @@ export class FloatingPanelStack {
     }
     this.clampHandlers.delete(panel);
     this.panelLayers.delete(panel);
+    this.closeHandlers.delete(panel);
     this.reassignZIndices();
   }
 
@@ -127,6 +169,7 @@ export class FloatingPanelStack {
     this.registeredPanels.length = 0;
     this.clampHandlers.clear();
     this.panelLayers.clear();
+    this.closeHandlers.clear();
     this.pointerBlockSurfaces.length = 0;
   }
 

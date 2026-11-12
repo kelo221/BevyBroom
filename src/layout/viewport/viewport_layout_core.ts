@@ -94,6 +94,9 @@ import { WorkspaceSwitcherBar } from '@/ui/workspace/workspace_switcher_bar.js';
 import { LayoutGamePreview } from '@/preview/layout/layout_game_preview.js';
 import { createLayoutPlatformPointerRemap } from '@/layout/setup/layout_platform_pointer_input.js';
 import type { PlatformPointerButtonRemap } from '@/platform/pointer/platform_pointer_button_remap.js';
+import type { PlatformWindowCloseShortcut } from '@/platform/window/platform_window_close_shortcut.js';
+import { platformWindowCloseShortcutCreateCurrent } from '@/platform/window/platform_window_close_shortcut_current.js';
+import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js';
 import {
   type WorkspaceAreaWiringHost,
   wireWorkspaceSystem,
@@ -182,6 +185,8 @@ export abstract class ViewportLayoutCore {
    * emulation.
    */
   protected readonly platformPointerRemap: PlatformPointerButtonRemap;
+  /** Closes the front floating window on the system close window shortcut, where the platform has one. */
+  protected readonly platformWindowCloseShortcut: PlatformWindowCloseShortcut | null;
   protected objectActionHandler!: HandlerObjectAction;
   protected alignmentHandler!: HandlerAlignment;
   protected sceneIOHandler!: HandlerSceneIo;
@@ -236,6 +241,10 @@ export abstract class ViewportLayoutCore {
     this.renderLoop = new LayoutRenderLoop();
     this.platformPointerRemap = createLayoutPlatformPointerRemap(() => this.settingsStore?.getMouseSettings() ?? null);
     this.platformPointerRemap.installOnWindow(window);
+    this.platformWindowCloseShortcut = platformWindowCloseShortcutCreateCurrent(() =>
+      FloatingPanelStack.closeTopmostOpen(),
+    );
+    this.platformWindowCloseShortcut?.installOnWindow(window);
     this.detachedViewportWindow = new DetachedViewportWindow({
       hooks: {
         onViewportReady: (viewport) => this.wireDetachedViewport(viewport),
@@ -265,6 +274,7 @@ export abstract class ViewportLayoutCore {
   private popupWindowInputRegister(popup: Window): void {
     this.keyboardShortcutHandler?.registerOnWindow(popup);
     this.platformPointerRemap.installOnWindow(popup);
+    this.platformWindowCloseShortcut?.installOnWindow(popup);
   }
 
   /**
@@ -276,6 +286,7 @@ export abstract class ViewportLayoutCore {
   private popupWindowInputUnregister(popup: Window): void {
     this.keyboardShortcutHandler?.unregisterFromWindow(popup);
     this.platformPointerRemap.uninstallFromWindow(popup);
+    this.platformWindowCloseShortcut?.uninstallFromWindow(popup);
   }
 
   /** Assigns core managers that do not depend on DOM layout. */

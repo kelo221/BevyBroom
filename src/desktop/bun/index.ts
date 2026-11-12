@@ -4,6 +4,7 @@ import { McpHost } from '@/ai/server/mcp_host.js';
 import type { StandaloneHostUpdateCheck } from '@/updater/update_types.js';
 import { buildDesktopWindowFrame } from '@/desktop/desktop_window_maximize.js';
 import { desktopWindowHiddenRequested, showMaximizedWhenReady } from '@/desktop/desktop_window_startup.js';
+import { desktopWindowReopenHandle } from '@/desktop/desktop_window_reopen.js';
 import { enableWindowsPerMonitorDpiAwareness } from '@/desktop/windows_dpi_awareness.js';
 import { applyWindowsWindowIcon } from '@/desktop/windows_window_icon.js';
 import { desktopMcpAutostartRun } from '@/desktop/desktop_mcp_autostart.js';
@@ -24,14 +25,16 @@ import type { NativeMenuBarWire } from '@/native_menu/native_menu_types.js';
 
 await enableWindowsPerMonitorDpiAwareness();
 
-const { ApplicationMenu, BrowserView, BrowserWindow, Screen, Updater, Utils } = await import('electrobun/main');
+const { app, ApplicationMenu, BrowserView, BrowserWindow, Screen, Updater, Utils } = await import('electrobun/main');
 const isMacDesktop = process.platform === 'darwin';
+const isDesktopWindowKeptHidden = desktopWindowHiddenRequested(process.env);
 
 console.log(`desktop profile migration: ${desktopProfileMigrationRun(Utils.paths.userData, process.platform)}`);
 
 const mcpHost = new McpHost();
 const gameProcessHost = new GameProcessHost(new GameProcessSpawnerNode(), gameProcessProjectReaderNodeCreate());
 process.on('exit', () => gameProcessHost.disposeNow());
+app.on('before-quit', desktopQuitPrepare);
 let desktopRpc: ElectrobunDesktopWebviewCaller | null = null;
 const nativeMenuHost = isMacDesktop
   ? new NativeMenuHost(ApplicationMenu, APPLICATION_DISPLAY_NAME, nativeMenuActionForward)
@@ -77,7 +80,19 @@ const desktopWindow = new BrowserWindow({
   titleBarStyle: isMacDesktop ? 'hiddenInset' : 'default',
   rpc: desktopRpcBinding,
 });
-showMaximizedWhenReady(desktopWindow, desktopWindowShownHandle, desktopWindowHiddenRequested(process.env));
+showMaximizedWhenReady(desktopWindow, desktopWindowShownHandle, isDesktopWindowKeptHidden);
+if (isMacDesktop) {
+  app.on('reopen', () => desktopWindowReopenHandle(desktopWindow, isDesktopWindowKeptHidden));
+}
+
+/**
+ * Stops the game process and the MCP server before the app quits, so Command+Q
+ * leaves no child process behind.
+ */
+function desktopQuitPrepare(): void {
+  gameProcessHost.disposeNow();
+  mcpHost.stop();
+}
 
 /**
  * Starts the MCP server when asked for at launch and applies the window icon,
