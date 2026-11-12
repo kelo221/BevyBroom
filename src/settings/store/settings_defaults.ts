@@ -66,6 +66,8 @@ export function createDefaultMouseSettings(): MouseSettings {
     altMiddleMouseDragMovesCamera: false,
     invertAltMiddleMouseDragZAxis: false,
     moveCameraTowardsCursor: false,
+    wheelIn2dViews: 'auto',
+    altLeftDragEmulatesMiddleMouse: false,
   };
 }
 

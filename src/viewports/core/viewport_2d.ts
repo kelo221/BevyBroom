@@ -25,6 +25,7 @@ import {
   reorientOrthographicCamera,
 } from '@/navigation/orientation/ortho_viewport_orientation.js';
 import { applyEditModeLineStyleForOrthographicPass } from '@/edit/session/edit_mode_viewport_line_style.js';
+import type { PlatformPointerWheelPreference } from '@/platform/pointer/platform_pointer_wheel_gesture_map.js';
 
 /** Options for constructing a shared-scene orthographic pane. */
 export interface Viewport2DOptions extends ViewportBaseOptions {
@@ -364,6 +365,16 @@ export class Viewport2D extends ViewportBase {
    */
   setPanSpeedFactor(factor: number): void {
     this.panHandler?.setPanSpeedFactor(factor);
+  }
+
+  /**
+   * Sets what the plain wheel does over this view: zoom, pan, or whatever the
+   * platform tells a mouse wheel from a trackpad scroll.
+   *
+   * @param preference Wheel preference from the mouse settings.
+   */
+  setWheelPreference(preference: PlatformPointerWheelPreference): void {
+    this.panHandler?.setWheelPreference(preference);
   }
 
   /**

@@ -130,7 +130,8 @@ export function panSpeedFactorFromSensitivity(panSensitivity: number): number {
 }
 
 /**
- * Applies the pan sensitivity to every orthographic viewport.
+ * Applies the pan sensitivity and the wheel preference to every orthographic
+ * viewport.
  *
  * @param viewports Live orthographic viewports.
  * @param mouse Current mouse settings snapshot.
@@ -139,6 +140,7 @@ export function applyOrthographicPanMouseSettings(viewports: readonly Viewport2D
   const factor = panSpeedFactorFromSensitivity(mouse.panSensitivity);
   for (const viewport of viewports) {
     viewport.setPanSpeedFactor(factor);
+    viewport.setWheelPreference(mouse.wheelIn2dViews);
   }
 }
 

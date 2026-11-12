@@ -810,6 +810,7 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
     this.playerSystem?.dispose();
     this.playerSystem = null;
     this.keyboardShortcutHandler?.unregister();
+    this.platformPointerRemap.dispose();
     this.clipboardSystem?.dispose();
     this.clipboardSystem = null;
     this.sceneRecoveryDispose();

@@ -4,10 +4,34 @@ import { blurActiveFormField } from '@/utils/dom_focus.js';
 import { SelectionClickThrough } from '@/selection/object/selection_click_through.js';
 import { pointerCaptureTry } from '@/utils/pointer_capture.js';
 import { getRegistryViewportWheelConsumer } from '@/navigation/wheel/registry_viewport_wheel_consumer.js';
+import type {
+  PlatformPointerWheelGestureMap,
+  PlatformPointerWheelPreference,
+} from '@/platform/pointer/platform_pointer_wheel_gesture_map.js';
+import { PLATFORM_POINTER_WHEEL_GESTURE_MAP_CURRENT } from '@/platform/pointer/platform_pointer_wheel_gesture_map_current.js';
+import { PlatformPointerPinchGesture } from '@/platform/pointer/platform_pointer_pinch_gesture.js';
 import { NAVIGATION_BUTTON_MIDDLE, NAVIGATION_BUTTON_SECONDARY } from './navigation_buttons.js';
 
 /** Fraction of the pointer travel the view pans by default (half speed). */
 export const ORTHO_PAN_SPEED_FACTOR_DEFAULT = 0.5;
+
+/** Zoom factor of one mouse wheel notch away from the user (zoom out). */
+export const ORTHO_WHEEL_ZOOM_OUT_FACTOR = 1.1;
+
+/** Zoom factor of one mouse wheel notch toward the user (zoom in). */
+export const ORTHO_WHEEL_ZOOM_IN_FACTOR = 0.9;
+
+/**
+ * Exponent applied per pixel of pinch wheel delta: a pinch delta of 10 zooms by
+ * about 10 percent.
+ */
+export const ORTHO_PINCH_ZOOM_RATE_PER_PIXEL = 0.01;
+
+/**
+ * Fraction of the finger travel a trackpad scroll pans by (content follows the
+ * fingers).
+ */
+export const ORTHO_SCROLL_PAN_SPEED_FACTOR = 1;
 
 /**
  * Invoked when the user scrolls to zoom an orthographic viewport toward the
@@ -45,6 +69,9 @@ export class HandlerOrthoPan {
   private readonly onAuxClickBound: (event: MouseEvent) => void;
   private readonly onWheelBound: (event: WheelEvent) => void;
   private readonly onPointerLockChangeBound: () => void;
+  private readonly wheelGestureMap: PlatformPointerWheelGestureMap;
+  private wheelPreference: PlatformPointerWheelPreference = 'auto';
+  private readonly pinchGesture: PlatformPointerPinchGesture;
 
   /**
    * Creates a pan/zoom handler bound to a canvas and orthographic camera.
@@ -52,10 +79,18 @@ export class HandlerOrthoPan {
    * @param canvas Canvas element that receives pointer and wheel events.
    * @param camera Orthographic camera whose position and frustum are updated.
    * @param zoomCallback Invoked with a zoom factor on wheel events.
+   * @param wheelGestureMap Tells mouse wheel notches from trackpad gestures;
+   *   defaults to the map of the platform this page runs on.
    */
-  constructor(canvas: HTMLElement, camera: THREE.OrthographicCamera, zoomCallback: ZoomCallback) {
+  constructor(
+    canvas: HTMLElement,
+    camera: THREE.OrthographicCamera,
+    zoomCallback: ZoomCallback,
+    wheelGestureMap: PlatformPointerWheelGestureMap = PLATFORM_POINTER_WHEEL_GESTURE_MAP_CURRENT,
+  ) {
     this.canvas = canvas;
     this.camera = camera;
+    this.wheelGestureMap = wheelGestureMap;
     this.isPanning = false;
     this.heldPanButtons = new Set();
     this.holdsPointerLock = false;
@@ -72,6 +107,9 @@ export class HandlerOrthoPan {
     this.onAuxClickBound = (event) => this.onAuxClick(event);
     this.onWheelBound = (event) => this.onWheel(event);
     this.onPointerLockChangeBound = () => this.onPointerLockChange();
+    this.pinchGesture = new PlatformPointerPinchGesture(canvas, (scaleRatio, clientX, clientY) =>
+      this.onPinchStep(scaleRatio, clientX, clientY),
+    );
     this.bindEvents();
   }
 
@@ -92,6 +130,7 @@ export class HandlerOrthoPan {
     if (this.isDisposed) return;
     this.isDisposed = true;
     this.panStateClear();
+    this.pinchGesture.dispose();
     this.canvas.removeEventListener('contextmenu', this.onContextMenu);
     this.canvas.removeEventListener('pointerdown', this.onPointerDownBound);
     this.canvas.removeEventListener('pointermove', this.onPointerMoveBound);
@@ -186,6 +225,16 @@ export class HandlerOrthoPan {
   }
 
   /**
+   * Sets what the plain wheel does over the view: zoom, pan, or whatever the
+   * platform tells a mouse wheel from a trackpad scroll.
+   *
+   * @param preference Wheel preference from the mouse settings.
+   */
+  setWheelPreference(preference: PlatformPointerWheelPreference): void {
+    this.wheelPreference = preference;
+  }
+
+  /**
    * Ends panning for a released pan button.
    *
    * @param event Pointer up event from the canvas.
@@ -245,8 +294,9 @@ export class HandlerOrthoPan {
   }
 
   /**
-   * Converts wheel deltas into orthographic zoom factors at the pointer unless
-   * a registered viewport wheel consumer takes the event.
+   * Handles a wheel event unless a registered viewport wheel consumer takes it:
+   * a trackpad scroll pans the view with the fingers, a pinch or a mouse wheel
+   * notch zooms at the pointer.
    *
    * @param event Wheel event from the canvas.
    */
@@ -255,19 +305,55 @@ export class HandlerOrthoPan {
       return;
     }
     event.preventDefault();
-    const factor = event.deltaY > 0 ? 1.1 : 0.9;
+    const gesture = this.wheelGestureMap.gestureResolve(event, this.wheelPreference);
+    if (gesture === 'scroll_pan') {
+      this.panByScreenDelta(-event.deltaX, -event.deltaY, ORTHO_SCROLL_PAN_SPEED_FACTOR);
+      SelectionClickThrough.resetClickThrough();
+      return;
+    }
     const pointer = this.readNormalizedPointer(event);
-    this.zoomCallback(factor, pointer.u, pointer.v);
+    this.zoomCallback(HandlerOrthoPan.wheelZoomFactor(event.deltaY, gesture === 'zoom_pinch'), pointer.u, pointer.v);
     SelectionClickThrough.resetClickThrough();
   }
 
   /**
-   * Maps a wheel event's client position into pane-normalized U/V.
+   * Converts a wheel delta into a zoom factor: a notch zooms by a fixed step, a
+   * pinch zooms in proportion to its delta.
    *
-   * @param event Wheel event providing client coordinates.
+   * @param deltaY Vertical wheel delta; positive zooms out.
+   * @param isPinch Whether the delta comes from a trackpad pinch.
+   * @returns Multiplier applied to the frustum size.
+   */
+  private static wheelZoomFactor(deltaY: number, isPinch: boolean): number {
+    if (isPinch) {
+      return Math.exp(deltaY * ORTHO_PINCH_ZOOM_RATE_PER_PIXEL);
+    }
+    return deltaY > 0 ? ORTHO_WHEEL_ZOOM_OUT_FACTOR : ORTHO_WHEEL_ZOOM_IN_FACTOR;
+  }
+
+  /**
+   * Zooms at the pointer for one step of a WebKit trackpad pinch.
+   *
+   * @param scaleRatio Previous pinch scale divided by the current one.
+   * @param clientX Horizontal pointer position in client pixels.
+   * @param clientY Vertical pointer position in client pixels.
+   */
+  private onPinchStep(scaleRatio: number, clientX: number, clientY: number): void {
+    if (!Number.isFinite(scaleRatio) || scaleRatio <= 0 || scaleRatio === 1) {
+      return;
+    }
+    const pointer = this.readNormalizedPointer({ clientX, clientY });
+    this.zoomCallback(scaleRatio, pointer.u, pointer.v);
+    SelectionClickThrough.resetClickThrough();
+  }
+
+  /**
+   * Maps a client position into pane-normalized U/V.
+   *
+   * @param event Event or point providing client coordinates.
    * @returns Pointer fractions across the drawable element.
    */
-  private readNormalizedPointer(event: WheelEvent): { u: number; v: number } {
+  private readNormalizedPointer(event: { clientX: number; clientY: number }): { u: number; v: number } {
     const rect = this.canvas.getBoundingClientRect();
     const width = Math.max(rect.width, 1);
     const height = Math.max(rect.height, 1);
@@ -285,12 +371,24 @@ export class HandlerOrthoPan {
    * @param screenDeltaY Vertical pointer movement in CSS pixels.
    */
   private applyPan(screenDeltaX: number, screenDeltaY: number): void {
+    this.panByScreenDelta(screenDeltaX, screenDeltaY, this.panSpeedFactor);
+  }
+
+  /**
+   * Pans the camera in view space from screen-pixel movement scaled by a speed
+   * factor.
+   *
+   * @param screenDeltaX Horizontal movement in CSS pixels.
+   * @param screenDeltaY Vertical movement in CSS pixels.
+   * @param speedFactor Fraction of the movement the view pans by.
+   */
+  private panByScreenDelta(screenDeltaX: number, screenDeltaY: number, speedFactor: number): void {
     const frustumWidth = this.camera.right - this.camera.left;
     const frustumHeight = this.camera.top - this.camera.bottom;
     const canvasWidth = this.canvas.clientWidth || 1;
     const canvasHeight = this.canvas.clientHeight || 1;
-    const worldX = (screenDeltaX * frustumWidth * this.panSpeedFactor) / canvasWidth;
-    const worldY = (screenDeltaY * frustumHeight * this.panSpeedFactor) / canvasHeight;
+    const worldX = (screenDeltaX * frustumWidth * speedFactor) / canvasWidth;
+    const worldY = (screenDeltaY * frustumHeight * speedFactor) / canvasHeight;
     this.camera.getWorldDirection(this.tempForward);
     this.tempRight.crossVectors(this.tempForward, this.camera.up).normalize();
     if (this.tempRight.lengthSq() < 1e-10) {

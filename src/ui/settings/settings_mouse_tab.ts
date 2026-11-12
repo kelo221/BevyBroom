@@ -6,8 +6,24 @@ import {
   MOUSE_MOVE_SPEED_MIN,
   type MouseSettings,
 } from '@/settings/store/settings_types.js';
-import { createSettingsCategory, createSettingsControlRow, createSettingsSlider } from './settings_form_controls.js';
+import {
+  createSettingsCategory,
+  createSettingsControlRow,
+  createSettingsSelect,
+  createSettingsSlider,
+} from './settings_form_controls.js';
 import { keyboardHintFormat } from '@/settings/keyboard/keyboard_hint_format.js';
+import {
+  PLATFORM_POINTER_WHEEL_PREFERENCES,
+  type PlatformPointerWheelPreference,
+} from '@/platform/pointer/platform_pointer_wheel_gesture_map.js';
+
+/** Dropdown labels of the 2D view wheel preferences. */
+const MOUSE_WHEEL_PREFERENCE_LABELS: Readonly<Record<PlatformPointerWheelPreference, string>> = Object.freeze({
+  auto: 'Automatic (mouse zooms, trackpad pans)',
+  zoom: 'Zoom',
+  pan: 'Pan (pinch zooms)',
+});
 
 /** Mouse navigation preferences for look, pan, and movement. */
 export class SettingsMouseTab {
@@ -79,7 +95,34 @@ export class SettingsMouseTab {
     body.appendChild(
       this.createCheckboxRow('Invert Y axis', 'pan-invert-y-axis', settings.panInvertYAxis, 'panInvertYAxis'),
     );
+    body.appendChild(this.createWheelPreferenceRow(settings.wheelIn2dViews));
+    body.appendChild(
+      this.createCheckboxRow(
+        keyboardHintFormat('{alt} + left drag acts as middle mouse (pan)'),
+        'alt-left-drag-emulates-middle-mouse',
+        settings.altLeftDragEmulatesMiddleMouse,
+        'altLeftDragEmulatesMiddleMouse',
+      ),
+    );
     return section;
+  }
+
+  /**
+   * Creates the dropdown choosing what the wheel does over 2D views.
+   *
+   * @param value Current wheel preference.
+   * @returns Wheel preference control row.
+   */
+  private createWheelPreferenceRow(value: PlatformPointerWheelPreference): HTMLElement {
+    const options = PLATFORM_POINTER_WHEEL_PREFERENCES.map((preference) => ({
+      value: preference,
+      label: MOUSE_WHEEL_PREFERENCE_LABELS[preference],
+    }));
+    const select = createSettingsSelect(options, value, (nextValue) =>
+      this.store.updateMouseSettings({ wheelIn2dViews: nextValue as PlatformPointerWheelPreference }),
+    );
+    select.dataset['settingsField'] = 'wheel-in-2d-views';
+    return createSettingsControlRow('Wheel in 2D views', select);
   }
 
   /**
