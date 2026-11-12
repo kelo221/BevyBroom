@@ -11,6 +11,10 @@ import type {
 } from '@/tools/sprinkle/definition/sprinkle_definition.js';
 import type { NativeMenuActionRunParams, NativeMenuBarWire } from '@/native_menu/native_menu_types.js';
 import type {
+  FileDialogDesktopTextFile,
+  FileDialogDesktopTextFileOpenParams,
+} from '@/io/dialog/desktop/file_dialog_desktop_types.js';
+import type {
   McpHostStartResult,
   McpHostStatus,
   McpInvokeEditorToolParams,
@@ -36,6 +40,7 @@ export interface ElectrobunDesktopRpcSchema {
       projectSprinkleDefinitionFilesRead: { params: undefined; response: SprinkleDefinitionFilesReadResult };
       projectSprinkleDefinitionOpen: { params: { path: string }; response: SprinkleDefinitionOpenResult };
       nativeMenuBarSet: { params: NativeMenuBarWire; response: void };
+      textFileOpen: { params: FileDialogDesktopTextFileOpenParams; response: FileDialogDesktopTextFile | null };
     };
     messages: {};
   };
@@ -66,6 +71,7 @@ export interface ElectrobunDesktopBunRpcClient {
     projectSprinkleDefinitionFilesRead: () => Promise<SprinkleDefinitionFilesReadResult>;
     projectSprinkleDefinitionOpen: (params: { path: string }) => Promise<SprinkleDefinitionOpenResult>;
     nativeMenuBarSet: (bar: NativeMenuBarWire) => Promise<void>;
+    textFileOpen: (params: FileDialogDesktopTextFileOpenParams) => Promise<FileDialogDesktopTextFile | null>;
   };
 }
 

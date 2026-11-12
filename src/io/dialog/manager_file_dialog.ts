@@ -3,6 +3,11 @@
  * handles browsers without File System Access API support.
  */
 
+import {
+  fileDialogDesktopAllowedFileTypesFromAccept,
+  fileDialogDesktopBridgeResolve,
+  type FileDialogDesktopBridge,
+} from '@/io/dialog/desktop/file_dialog_desktop_bridge.js';
 import type { ObjExportPackage } from '@/io/obj/obj_export_types.js';
 import type { FbxExportPackage } from '@/io/fbx/fbx_export_types.js';
 import { FileTargetSceneDocument, isFileTargetHandle } from '@/io/dialog/file_target_scene_document.js';
@@ -451,6 +456,10 @@ export class ManagerFileDialog {
    * @returns Text and filename, or null.
    */
   private loadTextFileFallback(accept: string): Promise<{ text: string; filename: string } | null> {
+    const desktopBridge = fileDialogDesktopBridgeResolve();
+    if (desktopBridge) {
+      return this.loadTextFileWithDesktopDialog(desktopBridge, accept);
+    }
     return new Promise((resolve) => {
       try {
         const input = document.createElement('input');
@@ -462,6 +471,23 @@ export class ManagerFileDialog {
         resolve(null);
       }
     });
+  }
+
+  /**
+   * Loads a text file through the native open dialog of the desktop app, which
+   * works without a user gesture such as a native menu click.
+   *
+   * @param desktopBridge Native file dialogs of the desktop app.
+   * @param accept Input accept string naming the allowed extensions.
+   * @returns Text and filename, or null when cancelled.
+   */
+  private async loadTextFileWithDesktopDialog(
+    desktopBridge: FileDialogDesktopBridge,
+    accept: string,
+  ): Promise<{ text: string; filename: string } | null> {
+    const allowedFileTypes = fileDialogDesktopAllowedFileTypesFromAccept(accept);
+    const chosen = await desktopBridge.textFileOpen({ allowedFileTypes });
+    return chosen ? { text: chosen.text, filename: chosen.fileName } : null;
   }
 
   /**

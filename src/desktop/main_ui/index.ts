@@ -29,6 +29,7 @@ new Electroview({ rpc: desktopRpc as never });
 window.bevybroomStandaloneUpdater = createElectrobunUpdaterBridge(desktopRpc);
 window.bevybroomMcpBridge = createMcpDesktopBridge(desktopRpc);
 window.bevybroomGameProcessControl = new GameProcessControlDesktop(desktopRpc);
+window.bevybroomFileDialogDesktop = { textFileOpen: (params) => desktopRpc.request.textFileOpen(params) };
 if (platformIsMac()) {
   nativeMenuBridge = new NativeMenuBridgeDesktop(desktopRpc);
   window.bevybroomNativeMenuBridge = nativeMenuBridge;
