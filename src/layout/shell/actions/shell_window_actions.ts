@@ -2,7 +2,7 @@ import type { SelectionQueryId } from '@/selection/query/selection_query.js';
 import type { HandlerSelectionVisibility } from '@/selection/visibility/handler_selection_visibility.js';
 import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
 import type { EditorToolId } from '@/types/editor_tool_id.js';
-import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
+import type { KeyboardShortcut, KeyboardShortcutAction } from '@/settings/store/settings_types.js';
 
 /**
  * Editor commands the main window menus and toolbar run that are not part of
@@ -76,6 +76,13 @@ export interface ShellWindowActions {
    * @returns Shortcut label such as "Ctrl+A".
    */
   shortcutLabelRead(action: KeyboardShortcutAction): string;
+  /**
+   * Returns the configured key and modifiers of one action.
+   *
+   * @param action Shortcut action.
+   * @returns Shortcut binding.
+   */
+  shortcutBindingRead(action: KeyboardShortcutAction): KeyboardShortcut;
   /**
    * Returns the solid brush tools (hollow, convex merge, flip, vertex snap).
    *

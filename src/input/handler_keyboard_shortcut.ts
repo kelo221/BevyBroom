@@ -1,3 +1,4 @@
+import { PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT } from '@/platform/keyboard/platform_keyboard_modifier_map_current.js';
 import { ManagerInput } from './manager_input.js';
 import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
 import type { KeyboardShortcutAction, KeyboardShortcutSettings } from '@/settings/store/settings_types.js';
@@ -704,7 +705,7 @@ export class HandlerKeyboardShortcut {
       this.isCtrlDown(event) === shortcut.ctrl &&
       this.isShiftDown(event) === shortcut.shift &&
       this.isAltActiveForEvent(event) === shortcut.alt &&
-      event.metaKey === shortcut.meta
+      PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT.secondaryDown(event) === shortcut.meta
     );
   }
 
@@ -721,13 +722,15 @@ export class HandlerKeyboardShortcut {
   }
 
   /**
-   * Returns whether Control is active for an event.
+   * Returns whether the primary shortcut modifier (Control, or Command on
+   * macOS) is active for an event.
    *
    * @param event Keyboard event to inspect.
-   * @returns True when Control is active.
+   * @returns True when the primary modifier is active.
    */
   private isCtrlDown(event: KeyboardEvent): boolean {
-    return event.ctrlKey || this.inputManager.isCtrlDown();
+    const modifierMap = PLATFORM_KEYBOARD_MODIFIER_MAP_CURRENT;
+    return modifierMap.primaryDown(event) || modifierMap.primaryTrackedDown(this.inputManager);
   }
 
   /**

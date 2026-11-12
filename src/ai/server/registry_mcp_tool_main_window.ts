@@ -7,7 +7,7 @@ import { emptySchema, tool, type McpToolDefinition } from './registry_mcp_tool_h
 export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(
     'get_main_window',
-    'The main window arrangement: inspectorVisible, infoPanelVisible, infoPanelCollapsed (folded to its one-line strip) and infoPanelTab (console or issues), toolbarVisible, the menu bar titles in order, and floatingWindows (texture_browser, entity_browser) as true while shown.',
+    'The main window arrangement: inspectorVisible, infoPanelVisible, infoPanelCollapsed (folded to its one-line strip) and infoPanelTab (console or issues), toolbarVisible, the menu bar titles in order, menuBarInWindow (false once the menus moved into the native macOS menu bar), themeLook (classic or mac_glass), and floatingWindows (texture_browser, entity_browser) as true while shown.',
     emptySchema(),
   ),
   tool(

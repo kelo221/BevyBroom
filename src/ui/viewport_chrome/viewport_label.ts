@@ -68,7 +68,7 @@ export class ViewportLabel {
     this.labelElement.style.margin = '0';
     this.labelElement.style.padding = '0 4px';
     this.labelElement.style.border = 'none';
-    this.labelElement.style.borderRadius = '0';
+    this.labelElement.style.borderRadius = `${Theme.viewportLabelRadiusPx}px`;
     this.labelElement.style.fontFamily = Theme.uiFontFamily;
     this.labelElement.style.fontSize = `${Theme.uiFontSizePx}px`;
     this.labelElement.style.lineHeight = `${Theme.viewportLabelHeightPx}px`;

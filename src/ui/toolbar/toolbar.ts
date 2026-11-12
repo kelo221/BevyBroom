@@ -629,7 +629,7 @@ export class Toolbar {
     button.style.height = `${Theme.toolbarButtonPx}px`;
     button.style.flex = '0 0 auto';
     button.style.border = '1px solid transparent';
-    button.style.borderRadius = '2px';
+    button.style.borderRadius = `${Theme.controlRadiusPx}px`;
     button.style.background = 'transparent';
     button.style.color = Theme.buttonTextColor;
     button.style.cursor = 'pointer';

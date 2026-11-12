@@ -148,7 +148,7 @@ export class FaceEditSheetVectorsRow {
     input.style.background = Theme.inputBackgroundColor;
     input.style.color = Theme.inputTextColor;
     input.style.border = `1px solid ${Theme.inputBorderColor}`;
-    input.style.borderRadius = '2px';
+    input.style.borderRadius = `${Theme.controlRadiusPx}px`;
     input.style.fontSize = '11px';
     input.style.fontFamily = 'monospace';
     input.style.padding = '0 4px';

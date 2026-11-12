@@ -1,5 +1,5 @@
+import { themeGlassBackdropApply } from '@/theme/theme_glass_apply.js';
 import { Theme } from '@/theme.js';
-import { hexToRgb } from '@/utils/utils_color.js';
 
 /** Optional size and layout overrides for floating tool-window chrome. */
 export interface FloatingPanelToolChromeOptions {
@@ -32,9 +32,10 @@ export interface FloatingPanelToolChromeOptions {
  * @param options Optional size and layout overrides.
  */
 export function applyFloatingPanelToolChrome(root: HTMLElement, options: FloatingPanelToolChromeOptions = {}): void {
-  root.style.background = hexToRgb(Theme.propertiesPanelBackground);
+  root.style.background = Theme.windowBackground;
+  themeGlassBackdropApply(root);
   root.style.border = `1px solid ${Theme.chromeBorderColor}`;
-  root.style.borderRadius = `${options.borderRadiusPx ?? 2}px`;
+  root.style.borderRadius = `${options.borderRadiusPx ?? Theme.windowRadiusPx}px`;
   root.style.boxShadow = options.boxShadow ?? Theme.windowShadow;
   root.style.color = Theme.buttonTextColor;
   root.style.fontFamily = Theme.uiFontFamily;

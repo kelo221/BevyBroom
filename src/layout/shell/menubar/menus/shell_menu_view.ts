@@ -3,6 +3,8 @@ import { SNAP_PRESETS } from '@/types/snap_presets.js';
 import { formatGridIntervalLabel } from '@/layout/shell/toolbar/shell_grid_interval_label.js';
 import type { ShellFloatingWindowId } from '@/layout/shell/actions/shell_floating_window.js';
 import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
+import { platformIsMac } from '@/platform/platform_kind.js';
+import { themeLookMenuBuild } from '@/theme/menu/theme_look_menu.js';
 
 /** Floating windows listed in the View menu with their labels. */
 const SHELL_MENU_VIEW_FLOATING_WINDOWS: ReadonlyArray<readonly [ShellFloatingWindowId, string]> = [
@@ -40,7 +42,18 @@ export class ShellMenuView extends ShellMenu {
       ...this.dockToggleEntriesBuild(context),
       this.separatorEntry(),
       this.actionEntry(context, 'Detached Viewport…', () => context.toolbarActions.onOpenDetachedViewport()),
+      ...this.lookEntriesBuild(),
     ];
+  }
+
+  /**
+   * Builds the Look submenu on macOS; other platforms keep the classic look and
+   * get no entries.
+   *
+   * @returns Separator and Look submenu on macOS, otherwise nothing.
+   */
+  private lookEntriesBuild(): ToolbarMenuEntry[] {
+    return platformIsMac() ? [this.separatorEntry(), themeLookMenuBuild()] : [];
   }
 
   /**

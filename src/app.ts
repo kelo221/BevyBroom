@@ -1,5 +1,6 @@
 import { ManagerViewportLayout } from '@/layout/viewport/manager_viewport_layout.js';
 import { showErrorEditorStartup } from '@/ui/error/error_editor_startup.js';
+import { themeLookInstall } from '@/theme/theme_look_install.js';
 
 const editorContainer = document.getElementById('editor-container') as HTMLElement;
 
@@ -19,4 +20,5 @@ function startEditor(container: HTMLElement): void {
   }
 }
 
+themeLookInstall(document);
 startEditor(editorContainer);

@@ -1,4 +1,4 @@
-import { buildDesktopWindowTitle } from '@/application_identity.js';
+import { APPLICATION_DISPLAY_NAME, buildDesktopWindowTitle } from '@/application_identity.js';
 import type { ElectrobunDesktopRpcSchema, ElectrobunDesktopWebviewCaller } from '@/ai/shared/mcp_rpc_schema.js';
 import { McpHost } from '@/ai/server/mcp_host.js';
 import type { StandaloneHostUpdateCheck } from '@/updater/update_types.js';
@@ -14,10 +14,13 @@ import { gameProcessProjectReaderNodeCreate } from '@/desktop/bun/game_process/g
 import { gameProcessRpcHandlersCreate } from '@/desktop/bun/game_process/game_process_rpc_handlers.js';
 import { projectTextureRpcHandlersCreate } from '@/desktop/bun/project_textures/project_texture_rpc_handlers.js';
 import { projectSprinkleRpcHandlersCreate } from '@/desktop/bun/project_sprinkle/project_sprinkle_rpc_handlers.js';
+import { NativeMenuHost } from '@/desktop/bun/native_menu/native_menu_host.js';
+import type { NativeMenuBarWire } from '@/native_menu/native_menu_types.js';
 
 await enableWindowsPerMonitorDpiAwareness();
 
-const { BrowserView, BrowserWindow, Screen, Updater, Utils } = await import('electrobun/main');
+const { ApplicationMenu, BrowserView, BrowserWindow, Screen, Updater, Utils } = await import('electrobun/main');
+const isMacDesktop = process.platform === 'darwin';
 
 console.log(`desktop profile migration: ${desktopProfileMigrationRun(Utils.paths.userData, process.platform)}`);
 
@@ -25,6 +28,9 @@ const mcpHost = new McpHost();
 const gameProcessHost = new GameProcessHost(new GameProcessSpawnerNode(), gameProcessProjectReaderNodeCreate());
 process.on('exit', () => gameProcessHost.disposeNow());
 let desktopRpc: ElectrobunDesktopWebviewCaller | null = null;
+const nativeMenuHost = isMacDesktop
+  ? new NativeMenuHost(ApplicationMenu, APPLICATION_DISPLAY_NAME, nativeMenuActionForward)
+  : null;
 
 const desktopRpcBinding = BrowserView.defineRPC<ElectrobunDesktopRpcSchema>({
   maxRequestTime: 120000,
@@ -40,6 +46,7 @@ const desktopRpcBinding = BrowserView.defineRPC<ElectrobunDesktopRpcSchema>({
       ),
       ...projectTextureRpcHandlersCreate(gameProcessHost),
       ...projectSprinkleRpcHandlersCreate(gameProcessHost),
+      nativeMenuBarSet: nativeMenuBarSet,
     },
   },
 });
@@ -55,6 +62,7 @@ const desktopWindow = new BrowserWindow({
   frame: desktopFrame,
   hidden: true,
   activate: false,
+  titleBarStyle: isMacDesktop ? 'hiddenInset' : 'default',
   rpc: desktopRpcBinding,
 });
 showMaximizedWhenReady(desktopWindow, desktopWindowShownHandle, desktopWindowHiddenRequested(process.env));
@@ -66,6 +74,25 @@ showMaximizedWhenReady(desktopWindow, desktopWindowShownHandle, desktopWindowHid
 async function desktopWindowShownHandle(): Promise<void> {
   desktopMcpAutostartRun(process.env, (basePort) => mcpHost.start(invokeEditorTool, basePort), console.log);
   await applyWindowsWindowIcon(windowTitle);
+}
+
+/**
+ * Installs the page menu bar as the macOS menu bar; other platforms keep the
+ * menus inside the page.
+ *
+ * @param bar Page menu bar snapshot.
+ */
+function nativeMenuBarSet(bar: NativeMenuBarWire): void {
+  nativeMenuHost?.menuBarSet(bar);
+}
+
+/**
+ * Runs a chosen macOS menu row inside the page.
+ *
+ * @param actionId Id of the chosen row.
+ */
+function nativeMenuActionForward(actionId: string): void {
+  void desktopRpc?.request.nativeMenuActionRun({ actionId });
 }
 
 /** Checks Electrobun's configured release channel. */

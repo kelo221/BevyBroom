@@ -55,7 +55,7 @@ export function styleSettingsPanel(panel: HTMLElement): void {
   panel.style.height = 'min(78vh, 640px)';
   panel.style.display = 'flex';
   panel.style.flexDirection = 'column';
-  panel.style.borderRadius = '2px';
+  panel.style.borderRadius = `${Theme.controlRadiusPx}px`;
   panel.style.border = `1px solid ${Theme.chromeBorderColor}`;
   panel.style.background = hexToRgb(Theme.propertiesPanelBackground);
   panel.style.fontFamily = Theme.uiFontFamily;

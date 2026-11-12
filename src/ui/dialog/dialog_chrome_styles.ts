@@ -1,5 +1,5 @@
+import { themeGlassBackdropApply } from '@/theme/theme_glass_apply.js';
 import { Theme } from '@/theme.js';
-import { hexToRgb } from '@/utils/utils_color.js';
 import { buttonClassicPrimaryApply, buttonClassicStyleApply } from '@/ui/button/button_classic_style.js';
 
 /**
@@ -14,8 +14,9 @@ export function dialogChromePanelApply(root: HTMLElement, minWidthPx: number, ma
   root.style.minWidth = `${minWidthPx}px`;
   root.style.maxWidth = `${maxWidthPx}px`;
   root.style.padding = '14px 16px 12px';
-  root.style.borderRadius = '2px';
-  root.style.background = hexToRgb(Theme.propertiesPanelBackground);
+  root.style.borderRadius = `${Theme.windowRadiusPx}px`;
+  root.style.background = Theme.windowBackground;
+  themeGlassBackdropApply(root);
   root.style.border = `1px solid ${Theme.chromeBorderColor}`;
   root.style.boxShadow = Theme.dialogShadow;
   root.style.color = Theme.buttonTextColor;

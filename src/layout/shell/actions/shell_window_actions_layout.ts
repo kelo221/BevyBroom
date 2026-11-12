@@ -1,6 +1,6 @@
 import type * as THREE from 'three';
 import { EditorToolId } from '@/types/editor_tool_id.js';
-import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
+import type { KeyboardShortcut, KeyboardShortcutAction } from '@/settings/store/settings_types.js';
 import type { ManagerSelection } from '@/selection/object/manager_selection.js';
 import type { ManagerSnap } from '@/transform/snap/manager_snap.js';
 import type { CoordinatorCameraFit } from '@/navigation/camera/coordinator_camera_fit.js';
@@ -52,6 +52,13 @@ export interface ShellWindowActionsLayoutSource {
    * @returns Shortcut label.
    */
   shortcutLabelRead(action: KeyboardShortcutAction): string;
+  /**
+   * Returns the configured key and modifiers of one action.
+   *
+   * @param action Shortcut action.
+   * @returns Shortcut binding.
+   */
+  shortcutBindingRead(action: KeyboardShortcutAction): KeyboardShortcut;
   /**
    * Returns the solid brush tools, or null before they exist.
    *
@@ -203,6 +210,16 @@ export class ShellWindowActionsLayout implements ShellWindowActions {
    */
   shortcutLabelRead(action: KeyboardShortcutAction): string {
     return this.source.shortcutLabelRead(action);
+  }
+
+  /**
+   * Returns the configured key and modifiers of one action.
+   *
+   * @param action Shortcut action.
+   * @returns Shortcut binding.
+   */
+  shortcutBindingRead(action: KeyboardShortcutAction): KeyboardShortcut {
+    return this.source.shortcutBindingRead(action);
   }
 
   /**

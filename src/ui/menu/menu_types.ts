@@ -4,6 +4,16 @@
  */
 
 import type { IconName } from '@/ui/icons/icon_name.js';
+import type { KeyboardShortcut } from '@/settings/store/settings_types.js';
+
+/** System menu roles a native menu bar can run instead of a row's action. */
+export type ToolbarMenuNativeRole = 'cut' | 'copy' | 'paste';
+
+/** Slots of the macOS application menu a row moves into in a native menu bar. */
+export type ToolbarMenuNativeApplicationSlot = 'about' | 'settings';
+
+/** Text editing commands that replace a row's action inside text fields. */
+export type ToolbarMenuTextEditCommand = 'undo' | 'redo' | 'selectAll';
 
 /** Clickable menu row with optional enablement and shortcut label. */
 export interface ToolbarMenuAction {
@@ -37,6 +47,26 @@ export interface ToolbarMenuAction {
    * that is filled while the function returns true.
    */
   isChecked?: () => boolean;
+  /**
+   * Optional live key binding of the row's shortcut, used by native menu bars
+   * for key equivalents.
+   */
+  shortcutBinding?: () => KeyboardShortcut | undefined;
+  /**
+   * Optional system role a native menu bar runs instead of the action, so the
+   * system sends the matching browser clipboard event.
+   */
+  nativeRole?: ToolbarMenuNativeRole;
+  /**
+   * Optional text editing command a native menu bar runs instead of the action
+   * while a text field has keyboard focus.
+   */
+  textEditCommand?: ToolbarMenuTextEditCommand;
+  /**
+   * Optional slot of the application menu the row moves into in a native menu
+   * bar.
+   */
+  nativeApplicationSlot?: ToolbarMenuNativeApplicationSlot;
 }
 
 /** Horizontal rule between menu sections. */

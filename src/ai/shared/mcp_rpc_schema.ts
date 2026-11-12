@@ -9,6 +9,7 @@ import type {
   SprinkleDefinitionFilesReadResult,
   SprinkleDefinitionOpenResult,
 } from '@/tools/sprinkle/definition/sprinkle_definition.js';
+import type { NativeMenuActionRunParams, NativeMenuBarWire } from '@/native_menu/native_menu_types.js';
 import type {
   McpHostStartResult,
   McpHostStatus,
@@ -34,12 +35,14 @@ export interface ElectrobunDesktopRpcSchema {
       projectTextureRead: { params: { path: string }; response: TextureProjectReadResult };
       projectSprinkleDefinitionFilesRead: { params: undefined; response: SprinkleDefinitionFilesReadResult };
       projectSprinkleDefinitionOpen: { params: { path: string }; response: SprinkleDefinitionOpenResult };
+      nativeMenuBarSet: { params: NativeMenuBarWire; response: void };
     };
     messages: {};
   };
   webview: {
     requests: {
       invokeEditorTool: { params: McpInvokeEditorToolParams; response: McpToolResult };
+      nativeMenuActionRun: { params: NativeMenuActionRunParams; response: boolean };
     };
     messages: {};
   };
@@ -62,6 +65,7 @@ export interface ElectrobunDesktopBunRpcClient {
     projectTextureRead: (params: { path: string }) => Promise<TextureProjectReadResult>;
     projectSprinkleDefinitionFilesRead: () => Promise<SprinkleDefinitionFilesReadResult>;
     projectSprinkleDefinitionOpen: (params: { path: string }) => Promise<SprinkleDefinitionOpenResult>;
+    nativeMenuBarSet: (bar: NativeMenuBarWire) => Promise<void>;
   };
 }
 
@@ -69,5 +73,6 @@ export interface ElectrobunDesktopBunRpcClient {
 export interface ElectrobunDesktopWebviewCaller {
   request: {
     invokeEditorTool: (params: McpInvokeEditorToolParams) => Promise<McpToolResult>;
+    nativeMenuActionRun: (params: NativeMenuActionRunParams) => Promise<boolean>;
   };
 }

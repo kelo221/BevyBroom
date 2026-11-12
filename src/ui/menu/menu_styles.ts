@@ -1,3 +1,4 @@
+import { themeGlassBackdropApply } from '@/theme/theme_glass_apply.js';
 import { Theme } from '@/theme.js';
 import { getMenuPanelZIndex } from '@/ui/stack/ui_stack_layers.js';
 
@@ -16,9 +17,10 @@ export function styleMenuPanel(menu: HTMLElement, isSubmenu: boolean): void {
   menu.style.minWidth = '196px';
   menu.style.background = Theme.menuBackground;
   menu.style.border = `1px solid ${Theme.menuBorderColor}`;
-  menu.style.borderRadius = '0';
+  menu.style.borderRadius = `${Theme.menuRadiusPx}px`;
+  themeGlassBackdropApply(menu);
   menu.style.boxShadow = Theme.menuShadow;
-  menu.style.padding = '2px';
+  menu.style.padding = `${2 + Theme.menuRowRadiusPx}px`;
   if (isSubmenu) {
     // Slight overlap so the pointer never crosses a dead gap when entering the
     // flyout from the parent row (Windows-style cascade menus).
@@ -46,7 +48,7 @@ export function styleMenuActionRow(entry: HTMLButtonElement): void {
   entry.style.padding = '3px 10px';
   entry.style.margin = '0';
   entry.style.border = '1px solid transparent';
-  entry.style.borderRadius = '0';
+  entry.style.borderRadius = `${Theme.menuRowRadiusPx}px`;
   entry.style.background = 'transparent';
   entry.style.color = Theme.buttonTextColor;
   entry.style.cursor = 'pointer';

@@ -29,7 +29,7 @@ export function materialBrowserTileCreate(
   tile.tabIndex = 0;
   tile.dataset['entryId'] = entry.id;
   tile.title = entry.relativePath;
-  tile.style.borderRadius = '2px';
+  tile.style.borderRadius = `${Theme.controlRadiusPx}px`;
   tile.append(materialBrowserTileThumbCreate(entry), materialBrowserTileNameCreate(entry.displayName));
   materialBrowserTileSelectBind(tile, entry.id, onSelect);
   materialBrowserTileSelectionPaint(tile, false);

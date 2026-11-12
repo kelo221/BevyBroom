@@ -18,6 +18,7 @@ import { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
 import { ShellDockCommands } from '@/layout/shell/actions/shell_dock_commands.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
 import { shellMenuBarPopulate, shellMenusBuiltinCreate } from '@/layout/shell/menubar/shell_menu_bar.js';
+import { shellMenuBarNativeAttach } from '@/layout/shell/menubar/shell_menu_bar_native.js';
 import { ShellToolBarBuilder } from '@/layout/shell/toolbar/shell_tool_bar_builder.js';
 import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
 
@@ -231,19 +232,24 @@ export class BuilderEditorShell {
   }
 
   /**
-   * Creates the menu bar and fills it with the main window menus.
+   * Creates the menu bar and fills it with the main window menus, and moves
+   * them into the native menu bar when the desktop app offers one.
    *
    * @param skeleton Frame and docks.
    * @param bundles Toolbar and window actions the menus run.
    * @returns Menu bar.
    */
   private menuBarCreate(skeleton: EditorShellSkeleton, bundles: EditorShellActionBundles): Toolbar {
-    const menuBar = new Toolbar(skeleton.frame.menuBarHostRead(), 'menubar');
-    shellMenuBarPopulate(menuBar, shellMenusBuiltinCreate(), {
+    const menuBarHost = skeleton.frame.menuBarHostRead();
+    const menuBar = new Toolbar(menuBarHost, 'menubar');
+    const menus = shellMenusBuiltinCreate();
+    const context = {
       toolbarActions: bundles.toolbarActions,
       windowActions: bundles.windowActions,
       dockCommands: skeleton.dockCommands,
-    });
+    };
+    shellMenuBarPopulate(menuBar, menus, context);
+    shellMenuBarNativeAttach(menuBarHost, menus, context);
     return menuBar;
   }
 

@@ -79,7 +79,7 @@ export class InputText {
     this.element.style.boxSizing = 'border-box';
     this.element.style.height = '24px';
     this.element.style.padding = '0 6px';
-    this.element.style.borderRadius = '2px';
+    this.element.style.borderRadius = `${Theme.controlRadiusPx}px`;
     this.element.style.border = `1px solid ${Theme.inputBorderColor}`;
     this.element.style.background = Theme.inputBackgroundColor;
     this.element.style.color = Theme.inputTextColor;

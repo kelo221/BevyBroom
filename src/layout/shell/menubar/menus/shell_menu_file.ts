@@ -28,7 +28,9 @@ export class ShellMenuFile extends ShellMenu {
       this.importSubmenuBuild(context),
       this.exportSubmenuBuild(context),
       this.separatorEntry(),
-      this.actionEntry(context, 'Preferences…', () => actions.onToggleSettingsDialog()),
+      this.actionEntry(context, 'Preferences…', () => actions.onToggleSettingsDialog(), {
+        nativeApplicationSlot: 'settings',
+      }),
     ];
   }
 

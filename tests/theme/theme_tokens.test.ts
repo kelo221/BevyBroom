@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { Theme } from '@/theme.js';
+import { beforeAll, describe, it, expect } from 'vitest';
+import { themePaletteForLook } from '@/theme.js';
+import { THEME_LOOKS } from '@/theme/theme_look.js';
+import type { ThemePalette } from '@/theme/theme_palette_hammer.js';
 import {
   themeColorTokenParse,
   themeContrastRatio,
@@ -15,6 +17,12 @@ const THEME_LAYOUT_TOKEN_SUFFIX = 'Px';
 
 /** Name suffix of theme tokens that hold font stacks instead of colors. */
 const THEME_FONT_TOKEN_SUFFIX = 'FontFamily';
+
+/** Name suffix of theme tokens that hold CSS filters instead of colors. */
+const THEME_FILTER_TOKEN_SUFFIX = 'Filter';
+
+/** Palette of the chrome look under test; replaced before each look's tests run. */
+let Theme: ThemePalette = themePaletteForLook('classic');
 
 /** Name suffix of theme tokens that hold CSS box shadows with embedded colors. */
 const THEME_SHADOW_TOKEN_SUFFIX = 'Shadow';
@@ -39,6 +47,7 @@ function themeColorTokenNamesRead(): string[] {
       !name.endsWith(THEME_LAYOUT_TOKEN_SUFFIX) &&
       !name.endsWith(THEME_FONT_TOKEN_SUFFIX) &&
       !name.endsWith(THEME_SHADOW_TOKEN_SUFFIX) &&
+      !name.endsWith(THEME_FILTER_TOKEN_SUFFIX) &&
       !name.endsWith(THEME_COLOR_GROUP_TOKEN_SUFFIX) &&
       name !== THEME_WIRE_PALETTE_TOKEN,
   );
@@ -69,10 +78,14 @@ function themeColorTokenParseRequired(token: number | string): ThemeColorChannel
 }
 
 /**
- * Unit tests proving every theme color token is valid and chrome text stays
- * readable.
+ * Unit tests proving every theme color token of every chrome look is valid and
+ * chrome text stays readable.
  */
-describe('Theme tokens', () => {
+describe.each(THEME_LOOKS)('Theme tokens of the %s look', (look) => {
+  beforeAll(() => {
+    Theme = themePaletteForLook(look);
+  });
+
   it('parses every single-color token as a hex number or CSS color', () => {
     const names = themeColorTokenNamesRead();
     expect(names.length).toBeGreaterThan(0);
