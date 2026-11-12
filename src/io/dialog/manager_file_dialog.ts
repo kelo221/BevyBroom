@@ -3,6 +3,12 @@
  * handles browsers without File System Access API support.
  */
 
+import {
+  fileDialogDesktopAllowedFileTypesFromAccept,
+  fileDialogDesktopBridgeResolve,
+  type FileDialogDesktopBridge,
+} from '@/io/dialog/desktop/file_dialog_desktop_bridge.js';
+import { FileDialogDesktopHandle } from '@/io/dialog/desktop/file_dialog_desktop_handle.js';
 import type { ObjExportPackage } from '@/io/obj/obj_export_types.js';
 import type { FbxExportPackage } from '@/io/fbx/fbx_export_types.js';
 import { FileTargetSceneDocument, isFileTargetHandle } from '@/io/dialog/file_target_scene_document.js';
@@ -109,6 +115,10 @@ export class ManagerFileDialog {
    * @returns The written file name, or null when cancelled or failed.
    */
   async saveSceneDocumentAs(data: string, suggestedName: string): Promise<string | null> {
+    const desktopBridge = fileDialogDesktopBridgeResolve();
+    if (!isFileSystemAccessAvailable() && desktopBridge) {
+      return this.saveSceneDocumentAsWithDesktopDialog(desktopBridge, data, suggestedName);
+    }
     if (!isFileSystemAccessAvailable()) {
       return this.saveJSONFallback(data, suggestedName);
     }
@@ -127,6 +137,10 @@ export class ManagerFileDialog {
    * @returns The scene JSON text, or null when cancelled or failed.
    */
   async loadSceneDocument(): Promise<string | null> {
+    const desktopBridge = fileDialogDesktopBridgeResolve();
+    if (!isFileSystemAccessAvailable() && desktopBridge) {
+      return this.loadSceneDocumentWithDesktopDialog(desktopBridge);
+    }
     if (!isFileSystemAccessAvailable() || !('showOpenFilePicker' in window)) {
       this.sceneDocumentTarget.forget();
       return this.loadJSONFallback();
@@ -140,6 +154,44 @@ export class ManagerFileDialog {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Opens a scene document through the native open dialog of the desktop app
+   * and remembers the file, so Save writes back to it.
+   *
+   * @param desktopBridge Native file dialogs and file access.
+   * @returns The scene JSON text, or null when cancelled.
+   */
+  private async loadSceneDocumentWithDesktopDialog(desktopBridge: FileDialogDesktopBridge): Promise<string | null> {
+    const chosen = await desktopBridge.textFileOpen({ allowedFileTypes: 'json' });
+    if (!chosen) {
+      return null;
+    }
+    this.sceneDocumentTarget.remember(new FileDialogDesktopHandle(desktopBridge, chosen.path), chosen.lastModified);
+    return chosen.text;
+  }
+
+  /**
+   * Asks for a scene document path through the native save dialog of the
+   * desktop app, writes it and remembers the file.
+   *
+   * @param desktopBridge Native file dialogs and file access.
+   * @param data The scene JSON text.
+   * @param suggestedName The suggested filename.
+   * @returns The written file name, or null when cancelled or failed.
+   */
+  private async saveSceneDocumentAsWithDesktopDialog(
+    desktopBridge: FileDialogDesktopBridge,
+    data: string,
+    suggestedName: string,
+  ): Promise<string | null> {
+    const path = await desktopBridge.savePathPick({ suggestedName, defaultExtension: 'json' });
+    if (path === null) {
+      return null;
+    }
+    this.sceneDocumentTarget.remember(new FileDialogDesktopHandle(desktopBridge, path));
+    return this.sceneDocumentTarget.textWrite(data);
   }
 
   /** Forgets the remembered scene document file so the next save asks for one. */
@@ -451,6 +503,10 @@ export class ManagerFileDialog {
    * @returns Text and filename, or null.
    */
   private loadTextFileFallback(accept: string): Promise<{ text: string; filename: string } | null> {
+    const desktopBridge = fileDialogDesktopBridgeResolve();
+    if (desktopBridge) {
+      return this.loadTextFileWithDesktopDialog(desktopBridge, accept);
+    }
     return new Promise((resolve) => {
       try {
         const input = document.createElement('input');
@@ -462,6 +518,23 @@ export class ManagerFileDialog {
         resolve(null);
       }
     });
+  }
+
+  /**
+   * Loads a text file through the native open dialog of the desktop app, which
+   * works without a user gesture such as a native menu click.
+   *
+   * @param desktopBridge Native file dialogs of the desktop app.
+   * @param accept Input accept string naming the allowed extensions.
+   * @returns Text and filename, or null when cancelled.
+   */
+  private async loadTextFileWithDesktopDialog(
+    desktopBridge: FileDialogDesktopBridge,
+    accept: string,
+  ): Promise<{ text: string; filename: string } | null> {
+    const allowedFileTypes = fileDialogDesktopAllowedFileTypesFromAccept(accept);
+    const chosen = await desktopBridge.textFileOpen({ allowedFileTypes });
+    return chosen ? { text: chosen.text, filename: chosen.fileName } : null;
   }
 
   /**

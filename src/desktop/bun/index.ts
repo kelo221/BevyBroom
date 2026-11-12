@@ -15,6 +15,11 @@ import { gameProcessRpcHandlersCreate } from '@/desktop/bun/game_process/game_pr
 import { projectTextureRpcHandlersCreate } from '@/desktop/bun/project_textures/project_texture_rpc_handlers.js';
 import { projectSprinkleRpcHandlersCreate } from '@/desktop/bun/project_sprinkle/project_sprinkle_rpc_handlers.js';
 import { NativeMenuHost } from '@/desktop/bun/native_menu/native_menu_host.js';
+import {
+  textFileRpcHandlersCreate,
+  textFileRpcServicesDiskCreate,
+} from '@/desktop/bun/text_file/text_file_rpc_handlers.js';
+import { textFileSavePanelMacShow } from '@/desktop/bun/text_file/text_file_save_panel_mac.js';
 import type { NativeMenuBarWire } from '@/native_menu/native_menu_types.js';
 
 await enableWindowsPerMonitorDpiAwareness();
@@ -47,6 +52,13 @@ const desktopRpcBinding = BrowserView.defineRPC<ElectrobunDesktopRpcSchema>({
       ...projectTextureRpcHandlersCreate(gameProcessHost),
       ...projectSprinkleRpcHandlersCreate(gameProcessHost),
       nativeMenuBarSet: nativeMenuBarSet,
+      ...textFileRpcHandlersCreate(
+        textFileRpcServicesDiskCreate({
+          openDialogShow: (allowedFileTypes) =>
+            Utils.openFileDialog({ allowedFileTypes, canChooseDirectory: false, allowsMultipleSelection: false }),
+          savePanelShow: textFileSavePanelMacShow,
+        }),
+      ),
     },
   },
 });
