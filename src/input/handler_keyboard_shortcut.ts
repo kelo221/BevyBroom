@@ -252,7 +252,8 @@ export class HandlerKeyboardShortcut {
    * Runs editor-global shortcuts only (undo, file, tool mode SwitchTool, etc.).
    * Used as fallthrough after the active tool declines a key, and as the only
    * path while camera navigation suppresses tool receivers. Tool-activation
-   * keys never run while fly/pan navigation is active.
+   * keys never run while fly/pan navigation is active; their default action is
+   * prevented so the system does not report them as unhandled.
    *
    * @param event Browser keyboard event.
    * @returns True when a global shortcut handled the event.
@@ -266,6 +267,7 @@ export class HandlerKeyboardShortcut {
       return true;
     }
     if (this.isFlyNavigationBlockingTools()) {
+      event.preventDefault();
       return false;
     }
     if (this.registeredActionDispatch(event)) {

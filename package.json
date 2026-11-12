@@ -22,7 +22,8 @@
     "desktop:dev": "electrobun dev",
     "desktop:build": "electrobun build --env=stable",
     "desktop:build:dev": "electrobun build --env=dev",
-    "desktop:run": "electrobun run"
+    "desktop:run": "electrobun run",
+    "mac": "bun scripts/desktop_install_mac.ts"
   },
   "devDependencies": {
     "@types/node": "24",

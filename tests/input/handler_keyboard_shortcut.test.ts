@@ -37,6 +37,25 @@ describe('KeyboardShortcutHandler', () => {
     expect(onMode).not.toHaveBeenCalled();
   });
 
+  it('marks every fly movement key as handled while right mouse fly is held so macOS does not beep', () => {
+    const onMode = vi.fn();
+    handler.setOnTransformMode(onMode);
+    window.dispatchEvent(new PointerEvent('pointerdown', { button: 2 }));
+    const flyKeys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE'].map(
+      (code) => new KeyboardEvent('keydown', { code, cancelable: true }),
+    );
+    flyKeys.forEach((event) => window.dispatchEvent(event));
+    expect(flyKeys.every((event) => event.defaultPrevented)).toBe(true);
+    expect(onMode).not.toHaveBeenCalled();
+  });
+
+  it('leaves unbound keys unhandled when not flying', () => {
+    window.dispatchEvent(new PointerEvent('pointerup', { button: 2 }));
+    const unboundKey = new KeyboardEvent('keydown', { code: 'F13', cancelable: true });
+    window.dispatchEvent(unboundKey);
+    expect(unboundKey.defaultPrevented).toBe(false);
+  });
+
   it('should toggle solid additive/subtractive on A when not flying', () => {
     const onToggle = vi.fn();
     handler.setOnSolidOperationToggle(onToggle);
