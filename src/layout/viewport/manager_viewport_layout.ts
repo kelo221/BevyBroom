@@ -114,6 +114,7 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
         onOpenMcpDialog: () => layout.onOpenMcpDialog(),
         onToggleGamePreviewPanel: () => layout.onToggleGamePreviewPanel(),
         gameProjectWorkbenchRead: () => layout.gamePreviewLayoutEnsure().workbenchEnsure(),
+        projectLevelActionsRead: () => layout.projectLevelActions,
         onOpenDetachedViewport: () => layout.onOpenDetachedViewport(),
         onToggleAiCaptureDebugPanel: () => layout.onToggleAiCaptureDebugPanel(),
         onToggleAudio: () => layout.onToggleAudio(),

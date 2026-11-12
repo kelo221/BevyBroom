@@ -29,6 +29,10 @@ import { shellTestDocksCreate, shellTestDocksDispose, type ShellTestDocks } from
 import { entityBrowserTestEditorCreate } from '../../../entity_browser/entity_browser_test_support.js';
 import { mockObjectUrlApis } from '../../../texture/library/utils_object_url_test.js';
 import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
+import {
+  projectLevelActionsRigCreate,
+  projectLevelRigProjectOpen,
+} from '../../../project/level/project_level_test_support.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
 
 /** Inspector slots the docked panels fill. */
@@ -44,6 +48,8 @@ interface LayoutShellPanelsFixture {
   docks: ShellTestDocks;
   source: LayoutShellPanelsSource;
   panels: LayoutShellPanels;
+  /** Project level rig behind the level browser. */
+  levelRig: ReturnType<typeof projectLevelActionsRigCreate>;
 }
 
 /**
@@ -58,6 +64,7 @@ function fixtureCreate(): LayoutShellPanelsFixture {
   const toolSelect = vi.fn((toolId: EditorToolId) =>
     getStateSprinkleTool().toolActiveWrite(toolId === EditorToolId.SPRINKLE),
   );
+  const levelRig = projectLevelActionsRigCreate(editor.world);
   const source: LayoutShellPanelsSource = {
     docks,
     selectionManager: new ManagerSelection(),
@@ -67,6 +74,7 @@ function fixtureCreate(): LayoutShellPanelsFixture {
     statusBar: null,
     faceController: new ControllerFaceExtrusion(new THREE.Scene(), commandStack, new GridSnap(false, 1), editor.world),
     addMenuActions: editor.actions,
+    projectLevelActions: levelRig.actions,
     surfaceShadingRefresh: vi.fn(),
     refreshAfterWorldMutation: vi.fn(),
     selectionFrameAll: vi.fn(),
@@ -74,7 +82,7 @@ function fixtureCreate(): LayoutShellPanelsFixture {
     spawnCameraOverrideRun: (_camera, action) => action(),
     toolSelect,
   };
-  return { docks, source, panels: layoutShellPanelsCreate(source) };
+  return { docks, source, panels: layoutShellPanelsCreate(source), levelRig };
 }
 
 /**
@@ -183,6 +191,19 @@ describe('layoutShellPanelsCreate', () => {
     expect(entityBrowserWindow.bodyRead().contains(fixture.panels.entityBrowser.getElement())).toBe(true);
     fixture.docks.dockCommands.floatingWindowToggle('entity_browser');
     expect(fixture.docks.dockCommands.isFloatingWindowOpen('entity_browser')).toBe(false);
+  });
+
+  it('opens the floating level browser from the View menu command and the name-focused reveal', async () => {
+    const levelBrowserWindow = fixture.panels.levelBrowserWindow;
+    await projectLevelRigProjectOpen(fixture.levelRig);
+    expect(levelBrowserWindow.isOpen()).toBe(false);
+    fixture.docks.dockCommands.floatingWindowToggle('level_browser');
+    expect(fixture.docks.dockCommands.isFloatingWindowOpen('level_browser')).toBe(true);
+    expect(levelBrowserWindow.bodyRead().contains(levelBrowserWindow.levelBrowserRead().getElement())).toBe(true);
+    fixture.docks.dockCommands.floatingWindowToggle('level_browser');
+    fixture.panels.levelBrowserReveal(true);
+    expect(levelBrowserWindow.isOpen()).toBe(true);
+    expect(document.activeElement).toBe(levelBrowserWindow.levelBrowserRead().nameInputRead());
   });
 
   it('reports map issues and selects and frames the object of a clicked issue', () => {

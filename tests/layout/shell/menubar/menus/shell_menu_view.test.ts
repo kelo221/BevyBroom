@@ -26,6 +26,7 @@ import {
 const SHELL_MENU_VIEW_TEST_FLOATING_ROWS: ReadonlyArray<readonly [string, ShellFloatingWindowId]> = [
   ['Texture Browser', 'texture_browser'],
   ['Entity Browser', 'entity_browser'],
+  ['Level Browser', 'level_browser'],
 ];
 
 /**

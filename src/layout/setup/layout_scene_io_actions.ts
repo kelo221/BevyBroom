@@ -205,6 +205,7 @@ export function runLayoutExportFbx(
  * @param solidModelController Solid controller to adopt the seeded model, or
  *   null when solid tools are not ready.
  * @param onSceneCleared Callback after the default scene is restored.
+ * @returns True when the scene was reset, false when the user kept it.
  */
 export async function runLayoutNewScene(
   host: HTMLElement,
@@ -214,21 +215,77 @@ export async function runLayoutNewScene(
   statusBar: StatusBar | null,
   solidModelController: SolidModelController | null,
   onSceneCleared: () => void,
-): Promise<void> {
-  const shouldPrompt = sceneIOHandler.hasSceneContent(worldObject) || commandStack.canUndo() || commandStack.canRedo();
-  if (shouldPrompt) {
-    const confirmed = await showMessageBox({
-      host,
-      title: 'Create New Scene',
-      message: 'Are you sure you want to create a new scene?\n\nAny unsaved changes will be permanently lost.',
-      confirmLabel: 'Yes',
-      cancelLabel: 'No',
-    });
-    if (!confirmed) return;
+): Promise<boolean> {
+  const confirmed = await layoutSceneDiscardConfirm(host, sceneIOHandler, worldObject, commandStack, {
+    title: 'Create New Scene',
+    message: 'Are you sure you want to create a new scene?\n\nAny unsaved changes will be permanently lost.',
+  });
+  if (!confirmed) {
+    return false;
   }
+  runLayoutSceneReset(sceneIOHandler, worldObject, statusBar, solidModelController, onSceneCleared);
+  return true;
+}
+
+/**
+ * Resets the world to the default startup scene without asking.
+ *
+ * @param sceneIOHandler Scene clear helper.
+ * @param worldObject Root world group.
+ * @param statusBar Status bar for feedback.
+ * @param solidModelController Solid controller to adopt the seeded model, or
+ *   null when solid tools are not ready.
+ * @param onSceneCleared Callback after the default scene is restored.
+ */
+export function runLayoutSceneReset(
+  sceneIOHandler: HandlerSceneIo,
+  worldObject: THREE.Group,
+  statusBar: StatusBar | null,
+  solidModelController: SolidModelController | null,
+  onSceneCleared: () => void,
+): void {
   seedDefaultStartupScene(sceneIOHandler, worldObject, statusBar);
   onSceneCleared();
   solidModelController?.adoptFirstSolidModelInWorld();
+}
+
+/** Title and message of the question asked before the scene is replaced. */
+export interface LayoutSceneDiscardQuestion {
+  /** Dialog title. */
+  title: string;
+  /** Body text explaining what is lost. */
+  message: string;
+}
+
+/**
+ * Asks whether to discard the open scene when it holds content or history; an
+ * empty scene without history needs no question.
+ *
+ * @param host DOM host for the confirmation dialog.
+ * @param sceneIOHandler Tells whether the world holds content.
+ * @param worldObject Root world group.
+ * @param commandStack Undo history that would be lost.
+ * @param question Title and message of the dialog.
+ * @returns True when the scene may be replaced.
+ */
+export async function layoutSceneDiscardConfirm(
+  host: HTMLElement,
+  sceneIOHandler: HandlerSceneIo,
+  worldObject: THREE.Group,
+  commandStack: CommandStack,
+  question: LayoutSceneDiscardQuestion,
+): Promise<boolean> {
+  const shouldPrompt = sceneIOHandler.hasSceneContent(worldObject) || commandStack.canUndo() || commandStack.canRedo();
+  if (!shouldPrompt) {
+    return true;
+  }
+  return showMessageBox({
+    host,
+    title: question.title,
+    message: question.message,
+    confirmLabel: 'Yes',
+    cancelLabel: 'No',
+  });
 }
 
 /**

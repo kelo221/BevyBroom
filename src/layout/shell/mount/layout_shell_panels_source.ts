@@ -21,6 +21,7 @@ import { getVisGroupSharedServices } from '@/visgroup/visgroup_shared_services.j
 import { getPrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
 import type { DialogSprinkleServices } from '@/tools/sprinkle/ui/dialog_sprinkle.js';
+import type { ProjectLevelActions } from '@/project/level/project_level_actions.js';
 
 /** Editor parts the docked panels of the main window are built from. */
 export interface LayoutShellPanelsSource extends EntityBrowserPlacementHost {
@@ -35,6 +36,8 @@ export interface LayoutShellPanelsSource extends EntityBrowserPlacementHost {
   readonly faceController: ControllerFaceExtrusion;
   /** Creation callbacks the entity browser entries run. */
   readonly addMenuActions: AddMenuActions;
+  /** Actions on the open project's levels the level browser runs. */
+  readonly projectLevelActions: ProjectLevelActions;
   /** Grid snap providing UV nudge and rotation steps, or null. */
   readonly gridSnap?: GridSnap | null;
   /** Keyboard handler receiving the face UV shortcuts, or null. */
@@ -71,6 +74,7 @@ export function layoutShellPanelsCreate(source: LayoutShellPanelsSource): Layout
     docks: source.docks,
     faceInspectorDependencies: faceInspectorDependenciesCreate(source),
     entityBrowserHost: entityBrowserHostCreate(source),
+    levelBrowserHost: { actions: source.projectLevelActions },
     dockPanels: layoutShellDockPanelsOptionsCreate(source),
     hammerBar: layoutShellHammerBarOptionsCreate(source),
     sprinkleDialog: layoutShellSprinkleDialogServicesCreate(source),

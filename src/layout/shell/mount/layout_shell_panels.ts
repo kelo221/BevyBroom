@@ -7,6 +7,8 @@ import { LayoutTextureWindows } from '@/texture/layout/layout_texture_windows.js
 import { entityBrowserSetup, type EntityBrowserSetupHost } from '@/entity_browser/setup/entity_browser_setup.js';
 import type { EntityBrowser } from '@/entity_browser/ui/entity_browser.js';
 import { PanelFloatingEntityBrowser } from '@/entity_browser/ui/panel_floating_entity_browser.js';
+import { levelBrowserSetup, type LevelBrowserSetupHost } from '@/level_browser/setup/level_browser_setup.js';
+import type { PanelFloatingLevelBrowser } from '@/level_browser/ui/panel_floating_level_browser.js';
 import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js';
 import {
   ShellDockPanelsMount,
@@ -37,6 +39,8 @@ export interface LayoutShellPanelsOptions {
   faceInspectorDependencies: FaceInspectorSetupDeps;
   /** Services of the entity browser. */
   entityBrowserHost: EntityBrowserSetupHost;
+  /** Services of the level browser, without the window host. */
+  levelBrowserHost: Omit<LevelBrowserSetupHost, 'floatingWindowHost'>;
   /** Services of the layers panel and the console and issues views. */
   dockPanels: Omit<ShellDockPanelsMountOptions, 'inspector' | 'infoPanel'>;
   /** Services of the Hammer bar sections. */
@@ -48,8 +52,8 @@ export interface LayoutShellPanelsOptions {
 /**
  * Builds the panels of the main window: the Hammer bar sections and the layers
  * panel in the inspector, the console and issues views in the info panel, and
- * the floating texture browser, Face Edit Sheet, entity browser and Entity
- * Sprinkle window.
+ * the floating texture browser, Face Edit Sheet, entity browser, level browser
+ * and Entity Sprinkle window.
  */
 export class LayoutShellPanels {
   /** Face inspector with the controllers that drive it. */
@@ -60,6 +64,8 @@ export class LayoutShellPanels {
   readonly entityBrowser: EntityBrowser;
   /** Floating entity browser window. */
   readonly entityBrowserWindow: PanelFloatingEntityBrowser;
+  /** Floating level browser window. */
+  readonly levelBrowserWindow: PanelFloatingLevelBrowser;
   /** Object Bar, VisGroups and prefab sections of the Hammer bar. */
   readonly hammerBar: ShellHammerBarMount;
   /** Entity Sprinkle window open while the Sprinkle tool is active. */
@@ -76,6 +82,10 @@ export class LayoutShellPanels {
     this.textureWindows = this.textureWindowsCreate(options);
     this.entityBrowser = entityBrowserSetup(options.entityBrowserHost);
     this.entityBrowserWindow = new PanelFloatingEntityBrowser(options.docks.toolbarContainer, this.entityBrowser);
+    this.levelBrowserWindow = levelBrowserSetup({
+      ...options.levelBrowserHost,
+      floatingWindowHost: options.docks.toolbarContainer,
+    });
     this.dockPanels = new ShellDockPanelsMount({
       ...options.dockPanels,
       inspector: options.docks.inspector,
@@ -102,6 +112,16 @@ export class LayoutShellPanels {
   }
 
   /**
+   * Opens the floating level browser.
+   *
+   * @param isNameFieldFocused True to focus its name field, for naming a new
+   *   level.
+   */
+  levelBrowserReveal(isNameFieldFocused: boolean): void {
+    this.levelBrowserWindow.reveal(isNameFieldFocused);
+  }
+
+  /**
    * Validates the map at once and returns the found issues.
    *
    * @returns Issues of the map.
@@ -116,6 +136,8 @@ export class LayoutShellPanels {
     this.sprinkleDialogMount.dispose();
     this.hammerBar.dispose();
     this.dockPanels.dispose();
+    this.levelBrowserWindow.levelBrowserRead().dispose();
+    this.levelBrowserWindow.dispose();
     this.entityBrowserWindow.dispose();
     this.entityBrowser.dispose();
     this.textureWindows.dispose();
@@ -172,6 +194,7 @@ export class LayoutShellPanels {
   private floatingWindowsRegister(dockCommands: ShellDockCommands): void {
     dockCommands.floatingWindowRegister('texture_browser', this.textureWindows.textureBrowser);
     dockCommands.floatingWindowRegister('entity_browser', this.entityBrowserWindow);
+    dockCommands.floatingWindowRegister('level_browser', this.levelBrowserWindow);
     getStateEntityPlace().browseDelegateWrite(() => this.entityBrowserReveal());
   }
 }

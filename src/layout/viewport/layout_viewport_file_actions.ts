@@ -17,6 +17,7 @@ import { formatKeyboardShortcut } from '@/settings/keyboard/keyboard_shortcut_fo
 import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
 import type { SystemSceneRecovery } from '@/scene_recovery/system_scene_recovery.js';
 import { dialogSceneFileChangedOnDiskConfirm } from '@/io/dialog/dialog_scene_file_changed_on_disk.js';
+import type { ProjectLevelActions } from '@/project/level/project_level_actions.js';
 
 /** Current editor parts the File menu actions use. */
 export interface LayoutViewportFileActionsContext {
@@ -35,6 +36,8 @@ export interface LayoutViewportFileActionsContext {
   refreshAfterWorldMutation(): void;
   /** Returns the unsaved work protection, or null before it exists. */
   sceneRecoveryRead(): SystemSceneRecovery | null;
+  /** Returns the actions on the open project's levels. */
+  projectLevelActionsRead(): ProjectLevelActions;
 }
 
 /**
@@ -78,13 +81,20 @@ export class LayoutViewportFileActions {
   }
 
   /**
-   * Saves the scene to its remembered file, asking for one when none is
-   * remembered and before overwriting a file another program changed.
+   * Saves the scene back into the open project level when there is one, else to
+   * its remembered file, asking for one when none is remembered and before
+   * overwriting a file another program changed.
    *
-   * @returns The written file name, or null when nothing was written.
+   * @returns The written file name or level document, or null when nothing was
+   *   written.
    */
   async sceneSave(): Promise<string | null> {
     const host = this.host;
+    const levelActions = host.projectLevelActionsRead();
+    if (levelActions.serviceRead().openLevelRead() !== null) {
+      const saved = await levelActions.levelSave(true);
+      return saved.ok ? saved.level.document : null;
+    }
     const fileName = await host.sceneIOHandler.saveScene(host.worldObject, host.statusBar, (changedFileName) =>
       dialogSceneFileChangedOnDiskConfirm(host.toolbarContainer, changedFileName),
     );
@@ -111,11 +121,12 @@ export class LayoutViewportFileActions {
 
   /**
    * Refreshes the editor after New or Load replaced the scene, which starts out
-   * saved.
+   * saved and belongs to no project level.
    */
   private sceneReplacedRefresh(): void {
     this.host.onSceneLoaded();
     this.host.sceneRecoveryRead()?.savedStateAdopt();
+    this.host.projectLevelActionsRead().serviceRead().openLevelForget();
   }
 
   /**

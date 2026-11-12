@@ -21,9 +21,14 @@ class ProjectAssetFollowerRecording extends ProjectAssetFollower {
     this.followStart();
   }
 
-  /** Reloads the open project. */
+  /** Clears and reloads the open project. */
   reloadNow(): void {
     this.reload();
+  }
+
+  /** Loads the open project again without clearing. */
+  loadAgainNow(): void {
+    this.loadAgain();
   }
 
   /** @inheritdoc */
@@ -80,6 +85,21 @@ describe('ProjectAssetFollower', () => {
     releases[2]?.('reloaded');
     await follower.idle();
     expect(follower.events.filter((event) => event !== 'clear')).toEqual(['drop old', 'drop new', 'show reloaded']);
+    expect(follower.events.filter((event) => event === 'clear')).toHaveLength(3);
+  });
+
+  it('loads again without clearing and does nothing without a project', async () => {
+    const rig = workbenchRigCreate();
+    const follower = new ProjectAssetFollowerRecording(rig.workbench);
+    follower.loadAgainNow();
+    expect(follower.pendingReleases).toHaveLength(0);
+    await rig.workbench.projectOpen('/games/kept/broom.project.json');
+    follower.pendingReleases.shift()?.('first');
+    await follower.idle();
+    follower.loadAgainNow();
+    follower.pendingReleases.shift()?.('second');
+    await follower.idle();
+    expect(follower.events).toEqual(['clear', 'show first', 'show second']);
   });
 
   it('reports a failing load only while it is still the newest one', async () => {

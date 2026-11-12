@@ -72,10 +72,18 @@ export abstract class ProjectAssetFollower {
     return generation === this.loadGeneration;
   }
 
-  /** Loads the open project's assets again, as if it had just been opened. */
+  /** Clears the shown assets and loads the open project's assets again. */
   protected reload(): void {
-    this.loadGeneration += 1;
     this.assetsClear();
+    this.loadAgain();
+  }
+
+  /**
+   * Loads the open project's assets again while the shown ones stay until the
+   * new result replaces them; an older load still running is dropped.
+   */
+  protected loadAgain(): void {
+    this.loadGeneration += 1;
     if (this.shownProjectKey !== null) {
       this.pendingLoad = this.loadRun(this.loadGeneration);
     }

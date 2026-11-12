@@ -10,6 +10,7 @@ import type { ControllerSnapSettings } from '@/tools/snap/controller_snap_settin
 import type { PanelOutliner } from '@/outliner/ui/panel_outliner.js';
 import type { LayoutShellSourceHost } from './layout_shell_source.js';
 import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
+import type { ProjectLevelActions } from '@/project/level/project_level_actions.js';
 
 /**
  * Callback surface required to build a late-bound shell source host without
@@ -40,6 +41,8 @@ export interface LayoutShellHostCallbacks {
   onToggleGamePreviewPanel(): void;
   /** Returns the project workbench that opens game projects and runs their game. */
   gameProjectWorkbenchRead(): ProjectWorkbench;
+  /** Returns the actions on the open project's levels. */
+  projectLevelActionsRead(): ProjectLevelActions;
   onOpenDetachedViewport(): void;
   onToggleAiCaptureDebugPanel(): void;
   onToggleAudio(): void;
@@ -146,6 +149,7 @@ export function createShellSourceHostFromLayout(
     onOpenMcpDialog: () => actions.onOpenMcpDialog(),
     onToggleGamePreviewPanel: () => actions.onToggleGamePreviewPanel(),
     gameProjectWorkbenchRead: () => actions.gameProjectWorkbenchRead(),
+    projectLevelActionsRead: () => actions.projectLevelActionsRead(),
     onOpenDetachedViewport: () => actions.onOpenDetachedViewport(),
     onToggleAiCaptureDebugPanel: () => actions.onToggleAiCaptureDebugPanel(),
     onToggleAudio: () => actions.onToggleAudio(),

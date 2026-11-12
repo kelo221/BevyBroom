@@ -2,8 +2,8 @@ import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 
 /**
- * File menu: new, save, load, projects, Build Level, import, export and
- * preferences.
+ * File menu: new, save, load, projects, project levels, Build Level, import,
+ * export and preferences.
  */
 export class ShellMenuFile extends ShellMenu {
   readonly label = 'File';
@@ -47,8 +47,32 @@ export class ShellMenuFile extends ShellMenu {
         isEnabled: () => workbenchRead().isAvailable(),
       }),
       this.recentProjectsSubmenuBuild(context),
+      ...this.projectLevelEntriesBuild(context),
       this.actionEntry(context, 'Build Level', () => void workbenchRead().levelBuild(), {
         isEnabled: () => workbenchRead().statusRead()?.project != null,
+      }),
+    ];
+  }
+
+  /**
+   * Builds the Level Browser, Save Level to Project and Save As New Level rows.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Menu entries.
+   */
+  private projectLevelEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    const levelActionsRead = context.toolbarActions.projectLevelActionsRead;
+    const isProjectOpen = (): boolean =>
+      context.toolbarActions.gameProjectWorkbenchRead().statusRead()?.project != null;
+    return [
+      this.actionEntry(context, 'Level Browser…', () => levelActionsRead().levelBrowserReveal(false), {
+        isChecked: () => context.dockCommands.isFloatingWindowOpen('level_browser'),
+      }),
+      this.actionEntry(context, 'Save Level to Project', () => void levelActionsRead().levelSave(true), {
+        isEnabled: () => levelActionsRead().serviceRead().openLevelRead() !== null,
+      }),
+      this.actionEntry(context, 'Save As New Level…', () => levelActionsRead().levelBrowserReveal(true), {
+        isEnabled: isProjectOpen,
       }),
     ];
   }

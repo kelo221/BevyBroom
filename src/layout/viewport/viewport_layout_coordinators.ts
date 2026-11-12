@@ -52,6 +52,7 @@ import {
   type LayoutSettingsCreateDeps,
 } from '@/layout/setup/layout_settings_system.js';
 import { LayoutGamePreview } from '@/preview/layout/layout_game_preview.js';
+import type { ProjectLevelActions } from '@/project/level/project_level_actions.js';
 import { DisplacementOverlaySystem } from '@/displacement/overlay/displacement_overlay_system.js';
 import { SprinkleToolSystem } from '@/tools/sprinkle/setup/sprinkle_tool_system.js';
 import { ViewportLayoutCore } from './viewport_layout_core.js';
@@ -745,8 +746,8 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
       getRenderer: () => this.sharedSurface.getRenderer(),
       previewLinkServiceEnsure: () => this.gamePreviewLayoutEnsure().serviceEnsure(),
       projectWorkbenchEnsure: () => this.gamePreviewLayoutEnsure().workbenchEnsure(),
-      sceneDocumentLoad: (sceneJson) =>
-        this.sceneIOHandler.loadSceneFromText(sceneJson, this.worldObject, () => this.onSceneLoaded(), this.statusBar),
+      sceneDocumentLoad: (sceneJson) => this.sceneDocumentTextLoad(sceneJson),
+      projectLevelActionsRead: () => this.projectLevelActionsRead(),
       issuesValidateNow: () => this.shellPanels?.issuesValidateNow() ?? [],
       mainWindowControlRead: () => new ShellMainWindowControl(this.shellElements),
       viewportsInteractiveRead: () => this.getAllInteractiveViewports(),
@@ -755,6 +756,28 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     });
     this.setupAiCaptureDebugPanel();
   }
+
+  /**
+   * Replaces the open scene with scene file text as Load does.
+   *
+   * @param sceneJson Scene file text.
+   * @returns True when the scene loaded.
+   */
+  protected sceneDocumentTextLoad(sceneJson: string): boolean {
+    return this.sceneIOHandler.loadSceneFromText(
+      sceneJson,
+      this.worldObject,
+      () => this.onSceneLoaded(),
+      this.statusBar,
+    );
+  }
+
+  /**
+   * Returns the actions on the open project's levels.
+   *
+   * @returns Project level actions.
+   */
+  protected abstract projectLevelActionsRead(): ProjectLevelActions;
 
   /** Creates the floating AI Captures debug panel (capture_view image history). */
   protected setupAiCaptureDebugPanel(): void {

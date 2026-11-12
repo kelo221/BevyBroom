@@ -18,6 +18,7 @@ import { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js
 import { TextureLockSettings } from '@/texture/lock/texture_lock_settings.js';
 import { audioSettings } from '@/audio/settings/audio_settings.js';
 import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
+import type { ProjectLevelActions } from '@/project/level/project_level_actions.js';
 
 /**
  * Host callbacks used when building outliner shell action bindings. Handler
@@ -60,6 +61,8 @@ export interface ToolbarActionHost {
   onToggleGamePreviewPanel: () => void;
   /** Returns the project workbench that opens game projects and runs their game. */
   gameProjectWorkbenchRead: () => ProjectWorkbench;
+  /** Returns the actions on the open project's levels. */
+  projectLevelActionsRead: () => ProjectLevelActions;
   onOpenDetachedViewport: () => void;
   onToggleAiCaptureDebugPanel: () => void;
   onToggleAudio: () => void;
@@ -177,6 +180,7 @@ function buildPrimitiveToolbarActions(
   | 'onOpenMcpDialog'
   | 'onToggleGamePreviewPanel'
   | 'gameProjectWorkbenchRead'
+  | 'projectLevelActionsRead'
   | 'onOpenDetachedViewport'
   | 'onToggleAiCaptureDebugPanel'
   | 'onToggleAudio'
@@ -203,6 +207,7 @@ function buildPrimitiveToolbarActions(
     onOpenMcpDialog: () => host.onOpenMcpDialog(),
     onToggleGamePreviewPanel: () => host.onToggleGamePreviewPanel(),
     gameProjectWorkbenchRead: () => host.gameProjectWorkbenchRead(),
+    projectLevelActionsRead: () => host.projectLevelActionsRead(),
     onOpenDetachedViewport: () => host.onOpenDetachedViewport(),
     onToggleAiCaptureDebugPanel: () => host.onToggleAiCaptureDebugPanel(),
     onToggleAudio: () => host.onToggleAudio(),

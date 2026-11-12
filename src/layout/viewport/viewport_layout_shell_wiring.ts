@@ -20,6 +20,11 @@ import {
   type LayoutViewportFileActionsContext,
 } from '@/layout/viewport/layout_viewport_file_actions.js';
 import {
+  LayoutViewportProjectLevelActions,
+  type LayoutViewportProjectLevelActionsContext,
+} from '@/layout/viewport/layout_viewport_project_level_actions.js';
+import type { ProjectLevelActions } from '@/project/level/project_level_actions.js';
+import {
   HandlerSolidBrushTools,
   type HandlerSolidBrushToolsDeps,
 } from '@/tools/csg/solid/handler_solid_brush_tools.js';
@@ -41,6 +46,9 @@ import { EditorToolId } from '@/types/editor_tool_id.js';
  */
 export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinators {
   protected readonly fileActions = new LayoutViewportFileActions(() => this.fileActionsContextRead());
+  protected readonly projectLevelActions = new LayoutViewportProjectLevelActions(() =>
+    this.projectLevelActionsContextRead(),
+  );
   private solidBrushTools: HandlerSolidBrushTools | null = null;
   private selectionVisibility: HandlerSelectionVisibility | null = null;
   private objectPropertiesDialog: DialogObjectProperties | null = null;
@@ -65,7 +73,52 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
       onSceneLoaded: () => this.onSceneLoaded(),
       refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
       sceneRecoveryRead: () => this.sceneRecovery,
+      projectLevelActionsRead: () => this.projectLevelActions,
     };
+  }
+
+  /**
+   * Returns the current editor parts the project level actions use.
+   *
+   * @returns Project level actions context.
+   */
+  private projectLevelActionsContextRead(): LayoutViewportProjectLevelActionsContext {
+    return {
+      toolbarContainer: this.toolbarContainer,
+      sceneIOHandler: this.sceneIOHandler,
+      worldObject: this.worldObject,
+      commandStack: this.commandStack,
+      statusBar: this.statusBar,
+      solidModelController: this.solidModelController,
+      serviceRead: () => this.gamePreviewLayoutEnsure().projectLevelServiceEnsure(),
+      onSceneLoaded: () => this.onSceneLoaded(),
+      sceneRecoveryRead: () => this.sceneRecovery,
+      levelBrowserReveal: (isNameFieldFocused) => this.shellPanels?.levelBrowserReveal(isNameFieldFocused),
+    };
+  }
+
+  /**
+   * Returns the actions on the open project's levels.
+   *
+   * @returns Project level actions.
+   */
+  protected projectLevelActionsRead(): ProjectLevelActions {
+    return this.projectLevelActions;
+  }
+
+  /**
+   * Replaces the open scene with scene file text as Load does; the scene then
+   * belongs to no project level.
+   *
+   * @param sceneJson Scene file text.
+   * @returns True when the scene loaded.
+   */
+  protected override sceneDocumentTextLoad(sceneJson: string): boolean {
+    const isLoaded = super.sceneDocumentTextLoad(sceneJson);
+    if (isLoaded) {
+      this.projectLevelActions.serviceRead().openLevelForget();
+    }
+    return isLoaded;
   }
 
   /**
@@ -362,6 +415,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
       statusBar: this.statusBar,
       faceController: this.faceModeCoordinator.getFaceExtrusionController(),
       addMenuActions: this.createToolbarShellActionsBundle(),
+      projectLevelActions: this.projectLevelActions,
       surfaceShadingRefresh: () => this.shadingModeCoordinator?.updateShadingMeshes(),
       refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
       selectionFrameAll: () => this.cameraFitCoordinator.onFitAllViewports(),

@@ -14,6 +14,7 @@ import { ProjectRecentStore } from '@/project/recent/project_recent_store.js';
 import { gameProcessControlResolve } from '@/project/control/game_process_control_desktop.js';
 import { ControllerLevelBuild } from '@/level_build/controller_level_build.js';
 import { sprinkleDefinitionLibraryProjectSetup } from '@/tools/sprinkle/definition/setup/sprinkle_definition_library_setup.js';
+import { ProjectLevelService } from '@/project/level/project_level_service.js';
 import { GlbExporter } from '@/io/glb/glb_exporter.js';
 import type { GameProfile } from '@/settings/store/settings_types.js';
 
@@ -46,6 +47,7 @@ export class LayoutGamePreview {
   private workbench: ProjectWorkbench | null = null;
   private panel: PanelGamePreview | null = null;
   private textureProjectSourceLoader: TextureProjectSourceLoader | null = null;
+  private projectLevelService: ProjectLevelService | null = null;
 
   /**
    * Creates the layout helper without creating the link.
@@ -98,6 +100,18 @@ export class LayoutGamePreview {
   }
 
   /**
+   * Returns the service that lists the open project's levels and knows which
+   * one the scene belongs to, creating it and the workbench on first use.
+   *
+   * @returns Project level service.
+   */
+  projectLevelServiceEnsure(): ProjectLevelService {
+    const workbench = this.workbenchEnsure();
+    this.projectLevelService ??= new ProjectLevelService({ workbench, control: gameProcessControlResolve() });
+    return this.projectLevelService;
+  }
+
+  /**
    * Returns the loader of the open project's textures.
    *
    * @returns Loader, or null before the workbench exists.
@@ -141,12 +155,14 @@ export class LayoutGamePreview {
   }
 
   /**
-   * Returns the level name derived from the scene file name.
+   * Returns the level name: the id of the open project level, else the name
+   * derived from the scene file name.
    *
    * @returns Lowercase name made of letters, digits, dashes and underscores.
    */
   levelNameRead(): string {
-    return layoutGamePreviewLevelNameFromFileName(this.hosts.sceneFileNameRead());
+    const openLevel = this.projectLevelService?.openLevelRead() ?? null;
+    return openLevel?.id ?? layoutGamePreviewLevelNameFromFileName(this.hosts.sceneFileNameRead());
   }
 
   /**
