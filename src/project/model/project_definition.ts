@@ -1,4 +1,5 @@
 import type { PreviewLaunchCommand } from '@/preview/launch/preview_launch_command.js';
+import type { ProjectLevelEntry } from '@/project/model/project_level_entry.js';
 
 /** File name of a game project file at the game's root. */
 export const PROJECT_FILE_NAME = 'broom.project.json';
@@ -17,6 +18,16 @@ export interface ProjectDefinition {
   assetRoot: string;
   /** Absolute directory holding the game's level packages, forward slashes. */
   levelDirectory: string;
+  /**
+   * Absolute directory holding the editor's level documents, forward slashes;
+   * inside the project directory.
+   */
+  documentDirectory: string;
+  /**
+   * Levels the project file lists explicitly, in file order; documents found in
+   * the document directory but not listed here are levels too.
+   */
+  levels: ProjectLevelEntry[];
   /**
    * Directories whose images the Texture Browser loads, relative to the asset
    * root with forward slashes.

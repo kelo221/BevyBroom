@@ -9,6 +9,7 @@ import {
 } from '@/preview/launch/preview_launch_command.js';
 import type { ProjectDefinition } from '@/project/model/project_definition.js';
 import { ProjectBuildCommandResolver } from '@/project/build/project_build_command_resolver.js';
+import { ProjectLevelEntriesParser } from '@/project/model/project_level_entries_parser.js';
 
 /** Name used for the top level of the project file in error messages. */
 const PROJECT_SECTION_PATH = 'project';
@@ -42,6 +43,8 @@ export class ProjectDefinitionParser {
       name: previewLaunchOptionalStringRead(project, 'name', PROJECT_SECTION_PATH) ?? projectIdentifier,
       assetRoot,
       levelDirectory: ProjectDefinitionParser.levelDirectoryRead(project, assetRoot),
+      documentDirectory: ProjectDefinitionParser.documentDirectoryRead(project, projectDirectory),
+      levels: ProjectLevelEntriesParser.levelsRead(project, ProjectDefinitionParser.isContainedRelativePath),
       textureDirectories: ProjectDefinitionParser.assetDirectoriesRead(project, 'texture_directories'),
       sprinkleDirectories: ProjectDefinitionParser.assetDirectoriesRead(project, 'sprinkle_directories'),
       launch,
@@ -79,6 +82,22 @@ export class ProjectDefinitionParser {
       );
     }
     return previewLaunchDirectoryJoin(assetRoot, levelDirectory);
+  }
+
+  /**
+   * Reads the document directory, which must stay inside the project directory
+   * and defaults when absent.
+   *
+   * @param project Parsed project object.
+   * @param projectDirectory Absolute project directory.
+   * @returns Absolute document directory.
+   */
+  private static documentDirectoryRead(project: Record<string, unknown>, projectDirectory: string): string {
+    const documentDirectory = ProjectLevelEntriesParser.documentDirectoryRead(
+      project,
+      ProjectDefinitionParser.isContainedRelativePath,
+    );
+    return previewLaunchDirectoryJoin(projectDirectory, documentDirectory);
   }
 
   /**

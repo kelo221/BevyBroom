@@ -57,7 +57,7 @@ export class ProjectSprinkleDefinitionOpener {
    * @returns Success, or why the file was not opened.
    */
   private async fileOpen(assetRoot: string, relativePath: string): Promise<SprinkleDefinitionOpenResult> {
-    const realFilePath = ProjectFileRealPath.insideAssetRootResolve(assetRoot, relativePath);
+    const realFilePath = ProjectFileRealPath.insideRootResolve(assetRoot, relativePath);
     if (realFilePath === null) {
       return ProjectSprinkleDefinitionOpener.failureCreate(relativePath, 'it resolves outside the asset root');
     }

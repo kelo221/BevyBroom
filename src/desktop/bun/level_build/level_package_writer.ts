@@ -1,4 +1,8 @@
-import { closeSync, fsyncSync, mkdirSync, openSync, readdirSync, renameSync, rmSync, writeSync } from 'node:fs';
+import {
+  projectFileSystemNodeCreate,
+  projectFileWriteAtomic,
+  type ProjectFileSystem,
+} from '@/desktop/bun/project_files/project_file_system_node.js';
 import {
   LEVEL_BUILD_MANIFEST_FILE_NAME,
   levelBuildGeometryFileName,
@@ -9,43 +13,6 @@ import type {
   LevelBuildPublishRequest,
   LevelBuildPublishResult,
 } from '@/level_build/publish/level_build_publish_types.js';
-
-/** File operations the level package writer needs. */
-export interface LevelPackageFileSystem {
-  /**
-   * Creates a directory and its parents.
-   *
-   * @param path Absolute directory.
-   */
-  directoryEnsure(path: string): void;
-  /**
-   * Lists the file names of a directory.
-   *
-   * @param path Absolute directory.
-   * @returns File names, empty when the directory is missing.
-   */
-  fileNamesList(path: string): string[];
-  /**
-   * Writes bytes to a file and flushes them to disk.
-   *
-   * @param path Absolute file path.
-   * @param bytes File content.
-   */
-  fileWriteFlushed(path: string, bytes: Uint8Array): void;
-  /**
-   * Renames a file, replacing the target.
-   *
-   * @param from Existing path.
-   * @param to New path.
-   */
-  fileRename(from: string, to: string): void;
-  /**
-   * Deletes a file when it exists.
-   *
-   * @param path Absolute file path.
-   */
-  fileRemove(path: string): void;
-}
 
 /**
  * Writes a level package so a reader never sees a half-written level: the
@@ -59,7 +26,7 @@ export class LevelPackageWriter {
    *
    * @param fileSystem File operations; the real file system by default.
    */
-  constructor(private readonly fileSystem: LevelPackageFileSystem = levelPackageFileSystemNodeCreate()) {}
+  constructor(private readonly fileSystem: ProjectFileSystem = projectFileSystemNodeCreate()) {}
 
   /**
    * Publishes a level package into a level directory.
@@ -74,9 +41,17 @@ export class LevelPackageWriter {
     const geometryRevision = this.stampNextRead(existingFiles);
     const geometryFile = levelBuildGeometryFileName(geometryRevision);
     try {
-      this.fileWriteAtomic(`${levelDirectory}/${geometryFile}`, Buffer.from(request.glbBase64, 'base64'));
+      projectFileWriteAtomic(
+        this.fileSystem,
+        `${levelDirectory}/${geometryFile}`,
+        Buffer.from(request.glbBase64, 'base64'),
+      );
       const manifest = this.manifestFinalize(request.manifest, geometryFile, geometryRevision);
-      this.fileWriteAtomic(`${levelDirectory}/${LEVEL_BUILD_MANIFEST_FILE_NAME}`, this.manifestBytes(manifest));
+      projectFileWriteAtomic(
+        this.fileSystem,
+        `${levelDirectory}/${LEVEL_BUILD_MANIFEST_FILE_NAME}`,
+        this.manifestBytes(manifest),
+      );
     } catch (error) {
       this.fileSystem.fileRemove(`${levelDirectory}/${geometryFile}`);
       return { ok: false, message: `Level package not written: ${this.errorMessageRead(error)}` };
@@ -124,18 +99,6 @@ export class LevelPackageWriter {
   }
 
   /**
-   * Writes a file through a flushed temporary sibling and a rename.
-   *
-   * @param path Final file path.
-   * @param bytes File content.
-   */
-  private fileWriteAtomic(path: string, bytes: Uint8Array): void {
-    const temporaryPath = `${path}.tmp`;
-    this.fileSystem.fileWriteFlushed(temporaryPath, bytes);
-    this.fileSystem.fileRename(temporaryPath, path);
-  }
-
-  /**
    * Removes the geometry files that existed before this build.
    *
    * @param levelDirectory Level directory.
@@ -171,36 +134,5 @@ export class LevelPackageWriter {
    */
   private errorMessageRead(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
-  }
-}
-
-/**
- * Returns the file operations backed by the real file system.
- *
- * @returns Node file system operations.
- */
-export function levelPackageFileSystemNodeCreate(): LevelPackageFileSystem {
-  return {
-    directoryEnsure: (path) => mkdirSync(path, { recursive: true }),
-    fileNamesList: (path) => readdirSync(path),
-    fileWriteFlushed: (path, bytes) => levelPackageFileWriteFlushed(path, bytes),
-    fileRename: (from, to) => renameSync(from, to),
-    fileRemove: (path) => rmSync(path, { force: true }),
-  };
-}
-
-/**
- * Writes bytes to a file and flushes them before closing it.
- *
- * @param path Absolute file path.
- * @param bytes File content.
- */
-function levelPackageFileWriteFlushed(path: string, bytes: Uint8Array): void {
-  const descriptor = openSync(path, 'w');
-  try {
-    writeSync(descriptor, bytes);
-    fsyncSync(descriptor);
-  } finally {
-    closeSync(descriptor);
   }
 }

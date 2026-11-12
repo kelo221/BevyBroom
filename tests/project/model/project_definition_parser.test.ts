@@ -130,6 +130,70 @@ describe('ProjectDefinitionParser', () => {
     expect(listed.textureDirectories).toEqual([]);
   });
 
+  it('resolves the document directory against the project directory and defaults to broom/documents', () => {
+    const absent = ProjectDefinitionParser.parse(projectJsonCreate(), '/g/broom.project.json');
+    expect(absent.documentDirectory).toBe('/g/broom/documents');
+    expect(absent.levels).toEqual([]);
+    const named = ProjectDefinitionParser.parse(
+      projectJsonCreate({ document_directory: 'editor\\maps/' }),
+      'C:\\Games\\broom.project.json',
+    );
+    expect(named.documentDirectory).toBe('C:/Games/editor/maps');
+  });
+
+  it('rejects a document directory that escapes the project or is not a string', () => {
+    expect(() =>
+      ProjectDefinitionParser.parse(projectJsonCreate({ document_directory: '../outside' }), '/g/broom.project.json'),
+    ).toThrow(/document_directory/);
+    expect(() =>
+      ProjectDefinitionParser.parse(projectJsonCreate({ document_directory: '' }), '/g/broom.project.json'),
+    ).toThrow(/document_directory/);
+    expect(() =>
+      ProjectDefinitionParser.parse(projectJsonCreate({ document_directory: 7 }), '/g/broom.project.json'),
+    ).toThrow(/document_directory/);
+  });
+
+  it('reads explicit levels in file order with sanitized ids, default names and normalized documents', () => {
+    const definition = ProjectDefinitionParser.parse(
+      projectJsonCreate({
+        levels: [
+          { id: 'Castle Hall', name: 'Castle Hall', document: 'castle_hall.json' },
+          { document: 'arenas\\pit.json' },
+          { id: 'lab', document: './lab.JSON' },
+        ],
+      }),
+      '/g/broom.project.json',
+    );
+    expect(definition.levels).toEqual([
+      { id: 'castle_hall', name: 'Castle Hall', document: 'castle_hall.json' },
+      { id: 'pit', name: 'pit', document: 'arenas/pit.json' },
+      { id: 'lab', name: 'lab', document: 'lab.JSON' },
+    ]);
+  });
+
+  it('rejects levels that are malformed, escape the document directory or repeat', () => {
+    const rejectedLists: unknown[] = [
+      'castle.json',
+      [7],
+      [{ id: 'a' }],
+      [{ document: '../outside.json' }],
+      [{ document: '/abs/castle.json' }],
+      [{ document: 'castle.txt' }],
+      [{ id: '', document: 'castle.json' }],
+      [{ name: 3, document: 'castle.json' }],
+      [{ document: 'castle.json' }, { document: 'castle.json' }],
+      [
+        { id: 'same', document: 'a.json' },
+        { id: 'same', document: 'b.json' },
+      ],
+    ];
+    for (const levels of rejectedLists) {
+      expect(() => ProjectDefinitionParser.parse(projectJsonCreate({ levels }), '/g/broom.project.json')).toThrow(
+        /levels/,
+      );
+    }
+  });
+
   it('rejects sprinkle directories that escape the asset root or are not strings', () => {
     const rejectedEntries: unknown[] = ['../outside', 'sprinkle/../../outside', '/absolute', 'C:/absolute', '', 7];
     for (const rejectedEntry of rejectedEntries) {

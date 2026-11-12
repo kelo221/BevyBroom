@@ -2,11 +2,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { LevelPackageWriter } from '@/desktop/bun/level_build/level_package_writer.js';
 import {
-  LevelPackageWriter,
-  levelPackageFileSystemNodeCreate,
-  type LevelPackageFileSystem,
-} from '@/desktop/bun/level_build/level_package_writer.js';
+  projectFileSystemNodeCreate,
+  type ProjectFileSystem,
+} from '@/desktop/bun/project_files/project_file_system_node.js';
 import {
   LEVEL_BUILD_MANIFEST_FILE_NAME,
   LEVEL_BUILD_MANIFEST_VERSION,
@@ -135,8 +135,8 @@ describe('LevelPackageWriter', () => {
  *
  * @returns File system that fails the manifest rename.
  */
-function levelPackageFileSystemFailingOnManifestRename(): LevelPackageFileSystem {
-  const real = levelPackageFileSystemNodeCreate();
+function levelPackageFileSystemFailingOnManifestRename(): ProjectFileSystem {
+  const real = projectFileSystemNodeCreate();
   return {
     ...real,
     fileRename: (from, to) => {
