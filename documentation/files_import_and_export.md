@@ -38,6 +38,8 @@ Choose **File > Load** or press `Ctrl+O`, then choose a previously saved BevyBro
 
 Loading replaces the active editing context with the loaded project. Save current work first if you may need it later.
 
+In a game project, keep levels inside the project and open them from the Level Browser; see [Project levels](project_levels.md).
+
 After loading:
 
 1. Inspect the hierarchy.

@@ -64,7 +64,10 @@ export const MCP_PROJECT_TOOL_DEFINITIONS: McpToolDefinition[] = [
       type: 'object',
       properties: {
         levelId: { type: 'string', description: 'Level id as listed by list_project_levels.' },
-        document: { type: 'string', description: 'Document path relative to the document directory, such as "castle_hall.json".' },
+        document: {
+          type: 'string',
+          description: 'Document path relative to the document directory, such as "castle_hall.json".',
+        },
       },
     },
   ),

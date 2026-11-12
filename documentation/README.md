@@ -26,6 +26,7 @@ These guides explain the editor from a user's point of view. You do not need to 
 ## Projects and preferences
 
 - [Saving, loading, importing, and exporting](files_import_and_export.md)
+- [Project levels and the Level Browser](project_levels.md)
 - [Integrating a game](integrating_a_game.md) — connect your own Bevy game to the editor, step by step.
 - [Game preview and lights](game_preview.md) — mirror the scene into your running Bevy game.
 - [Game components and data assets](game_components.md) — place your game's own components and edit shared data files.
