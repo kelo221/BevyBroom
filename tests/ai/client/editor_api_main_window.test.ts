@@ -1,3 +1,4 @@
+import { SHELL_FLOATING_WINDOW_IDS } from '@/layout/shell/actions/shell_floating_window.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { EditorApi } from '@/ai/client/editor_api.js';
 import { findMcpTool } from '@/ai/server/registry_mcp_tool.js';
@@ -46,7 +47,9 @@ describe('EditorApi main window tools', () => {
     expect(state.inspectorVisible).toBe(docks.frame.isInspectorVisible());
     expect(Object.keys(state)).not.toContain('inspectorTab');
     expect(state.menus).toEqual(['File']);
-    expect(state.floatingWindows).toEqual({ texture_browser: false, entity_browser: false });
+    expect(state.floatingWindows).toEqual(
+      Object.fromEntries(SHELL_FLOATING_WINDOW_IDS.map((windowId) => [windowId, false])),
+    );
   });
 
   it('shows and hides a registered floating window', () => {

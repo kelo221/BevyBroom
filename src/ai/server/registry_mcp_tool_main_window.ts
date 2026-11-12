@@ -1,4 +1,13 @@
 import { emptySchema, tool, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
+import { SHELL_FLOATING_WINDOW_IDS } from '@/layout/shell/actions/shell_floating_window.js';
+
+/** Floating window ids as listed in tool descriptions. */
+const MCP_MAIN_WINDOW_FLOATING_WINDOW_LIST = SHELL_FLOATING_WINDOW_IDS.join(', ');
+
+/** One boolean property per floating window id. */
+const MCP_MAIN_WINDOW_FLOATING_WINDOW_PROPERTIES = Object.fromEntries(
+  SHELL_FLOATING_WINDOW_IDS.map((windowId) => [windowId, { type: 'boolean' }]),
+);
 
 /**
  * Tools that read and change which docks, tabs and bars of the main window are
@@ -7,7 +16,7 @@ import { emptySchema, tool, type McpToolDefinition } from './registry_mcp_tool_h
 export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(
     'get_main_window',
-    'The main window arrangement: inspectorVisible, infoPanelVisible, infoPanelCollapsed (folded to its one-line strip) and infoPanelTab (console or issues), toolbarVisible, the menu bar titles in order, menuBarInWindow (false once the menus moved into the native macOS menu bar), themeLook (classic or mac_glass), and floatingWindows (texture_browser, entity_browser) as true while shown.',
+    `The main window arrangement: inspectorVisible, infoPanelVisible, infoPanelCollapsed (folded to its one-line strip) and infoPanelTab (console or issues), toolbarVisible, the menu bar titles in order, menuBarInWindow (false once the menus moved into the native macOS menu bar), themeLook (classic or mac_glass), and floatingWindows (${MCP_MAIN_WINDOW_FLOATING_WINDOW_LIST}) as true while shown.`,
     emptySchema(),
   ),
   tool(
@@ -27,12 +36,8 @@ export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
         toolbarVisible: { type: 'boolean', description: 'Show or hide the icon toolbar.' },
         floatingWindows: {
           type: 'object',
-          description:
-            'Show or hide floating windows by id (texture_browser, entity_browser). True shows, false hides. Omitted ids stay as they are.',
-          properties: {
-            texture_browser: { type: 'boolean' },
-            entity_browser: { type: 'boolean' },
-          },
+          description: `Show or hide floating windows by id (${MCP_MAIN_WINDOW_FLOATING_WINDOW_LIST}). True shows, false hides. Omitted ids stay as they are.`,
+          properties: MCP_MAIN_WINDOW_FLOATING_WINDOW_PROPERTIES,
         },
       },
     },
