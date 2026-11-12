@@ -6,11 +6,13 @@ import {
 } from '@/solid/io/solid_model_codec.js';
 import { SolidModel } from './solid_model.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
+import { modifierStackReferencesRemap } from '@/modifier/stack/modifier_stack_references.js';
 
 /**
  * Creates an independent solid model that deep-copies the source hierarchy,
- * brushes, inverted-world flag, and root transform. Brush ids are remapped so
- * the copy never shares identity with the original.
+ * brushes, modifier volumes, inverted-world flag, and root transform. Brush,
+ * group and volume ids are remapped so the copy never shares identity with the
+ * original.
  *
  * @param source Solid model to copy.
  * @param offset Local position offset applied to the cloned root.
@@ -21,7 +23,7 @@ export function createIndependentSolidModelDuplicate(
   offset: THREE.Vector3 = new THREE.Vector3(0, 0, 0),
 ): SolidModel {
   const payload = SolidModelCodec.encode(source);
-  remapSerializedSolidBrushIdentities(payload);
+  remapSerializedSolidIdentities(payload);
   const clone = SolidModelCodec.decode(payload, source.root.name);
   applyRootTransformFromSource(source.root, clone.root, offset);
   assignUniqueHierarchyNamesUnderSolidRoot(clone.root);
@@ -50,77 +52,51 @@ function assignUniqueHierarchyNamesUnderSolidRoot(solidRoot: THREE.Object3D): vo
 }
 
 /**
- * Remaps every brush id in a serialized solid so the decode target owns unique
- * identities.
+ * Gives every brush, solid CSG group and modifier volume of a serialized solid
+ * a fresh id so the decode target owns unique identities, and points the
+ * exclusions and caps of its modifier volumes at the new ids.
  *
  * @param payload Encoded solid model payload mutated in place.
  */
-export function remapSerializedSolidBrushIdentities(payload: SerializedSolidModel): void {
-  const identityMap = buildBrushIdentityMap(payload);
-  applyBrushIdentityMapToBrushes(payload, identityMap);
-  if (payload.hierarchy) {
-    applyBrushIdentityMapToHierarchy(payload.hierarchy, identityMap);
-  }
-}
-
-/**
- * Builds old-id to new-id mappings for every serialized brush.
- *
- * @param payload Encoded solid model payload.
- * @returns Map from source brush id to fresh brush id.
- */
-function buildBrushIdentityMap(payload: SerializedSolidModel): Map<string, string> {
+export function remapSerializedSolidIdentities(payload: SerializedSolidModel): void {
   const identityMap = new Map<string, string>();
   for (const brush of payload.brushes) {
     identityMap.set(brush.id, createFreshBrushIdentity());
+    brush.id = identityMap.get(brush.id) ?? brush.id;
   }
-  return identityMap;
+  const hierarchy = payload.hierarchy ?? [];
+  hierarchy.forEach((node) => remapHierarchyNodeIdentity(node, identityMap));
+  hierarchy.forEach((node) => remapHierarchyNodeReferences(node, identityMap));
 }
 
 /**
- * Writes remapped brush ids onto the flat brush list.
+ * Gives a hierarchy node and its descendants their new ids: brush leaves take
+ * the remapped brush id, groups and modifier volumes a fresh uuid.
  *
- * @param payload Encoded solid model payload.
- * @param identityMap Old brush id to new brush id.
+ * @param node Hierarchy node changed in place.
+ * @param identityMap Old id to new id; group and volume ids are added.
  */
-function applyBrushIdentityMapToBrushes(payload: SerializedSolidModel, identityMap: Map<string, string>): void {
-  for (const brush of payload.brushes) {
-    const remappedId = identityMap.get(brush.id);
-    if (remappedId) {
-      brush.id = remappedId;
-    }
-  }
-}
-
-/**
- * Writes remapped brush ids onto hierarchy leaf nodes.
- *
- * @param nodes Hierarchy nodes to walk.
- * @param identityMap Old brush id to new brush id.
- */
-function applyBrushIdentityMapToHierarchy(nodes: SerializedSolidTreeNode[], identityMap: Map<string, string>): void {
-  for (const node of nodes) {
-    remapHierarchyNodeBrushIdentity(node, identityMap);
-  }
-}
-
-/**
- * Remaps one hierarchy node and its descendants.
- *
- * @param node Hierarchy node.
- * @param identityMap Old brush id to new brush id.
- */
-function remapHierarchyNodeBrushIdentity(node: SerializedSolidTreeNode, identityMap: Map<string, string>): void {
+function remapHierarchyNodeIdentity(node: SerializedSolidTreeNode, identityMap: Map<string, string>): void {
   if (node.kind === 'brush') {
-    const remappedId = identityMap.get(node.brushId);
-    if (remappedId) {
-      node.brushId = remappedId;
-    }
+    node.brushId = identityMap.get(node.brushId) ?? node.brushId;
     return;
   }
-  for (const child of node.children) {
-    remapHierarchyNodeBrushIdentity(child, identityMap);
-  }
+  const freshId = THREE.MathUtils.generateUUID();
+  identityMap.set(node.id, freshId);
+  node.id = freshId;
+  if (node.kind === 'group') node.children.forEach((child) => remapHierarchyNodeIdentity(child, identityMap));
+}
+
+/**
+ * Points the stacks of the modifier volumes at or under a hierarchy node at the
+ * remapped ids.
+ *
+ * @param node Hierarchy node.
+ * @param identityMap Old id to new id.
+ */
+function remapHierarchyNodeReferences(node: SerializedSolidTreeNode, identityMap: ReadonlyMap<string, string>): void {
+  if (node.kind === 'modifier') modifierStackReferencesRemap(node.settings, identityMap);
+  if (node.kind === 'group') node.children.forEach((child) => remapHierarchyNodeReferences(child, identityMap));
 }
 
 /**

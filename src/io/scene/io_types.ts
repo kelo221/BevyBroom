@@ -4,6 +4,8 @@
  */
 
 import type { EntityKind } from '@/entity/model/entity_owner_keys.js';
+import type { ModifierStackSettings } from '@/modifier/stack/modifier_stack_types.js';
+import type { ModifierStackLegacyBevelEntry } from '@/modifier/stack/legacy/modifier_stack_legacy_bevel.js';
 import type { LayerDefinition } from '@/layer/model/layer_definition.js';
 import type { LightSettings } from '@/light/model/light_settings.js';
 import type { PortalSettings } from '@/portal/model/portal_settings.js';
@@ -102,24 +104,13 @@ export interface ObjectEntry {
   sprinkleDefinition?: string;
   /** Re-editable 2D Polygon outline extrusion recipe on this brush or group. */
   polygonOutline?: import('@/tools/polygon/polygon_outline_recipe.js').PolygonOutlineRecipe;
-  /** Present when the mesh is a bevel volume. Distance is world units. */
-  modifierBevel?: {
-    distance: number;
-    segments?: number;
-    angleDegrees?: number;
-    uvFlow?: string;
-    uvLayout?: string;
-    textureId?: string;
-    blacklist?: string[];
-    uvScaleU?: number;
-    uvScaleV?: number;
-    uvOffsetU?: number;
-    uvOffsetV?: number;
-    uvRotation?: number;
-    uvOwner?: string;
-    uvPivot?: string;
-    uvSpace?: string;
-  };
+  /** Present for a modifier volume: its ordered modifier stack (schema 8). */
+  modifierStack?: ModifierStackSettings;
+  /**
+   * Bevel volume of schema 7 and older, read only: it loads as a stack with one
+   * bevel modifier. Distance is world units.
+   */
+  modifierBevel?: ModifierStackLegacyBevelEntry;
   /** Authored light settings for light entries. */
   light?: LightSettings;
   /** Authored room cell settings for room entries. */

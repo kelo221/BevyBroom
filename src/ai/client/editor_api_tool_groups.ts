@@ -14,13 +14,15 @@ import { EditorApiSelectionVisibility } from './editor_api_selection_visibility.
 import { EditorApiTextureReplace } from './editor_api_texture_replace.js';
 import { EditorApiTextureBrowser } from './editor_api_texture_browser.js';
 import { EditorApiSprinkle } from './editor_api_sprinkle.js';
+import { EditorApiModifierVolumes } from './editor_api_modifier_volumes.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 
 /**
  * Tool groups that each answer only their own tool names: layers, main window,
  * Object Properties dialog, clipboard, brush editing, face UV, displacement,
  * face edit state, viewport input, selection queries, selection visibility,
- * material replacement, the texture browser and Entity Sprinkle.
+ * material replacement, the texture browser, Entity Sprinkle and modifier
+ * volumes.
  */
 export class EditorApiToolGroups {
   private readonly layers: EditorApiLayers;
@@ -38,6 +40,7 @@ export class EditorApiToolGroups {
   private readonly textureReplace: EditorApiTextureReplace;
   private readonly textureBrowser: EditorApiTextureBrowser;
   private readonly sprinkle: EditorApiSprinkle;
+  private readonly modifierVolumes: EditorApiModifierVolumes;
 
   /**
    * Creates every tool group over the editor host.
@@ -62,6 +65,7 @@ export class EditorApiToolGroups {
     this.textureReplace = new EditorApiTextureReplace(host);
     this.textureBrowser = new EditorApiTextureBrowser();
     this.sprinkle = new EditorApiSprinkle(host);
+    this.modifierVolumes = new EditorApiModifierVolumes(host);
   }
 
   /**
@@ -87,7 +91,8 @@ export class EditorApiToolGroups {
       this.selectionVisibility.selectionVisibilityToolDispatch(name, args) ??
       this.textureReplace.textureReplaceToolDispatch(name, args) ??
       this.textureBrowser.textureBrowserToolDispatch(name) ??
-      this.sprinkle.sprinkleToolDispatch(name, args)
+      this.sprinkle.sprinkleToolDispatch(name, args) ??
+      this.modifierVolumes.modifierVolumeToolDispatch(name, args)
     );
   }
 }

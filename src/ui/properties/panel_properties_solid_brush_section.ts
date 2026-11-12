@@ -9,6 +9,8 @@ import { SolidCsgOperationIcons } from '@/ui/properties/solid_csg_operation_icon
 import type { CommandStack } from '@/commands/command_stack.js';
 import type { PanelPropertiesSection } from '@/ui/properties/panel_properties_section.js';
 import { PanelPropertiesSectionRegistry } from '@/ui/properties/panel_properties_section_registry.js';
+import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
+import { modifierVolumeSolidOperationOrNull } from '@/modifier/stack/modifier_volume_operation_command.js';
 
 /** Handlers for solid-brush context controls in the inspector. */
 export interface SolidBrushPropertyHandlers {
@@ -20,6 +22,13 @@ export interface SolidBrushPropertyHandlers {
    * @param operation New group operation.
    */
   onSetGroupOperation?: (groups: THREE.Group[], operation: SolidOperation) => void;
+  /**
+   * Sets the CSG operation of modifier volume boxes.
+   *
+   * @param volumes Modifier volumes.
+   * @param operation New operation of each volume box.
+   */
+  onSetVolumeOperation?: (volumes: THREE.Object3D[], operation: SolidOperation) => void;
   onAddBoxBrush: () => void;
   /** Moves brushes/groups to first among siblings under their own parent. */
   onMoveToFirst: (nodes: THREE.Object3D[]) => void;
@@ -31,6 +40,11 @@ export interface SolidBrushPropertyHandlers {
    * @param inverted True when CSG starts solid (carve rooms with subtract).
    */
   onSetInvertedWorld?: (inverted: boolean) => void;
+  /**
+   * Refreshes selection, outliner and views after a section changed the scene
+   * structure.
+   */
+  onSceneChanged?: () => void;
 }
 
 /** Builds and updates the inspector Solid Brush section (CSG ops + add brush). */
@@ -43,6 +57,7 @@ export class PanelPropertiesSolidBrushSection {
   private boundObjects: THREE.Object3D[];
   private hexToRgb: (hex: number) => string;
   private invertedWorldCheckbox: HTMLInputElement | null;
+  private readonly solidOnlyRows: HTMLElement[] = [];
   private readonly root: HTMLElement;
   private readonly registeredSections: readonly PanelPropertiesSection[];
 
@@ -119,6 +134,8 @@ export class PanelPropertiesSolidBrushSection {
    */
   setHandlers(handlers: SolidBrushPropertyHandlers | null): void {
     this.handlers = handlers;
+    const sceneChanged = handlers?.onSceneChanged ?? null;
+    this.registeredSections.forEach((registeredSection) => registeredSection.setSceneChanged?.(sceneChanged));
   }
 
   /**
@@ -132,34 +149,58 @@ export class PanelPropertiesSolidBrushSection {
 
   /**
    * Forwards the selection to every registered inspector section, then shows or
-   * hides the solid section and highlights the shared active operation.
+   * hides the solid section and highlights the shared active operation. A
+   * selection of only modifier volumes shows the operation buttons alone.
    *
    * @param objects Currently bound selection.
    */
   updateFromObjects(objects: THREE.Object3D[]): void {
     this.registeredSections.forEach((registeredSection) => registeredSection.updateFromObjects(objects));
     this.boundObjects = objects.slice();
-    const brushMeshes = this.collectBrushMeshes(objects);
-    const solidGroups = this.collectSolidGroups(objects);
     if (!this.hasSolidContext(objects)) {
       this.section.style.display = 'none';
       return;
     }
     this.section.style.display = 'block';
+    this.solidOnlyRowsShow(!objects.every((object) => ModifierVolume.isVolume(object)));
     this.syncInvertedWorldCheckbox(objects);
-    if (brushMeshes.length === 0 && solidGroups.length === 0) {
-      this.dimOperationButtons();
-      return;
-    }
-    if (solidGroups.length > 0 && brushMeshes.length === 0) {
-      this.highlightSharedGroupOperation(solidGroups);
-      return;
-    }
-    this.highlightSharedOperation(brushMeshes);
+    this.operationButtonsSync(objects);
   }
 
   /**
-   * Applies a CSG operation to the provided brush meshes and/or solid groups.
+   * Highlights the operation shared by the selection's brushes (or its solid
+   * groups when no brush is selected) and modifier volumes, or dims the buttons
+   * when none of them is selected.
+   *
+   * @param objects Bound selection.
+   */
+  private operationButtonsSync(objects: THREE.Object3D[]): void {
+    const brushMeshes = this.collectBrushMeshes(objects);
+    const solidGroups = this.collectSolidGroups(objects);
+    const volumes = this.collectVolumes(objects);
+    if (brushMeshes.length === 0 && solidGroups.length === 0 && volumes.length === 0) {
+      this.dimOperationButtons();
+      return;
+    }
+    const solidOperations =
+      brushMeshes.length > 0 ? this.brushOperationsRead(brushMeshes) : this.groupOperationsRead(solidGroups);
+    const operations = [...solidOperations, ...volumes.map((volume) => modifierVolumeSolidOperationOrNull(volume))];
+    this.operationButtonsPressedApply(this.operationShared(operations));
+  }
+
+  /**
+   * Shows or hides the rows that only apply to solid models: inverted world,
+   * CSG order and add box brush.
+   *
+   * @param shown True shows them.
+   */
+  private solidOnlyRowsShow(shown: boolean): void {
+    for (const row of this.solidOnlyRows) row.style.display = shown ? '' : 'none';
+  }
+
+  /**
+   * Applies a CSG operation to the provided brush meshes and/or solid groups,
+   * and to the modifier volumes of the selection.
    *
    * @param brushMeshes Editable solid brush meshes.
    * @param operation Selected operation.
@@ -167,6 +208,8 @@ export class PanelPropertiesSolidBrushSection {
    */
   applyOperation(brushMeshes: THREE.Mesh[], operation: SolidOperation, boundObjects: THREE.Object3D[]): void {
     if (!this.handlers) return;
+    const volumes = this.collectVolumes(boundObjects);
+    if (volumes.length > 0) this.handlers.onSetVolumeOperation?.(volumes, operation);
     const solidGroups = this.collectSolidGroups(boundObjects);
     if (solidGroups.length > 0 && this.handlers.onSetGroupOperation) {
       this.handlers.onSetGroupOperation(solidGroups, operation);
@@ -196,10 +239,11 @@ export class PanelPropertiesSolidBrushSection {
     content.style.display = 'flex';
     content.style.flexDirection = 'column';
     content.style.gap = '8px';
-    content.appendChild(this.createInvertedWorldRow());
-    content.appendChild(this.createOperationButtons());
-    content.appendChild(this.createOrderButtons());
-    content.appendChild(this.createAddBoxBrushButton());
+    const invertedWorldRow = this.createInvertedWorldRow();
+    const orderRow = this.createOrderButtons();
+    const addBoxBrushButton = this.createAddBoxBrushButton();
+    this.solidOnlyRows.push(invertedWorldRow, orderRow, addBoxBrushButton);
+    content.append(invertedWorldRow, this.createOperationButtons(), orderRow, addBoxBrushButton);
     return content;
   }
 
@@ -438,14 +482,36 @@ export class PanelPropertiesSolidBrushSection {
   }
 
   /**
-   * Highlights the shared CSG operation across selected solid groups.
+   * Collects modifier volumes from a selection list.
+   *
+   * @param objects Selected objects.
+   * @returns Modifier volumes.
+   */
+  private collectVolumes(objects: readonly THREE.Object3D[]): THREE.Object3D[] {
+    return objects.filter((object) => ModifierVolume.isVolume(object));
+  }
+
+  /**
+   * Reads the CSG operation of each selected solid group.
    *
    * @param groups Selected solid CSG groups.
+   * @returns Operations in selection order.
    */
-  private highlightSharedGroupOperation(groups: THREE.Group[]): void {
-    const operations = groups.map((group) => getSolidGroupOperation(group));
-    const shared = operations.every((operation) => operation === operations[0]);
-    this.operationButtonsPressedApply(shared ? operations[0] : undefined);
+  private groupOperationsRead(groups: readonly THREE.Group[]): SolidOperation[] {
+    return groups.map((group) => getSolidGroupOperation(group));
+  }
+
+  /**
+   * Returns the operation every entry shares.
+   *
+   * @param operations Operations; null marks an entry without one.
+   * @returns Shared operation, or undefined when the entries differ, one has
+   *   none, or the list is empty.
+   */
+  private operationShared(operations: readonly (SolidOperation | null)[]): SolidOperation | undefined {
+    const first = operations[0];
+    if (first === undefined || first === null) return undefined;
+    return operations.every((operation) => operation === first) ? first : undefined;
   }
 
   /**
@@ -499,6 +565,7 @@ export class PanelPropertiesSolidBrushSection {
       (object) =>
         SolidBrushVisual.isBrushObject(object) ||
         isSolidCsgGroup(object) ||
+        ModifierVolume.isVolume(object) ||
         SolidModel.isSolidModelObject(object) ||
         SolidModel.fromObject(object) !== null,
     );
@@ -513,16 +580,15 @@ export class PanelPropertiesSolidBrushSection {
   }
 
   /**
-   * Highlights the shared CSG operation across selected brushes.
+   * Reads the CSG operation of each selected brush.
    *
    * @param brushMeshes Selected brush meshes.
+   * @returns Operations in selection order.
    */
-  private highlightSharedOperation(brushMeshes: THREE.Mesh[]): void {
-    const operations = brushMeshes.map((mesh) => {
+  private brushOperationsRead(brushMeshes: readonly THREE.Mesh[]): SolidOperation[] {
+    return brushMeshes.map((mesh) => {
       const model = SolidModel.fromObject(mesh);
       return model?.findBrushByMesh(mesh)?.operation ?? SolidOperation.Additive;
     });
-    const shared = operations.every((operation) => operation === operations[0]);
-    this.operationButtonsPressedApply(shared ? operations[0] : undefined);
   }
 }

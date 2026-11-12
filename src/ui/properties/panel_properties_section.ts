@@ -19,11 +19,22 @@ export interface PanelPropertiesSection {
   /** Shows, hides and fills the section for the current inspector selection. */
   updateFromObjects(objects: readonly THREE.Object3D[]): void;
   /**
+   * Sets what runs after the section changed the scene structure, such as
+   * removing an object, or null to clear it. Sections that never change the
+   * structure leave it out.
+   */
+  setSceneChanged?(callback: (() => void) | null): void;
+  /**
    * Returns true for sections whose fields are an entity's keyvalues, which
    * Object Properties shows as rows of its Class Info table. Sections without
    * it are not keyvalues.
    */
   keyvaluesSectionIs?(): boolean;
+  /**
+   * Returns the id of the Object Properties tab that hosts the section.
+   * Sections without it belong to the Properties tab.
+   */
+  objectPropertiesTabIdGet?(): string;
 }
 
 /** Creates one inspector section with the panel's chrome. */

@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { UndoCommand } from '@/commands/command_undo.js';
 import { ObjectDuplicator } from '@/outliner/hierarchy/object_duplicator.js';
 import { sortObjectsBySceneOrder } from '@/utils/utils_hierarchy.js';
-import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js';
+import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
+import { findSolidModelRoot } from '@/solid/model/solid_group.js';
 import { modifierBevelRefreshScene } from '@/modifier/compile/modifier_bevel_scene_refresh.js';
 
 /**
@@ -36,11 +37,31 @@ export class CommandObjectDuplicate implements UndoCommand {
   execute(): void {
     if (this.executed) return;
     this.clonedMeshes = ObjectDuplicator.duplicate(this.sourceMeshes, this.offset);
-    this.clonedMeshes.forEach((clone) => {
-      this.parent.add(clone);
+    this.clonedMeshes.forEach((clone, index) => {
+      this.place(this.sourceMeshes[index], clone);
     });
     this.executed = true;
-    this.refreshBevelVolumes();
+    this.refreshModifierVolumes();
+  }
+
+  /**
+   * Adds a clone under the parent. The clone of a modifier volume inside a
+   * solid model stays right after its source, so it affects the same earlier
+   * nodes there.
+   *
+   * @param source Source mesh, or undefined when the clone has none.
+   * @param clone Its clone.
+   */
+  private place(source: THREE.Mesh | undefined, clone: THREE.Mesh): void {
+    const home = source?.parent;
+    const staysHome = source !== undefined && ModifierVolume.isVolume(source) && findSolidModelRoot(source) !== null;
+    if (!staysHome || !home) {
+      this.parent.add(clone);
+      return;
+    }
+    home.add(clone);
+    home.children.splice(home.children.indexOf(clone), 1);
+    home.children.splice(home.children.indexOf(source) + 1, 0, clone);
   }
 
   /** Undoes the duplication by removing clones and disposing resources. */
@@ -54,12 +75,12 @@ export class CommandObjectDuplicate implements UndoCommand {
     });
     this.clonedMeshes = [];
     this.executed = false;
-    this.refreshBevelVolumes();
+    this.refreshModifierVolumes();
   }
 
-  /** Rebuilds solids when a duplicated object is a bevel volume. */
-  private refreshBevelVolumes(): void {
-    const volumes = this.sourceMeshes.some((mesh) => ModifierVolumeBevel.isVolume(mesh));
+  /** Rebuilds solids when a duplicated object is a modifier volume. */
+  private refreshModifierVolumes(): void {
+    const volumes = this.sourceMeshes.some((mesh) => ModifierVolume.isVolume(mesh));
     if (!volumes) return;
     modifierBevelRefreshScene(rootOf(this.parent));
   }

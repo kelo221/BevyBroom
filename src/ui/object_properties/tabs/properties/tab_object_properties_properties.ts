@@ -8,6 +8,9 @@ import type { PanelProperties } from '@/ui/properties/panel_properties.js';
 import type { PanelPropertiesSection } from '@/ui/properties/panel_properties_section.js';
 import { listItemsIdentical } from '@/utils/utils_list.js';
 
+/** Id of the Properties tab, which hosts sections that name no tab. */
+const OBJECT_PROPERTIES_PROPERTIES_TAB_ID = 'properties';
+
 /**
  * Properties tab of the Object Properties dialog: hosts the editor's shared
  * properties panel (transform, material, bevel and other registered sections)
@@ -69,7 +72,7 @@ export class TabObjectPropertiesProperties implements ObjectPropertiesTabInstanc
    */
   static registrationCreate(): ObjectPropertiesTabRegistration {
     return {
-      id: 'properties',
+      id: OBJECT_PROPERTIES_PROPERTIES_TAB_ID,
       label: 'Properties',
       order: 45,
       mount: (context) => new TabObjectPropertiesProperties(context),
@@ -96,13 +99,17 @@ export class TabObjectPropertiesProperties implements ObjectPropertiesTabInstanc
   }
 
   /**
-   * Returns whether the tab shows a registered panel section; keyvalue sections
-   * such as lights and game components are edited in the Class Info tab.
+   * Returns whether the tab shows a registered panel section. Keyvalue sections
+   * such as lights and game components are edited in the Class Info tab, and
+   * sections that belong to another Object Properties tab are left to that
+   * tab.
    *
    * @param section Registered panel section.
-   * @returns False for keyvalue sections.
+   * @returns True when the section belongs to this tab and is not a keyvalue
+   *   section.
    */
   private static sectionShownInTab(section: PanelPropertiesSection): boolean {
-    return section.keyvaluesSectionIs?.() !== true;
+    const hostingTabId = section.objectPropertiesTabIdGet?.() ?? OBJECT_PROPERTIES_PROPERTIES_TAB_ID;
+    return section.keyvaluesSectionIs?.() !== true && hostingTabId === OBJECT_PROPERTIES_PROPERTIES_TAB_ID;
   }
 }

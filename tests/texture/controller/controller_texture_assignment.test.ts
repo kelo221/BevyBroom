@@ -17,9 +17,9 @@ import {
 } from '@/texture/paint/state_texture_paint.js';
 import { setTextureMapCacheForTests, TextureMapCache } from '@/texture/library/texture_map_cache.js';
 import { createTextureBrowserEntry } from '@/texture/library/texture_browser_entry.js';
-import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js';
 import { mockObjectUrlApis } from '../../texture/library/utils_object_url_test.js';
 import { TEXTURE_LIBRARY_SOURCE_LOCAL_FOLDER } from '@/texture/library/texture_library_source.js';
+import { modifierVolumeTemplateCreate } from '@/modifier/stack/modifier_volume_templates.js';
 
 describe('TextureAssignmentController', () => {
   let scene: THREE.Scene;
@@ -78,7 +78,7 @@ describe('TextureAssignmentController', () => {
   it('leaves a bevel volume unpainted when the browser texture is chosen', () => {
     const status = vi.fn();
     controller.setStatusCallback(status);
-    const volume = ModifierVolumeBevel.create();
+    const volume = modifierVolumeTemplateCreate('bevel');
     const before = getFaceTextureMaps(volume);
     world.add(volume);
     selection.selectObject(volume);
@@ -90,6 +90,6 @@ describe('TextureAssignmentController', () => {
     controller.onTextureSelected(entry);
     expect(commandStack.getUndoCount()).toBe(0);
     expect(getFaceTextureMaps(volume)).toEqual(before);
-    expect(status).toHaveBeenCalledWith('Bevel volumes keep their texture in the volume settings');
+    expect(status).toHaveBeenCalledWith('Modifier volumes keep their texture in the modifier settings');
   });
 });

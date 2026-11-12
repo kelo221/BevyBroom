@@ -6,7 +6,7 @@ import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { SOLID_BRUSH_EDGE_USERDATA_KEY } from '@/solid/model/solid_brush_edge_materials.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
-import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js';
+import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
 import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
 
 /**
@@ -49,7 +49,7 @@ export class ObjectDuplicator {
     clone.scale.copy(mesh.scale);
     clone.name = hierarchyNameAllocator.allocateFromSourceName(mesh.name);
     this.cloneUserDataMarkers(mesh, clone);
-    ModifierVolumeBevel.copyOntoClone(mesh, clone);
+    ModifierVolume.copyOntoClone(mesh, clone);
     this.cloneFaceTextureMaps(mesh, clone);
     this.cloneEdgeHelpers(mesh, clone);
     ObjectDataContributorRegistry.duplicateDataCopy(mesh, clone);

@@ -4,7 +4,7 @@ import { SceneDeserializer } from '@/io/scene/scene_deserializer.js';
 import type { ObjectEntry } from '@/io/scene/io_types.js';
 import { layerIdStoredWrite } from '@/layer/model/layer_membership.js';
 import { modifierBevelRefreshScene } from '@/modifier/compile/modifier_bevel_scene_refresh.js';
-import { ModifierVolumeBevel } from '@/modifier/volume/modifier_volume_bevel.js';
+import { modifierVolumeIs } from '@/modifier/volume/modifier_volume_is.js';
 import { SolidModelCodec, type SerializedSolidModel } from '@/solid/io/solid_model_codec.js';
 import { solidSerializedTransformSpaceChange } from '@/solid/io/solid_model_codec_transform.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
@@ -46,7 +46,7 @@ export class CommandClipboardPaste implements UndoCommand {
   /** Adds the pasted objects, brushes and groups to the scene. */
   execute(): void {
     this.objects.forEach((object) => this.worldObject.add(object));
-    this.bevelVolumesRefreshWhenPasted();
+    this.modifierVolumesRefreshWhenPasted();
     this.brushNodesCreate();
   }
 
@@ -54,7 +54,7 @@ export class CommandClipboardPaste implements UndoCommand {
   undo(): void {
     this.brushNodesRemove();
     this.objects.forEach((object) => object.removeFromParent());
-    this.bevelVolumesRefreshWhenPasted();
+    this.modifierVolumesRefreshWhenPasted();
   }
 
   /**
@@ -142,12 +142,12 @@ export class CommandClipboardPaste implements UndoCommand {
     return groups;
   }
 
-  /** Recompiles bevel volumes of the world when a pasted object is one. */
-  private bevelVolumesRefreshWhenPasted(): void {
+  /** Recompiles modifier volumes of the world when a pasted object is one. */
+  private modifierVolumesRefreshWhenPasted(): void {
     const pastesVolume = this.objects.some((object) => {
       let found = false;
       object.traverse((descendant) => {
-        found = found || ModifierVolumeBevel.isVolume(descendant);
+        found = found || modifierVolumeIs(descendant);
       });
       return found;
     });

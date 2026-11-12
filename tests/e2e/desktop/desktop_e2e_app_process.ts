@@ -13,6 +13,19 @@ import { DESKTOP_WINDOW_HIDDEN_ENVIRONMENT_KEY } from '@/desktop/desktop_window_
 const DESKTOP_E2E_OUTPUT_CHECK_MILLISECONDS = 100;
 
 /**
+ * Longest wait for one launch to announce its MCP URL before the app is started
+ * again. A healthy launch announces it within a few seconds; a launch whose
+ * WebView2 environment never comes up never does.
+ */
+const DESKTOP_E2E_LAUNCH_ATTEMPT_MILLISECONDS = 25000;
+
+/**
+ * Launcher output line announcing the main process it spawned, capturing its
+ * id.
+ */
+const DESKTOP_E2E_SPAWN_EVENT_PATTERN = /\[electrobun:process\] \{"event":"spawn".*?"pid":(\d+)/g;
+
+/**
  * Environment variable WebView2 reads its user data folder from, ahead of the
  * app's choice.
  */
@@ -68,6 +81,7 @@ export class DesktopE2eAppProcess {
   private readonly isWindowShown: boolean;
   private child: ChildProcess | null = null;
   private output = '';
+  private launchOutputStart = 0;
   private readonly webviewDataDirectory: string;
 
   /**
@@ -107,6 +121,7 @@ export class DesktopE2eAppProcess {
       [DESKTOP_WINDOW_HIDDEN_ENVIRONMENT_KEY]: this.isWindowShown ? '0' : '1',
       [WEBVIEW2_USER_DATA_FOLDER_ENVIRONMENT_KEY]: this.webviewDataDirectory,
     };
+    this.launchOutputStart = this.output.length;
     const child = spawn(this.executable, [], { env: environment, stdio: ['ignore', 'pipe', 'pipe'] });
     child.stdout?.on('data', (chunk: Buffer) => this.outputAppend(chunk));
     child.stderr?.on('data', (chunk: Buffer) => this.outputAppend(chunk));
@@ -114,34 +129,93 @@ export class DesktopE2eAppProcess {
   }
 
   /**
-   * Waits until the app announces the URL of its MCP server.
+   * Waits until the started app announces the URL of its MCP server. A launch
+   * that announces nothing within one attempt window is stopped and started
+   * again, as long as the overall wait allows.
    *
-   * @param timeoutMilliseconds Longest wait.
+   * @param timeoutMilliseconds Longest overall wait.
    * @returns The MCP endpoint URL.
    */
   async mcpUrlWait(timeoutMilliseconds: number): Promise<string> {
-    const outputStart = this.output.length;
     const end = performance.now() + timeoutMilliseconds;
+    let outputStart = this.output.length;
     while (performance.now() < end) {
+      const attemptEnd = Math.min(end, performance.now() + DESKTOP_E2E_LAUNCH_ATTEMPT_MILLISECONDS);
+      const url = await this.mcpUrlWaitUntil(outputStart, attemptEnd);
+      if (url !== null) {
+        return url;
+      }
+      if (performance.now() >= end) {
+        break;
+      }
+      outputStart = await this.launchRestart();
+    }
+    throw new Error(`The desktop app announced no MCP URL; output:\n${this.output}`);
+  }
+
+  /**
+   * Looks at the output written since a given offset until it announces the MCP
+   * URL or a deadline passes.
+   *
+   * @param outputStart Offset in the collected output where the launch began.
+   * @param deadline Value of performance.now() after which the look stops.
+   * @returns The URL, or null when none was announced before the deadline.
+   */
+  private async mcpUrlWaitUntil(outputStart: number, deadline: number): Promise<string | null> {
+    while (performance.now() < deadline) {
       const url = this.mcpUrlFind(this.output.slice(outputStart));
       if (url !== null) {
         return url;
       }
       await new Promise((resolve) => setTimeout(resolve, DESKTOP_E2E_OUTPUT_CHECK_MILLISECONDS));
     }
-    throw new Error(`The desktop app announced no MCP URL; output:\n${this.output}`);
+    return null;
   }
 
-  /** Stops the app with every process it started and waits until it exited. */
+  /**
+   * Stops a launch that announced nothing and starts the app again, noting the
+   * restart in the collected output.
+   *
+   * @returns Offset in the collected output where the new launch begins.
+   */
+  private async launchRestart(): Promise<number> {
+    await this.stop();
+    this.output += '\n[e2e] the launch announced no MCP URL; starting the app again\n';
+    const outputStart = this.output.length;
+    this.start();
+    return outputStart;
+  }
+
+  /**
+   * Stops the app with every process it started and waits until the launcher
+   * exited. The main process the launcher announced is ended too, since it
+   * outlives a launcher that already exited and is then out of reach of the
+   * launcher's process tree.
+   */
   async stop(): Promise<void> {
     const child = this.child;
     this.child = null;
-    if (!child || child.exitCode !== null || child.pid === undefined) {
+    if (!child) {
       return;
     }
-    const exited = once(child, 'exit');
-    this.processTreeKill(child);
-    await exited;
+    const mainProcessIds = this.mainProcessIdsRead();
+    if (child.exitCode === null && child.pid !== undefined) {
+      const exited = once(child, 'exit');
+      this.processTreeKill(child.pid);
+      await exited;
+    }
+    mainProcessIds.forEach((processId) => this.processTreeKill(processId));
+  }
+
+  /**
+   * Returns the ids of the main processes the current launch's launcher
+   * announced spawning.
+   *
+   * @returns Process ids, in announcement order.
+   */
+  private mainProcessIdsRead(): number[] {
+    const launchOutput = this.output.slice(this.launchOutputStart);
+    return Array.from(launchOutput.matchAll(DESKTOP_E2E_SPAWN_EVENT_PATTERN), (match) => Number(match[1]));
   }
 
   /**
@@ -165,16 +239,19 @@ export class DesktopE2eAppProcess {
   }
 
   /**
-   * Ends a process and its children; the launcher starts the main process and
-   * the webview as children.
+   * Ends a process and its children, doing nothing when it is already gone.
    *
-   * @param child Launcher process.
+   * @param processId Id of the process.
    */
-  private processTreeKill(child: ChildProcess): void {
+  private processTreeKill(processId: number): void {
     if (process.platform === 'win32') {
-      spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+      spawnSync('taskkill', ['/pid', String(processId), '/T', '/F'], { stdio: 'ignore' });
       return;
     }
-    child.kill();
+    try {
+      process.kill(processId);
+    } catch {
+      return;
+    }
   }
 }

@@ -4,6 +4,7 @@ import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings
 import type { KeyboardShortcutAction, KeyboardShortcutSettings } from '@/settings/store/settings_types.js';
 import {
   handlerKeyboardShortcutIsTypingInFormField,
+  handlerKeyboardShortcutFieldAllowsEditorUndo,
   type ActionAvailabilityGuard,
   type ActionCallback,
   type ActionRegistration,
@@ -606,14 +607,16 @@ export class HandlerKeyboardShortcut {
 
   /**
    * Processes a keydown event through the unified Shape Editor-style pipeline.
-   * Order: form-field ignore → tool event router (navigation gate, active
-   * receiver, busy exclusivity, global fallthrough) → legacy modal/global when
-   * no router is registered.
+   * Order: form-field ignore (only editor undo and redo pass from dropdowns and
+   * untyped inputs) → tool event router (navigation gate, active receiver, busy
+   * exclusivity, global fallthrough) → legacy modal/global when no router is
+   * registered.
    *
    * @param event The keyboard event to process.
    */
   private handleKeyDown(event: KeyboardEvent): void {
     if (handlerKeyboardShortcutIsTypingInFormField(event)) {
+      this.formFieldUndoRedoHandle(event);
       return;
     }
     if (this.onToolEventRouterKeyDown) {
@@ -628,6 +631,18 @@ export class HandlerKeyboardShortcut {
       return;
     }
     this.handleGlobalKeyDown(event);
+  }
+
+  /**
+   * Runs editor undo or redo for a key pressed in a focused dropdown or untyped
+   * input; text fields keep their own text undo.
+   *
+   * @param event The keyboard event raised inside a form field.
+   */
+  private formFieldUndoRedoHandle(event: KeyboardEvent): void {
+    if (handlerKeyboardShortcutFieldAllowsEditorUndo(event)) {
+      handlerKeyboardShortcutHandleUndoRedoKeys(this.toActionHost(), event);
+    }
   }
 
   /**

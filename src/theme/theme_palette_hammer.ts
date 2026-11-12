@@ -256,6 +256,8 @@ export const ThemePaletteHammer = Object.freeze({
   solidNonConvexTintColor: 0x9b59b6,
   /** Volume preview of bevel modifier volumes. */
   modifierVolumeColor: 0xe67e22,
+  /** Mirror plane guide lines drawn inside a selected modifier volume. */
+  modifierStackMirrorGuideColor: 0xff3fb4,
   /** Box of the cordon bounds. */
   cordonColor: 0xff5533,
   /** Sphere and normal arrow of the displacement sculpt cursor. */

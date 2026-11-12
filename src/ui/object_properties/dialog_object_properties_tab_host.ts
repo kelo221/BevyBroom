@@ -9,13 +9,20 @@ import type {
 /** Tab context without the page container, shared by every tab. */
 export type DialogObjectPropertiesTabContextShared = Omit<ObjectPropertiesTabContext, 'container'>;
 
+/** A registered tab together with the instance mounted from it. */
+interface DialogObjectPropertiesTabMounted {
+  readonly registration: ObjectPropertiesTabRegistration;
+  readonly instance: ObjectPropertiesTabInstance;
+}
+
 /**
- * Tab book of the Object Properties dialog: mounts one page per registered tab
- * and forwards refresh, deactivate and dispose to the mounted tabs.
+ * Tab book of the Object Properties dialog: mounts one page per registered tab,
+ * lists only the tabs that apply to the selection and forwards refresh,
+ * deactivate and dispose to the mounted tabs.
  */
 export class DialogObjectPropertiesTabHost {
   private readonly tabBook: TabBook;
-  private readonly instances: ObjectPropertiesTabInstance[];
+  private readonly mountedTabs: readonly DialogObjectPropertiesTabMounted[];
 
   /**
    * Mounts every registered tab.
@@ -28,7 +35,7 @@ export class DialogObjectPropertiesTabHost {
     sharedContext: DialogObjectPropertiesTabContextShared,
   ) {
     this.tabBook = new TabBook({ ariaLabel: 'Object Properties tabs', variant: 'compact' });
-    this.instances = registrations.map((registration) => this.tabMount(registration, sharedContext));
+    this.mountedTabs = registrations.map((registration) => this.tabMount(registration, sharedContext));
   }
 
   /**
@@ -50,23 +57,40 @@ export class DialogObjectPropertiesTabHost {
   }
 
   /**
-   * Refreshes every tab for the edited objects.
+   * Lists or hides each tab for the edited objects, then refreshes the tabs
+   * that apply to them.
    *
    * @param objects Edited objects.
    */
   refresh(objects: readonly THREE.Object3D[]): void {
-    this.instances.forEach((instance) => instance.refresh(objects));
+    this.mountedTabs.forEach((mounted) => this.mountedTabRefresh(mounted, objects));
   }
 
   /** Lets every tab release what it borrowed while the dialog was open. */
   deactivate(): void {
-    this.instances.forEach((instance) => instance.deactivate?.());
+    this.mountedTabs.forEach((mounted) => mounted.instance.deactivate?.());
   }
 
   /** Disposes every tab and the tab book. */
   dispose(): void {
-    this.instances.forEach((instance) => instance.dispose());
+    this.mountedTabs.forEach((mounted) => mounted.instance.dispose());
     this.tabBook.dispose();
+  }
+
+  /**
+   * Updates the listing of one tab for the edited objects and refreshes it when
+   * it applies. A tab that does not apply is not refreshed, and is refreshed
+   * again the next time it applies.
+   *
+   * @param mounted Mounted tab.
+   * @param objects Edited objects.
+   */
+  private mountedTabRefresh(mounted: DialogObjectPropertiesTabMounted, objects: readonly THREE.Object3D[]): void {
+    const isApplying = mounted.registration.appliesToIs?.(objects) ?? true;
+    this.tabBook.tabVisibleSet(mounted.registration.id, isApplying);
+    if (isApplying) {
+      mounted.instance.refresh(objects);
+    }
   }
 
   /**
@@ -74,18 +98,18 @@ export class DialogObjectPropertiesTabHost {
    *
    * @param registration Tab registration.
    * @param sharedContext Context shared by every tab.
-   * @returns Mounted tab.
+   * @returns Registration with its mounted tab.
    */
   private tabMount(
     registration: ObjectPropertiesTabRegistration,
     sharedContext: DialogObjectPropertiesTabContextShared,
-  ): ObjectPropertiesTabInstance {
+  ): DialogObjectPropertiesTabMounted {
     const page = document.createElement('div');
     page.className = 'dialog-object-properties-page';
     page.dataset['objectPropertiesTab'] = registration.id;
     page.style.display = 'flex';
     page.style.flexDirection = 'column';
     this.tabBook.tabAdd({ id: registration.id, label: registration.label, pageResolve: () => page });
-    return registration.mount({ ...sharedContext, container: page });
+    return { registration, instance: registration.mount({ ...sharedContext, container: page }) };
   }
 }

@@ -1,5 +1,6 @@
 import type { EntityClass } from '@/entity/class/entity_class.js';
 import { EntityClassBrushGame } from '@/entity/class/classes/entity_class_brush_game.js';
+import { EntityClassBrushModifierVolume } from '@/entity/class/classes/entity_class_brush_modifier_volume.js';
 import { EntityClassBrushSolidWorld } from '@/entity/class/classes/entity_class_brush_solid_world.js';
 import { EntityClassPointEntityOwner } from '@/entity/class/classes/entity_class_point_entity_owner.js';
 import { EntityClassPointGame } from '@/entity/class/classes/entity_class_point_game.js';
@@ -48,6 +49,7 @@ function entityClassProviderBrushes(): readonly EntityClass[] {
   const brushGameClasses = GameEntityClassRegistry.classesList().filter((gameClass) => gameClass.placement === 'any');
   return [
     ...brushGameClasses.map((gameClass) => new EntityClassBrushGame(gameClass)),
+    new EntityClassBrushModifierVolume(),
     new EntityClassBrushSolidWorld(),
   ];
 }

@@ -13,8 +13,10 @@ import {
   modifierVolumeBlacklistPrune,
   modifierVolumeTargetRows,
 } from '@/modifier/volume/modifier_volume_target_tree.js';
-import { modifierBevelVolumesHittingBrush } from '@/modifier/compile/modifier_bevel_compile_list.js';
-import { PanelPropertiesBevelVolumeSection } from '@/ui/properties/panel_properties_bevel_volume_section.js';
+import { modifierStackCaptureUnits } from '@/modifier/stack/evaluate/modifier_stack_capture.js';
+import { PanelPropertiesModifierStackSection } from '@/modifier/stack/ui/panel_properties_modifier_stack_section.js';
+import { modifierVolumeTemplateCreate } from '@/modifier/stack/modifier_volume_templates.js';
+import { modifierVolumeTargetIdRead } from '@/modifier/volume/modifier_volume_target_id.js';
 
 describe('volume blacklist', () => {
   it('lists touching brushes and their groups, checked until excluded', () => {
@@ -23,7 +25,7 @@ describe('volume blacklist', () => {
     expect(rows.map((row) => row.name)).toEqual(['DefaultModel', 'Group2', 'BrushNear']);
     expect(rows.map((row) => row.depth)).toEqual([0, 1, 2]);
     expect(rows.every((row) => row.checked)).toBe(true);
-    modifierVolumeBlacklistWrite(scene.volume, [scene.far.uuid]);
+    modifierVolumeBlacklistWrite(scene.volume, [modifierVolumeTargetIdRead(scene.far)]);
     const kept = modifierVolumeTargetRows(scene.volume, scene.world);
     expect(kept.map((row) => row.name)).toContain('BrushFar');
     expect(kept.find((row) => row.name === 'BrushFar')?.checked).toBe(false);
@@ -33,34 +35,35 @@ describe('volume blacklist', () => {
     const scene = coveredScene();
     modifierVolumeBlacklistWrite(scene.volume, [scene.group.uuid]);
     expect(modifierVolumeBlacklistIgnores(scene.volume, scene.near)).toBe(true);
-    expect(modifierBevelVolumesHittingBrush(scene.nearBrush, [scene.volume])).toEqual([]);
+    const solidRoot = scene.group.parent ?? scene.world;
+    expect(modifierStackCaptureUnits([scene.nearBrush], solidRoot, scene.volume, 'brush')).toEqual([]);
     modifierVolumeBlacklistWrite(scene.volume, []);
-    expect(modifierBevelVolumesHittingBrush(scene.nearBrush, [scene.volume])).toHaveLength(1);
+    expect(modifierStackCaptureUnits([scene.nearBrush], solidRoot, scene.volume, 'brush')).toHaveLength(1);
   });
 
   it('drops an exclusion after the object is gone', () => {
     const scene = coveredScene();
-    modifierVolumeBlacklistWrite(scene.volume, [scene.far.uuid, 'missing-object']);
+    modifierVolumeBlacklistWrite(scene.volume, [modifierVolumeTargetIdRead(scene.far), 'missing-object']);
     expect(modifierVolumeBlacklistPrune(scene.volume, scene.world)).toBe(true);
-    expect(modifierVolumeBlacklistRead(scene.volume)).toEqual([scene.far.uuid]);
+    expect(modifierVolumeBlacklistRead(scene.volume)).toEqual([modifierVolumeTargetIdRead(scene.far)]);
   });
 
   it('omits the unnamed world group under the scene', () => {
     const scene = coveredScene();
     new THREE.Scene().add(scene.world);
-    const section = new PanelPropertiesBevelVolumeSection(createPlain, createHeader);
+    const section = new PanelPropertiesModifierStackSection(createPlain, createHeader);
     section.updateFromObjects([scene.volume]);
     expect(checkboxNames(section.getElement())).toEqual(['DefaultModel', 'Group2', 'BrushNear']);
   });
 
   it('stores an unchecked inspector row and clears it when checked again', () => {
     const scene = coveredScene();
-    const section = new PanelPropertiesBevelVolumeSection(createPlain, createHeader);
+    const section = new PanelPropertiesModifierStackSection(createPlain, createHeader);
     section.updateFromObjects([scene.volume]);
     const box = checkboxNamed(section.getElement(), 'BrushNear');
     box.checked = false;
     box.dispatchEvent(new Event('change'));
-    expect(ModifierVolumeBevel.readSettings(scene.volume).blacklist).toEqual([scene.near.uuid]);
+    expect(ModifierVolumeBevel.readSettings(scene.volume).blacklist).toEqual([modifierVolumeTargetIdRead(scene.near)]);
     box.checked = true;
     box.dispatchEvent(new Event('change'));
     expect(ModifierVolumeBevel.readSettings(scene.volume).blacklist).toEqual([]);
@@ -133,7 +136,7 @@ function placeScene(
   const far = namedMesh(farBrush, 'BrushFar');
   far.position.set(20, 0, 0);
   world.add(model.root);
-  const volume = ModifierVolumeBevel.create();
+  const volume = modifierVolumeTemplateCreate('bevel');
   volume.scale.set(6, 6, 6);
   world.add(volume);
   world.updateMatrixWorld(true);

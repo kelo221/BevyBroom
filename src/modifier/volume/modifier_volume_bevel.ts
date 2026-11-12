@@ -1,8 +1,10 @@
-import * as THREE from 'three';
-import { Theme } from '@/theme.js';
-import { SKIP_FACE_PICK_USERDATA_KEY } from '@/solid/model/solid_brush_visual.js';
-import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
-import { ModifierVolumeBevelRegistry } from './modifier_volume_bevel_registry.js';
+import {
+  modifierBevelOptionsRead,
+  modifierBevelOptionsWrite,
+  type ModifierBevelOptions,
+} from './modifier_volume_bevel_options.js';
+import type * as THREE from 'three';
+import { modifierVolumeRecordBevel, modifierVolumeRecordHasBevel } from './modifier_volume_record.js';
 import { modifierVolumeBlacklistRead, modifierVolumeBlacklistWrite } from './modifier_volume_blacklist.js';
 import {
   modifierBevelReadUvPlacement,
@@ -15,10 +17,8 @@ import {
   MODIFIER_VOLUME_BEVEL_DEFAULT_DISTANCE,
   MODIFIER_VOLUME_BEVEL_DEFAULT_SEGMENTS,
   MODIFIER_VOLUME_BEVEL_DISTANCE_KEY,
-  MODIFIER_VOLUME_BEVEL_EDGE_KEY,
   MODIFIER_VOLUME_BEVEL_MAX_SEGMENTS,
   MODIFIER_VOLUME_BEVEL_SEGMENTS_KEY,
-  MODIFIER_VOLUME_BEVEL_USERDATA_KEY,
   MODIFIER_VOLUME_BEVEL_TEXTURE_KEY,
   MODIFIER_VOLUME_BEVEL_UV_FLOW_KEY,
   MODIFIER_VOLUME_BEVEL_UV_LAYOUT_KEY,
@@ -33,7 +33,9 @@ import {
 
 /** Editable chamfer controls stored on a bevel volume. */
 export interface ModifierBevelVolumeSettings {
-  /** World-space distance along each face. */
+  /** Optional convex bevel controls; absent preserves legacy behavior. */
+  options?: ModifierBevelOptions;
+  /** Nonnegative width amount in world meters, or percentage in Percent mode. */
   distance: number;
   /** Profile face count. */
   segments: number;
@@ -65,8 +67,6 @@ export interface ModifierBevelVolumeSettings {
   uvSpace: ModifierBevelUvSpace;
 }
 
-const VOLUME_COLOR = Theme.modifierVolumeColor;
-
 /**
  * Copies the UV placement fields out of a settings object.
  *
@@ -87,8 +87,8 @@ function modifierBevelPlacementOf(settings: ModifierBevelVolumeSettings): Modifi
 }
 
 /**
- * Scene object that chamfers brush edges inside its box. The box is ordinary
- * transformable geometry; derived brush faces are never stored on it.
+ * Reads and writes bevel modifier settings on a modifier volume, a bevel step
+ * proxy, or a plain settings carrier.
  */
 export class ModifierVolumeBevel {
   /**
@@ -98,17 +98,17 @@ export class ModifierVolumeBevel {
    * @returns True when the bevel-volume flag is set.
    */
   static isVolume(object: THREE.Object3D): boolean {
-    return object.userData[MODIFIER_VOLUME_BEVEL_USERDATA_KEY] === true;
+    return modifierVolumeRecordHasBevel(object);
   }
 
   /**
-   * Reads the chamfer distance, falling back to the default.
+   * Reads the width amount, falling back to the default.
    *
    * @param volume Bevel volume.
-   * @returns World-space distance, never negative.
+   * @returns Width amount, never negative. Percent mode uses 0–100.
    */
   static readDistance(volume: THREE.Object3D): number {
-    const stored = volume.userData[MODIFIER_VOLUME_BEVEL_DISTANCE_KEY];
+    const stored = modifierVolumeRecordBevel(volume)[MODIFIER_VOLUME_BEVEL_DISTANCE_KEY];
     if (typeof stored !== 'number' || !Number.isFinite(stored)) {
       return MODIFIER_VOLUME_BEVEL_DEFAULT_DISTANCE;
     }
@@ -116,14 +116,15 @@ export class ModifierVolumeBevel {
   }
 
   /**
-   * Writes the chamfer distance onto the volume.
+   * Writes the width amount onto the volume.
    *
    * @param volume Bevel volume.
-   * @param distance World-space distance.
+   * @param distance World-space meters, or percentage in Percent mode.
    */
   static writeDistance(volume: THREE.Object3D, distance: number): void {
     const safe = Number.isFinite(distance) ? Math.max(0, distance) : 0;
-    volume.userData[MODIFIER_VOLUME_BEVEL_DISTANCE_KEY] = safe;
+    modifierVolumeRecordBevel(volume)[MODIFIER_VOLUME_BEVEL_DISTANCE_KEY] =
+      modifierBevelOptionsRead(volume).widthMode === 'percent' ? Math.min(100, safe) : safe;
   }
 
   /**
@@ -133,7 +134,7 @@ export class ModifierVolumeBevel {
    * @returns Integer from 1 through the segment cap.
    */
   static readSegments(volume: THREE.Object3D): number {
-    return modifierBevelClampSegments(volume.userData[MODIFIER_VOLUME_BEVEL_SEGMENTS_KEY]);
+    return modifierBevelClampSegments(modifierVolumeRecordBevel(volume)[MODIFIER_VOLUME_BEVEL_SEGMENTS_KEY]);
   }
 
   /**
@@ -143,7 +144,7 @@ export class ModifierVolumeBevel {
    * @param segments Requested face count.
    */
   static writeSegments(volume: THREE.Object3D, segments: number): void {
-    volume.userData[MODIFIER_VOLUME_BEVEL_SEGMENTS_KEY] = modifierBevelClampSegments(segments);
+    modifierVolumeRecordBevel(volume)[MODIFIER_VOLUME_BEVEL_SEGMENTS_KEY] = modifierBevelClampSegments(segments);
   }
 
   /**
@@ -153,7 +154,7 @@ export class ModifierVolumeBevel {
    * @returns Degrees from 0 through 180.
    */
   static readAngleDegrees(volume: THREE.Object3D): number {
-    return modifierBevelClampAngle(volume.userData[MODIFIER_VOLUME_BEVEL_ANGLE_KEY]);
+    return modifierBevelClampAngle(modifierVolumeRecordBevel(volume)[MODIFIER_VOLUME_BEVEL_ANGLE_KEY]);
   }
 
   /**
@@ -163,7 +164,7 @@ export class ModifierVolumeBevel {
    * @param angleDegrees Requested limit.
    */
   static writeAngleDegrees(volume: THREE.Object3D, angleDegrees: number): void {
-    volume.userData[MODIFIER_VOLUME_BEVEL_ANGLE_KEY] = modifierBevelClampAngle(angleDegrees);
+    modifierVolumeRecordBevel(volume)[MODIFIER_VOLUME_BEVEL_ANGLE_KEY] = modifierBevelClampAngle(angleDegrees);
   }
 
   /**
@@ -173,7 +174,7 @@ export class ModifierVolumeBevel {
    * @returns Stored flow, or winding when the value is missing.
    */
   static readUvFlow(volume: THREE.Object3D): ModifierBevelUvFlow {
-    return modifierBevelClampUvFlow(volume.userData[MODIFIER_VOLUME_BEVEL_UV_FLOW_KEY]);
+    return modifierBevelClampUvFlow(modifierVolumeRecordBevel(volume)[MODIFIER_VOLUME_BEVEL_UV_FLOW_KEY]);
   }
 
   /**
@@ -183,7 +184,7 @@ export class ModifierVolumeBevel {
    * @param flow Requested flow.
    */
   static writeUvFlow(volume: THREE.Object3D, flow: string): void {
-    volume.userData[MODIFIER_VOLUME_BEVEL_UV_FLOW_KEY] = modifierBevelClampUvFlow(flow);
+    modifierVolumeRecordBevel(volume)[MODIFIER_VOLUME_BEVEL_UV_FLOW_KEY] = modifierBevelClampUvFlow(flow);
   }
 
   /**
@@ -193,7 +194,7 @@ export class ModifierVolumeBevel {
    * @returns Stored layout, or continue when the value is missing.
    */
   static readUvLayout(volume: THREE.Object3D): ModifierBevelUvLayout {
-    return modifierBevelClampUvLayout(volume.userData[MODIFIER_VOLUME_BEVEL_UV_LAYOUT_KEY]);
+    return modifierBevelClampUvLayout(modifierVolumeRecordBevel(volume)[MODIFIER_VOLUME_BEVEL_UV_LAYOUT_KEY]);
   }
 
   /**
@@ -203,7 +204,7 @@ export class ModifierVolumeBevel {
    * @param layout Requested layout.
    */
   static writeUvLayout(volume: THREE.Object3D, layout: string): void {
-    volume.userData[MODIFIER_VOLUME_BEVEL_UV_LAYOUT_KEY] = modifierBevelClampUvLayout(layout);
+    modifierVolumeRecordBevel(volume)[MODIFIER_VOLUME_BEVEL_UV_LAYOUT_KEY] = modifierBevelClampUvLayout(layout);
   }
 
   /**
@@ -213,7 +214,7 @@ export class ModifierVolumeBevel {
    * @returns Texture id, or an empty string when the parent texture is kept.
    */
   static readTextureId(volume: THREE.Object3D): string {
-    const stored = volume.userData[MODIFIER_VOLUME_BEVEL_TEXTURE_KEY];
+    const stored = modifierVolumeRecordBevel(volume)[MODIFIER_VOLUME_BEVEL_TEXTURE_KEY];
     return typeof stored === 'string' ? stored : '';
   }
 
@@ -224,17 +225,18 @@ export class ModifierVolumeBevel {
    * @param textureId Texture id. Empty keeps the parent texture.
    */
   static writeTextureId(volume: THREE.Object3D, textureId: string): void {
-    volume.userData[MODIFIER_VOLUME_BEVEL_TEXTURE_KEY] = textureId;
+    modifierVolumeRecordBevel(volume)[MODIFIER_VOLUME_BEVEL_TEXTURE_KEY] = textureId;
   }
 
   /**
-   * Reads distance, segments, angle, and UV settings together.
+   * Reads width, profile, corner, shading, and UV settings together.
    *
    * @param volume Bevel volume.
    * @returns Current settings.
    */
   static readSettings(volume: THREE.Object3D): ModifierBevelVolumeSettings {
     return {
+      options: modifierBevelOptionsRead(volume),
       distance: ModifierVolumeBevel.readDistance(volume),
       segments: ModifierVolumeBevel.readSegments(volume),
       angleDegrees: ModifierVolumeBevel.readAngleDegrees(volume),
@@ -247,12 +249,13 @@ export class ModifierVolumeBevel {
   }
 
   /**
-   * Writes distance, segments, angle, and UV settings together.
+   * Writes width, profile, corner, shading, and UV settings together.
    *
    * @param volume Bevel volume.
    * @param settings Settings to store.
    */
   static writeSettings(volume: THREE.Object3D, settings: ModifierBevelVolumeSettings): void {
+    modifierBevelOptionsWrite(volume, settings.options);
     ModifierVolumeBevel.writeDistance(volume, settings.distance);
     ModifierVolumeBevel.writeSegments(volume, settings.segments);
     ModifierVolumeBevel.writeAngleDegrees(volume, settings.angleDegrees);
@@ -261,88 +264,6 @@ export class ModifierVolumeBevel {
     ModifierVolumeBevel.writeTextureId(volume, settings.textureId);
     modifierVolumeBlacklistWrite(volume, settings.blacklist);
     modifierBevelWriteUvPlacement(volume, modifierBevelPlacementOf(settings));
-  }
-
-  /**
-   * Creates a unit box volume at the origin.
-   *
-   * @returns Selectable bevel volume mesh.
-   */
-  static create(): THREE.Mesh {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), ModifierVolumeBevel.createMaterial());
-    mesh.name = hierarchyNameAllocator.allocate('Bevel Volume');
-    ModifierVolumeBevel.stamp(mesh, MODIFIER_VOLUME_BEVEL_DEFAULT_DISTANCE);
-    return mesh;
-  }
-
-  /**
-   * Marks a mesh as a bevel volume and ensures its outline.
-   *
-   * @param mesh Volume mesh.
-   * @param distance Chamfer distance.
-   */
-  static stamp(mesh: THREE.Mesh, distance: number): void {
-    mesh.userData[MODIFIER_VOLUME_BEVEL_USERDATA_KEY] = true;
-    mesh.userData[SKIP_FACE_PICK_USERDATA_KEY] = true;
-    ModifierVolumeBevel.writeDistance(mesh, distance);
-    ModifierVolumeBevel.writeSegments(mesh, ModifierVolumeBevel.readSegments(mesh));
-    ModifierVolumeBevel.writeAngleDegrees(mesh, ModifierVolumeBevel.readAngleDegrees(mesh));
-    ModifierVolumeBevel.writeUvFlow(mesh, ModifierVolumeBevel.readUvFlow(mesh));
-    ModifierVolumeBevel.writeUvLayout(mesh, ModifierVolumeBevel.readUvLayout(mesh));
-    ModifierVolumeBevel.writeTextureId(mesh, ModifierVolumeBevel.readTextureId(mesh));
-    ModifierVolumeBevel.ensureOutline(mesh);
-    ModifierVolumeBevelRegistry.register(mesh);
-  }
-
-  /**
-   * Copies bevel identity onto a duplicated mesh.
-   *
-   * @param source Source volume.
-   * @param clone Duplicated mesh.
-   */
-  static copyOntoClone(source: THREE.Object3D, clone: THREE.Mesh): void {
-    if (!ModifierVolumeBevel.isVolume(source)) return;
-    ModifierVolumeBevel.stamp(clone, ModifierVolumeBevel.readDistance(source));
-    ModifierVolumeBevel.writeSettings(clone, ModifierVolumeBevel.readSettings(source));
-  }
-
-  /**
-   * Creates the translucent volume material.
-   *
-   * @returns Basic material.
-   */
-  private static createMaterial(): THREE.MeshBasicMaterial {
-    return new THREE.MeshBasicMaterial({
-      color: VOLUME_COLOR,
-      transparent: true,
-      opacity: 0.18,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    });
-  }
-
-  /**
-   * Adds an outline child when the volume does not already have one.
-   *
-   * @param mesh Volume mesh.
-   */
-  private static ensureOutline(mesh: THREE.Mesh): void {
-    if (ModifierVolumeBevel.hasOutline(mesh)) return;
-    const edges = new THREE.EdgesGeometry(mesh.geometry);
-    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: VOLUME_COLOR }));
-    line.userData[MODIFIER_VOLUME_BEVEL_EDGE_KEY] = true;
-    line.raycast = () => undefined;
-    mesh.add(line);
-  }
-
-  /**
-   * Returns whether the outline child is already present.
-   *
-   * @param mesh Volume mesh.
-   * @returns True when an outline child exists.
-   */
-  private static hasOutline(mesh: THREE.Mesh): boolean {
-    return mesh.children.some((child) => child.userData[MODIFIER_VOLUME_BEVEL_EDGE_KEY] === true);
   }
 }
 

@@ -46,6 +46,7 @@ interface TabBookTabEntry {
   definition: TabBookTabDefinition;
   button: HTMLButtonElement;
   pageWrapper: HTMLElement | null;
+  visible: boolean;
 }
 
 /** A row of tabs above a page host that shows one page at a time. */
@@ -125,6 +126,15 @@ export class TabBook {
   }
 
   /**
+   * Lists the ids of the tabs that are currently visible, in strip order.
+   *
+   * @returns Visible tab ids.
+   */
+  visibleTabIdsList(): string[] {
+    return [...this.entries.values()].filter((entry) => entry.visible).map((entry) => entry.definition.id);
+  }
+
+  /**
    * Adds a tab at the end of the strip. The first added tab is shown.
    *
    * @param definition Tab id, label, page resolver and tooltip.
@@ -134,7 +144,7 @@ export class TabBook {
       return;
     }
     const button = this.tabButtonCreate(definition);
-    this.entries.set(definition.id, { definition, button, pageWrapper: null });
+    this.entries.set(definition.id, { definition, button, pageWrapper: null, visible: true });
     this.strip.appendChild(button);
     if (this.activeTabId === null) {
       this.tabShow(definition.id);
@@ -142,14 +152,34 @@ export class TabBook {
   }
 
   /**
-   * Shows a tab and tells the listeners when the active tab changed.
+   * Shows or hides a tab button. Hiding the active tab moves the view to the
+   * first visible tab; a hidden tab cannot be shown until it is visible again.
+   *
+   * @param tabId Tab to show or hide.
+   * @param isVisible True to list the tab in the strip.
+   */
+  tabVisibleSet(tabId: string, isVisible: boolean): void {
+    const entry = this.entries.get(tabId);
+    if (!entry) {
+      return;
+    }
+    entry.visible = isVisible;
+    entry.button.style.display = isVisible ? '' : 'none';
+    if (!isVisible && this.activeTabId === tabId) {
+      this.activeTabFallbackShow();
+    }
+  }
+
+  /**
+   * Shows a tab and tells the listeners when the active tab changed. Hidden
+   * tabs are refused.
    *
    * @param tabId Tab to show.
-   * @returns True when the tab exists.
+   * @returns True when the tab exists and is visible.
    */
   tabShow(tabId: string): boolean {
     const entry = this.entries.get(tabId);
-    if (!entry) {
+    if (!entry?.visible) {
       return false;
     }
     const previousTabId = this.activeTabId;
@@ -228,6 +258,17 @@ export class TabBook {
     }
     button.addEventListener('click', () => this.tabShow(definition.id));
     return button;
+  }
+
+  /**
+   * Shows the first visible tab when the active tab was hidden, if any tab is
+   * still visible.
+   */
+  private activeTabFallbackShow(): void {
+    const fallbackTabId = this.visibleTabIdsList()[0];
+    if (fallbackTabId !== undefined) {
+      this.tabShow(fallbackTabId);
+    }
   }
 
   /** Marks only the active tab button as selected. */

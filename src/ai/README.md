@@ -389,6 +389,20 @@ These tools need the desktop app; the browser editor answers that it cannot star
 | `sprinkle_definitions_list` | The loaded sprinkle types as `definitions: [{ name, sourcePath, grid, caseCount }]` plus `problems` of definition files that failed to read                                                                               |
 | `sprinkle_stamp`            | One whole Sprinkle stroke (one undo step) of `definition` at world `center` (optional `normal`, `mode`, `radius`, `densityPercent`, `seed`; the rest comes from the Entity Sprinkle window); returns `{ added, removed }` |
 
+## Modifier volumes
+
+A modifier volume is an editor-only box with an ordered modifier stack. The solid brushes it overlaps run through the stack (arrays, mirror, shear, bevel, smooth shading); the results join the solid model's geometry, the export and the game preview, while the box itself is never exported.
+
+| Tool                   | What it does                                                                                                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list_modifier_kinds`  | Installed `kinds` with `fields` (key, type, default, choices, min, max) and `defaultParameters`, plus the Add menu `templates`                                                                                            |
+| `add_modifier_volume`  | One undo step: a volume from `template` at world `center` with `size`, optional `parentId`, `name`, `modifiers`, `grouping`, `operation`, `excludedIds`, `enabled`; returns `{ id, name, stack, status, operationIssue }` |
+| `get_modifier_stack`   | The stack of volume `id` with the last evaluation's `status` (captured, derived, skipped, per-step reports) and `operationIssue`                                                                                          |
+| `set_modifier_stack`   | One undo step: replaces `modifiers` (entries with an existing `id` keep their other parameters) and sets `grouping`, `operation`, `excludedIds`, `enabled`                                                                |
+| `bake_modifier_volume` | One undo step: turns the volume's outputs into ordinary brushes and removes the volume; returns `{ createdBrushIds }`                                                                                                     |
+
+`operation` (`none`, `add`, `subtract`, `intersect`) writes the volume box into every solid whose brushes the volume captures, as an additive, subtractive or intersecting brush. `operationIssue` explains in words why a boolean operation writes no box (the box has no thickness on an axis, or the volume captures no brushes); it is empty when the operation applies.
+
 ## Not in this build
 
 - **`capture_section`** — orthographic 2D section slices (top/front/side) are not a separate tool yet; use `capture_view` with a free camera for now.

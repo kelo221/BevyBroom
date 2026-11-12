@@ -313,14 +313,29 @@ export class SolidBrushEdgeBatch {
   }
 
   /**
+   * Solid root whose world matrices were refreshed for the current batch
+   * rebuild.
+   */
+  private static freshMatrixRoot: THREE.Group | null = null;
+
+  /**
    * Builds operation batches for a solid from every visible brush, including
-   * brushes currently marked individual by selection.
+   * brushes currently marked individual by selection. The solid subtree's world
+   * matrices are refreshed once for the whole rebuild instead of once per
+   * brush.
    *
    * @param solidRoot Solid model root.
    * @param brushes Brush meshes under the solid.
    */
   private static rebuildBatchGeometryForSolid(solidRoot: THREE.Group, brushes: readonly THREE.Mesh[]): void {
-    const chunksByOperation = this.collectSolidSpaceChunks(solidRoot, brushes);
+    solidRoot.updateMatrixWorld(false);
+    this.freshMatrixRoot = solidRoot;
+    let chunksByOperation;
+    try {
+      chunksByOperation = this.collectSolidSpaceChunks(solidRoot, brushes);
+    } finally {
+      this.freshMatrixRoot = null;
+    }
     this.applyBatchChunksToSolidRoot(solidRoot, chunksByOperation);
   }
 
@@ -464,8 +479,10 @@ export class SolidBrushEdgeBatch {
    * @param target Output matrix.
    */
   private static computeRelativeMatrix(mesh: THREE.Mesh, solidRoot: THREE.Group, target: THREE.Matrix4): void {
-    mesh.updateMatrixWorld(false);
-    solidRoot.updateMatrixWorld(false);
+    if (this.freshMatrixRoot !== solidRoot) {
+      mesh.updateMatrixWorld(false);
+      solidRoot.updateMatrixWorld(false);
+    }
     target.copy(solidRoot.matrixWorld).invert().multiply(mesh.matrixWorld);
   }
 
