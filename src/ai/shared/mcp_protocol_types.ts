@@ -129,6 +129,9 @@ export type McpToolName =
   | 'game_rebuild'
   | 'game_restart'
   | 'game_stop'
+  | 'list_project_levels'
+  | 'open_project_level'
+  | 'save_project_level'
   | 'texture_browser_entries'
   | 'sprinkle_definitions_list'
   | 'sprinkle_stamp';

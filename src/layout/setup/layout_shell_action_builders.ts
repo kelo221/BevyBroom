@@ -10,6 +10,7 @@ import { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js
 import { buildOutlinerActions, buildToolbarActions } from './layout_action_factories.js';
 import { PanelOutliner } from '@/outliner/ui/panel_outliner.js';
 import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
+import type { ProjectLevelActions } from '@/project/level/project_level_actions.js';
 
 /** Layout surface used to build outliner and toolbar shell actions. */
 export interface LayoutShellActionSource {
@@ -41,6 +42,8 @@ export interface LayoutShellActionSource {
   onToggleGamePreviewPanel: () => void;
   /** Returns the project workbench that opens game projects and runs their game. */
   gameProjectWorkbenchRead: () => ProjectWorkbench;
+  /** Returns the actions on the open project's levels. */
+  projectLevelActionsRead: () => ProjectLevelActions;
   onOpenDetachedViewport: () => void;
   onToggleAiCaptureDebugPanel: () => void;
   onToggleAudio: () => void;
@@ -125,6 +128,7 @@ export function createToolbarShellActions(source: LayoutShellActionSource) {
     onOpenMcpDialog: () => source.onOpenMcpDialog(),
     onToggleGamePreviewPanel: () => source.onToggleGamePreviewPanel(),
     gameProjectWorkbenchRead: () => source.gameProjectWorkbenchRead(),
+    projectLevelActionsRead: () => source.projectLevelActionsRead(),
     onOpenDetachedViewport: () => source.onOpenDetachedViewport(),
     onToggleAiCaptureDebugPanel: () => source.onToggleAiCaptureDebugPanel(),
     onToggleAudio: () => source.onToggleAudio(),

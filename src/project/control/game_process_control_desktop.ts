@@ -10,6 +10,14 @@ import type {
   SprinkleDefinitionFilesReadResult,
   SprinkleDefinitionOpenResult,
 } from '@/tools/sprinkle/definition/sprinkle_definition.js';
+import type {
+  ProjectLevelCreateRequest,
+  ProjectLevelListResult,
+  ProjectLevelReadResult,
+  ProjectLevelRenameRequest,
+  ProjectLevelWriteRequest,
+  ProjectLevelWriteResult,
+} from '@/project/level/project_level_types.js';
 
 declare global {
   interface Window {
@@ -119,6 +127,55 @@ export class GameProcessControlDesktop extends GameProcessControl {
    */
   projectSprinkleDefinitionOpen(path: string): Promise<SprinkleDefinitionOpenResult> {
     return this.rpc.request.projectSprinkleDefinitionOpen({ path });
+  }
+
+  /**
+   * Asks the main process for the levels of the open project.
+   *
+   * @returns The levels, or why there are none.
+   */
+  projectLevelList(): Promise<ProjectLevelListResult> {
+    return this.rpc.request.projectLevelList();
+  }
+
+  /**
+   * Asks the main process for the text of one level document.
+   *
+   * @param document Document path relative to the document directory.
+   * @returns The level and its text, or why the document is not returned.
+   */
+  projectLevelRead(document: string): Promise<ProjectLevelReadResult> {
+    return this.rpc.request.projectLevelRead({ document });
+  }
+
+  /**
+   * Asks the main process to write a level document.
+   *
+   * @param request Document, text and the modification time the editor knows.
+   * @returns The level afterwards, or why nothing was written.
+   */
+  projectLevelWrite(request: ProjectLevelWriteRequest): Promise<ProjectLevelWriteResult> {
+    return this.rpc.request.projectLevelWrite(request);
+  }
+
+  /**
+   * Asks the main process to create a level document.
+   *
+   * @param request Display name and scene text.
+   * @returns The new level, or why nothing was written.
+   */
+  projectLevelCreate(request: ProjectLevelCreateRequest): Promise<ProjectLevelWriteResult> {
+    return this.rpc.request.projectLevelCreate(request);
+  }
+
+  /**
+   * Asks the main process to rename a level.
+   *
+   * @param request Document to move and the new display name.
+   * @returns The renamed level, or why nothing was moved.
+   */
+  projectLevelRename(request: ProjectLevelRenameRequest): Promise<ProjectLevelWriteResult> {
+    return this.rpc.request.projectLevelRename(request);
   }
 }
 

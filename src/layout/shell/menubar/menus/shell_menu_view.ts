@@ -10,6 +10,7 @@ import { themeLookMenuBuild } from '@/theme/menu/theme_look_menu.js';
 const SHELL_MENU_VIEW_FLOATING_WINDOWS: ReadonlyArray<readonly [ShellFloatingWindowId, string]> = [
   ['texture_browser', 'Texture Browser'],
   ['entity_browser', 'Entity Browser'],
+  ['level_browser', 'Level Browser'],
 ];
 
 /** View menu: grid, camera framing, view switching and the main window docks. */

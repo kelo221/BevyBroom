@@ -50,7 +50,25 @@ export class ProjectDefinitionValidator {
         probe,
       ),
     );
+    problems.push(...ProjectDefinitionValidator.levelDocumentProblems(definition, probe));
     return problems;
+  }
+
+  /**
+   * Warns about explicitly listed levels whose document is not a file in the
+   * document directory.
+   *
+   * @param definition Parsed project.
+   * @param probe File system access.
+   * @returns One warning per missing document.
+   */
+  private static levelDocumentProblems(definition: ProjectDefinition, probe: ProjectFileSystemProbe): ProjectProblem[] {
+    return definition.levels
+      .filter((level) => !probe.isFile(`${definition.documentDirectory}/${level.document}`))
+      .map((level) => ({
+        severity: 'warning' as const,
+        message: `The document ${definition.documentDirectory}/${level.document} of level "${level.id}" does not exist.`,
+      }));
   }
 
   /**

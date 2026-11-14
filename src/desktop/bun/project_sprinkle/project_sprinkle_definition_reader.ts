@@ -54,7 +54,7 @@ export class ProjectSprinkleDefinitionReader {
    * @throws Error naming the file when it is refused.
    */
   private fileRead(assetRoot: string, relativePath: string): SprinkleDefinitionFile {
-    const realFilePath = ProjectFileRealPath.insideAssetRootResolve(assetRoot, relativePath);
+    const realFilePath = ProjectFileRealPath.insideRootResolve(assetRoot, relativePath);
     if (realFilePath === null) {
       throw new Error(`"${relativePath}" resolves outside the asset root`);
     }

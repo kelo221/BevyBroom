@@ -72,7 +72,7 @@ export class ProjectTextureReader {
    * @returns The bytes as base64, or why the file is not returned.
    */
   private fileRead(assetRoot: string, relativePath: string): TextureProjectReadResult {
-    const realFilePath = ProjectFileRealPath.insideAssetRootResolve(assetRoot, relativePath);
+    const realFilePath = ProjectFileRealPath.insideRootResolve(assetRoot, relativePath);
     if (realFilePath === null) {
       return { ok: false, message: `Cannot read texture "${relativePath}": it resolves outside the asset root` };
     }

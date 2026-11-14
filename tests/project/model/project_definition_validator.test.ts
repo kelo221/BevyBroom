@@ -30,6 +30,8 @@ function definitionCreate(root: string): ProjectDefinition {
     name: 'Game',
     assetRoot: `${root}/assets`,
     levelDirectory: `${root}/assets/broom/levels`,
+    documentDirectory: `${root}/broom/documents`,
+    levels: [],
     textureDirectories: [],
     sprinkleDirectories: [],
     launch: { program: 'bin/game.exe', arguments: [], workingDirectory: root, endpoint: 'http://127.0.0.1:15702' },
@@ -91,6 +93,23 @@ describe('ProjectDefinitionValidator', () => {
     const problems = ProjectDefinitionValidator.validate(definition, probe);
     expect(problems).toEqual([
       { severity: 'warning', message: expect.stringMatching(/sprinkle directory .*assets\/missing\/foliage/) },
+    ]);
+  });
+
+  it('warns about each listed level whose document is not a file in the document directory', () => {
+    const root = '/games/leveled';
+    const definition = definitionCreate(root);
+    definition.levels = [
+      { id: 'hall', name: 'Hall', document: 'hall.json' },
+      { id: 'pit', name: 'Pit', document: 'arenas/pit.json' },
+    ];
+    const probe = probeCreate(
+      [root, `${root}/assets`, `${root}/source`],
+      [`${root}/bin/game.exe`, `${root}/broom/documents/hall.json`],
+    );
+    const problems = ProjectDefinitionValidator.validate(definition, probe);
+    expect(problems).toEqual([
+      { severity: 'warning', message: expect.stringMatching(/broom\/documents\/arenas\/pit\.json.*"pit"/) },
     ]);
   });
 });

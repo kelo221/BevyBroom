@@ -16,6 +16,11 @@ import {
   type ShellTestDocks,
   type ShellTestToolbarActions,
 } from '../shell_test_support.js';
+import {
+  PROJECT_LEVEL_TEST_PROJECT_FILE,
+  projectLevelActionsRigCreate,
+  projectLevelRigProjectOpen,
+} from '../../../project/level/project_level_test_support.js';
 import { workbenchRigCreate } from '../../../project/workbench/project_workbench_rig.js';
 
 /** Docks, actions and context shared by one menu bar test. */
@@ -258,6 +263,34 @@ describe('ShellMenuFile projects', () => {
       '/games/recent game/broom.project.json',
     ]);
     rig.workbench.dispose();
+  });
+
+  it('offers the Level Browser, Save Level to Project and Save As New Level rows over the level actions', async () => {
+    const levelRig = projectLevelActionsRigCreate();
+    const toolbarActions = shellTestToolbarActionsCreate({
+      gameProjectWorkbenchRead: () => levelRig.workbench,
+      projectLevelActionsRead: () => levelRig.actions,
+    });
+    const { context } = shellMenuBarTestRigCreate(toolbarActions);
+    const entries = shellMenuBarTestEntriesBuild(context, 'File');
+    const saveLevel = shellTestMenuActionFind(entries, 'Save Level to Project');
+    const saveAsNew = shellTestMenuActionFind(entries, 'Save As New Level…');
+    expect(saveLevel.isEnabled?.()).toBe(false);
+    expect(saveAsNew.isEnabled?.()).toBe(false);
+    await projectLevelRigProjectOpen(levelRig);
+    expect(saveAsNew.isEnabled?.()).toBe(true);
+    saveAsNew.onClick();
+    expect(levelRig.levelBrowserReveal).toHaveBeenCalledWith(true);
+    shellTestMenuActionFind(entries, 'Level Browser…').onClick();
+    expect(levelRig.levelBrowserReveal).toHaveBeenCalledWith(false);
+    await levelRig.actions.levelSaveAsNew('Menu Hall');
+    expect(saveLevel.isEnabled?.()).toBe(true);
+    saveLevel.onClick();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(levelRig.control.projectLevelDocumentsRead(PROJECT_LEVEL_TEST_PROJECT_FILE).has('menu_hall.json')).toBe(
+      true,
+    );
+    levelRig.workbench.dispose();
   });
 
   it('enables Build Level once a project is open and builds through the workbench', async () => {

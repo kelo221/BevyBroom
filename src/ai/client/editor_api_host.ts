@@ -6,6 +6,7 @@ import type { GridSnap } from '@/transform/snap/grid_snap.js';
 import type { ManagerSnap } from '@/transform/snap/manager_snap.js';
 import type { PreviewLinkService } from '@/preview/link/preview_link_service.js';
 import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
+import type { ProjectLevelActions } from '@/project/level/project_level_actions.js';
 import type { ConsoleLog } from '@/info_panel/console/console_log.js';
 import type { Issue } from '@/info_panel/issues/issue.js';
 import type { ShellMainWindowControl } from '@/layout/shell/actions/shell_main_window_control.js';
@@ -54,6 +55,13 @@ export interface EditorApiHost {
    * @returns True when the scene loaded.
    */
   sceneDocumentLoad?: (sceneJson: string) => boolean;
+  /**
+   * Returns the actions that list, open and save the levels of the open
+   * project. Set by layout bootstrap; unit tests may omit it.
+   *
+   * @returns Project level actions.
+   */
+  projectLevelActionsRead?: () => ProjectLevelActions;
   /**
    * Returns the console log console_read reads. Unit tests may omit it; the
    * shared log is read then.

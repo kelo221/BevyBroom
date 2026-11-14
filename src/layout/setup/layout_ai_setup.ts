@@ -30,6 +30,8 @@ export interface LayoutAiSetupHost {
   projectWorkbenchEnsure?: EditorApiHost['projectWorkbenchEnsure'];
   /** Replaces the open scene with scene file text as Load does. */
   sceneDocumentLoad?: EditorApiHost['sceneDocumentLoad'];
+  /** Returns the actions on the open project's levels. */
+  projectLevelActionsRead?: EditorApiHost['projectLevelActionsRead'];
   /** Validates the map at once and returns the issues the Issues tab shows. */
   issuesValidateNow?: EditorApiHost['issuesValidateNow'];
   /** Returns the control of the main window docks and bars. */
@@ -74,6 +76,7 @@ export function setupLayoutAi(host: LayoutAiSetupHost): LayoutAiSetupResult {
     ...(host.previewLinkServiceEnsure ? { previewLinkServiceEnsure: host.previewLinkServiceEnsure } : {}),
     ...(host.projectWorkbenchEnsure ? { projectWorkbenchEnsure: host.projectWorkbenchEnsure } : {}),
     ...(host.sceneDocumentLoad ? { sceneDocumentLoad: host.sceneDocumentLoad } : {}),
+    ...(host.projectLevelActionsRead ? { projectLevelActionsRead: host.projectLevelActionsRead } : {}),
     ...(host.issuesValidateNow ? { issuesValidateNow: host.issuesValidateNow } : {}),
     ...(host.mainWindowControlRead ? { mainWindowControlRead: host.mainWindowControlRead } : {}),
     ...(host.viewportsInteractiveRead ? { viewportsInteractiveRead: host.viewportsInteractiveRead } : {}),

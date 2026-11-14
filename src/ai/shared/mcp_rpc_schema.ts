@@ -6,6 +6,14 @@ import type { StandaloneHostUpdateCheck } from '@/updater/update_types.js';
 import type { TextureProjectListResult, TextureProjectReadResult } from '@/texture/project/texture_project_types.js';
 import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
 import type {
+  ProjectLevelCreateRequest,
+  ProjectLevelListResult,
+  ProjectLevelReadResult,
+  ProjectLevelRenameRequest,
+  ProjectLevelWriteRequest,
+  ProjectLevelWriteResult,
+} from '@/project/level/project_level_types.js';
+import type {
   SprinkleDefinitionFilesReadResult,
   SprinkleDefinitionOpenResult,
 } from '@/tools/sprinkle/definition/sprinkle_definition.js';
@@ -43,6 +51,11 @@ export interface ElectrobunDesktopRpcSchema {
       projectTextureRead: { params: { path: string }; response: TextureProjectReadResult };
       projectSprinkleDefinitionFilesRead: { params: undefined; response: SprinkleDefinitionFilesReadResult };
       projectSprinkleDefinitionOpen: { params: { path: string }; response: SprinkleDefinitionOpenResult };
+      projectLevelList: { params: undefined; response: ProjectLevelListResult };
+      projectLevelRead: { params: { document: string }; response: ProjectLevelReadResult };
+      projectLevelWrite: { params: ProjectLevelWriteRequest; response: ProjectLevelWriteResult };
+      projectLevelCreate: { params: ProjectLevelCreateRequest; response: ProjectLevelWriteResult };
+      projectLevelRename: { params: ProjectLevelRenameRequest; response: ProjectLevelWriteResult };
       nativeMenuBarSet: { params: NativeMenuBarWire; response: void };
       textFileOpen: { params: FileDialogDesktopTextFileOpenParams; response: FileDialogDesktopTextFile | null };
       savePathPick: { params: FileDialogDesktopSavePickParams; response: string | null };
@@ -77,6 +90,11 @@ export interface ElectrobunDesktopBunRpcClient {
     projectTextureRead: (params: { path: string }) => Promise<TextureProjectReadResult>;
     projectSprinkleDefinitionFilesRead: () => Promise<SprinkleDefinitionFilesReadResult>;
     projectSprinkleDefinitionOpen: (params: { path: string }) => Promise<SprinkleDefinitionOpenResult>;
+    projectLevelList: () => Promise<ProjectLevelListResult>;
+    projectLevelRead: (params: { document: string }) => Promise<ProjectLevelReadResult>;
+    projectLevelWrite: (params: ProjectLevelWriteRequest) => Promise<ProjectLevelWriteResult>;
+    projectLevelCreate: (params: ProjectLevelCreateRequest) => Promise<ProjectLevelWriteResult>;
+    projectLevelRename: (params: ProjectLevelRenameRequest) => Promise<ProjectLevelWriteResult>;
     nativeMenuBarSet: (bar: NativeMenuBarWire) => Promise<void>;
     textFileOpen: (params: FileDialogDesktopTextFileOpenParams) => Promise<FileDialogDesktopTextFile | null>;
     savePathPick: (params: FileDialogDesktopSavePickParams) => Promise<string | null>;

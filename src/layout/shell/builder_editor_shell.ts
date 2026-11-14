@@ -21,6 +21,7 @@ import { shellMenuBarPopulate, shellMenusBuiltinCreate } from '@/layout/shell/me
 import { shellMenuBarNativeAttach } from '@/layout/shell/menubar/shell_menu_bar_native.js';
 import { ShellToolBarBuilder } from '@/layout/shell/toolbar/shell_tool_bar_builder.js';
 import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
+import type { ProjectLevelActions } from '@/project/level/project_level_actions.js';
 
 /** Outliner action callbacks accepted when building the shell. */
 export interface EditorShellOutlinerActions {
@@ -69,6 +70,8 @@ export interface EditorToolbarActions {
   onToggleGamePreviewPanel: () => void;
   /** Returns the project workbench that opens game projects and runs their game. */
   gameProjectWorkbenchRead: () => ProjectWorkbench;
+  /** Returns the actions on the open project's levels. */
+  projectLevelActionsRead: () => ProjectLevelActions;
   onOpenDetachedViewport: () => void;
   onToggleAiCaptureDebugPanel: () => void;
   onToggleAudio: () => void;

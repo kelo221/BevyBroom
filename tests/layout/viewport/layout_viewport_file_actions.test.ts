@@ -4,7 +4,6 @@ import {
   LayoutViewportFileActions,
   type LayoutViewportFileActionsContext,
 } from '@/layout/viewport/layout_viewport_file_actions.js';
-import { HandlerSceneIo } from '@/tools/io/handler_scene_io.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
 import { formatKeyboardShortcut } from '@/settings/keyboard/keyboard_shortcut_format.js';
@@ -13,17 +12,26 @@ import {
   SceneRecoveryStoreMemory,
   sceneRecoveryTestCommandCreate,
 } from '../../scene_recovery/scene_recovery_test_support.js';
+import {
+  PROJECT_LEVEL_TEST_PROJECT_FILE,
+  projectLevelActionsRigCreate,
+  projectLevelRigProjectOpen,
+} from '../../project/level/project_level_test_support.js';
 
 /**
- * Builds a file actions context around a real scene IO handler and world.
+ * Builds a file actions context around a real scene IO handler and world,
+ * sharing the handler and world with a project level rig.
  *
  * @param worldObject World root the actions act on.
- * @returns Context without settings or solid tools.
+ * @returns Context without settings or solid tools, and the level rig.
  */
-function contextCreate(worldObject: THREE.Group): LayoutViewportFileActionsContext {
+function contextCreate(worldObject: THREE.Group): LayoutViewportFileActionsContext & {
+  levelRig: ReturnType<typeof projectLevelActionsRigCreate>;
+} {
+  const levelRig = projectLevelActionsRigCreate(worldObject);
   return {
     toolbarContainer: document.createElement('div'),
-    sceneIOHandler: new HandlerSceneIo(),
+    sceneIOHandler: levelRig.context.sceneIOHandler,
     worldObject,
     commandStack: new CommandStack(16),
     statusBar: null,
@@ -33,6 +41,8 @@ function contextCreate(worldObject: THREE.Group): LayoutViewportFileActionsConte
     onSceneLoaded: vi.fn(),
     refreshAfterWorldMutation: vi.fn(),
     sceneRecoveryRead: () => null,
+    projectLevelActionsRead: () => levelRig.actions,
+    levelRig,
   };
 }
 
@@ -76,6 +86,23 @@ describe('LayoutViewportFileActions', () => {
     await actions.sceneSave();
     expect(recovery.tracker.hasUnsavedChanges()).toBe(false);
     recovery.dispose();
+  });
+
+  it('writes Save back into the open project level and forgets the level after New', async () => {
+    const context = contextCreate(new THREE.Group());
+    const actions = new LayoutViewportFileActions(() => context);
+    await projectLevelRigProjectOpen(context.levelRig);
+    const saveDialog = vi.spyOn(context.sceneIOHandler, 'saveScene').mockResolvedValue('dialog.json');
+    expect(await actions.sceneSave()).toBe('dialog.json');
+    await context.levelRig.actions.levelSaveAsNew('Hall');
+    expect(await actions.sceneSave()).toBe('hall.json');
+    expect(saveDialog).toHaveBeenCalledTimes(1);
+    const documents = context.levelRig.control.projectLevelDocumentsRead(PROJECT_LEVEL_TEST_PROJECT_FILE);
+    expect(documents.has('hall.json')).toBe(true);
+    actions.sceneNew();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(context.levelRig.service.openLevelRead()).toBeNull();
+    expect(await actions.sceneSave()).toBe('dialog.json');
   });
 
   it('labels Save As with its own default shortcut, distinct from Save', () => {

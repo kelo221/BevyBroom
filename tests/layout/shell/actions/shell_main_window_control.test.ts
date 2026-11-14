@@ -1,3 +1,4 @@
+import { SHELL_FLOATING_WINDOW_IDS } from '@/layout/shell/actions/shell_floating_window.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Toolbar } from '@/ui/toolbar/toolbar.js';
 import { ShellMainWindowControl } from '@/layout/shell/actions/shell_main_window_control.js';
@@ -42,7 +43,9 @@ describe('ShellMainWindowControl', () => {
     expect(state.infoPanelTab).toBe(docks.infoPanel.activeTabIdRead());
     expect(state.toolbarVisible).toBe(docks.frame.isToolbarVisible());
     expect(state.menus).toEqual(SHELL_MAIN_WINDOW_TEST_MENUS);
-    expect(state.floatingWindows).toEqual({ texture_browser: false, entity_browser: false });
+    expect(state.floatingWindows).toEqual(
+      Object.fromEntries(SHELL_FLOATING_WINDOW_IDS.map((windowId) => [windowId, false])),
+    );
   });
 
   it('shows a registered floating window and leaves omitted windows alone', () => {
