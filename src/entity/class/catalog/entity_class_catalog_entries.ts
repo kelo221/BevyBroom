@@ -55,6 +55,7 @@ export class EntityClassCatalogEntries {
       iconColor: iconColorHex === null ? null : hexToRgb(iconColorHex),
       tooltip: pointClass.helpText,
       objectMatches: (object) => pointClass.matches(object),
+      previewCreate: () => pointClass.ownerCreate(),
       activate: () => actions.onAddEntityPlaced(() => pointClass.ownerCreate(), ENTITY_CLASS_CATALOG_PLACEMENT_RADIUS),
     };
   }

@@ -8,7 +8,14 @@ import { EntityBrowserSettingsStore } from '@/entity_browser/state/entity_browse
 import { EntityBrowserControls } from '@/entity_browser/ui/entity_browser_controls.js';
 import { EntityBrowserGrid } from '@/entity_browser/ui/entity_browser_grid.js';
 import { entityBrowserStyleRoot } from '@/entity_browser/ui/entity_browser_styles.js';
-import type { EntityBrowserViewOptions } from '@/entity_browser/view/entity_browser_view_options.js';
+import {
+  entityBrowserViewModeIs3d,
+  type EntityBrowserViewOptions,
+} from '@/entity_browser/view/entity_browser_view_options.js';
+import type { EntityBrowserPreviewRendererFactory } from '@/entity_browser/preview/entity_browser_preview_renderer.js';
+import { EntityBrowserPreviewRendererWebgl } from '@/entity_browser/preview/entity_browser_preview_renderer_webgl.js';
+import { EntityBrowserPreviewStudio } from '@/entity_browser/preview/entity_browser_preview_studio.js';
+import { EntityBrowserPreviewPane } from '@/entity_browser/ui/entity_browser_preview_pane.js';
 import { EntityBrowserViewQuery } from '@/entity_browser/view/entity_browser_view_query.js';
 
 /** What the entity browser needs from the editor. */
@@ -38,12 +45,16 @@ export interface EntityBrowserHost {
   readonly settingsStore?: EntityBrowserSettingsStore;
   /** Document that owns the browser; the global document when omitted. */
   readonly ownerDocument?: Document;
+  /** Creates the 3D preview renderer; a WebGL renderer when omitted. */
+  readonly previewRendererFactory?: EntityBrowserPreviewRendererFactory;
 }
 
 /**
- * Entity browser: a grid of every placeable kind of the Add menu with sort,
- * group, used and search controls. Double-click or Enter adds a kind, dragging
- * a tile onto a viewport places it there.
+ * Entity browser: a grid of every placeable kind of the Add menu with view,
+ * sort, group, used and search controls. Tiles show icons or each kind's meshes
+ * rendered in 3D; the single 3D tile view adds a large orbitable 3D view of the
+ * selected kind above the grid. Double-click or Enter adds a kind, dragging a
+ * tile onto a viewport places it there.
  */
 export class EntityBrowser {
   private readonly host: EntityBrowserHost;
@@ -51,6 +62,8 @@ export class EntityBrowser {
   private readonly root: HTMLElement;
   private readonly grid: EntityBrowserGrid;
   private readonly controls: EntityBrowserControls;
+  private readonly previewStudio: EntityBrowserPreviewStudio;
+  private readonly previewPane: EntityBrowserPreviewPane;
   private readonly disposeCallbacks: (() => void)[] = [];
   private catalog: EntityBrowserCatalogEntry[] = [];
   private usageCounts = new Map<string, number>();
@@ -68,9 +81,14 @@ export class EntityBrowser {
     this.root = ownerDocument.createElement('div');
     this.root.className = 'entity-browser';
     entityBrowserStyleRoot(this.root);
+    const rendererFactory = host.previewRendererFactory ?? EntityBrowserPreviewRendererWebgl.create;
+    this.previewStudio = new EntityBrowserPreviewStudio(ownerDocument, rendererFactory);
+    this.previewPane = new EntityBrowserPreviewPane(ownerDocument, this.previewStudio);
     this.grid = new EntityBrowserGrid(ownerDocument, {
       entryActivate: (entry) => entry.activate(),
       entryPress: (entry, event) => this.dragSessionStart(entry, event),
+      imageUrlResolve: (entry) => (this.previewImagesShown() ? this.previewStudio.imageUrlResolve(entry) : null),
+      selectionChanged: (entry) => this.previewPane.entryShow(entry),
     });
     const options = this.settingsStore.optionsRead();
     this.controls = new EntityBrowserControls(ownerDocument, options, (changes) => this.optionsUpdate(changes));
@@ -87,9 +105,13 @@ export class EntityBrowser {
     return this.root;
   }
 
-  /** Rebuilds the catalog from the Add menu, recounts usage and redraws. */
+  /**
+   * Rebuilds the catalog and its 3D previews from the Add menu, recounts usage
+   * and redraws.
+   */
   refresh(): void {
     this.catalog = EntityBrowserCatalogBuilder.catalogBuild(this.host.addMenuActions);
+    this.previewStudio.cacheClear();
     this.usageRefresh();
   }
 
@@ -130,6 +152,24 @@ export class EntityBrowser {
   }
 
   /**
+   * Returns the single 3D tile view.
+   *
+   * @returns Preview pane; on screen only in the single 3D tile view.
+   */
+  previewPaneRead(): EntityBrowserPreviewPane {
+    return this.previewPane;
+  }
+
+  /**
+   * Selects the tile of an entry, which the single 3D tile view then shows.
+   *
+   * @param entryId Entry id, or null to clear the selection.
+   */
+  selectedEntrySet(entryId: string | null): void {
+    this.grid.selectedEntrySet(entryId);
+  }
+
+  /**
    * Registers a callback run when the browser is disposed.
    *
    * @param callback Cleanup callback.
@@ -142,14 +182,47 @@ export class EntityBrowser {
   dispose(): void {
     this.dragSession?.cancel();
     this.disposeCallbacks.splice(0).forEach((callback) => callback());
+    this.previewPane.dispose();
+    this.previewStudio.dispose();
     this.root.remove();
   }
 
-  /** Redraws the tiles for the current catalog, usage and choices. */
+  /**
+   * Redraws the tiles and the single 3D tile for the current catalog, usage and
+   * choices.
+   */
   private render(): void {
     const options = this.settingsStore.optionsRead();
     const groups = EntityBrowserViewQuery.groupsResolve(this.catalog, options, this.usageCounts);
+    this.previewPaneLayout(options.viewMode === 'single_3d');
     this.grid.render(groups, this.usageCounts);
+    if (options.viewMode === 'single_3d' && this.grid.selectedEntryRead() === null) {
+      this.grid.selectedEntrySet(this.grid.shownEntryIdsList()[0] ?? null);
+    }
+    this.previewPane.redraw();
+  }
+
+  /**
+   * Returns whether tiles show rendered 3D images of their kinds.
+   *
+   * @returns True in the 3D tile and single 3D tile views.
+   */
+  private previewImagesShown(): boolean {
+    return entityBrowserViewModeIs3d(this.settingsStore.optionsRead().viewMode);
+  }
+
+  /**
+   * Puts the single 3D tile above the grid or takes it away.
+   *
+   * @param isShown True to show the single 3D tile.
+   */
+  private previewPaneLayout(isShown: boolean): void {
+    const isMounted = this.previewPane.element.parentElement === this.root;
+    if (isShown && !isMounted) {
+      this.root.insertBefore(this.previewPane.element, this.grid.element);
+    } else if (!isShown && isMounted) {
+      this.previewPane.element.remove();
+    }
   }
 
   /**

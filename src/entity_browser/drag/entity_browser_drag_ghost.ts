@@ -22,7 +22,7 @@ export class EntityBrowserDragGhost {
     this.element = ownerDocument.createElement('div');
     this.element.dataset['entityBrowserDragGhost'] = entry.id;
     entityBrowserStyleDragGhost(this.element);
-    this.element.appendChild(entityBrowserThumbnailCreate(ownerDocument, entry));
+    this.element.appendChild(entityBrowserThumbnailCreate(ownerDocument, entry, null));
     ownerDocument.body.appendChild(this.element);
   }
 

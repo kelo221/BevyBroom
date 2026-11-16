@@ -5,6 +5,12 @@ import type { ToolbarMenuAction } from '@/ui/menu/menu_types.js';
 export type AddMenuCatalogObjectMatcher = (object: THREE.Object3D) => boolean;
 
 /**
+ * Builds a standalone object that shows what one placeable kind looks like in
+ * the 3D view, never added to the map.
+ */
+export type AddMenuCatalogPreviewFactory = () => THREE.Object3D;
+
+/**
  * Describes how a placeable Add menu action appears in catalogs that list every
  * placeable kind, such as the entity browser.
  */
@@ -13,6 +19,8 @@ export interface AddMenuCatalogInfo {
   readonly id: string;
   /** Recognizes scene objects of this kind so catalogs can count usage. */
   readonly objectMatches?: AddMenuCatalogObjectMatcher;
+  /** Builds the 3D preview of the kind; catalogs show the icon when omitted. */
+  readonly previewCreate?: AddMenuCatalogPreviewFactory;
 }
 
 /** Add menu action that carries catalog information. */

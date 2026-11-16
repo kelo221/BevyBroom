@@ -12,13 +12,14 @@ import type { AddMenuSectionFactory } from '@/layout/setup/add_menu_section_regi
 import type { IconName } from '@/ui/icons/icon_name.js';
 import type { GeometrySourceType } from '@/texture/uv/geometry_source.js';
 import type { EntityOwner } from '@/entity/model/entity_owner.js';
-import { addMenuCatalogActionCreate } from '@/layout/setup/add_menu_catalog.js';
+import { addMenuCatalogActionCreate, type AddMenuCatalogPreviewFactory } from '@/layout/setup/add_menu_catalog.js';
 import {
   addMenuCatalogMatcherEntityOwner,
   addMenuCatalogMatcherLight,
   addMenuCatalogMatcherPrimitive,
   addMenuCatalogMatcherSolidModel,
 } from '@/layout/setup/add_menu_catalog_matchers.js';
+import { addMenuCatalogPreviewPrimitive } from '@/layout/setup/add_menu_catalog_previews.js';
 
 /**
  * Returns the Add menu sections the editor ships with, in display order.
@@ -74,7 +75,11 @@ function addMenuSectionGeometryEntry(
 ): ToolbarMenuEntry {
   return addMenuCatalogActionCreate(
     { label, icon, onClick },
-    { id: `geometry.${sourceType}`, objectMatches: addMenuCatalogMatcherPrimitive(sourceType) },
+    {
+      id: `geometry.${sourceType}`,
+      objectMatches: addMenuCatalogMatcherPrimitive(sourceType),
+      ...addMenuSectionPreviewField(addMenuCatalogPreviewPrimitive(sourceType)),
+    },
   );
 }
 
@@ -147,7 +152,11 @@ function addMenuSectionLights(actions: AddMenuActions): ToolbarMenuEntry {
 function addMenuSectionLightEntry(label: string, lightKind: LightKind, onClick: () => void): ToolbarMenuEntry {
   return addMenuCatalogActionCreate(
     { label, icon: LightOwner.definition.iconName(lightSettingsCreateDefault(lightKind)), onClick },
-    { id: `lights.${lightKind}`, objectMatches: addMenuCatalogMatcherLight(lightKind) },
+    {
+      id: `lights.${lightKind}`,
+      objectMatches: addMenuCatalogMatcherLight(lightKind),
+      previewCreate: () => LightOwner.createDefault(label, lightKind),
+    },
   );
 }
 
@@ -168,6 +177,7 @@ function addMenuSectionPortals(actions: AddMenuActions): ToolbarMenuEntry {
         RoomOwner.definition.iconName(roomSettingsCreateDefault()),
         'portals.room',
         RoomOwner,
+        () => RoomOwner.createDefault('Room'),
         () => actions.onAddRoom(),
       ),
       addMenuSectionEntityOwnerEntry(
@@ -175,6 +185,7 @@ function addMenuSectionPortals(actions: AddMenuActions): ToolbarMenuEntry {
         PortalOwner.definition.iconName(portalSettingsCreateDefault()),
         'portals.portal',
         PortalOwner,
+        () => PortalOwner.createDefault('Portal'),
         () => actions.onAddPortal(),
       ),
     ],
@@ -189,6 +200,8 @@ function addMenuSectionPortals(actions: AddMenuActions): ToolbarMenuEntry {
  * @param icon Menu icon.
  * @param catalogId Stable catalog id.
  * @param entityOwner Owner helper of the kind.
+ * @param previewCreate Builds a standalone owner of the kind for the 3D
+ *   preview.
  * @param onClick Creation callback.
  * @returns Menu action with catalog information.
  */
@@ -197,10 +210,24 @@ function addMenuSectionEntityOwnerEntry(
   icon: IconName,
   catalogId: string,
   entityOwner: EntityOwner<object>,
+  previewCreate: AddMenuCatalogPreviewFactory,
   onClick: () => void,
 ): ToolbarMenuEntry {
   return addMenuCatalogActionCreate(
     { label, icon, onClick },
-    { id: catalogId, objectMatches: addMenuCatalogMatcherEntityOwner(entityOwner) },
+    { id: catalogId, objectMatches: addMenuCatalogMatcherEntityOwner(entityOwner), previewCreate },
   );
+}
+
+/**
+ * Returns the preview field of catalog information, leaving it out when the
+ * kind has no preview.
+ *
+ * @param previewCreate Preview factory, or undefined.
+ * @returns Object holding the preview field, or an empty object.
+ */
+function addMenuSectionPreviewField(previewCreate: AddMenuCatalogPreviewFactory | undefined): {
+  previewCreate?: AddMenuCatalogPreviewFactory;
+} {
+  return previewCreate === undefined ? {} : { previewCreate };
 }

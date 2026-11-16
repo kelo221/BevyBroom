@@ -3,9 +3,11 @@ import {
   createSettingsSelect,
   createSettingsTextInput,
 } from '@/ui/settings/settings_form_controls.js';
-import type {
-  EntityBrowserSortMode,
-  EntityBrowserViewOptions,
+import {
+  entityBrowserViewModeSanitize,
+  type EntityBrowserSortMode,
+  type EntityBrowserViewMode,
+  type EntityBrowserViewOptions,
 } from '@/entity_browser/view/entity_browser_view_options.js';
 import {
   entityBrowserStyleControlsRow,
@@ -18,12 +20,20 @@ const ENTITY_BROWSER_SORT_CHOICES: readonly { value: EntityBrowserSortMode; labe
   { value: 'category', label: 'Category' },
 ];
 
+/** Choices of the view dropdown. */
+const ENTITY_BROWSER_VIEW_MODE_CHOICES: readonly { value: EntityBrowserViewMode; label: string }[] = [
+  { value: 'icons', label: 'Icons' },
+  { value: 'tiles_3d', label: '3D Tiles' },
+  { value: 'single_3d', label: '1 Tile 3D' },
+];
+
 /**
- * Controls row under the tiles: sort order, Group and Used toggles and a name
- * search field.
+ * Controls row under the tiles: view mode, sort order, Group and Used toggles
+ * and a name search field.
  */
 export class EntityBrowserControls {
   readonly element: HTMLElement;
+  readonly viewModeSelect: HTMLSelectElement;
   readonly sortSelect: HTMLSelectElement;
   readonly groupToggle: HTMLButtonElement;
   readonly usedToggle: HTMLButtonElement;
@@ -47,13 +57,14 @@ export class EntityBrowserControls {
     this.optionsChanged = optionsChanged;
     this.element = ownerDocument.createElement('div');
     entityBrowserStyleControlsRow(this.element);
+    this.viewModeSelect = this.viewModeSelectCreate();
     this.sortSelect = this.sortSelectCreate();
     this.groupToggle = createSettingsSecondaryButton('Group', () => this.groupToggled());
     this.usedToggle = createSettingsSecondaryButton('Used', () => this.usedToggled());
     this.groupToggle.title = 'Show tiles under category headers';
     this.usedToggle.title = 'Show only kinds used in this map';
     this.searchInput = this.searchInputCreate();
-    this.element.append(this.sortSelect, this.groupToggle, this.usedToggle, this.searchInput);
+    this.element.append(this.viewModeSelect, this.sortSelect, this.groupToggle, this.usedToggle, this.searchInput);
     this.optionsShow(options);
   }
 
@@ -64,12 +75,28 @@ export class EntityBrowserControls {
    */
   optionsShow(options: EntityBrowserViewOptions): void {
     this.options = options;
+    this.viewModeSelect.value = options.viewMode;
     this.sortSelect.value = options.sortMode;
     entityBrowserStyleToggleActive(this.groupToggle, options.groupByCategory);
     entityBrowserStyleToggleActive(this.usedToggle, options.usedOnly);
     if (this.searchInput.value !== options.searchText) {
       this.searchInput.value = options.searchText;
     }
+  }
+
+  /**
+   * Creates the view dropdown: icons, 3D tiles or one large 3D tile.
+   *
+   * @returns Select element.
+   */
+  private viewModeSelectCreate(): HTMLSelectElement {
+    const select = createSettingsSelect(ENTITY_BROWSER_VIEW_MODE_CHOICES, this.options.viewMode, (value) =>
+      this.optionsChanged({ viewMode: entityBrowserViewModeSanitize(value, this.options.viewMode) }),
+    );
+    select.title = 'Show icons, 3D tiles of each kind, or one large 3D tile of the selected kind';
+    select.style.width = 'auto';
+    select.style.flex = '0 0 auto';
+    return select;
   }
 
   /**

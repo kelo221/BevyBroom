@@ -44,6 +44,7 @@ function entityPlaceControlsTestEntryCreate(id: string): EntityBrowserCatalogEnt
     iconColor: null,
     tooltip: id,
     objectMatches: null,
+    previewCreate: null,
     activate: vi.fn(),
   };
 }

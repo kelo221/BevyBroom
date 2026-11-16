@@ -1,6 +1,10 @@
 import { iconSvgElementCreate } from '@/ui/icons/icon_svg.js';
 import type { EntityBrowserCatalogEntry } from '@/entity_browser/catalog/entity_browser_catalog_entry.js';
 import { ENTITY_BROWSER_TILE_ICON_PX, entityBrowserStyleThumbnail } from '@/entity_browser/ui/entity_browser_styles.js';
+import { entityBrowserStyleThumbnailImage } from '@/entity_browser/ui/entity_browser_styles_preview.js';
+
+/** Data attribute set on thumbnails that show a rendered 3D image. */
+export const ENTITY_BROWSER_THUMBNAIL_IMAGE_ATTRIBUTE = 'data-entity-browser-thumbnail-image';
 
 /** Saturation of the category tinted thumbnail backgrounds, in percent. */
 const ENTITY_BROWSER_THUMBNAIL_SATURATION = 32;
@@ -9,19 +13,46 @@ const ENTITY_BROWSER_THUMBNAIL_SATURATION = 32;
 const ENTITY_BROWSER_THUMBNAIL_LIGHTNESS = 24;
 
 /**
- * Creates the thumbnail of a catalog entry: its icon, or its first letter, on a
- * background tinted by its top-level category.
+ * Creates the thumbnail of a catalog entry: a rendered 3D image of its meshes
+ * when one is given, otherwise its icon or first letter, on a background tinted
+ * by its top-level category.
  *
  * @param ownerDocument Document that owns the element.
  * @param entry Catalog entry.
+ * @param imageUrl Rendered 3D image of the entry, or null to show its icon.
  * @returns Thumbnail element.
  */
-export function entityBrowserThumbnailCreate(ownerDocument: Document, entry: EntityBrowserCatalogEntry): HTMLElement {
+export function entityBrowserThumbnailCreate(
+  ownerDocument: Document,
+  entry: EntityBrowserCatalogEntry,
+  imageUrl: string | null,
+): HTMLElement {
   const thumbnail = ownerDocument.createElement('div');
   thumbnail.dataset['entityBrowserThumbnail'] = entry.id;
   entityBrowserStyleThumbnail(thumbnail, entityBrowserThumbnailBackground(entry.category));
-  thumbnail.appendChild(entityBrowserThumbnailGlyphCreate(ownerDocument, entry));
+  thumbnail.appendChild(
+    imageUrl === null
+      ? entityBrowserThumbnailGlyphCreate(ownerDocument, entry)
+      : entityBrowserThumbnailImageCreate(ownerDocument, imageUrl),
+  );
   return thumbnail;
+}
+
+/**
+ * Creates the image element showing a rendered 3D image.
+ *
+ * @param ownerDocument Document that owns the element.
+ * @param imageUrl Image data URL.
+ * @returns Image element.
+ */
+function entityBrowserThumbnailImageCreate(ownerDocument: Document, imageUrl: string): HTMLElement {
+  const image = ownerDocument.createElement('img');
+  image.src = imageUrl;
+  image.alt = '';
+  image.draggable = false;
+  image.setAttribute(ENTITY_BROWSER_THUMBNAIL_IMAGE_ATTRIBUTE, 'true');
+  entityBrowserStyleThumbnailImage(image);
+  return image;
 }
 
 /**
