@@ -9,6 +9,7 @@ import { IconHammerToolbarCsg, type IconHammerToolbarCsgName } from './toolbar/i
 import { IconHammerToolbarEdit, type IconHammerToolbarEditName } from './toolbar/icon_hammer_toolbar_edit.js';
 import { IconHammerToolbarGrid, type IconHammerToolbarGridName } from './toolbar/icon_hammer_toolbar_grid.js';
 import { IconHammerToolbarRun, type IconHammerToolbarRunName } from './toolbar/icon_hammer_toolbar_run.js';
+import { IconHammerToolbarBrowser, type IconHammerToolbarBrowserName } from './toolbar/icon_hammer_toolbar_browser.js';
 import {
   IconHammerToolbarSelection,
   type IconHammerToolbarSelectionName,
@@ -28,7 +29,8 @@ export type IconHammerName =
   | IconHammerToolbarSelectionName
   | IconHammerToolbarCsgName
   | IconHammerToolbarTransformName
-  | IconHammerToolbarRunName;
+  | IconHammerToolbarRunName
+  | IconHammerToolbarBrowserName;
 
 /** Drawer of every classic Hammer icon, keyed by icon name. */
 const ICON_HAMMER_DRAWERS: Readonly<Record<IconHammerName, IconHammerDrawer>> = {
@@ -41,6 +43,7 @@ const ICON_HAMMER_DRAWERS: Readonly<Record<IconHammerName, IconHammerDrawer>> = 
   ...new IconHammerToolbarCsg().drawersRead(),
   ...new IconHammerToolbarTransform().drawersRead(),
   ...new IconHammerToolbarRun().drawersRead(),
+  ...new IconHammerToolbarBrowser().drawersRead(),
 };
 
 /** Renders the full-colour classic Hammer icons by name. */

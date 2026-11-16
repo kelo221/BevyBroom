@@ -11,7 +11,12 @@ export type LayoutWindowShortcutCallbacks = Partial<Record<KeyboardShortcutActio
 /** Dock commands the window shortcuts run. */
 export type LayoutWindowShortcutDockCommands = Pick<
   ShellDockCommands,
-  'inspectorReveal' | 'inspectorToggle' | 'infoPanelToggle' | 'infoPanelCollapsedToggle' | 'toolbarToggle'
+  | 'inspectorReveal'
+  | 'inspectorToggle'
+  | 'infoPanelToggle'
+  | 'infoPanelCollapsedToggle'
+  | 'toolbarToggle'
+  | 'floatingWindowToggle'
 >;
 
 /**
@@ -56,8 +61,8 @@ export function layoutWindowShortcutsWindowActionsCreate(
 }
 
 /**
- * Builds the callbacks of the inspector, info panel, info panel collapse and
- * toolbar shortcuts.
+ * Builds the callbacks of the inspector, info panel, info panel collapse,
+ * toolbar and browser window shortcuts.
  *
  * @param dockCommands Commands that show, hide and switch the docks.
  * @returns Shortcut callbacks keyed by action.
@@ -71,6 +76,9 @@ export function layoutWindowShortcutsDockCreate(
     info_panel_toggle: () => dockCommands.infoPanelToggle(),
     info_panel_collapse_toggle: () => dockCommands.infoPanelCollapsedToggle(),
     toolbar_toggle: () => dockCommands.toolbarToggle(),
+    window_texture_browser: () => dockCommands.floatingWindowToggle('texture_browser'),
+    window_entity_browser: () => dockCommands.floatingWindowToggle('entity_browser'),
+    window_level_browser: () => dockCommands.floatingWindowToggle('level_browser'),
   };
 }
 

@@ -10,11 +10,38 @@ import {
 import { TOOLBAR_OVERFLOW_TRIGGER_CLASS } from '@/ui/toolbar/toolbar.js';
 import { formatGridIntervalLabel } from '@/layout/shell/toolbar/shell_grid_interval_label.js';
 import { SNAP_PRESETS } from '@/types/snap_presets.js';
+import { SHELL_MENU_WINDOW_BROWSERS } from '@/layout/shell/menubar/menus/shell_menu_window.js';
+import type { ShellFloatingWindow } from '@/layout/shell/actions/shell_floating_window.js';
 import {
   ShellTestWindowActions,
+  shellTestDocksCreate,
+  shellTestDocksDispose,
+  shellTestShortcutLabelFormat,
   shellTestToolbarActionsCreate,
   type ShellTestToolbarActions,
 } from '../shell_test_support.js';
+
+/**
+ * Creates a floating window double that opens and closes on toggle and tells
+ * its listeners.
+ *
+ * @returns Window double.
+ */
+function shellToolBarBuilderTestFloatingWindowCreate(): ShellFloatingWindow {
+  let isOpen = false;
+  const listeners = new Set<(isOpen: boolean) => void>();
+  return {
+    toggle: () => {
+      isOpen = !isOpen;
+      listeners.forEach((listener) => listener(isOpen));
+    },
+    isOpen: () => isOpen,
+    openChangeListenerAdd: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
 
 /** Toolbar, its actions and the slots built for one test. */
 interface ShellToolBarBuilderTestRig {
@@ -247,5 +274,58 @@ describe('ShellToolBarBuilder', () => {
     expect(mcpButton.dataset['active']).toBe('false');
     mcpButton.click();
     expect(toolbarActions.onOpenMcpDialog).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens and closes each browser window from its button, highlighted while open, with its shortcut in the hover text', () => {
+    const docks = shellTestDocksCreate();
+    const windows = SHELL_MENU_WINDOW_BROWSERS.map((browser) => {
+      const floatingWindow = shellToolBarBuilderTestFloatingWindowCreate();
+      docks.dockCommands.floatingWindowRegister(browser.windowId, floatingWindow);
+      return { browser, floatingWindow };
+    });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const toolbar = new Toolbar(container);
+    shellToolBarBuilderTestToolbar = toolbar;
+    new ShellToolBarBuilder().build(
+      toolbar,
+      shellTestToolbarActionsCreate(),
+      new ShellTestWindowActions(),
+      docks.dockCommands,
+    );
+    for (const { browser, floatingWindow } of windows) {
+      const button = shellToolBarBuilderTestButtonRead(toolbar, browser.label);
+      button.dispatchEvent(new Event('pointerenter'));
+      expect(button.title).toContain(shellTestShortcutLabelFormat(browser.shortcutAction));
+      expect(button.dataset['active']).toBe('false');
+      button.click();
+      expect(floatingWindow.isOpen()).toBe(true);
+      expect(button.dataset['active']).toBe('true');
+      floatingWindow.toggle();
+      expect(button.dataset['active']).toBe('false');
+    }
+    shellTestDocksDispose(docks);
+  });
+
+  it('reads no shortcut label while the window is still being built', () => {
+    const docks = shellTestDocksCreate();
+    const windowActions = new ShellTestWindowActions();
+    windowActions.shortcutLabelRead.mockImplementation(() => {
+      throw new Error('shortcut labels are not ready while the shell is built');
+    });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const toolbar = new Toolbar(container);
+    shellToolBarBuilderTestToolbar = toolbar;
+    expect(() =>
+      new ShellToolBarBuilder().build(toolbar, shellTestToolbarActionsCreate(), windowActions, docks.dockCommands),
+    ).not.toThrow();
+    shellTestDocksDispose(docks);
+  });
+
+  it('leaves the browser buttons out without dock commands', () => {
+    const { toolbar } = shellToolBarBuilderTestRigCreate();
+    const labels = [...toolbar.getElement().querySelectorAll('button')].map(shellToolBarBuilderTestButtonLabelRead);
+    SHELL_MENU_WINDOW_BROWSERS.forEach((browser) => expect(labels).not.toContain(browser.label));
   });
 });

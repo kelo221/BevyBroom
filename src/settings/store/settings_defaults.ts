@@ -91,6 +91,24 @@ export function createDefaultKeyboardShortcutSettings(): KeyboardShortcutSetting
     ...createDefaultFaceUvShortcuts(),
     ...createDefaultSprinkleShortcuts(),
     ...createDefaultCommandSearchAndCsgShortcuts(),
+    ...createDefaultBrowserWindowShortcuts(),
+  };
+}
+
+/**
+ * Default shortcuts of the browser windows: Ctrl+Shift with T opens the Texture
+ * Browser, with B the Entity Browser and with L the Level Browser.
+ *
+ * @returns Partial keyboard shortcut settings.
+ */
+function createDefaultBrowserWindowShortcuts(): Pick<
+  KeyboardShortcutSettings,
+  'window_texture_browser' | 'window_entity_browser' | 'window_level_browser'
+> {
+  return {
+    window_texture_browser: createShortcut('KeyT', true, true),
+    window_entity_browser: createShortcut('KeyB', true, true),
+    window_level_browser: createShortcut('KeyL', true, true),
   };
 }
 

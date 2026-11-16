@@ -1,7 +1,11 @@
 import type { ShellFrame } from '@/layout/shell/frame/shell_frame.js';
 import type { ShellInfoPanel, ShellInfoPanelTabId } from '@/layout/shell/info_panel/shell_info_panel.js';
 import { ShellInfoPanelCollapseBinding } from '@/layout/shell/info_panel/shell_info_panel_collapse_binding.js';
-import type { ShellFloatingWindow, ShellFloatingWindowId } from './shell_floating_window.js';
+import type {
+  ShellFloatingWindow,
+  ShellFloatingWindowId,
+  ShellFloatingWindowOpenChangeListener,
+} from './shell_floating_window.js';
 
 /**
  * Commands that show, hide and switch the main window docks and floating
@@ -12,6 +16,8 @@ export class ShellDockCommands {
   private readonly infoPanel: ShellInfoPanel;
   private readonly floatingWindows: Map<ShellFloatingWindowId, ShellFloatingWindow>;
   private readonly infoPanelCollapseBinding: ShellInfoPanelCollapseBinding;
+  private readonly floatingWindowOpenChangeListeners = new Set<ShellFloatingWindowOpenChangeListener>();
+  private readonly floatingWindowUnsubscribers: (() => void)[] = [];
 
   /**
    * Creates dock commands over the main window docks and lets clicks on the
@@ -27,9 +33,14 @@ export class ShellDockCommands {
     this.infoPanelCollapseBinding = new ShellInfoPanelCollapseBinding(frame, infoPanel);
   }
 
-  /** Stops folding the info panel from strip clicks. */
+  /**
+   * Stops folding the info panel from strip clicks and forgets the floating
+   * windows and their listeners.
+   */
   dispose(): void {
     this.infoPanelCollapseBinding.dispose();
+    this.floatingWindowUnsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
+    this.floatingWindowOpenChangeListeners.clear();
     this.floatingWindows.clear();
   }
 
@@ -41,6 +52,24 @@ export class ShellDockCommands {
    */
   floatingWindowRegister(windowId: ShellFloatingWindowId, floatingWindow: ShellFloatingWindow): void {
     this.floatingWindows.set(windowId, floatingWindow);
+    const unsubscribe = floatingWindow.openChangeListenerAdd?.((isOpen) =>
+      this.floatingWindowOpenChangeListeners.forEach((listener) => listener(windowId, isOpen)),
+    );
+    if (unsubscribe) {
+      this.floatingWindowUnsubscribers.push(unsubscribe);
+    }
+  }
+
+  /**
+   * Registers a callback run whenever a registered floating window opens or
+   * closes.
+   *
+   * @param listener Receives the window id and whether it is open now.
+   * @returns Function that removes the callback.
+   */
+  floatingWindowOpenChangeListenerAdd(listener: ShellFloatingWindowOpenChangeListener): () => void {
+    this.floatingWindowOpenChangeListeners.add(listener);
+    return () => this.floatingWindowOpenChangeListeners.delete(listener);
   }
 
   /**

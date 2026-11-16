@@ -175,8 +175,11 @@ These are listed under **Brush Operations** in **Settings > Keyboard**.
 | `Ctrl+Alt+T`   | Show or hide the toolbar                |
 | `Alt+Enter`    | Open Object Properties on the selection |
 | `Ctrl+Shift+P` | Search Commands                         |
+| `Ctrl+Shift+T` | Open or close the Texture Browser       |
+| `Ctrl+Shift+B` | Open or close the Entity Browser        |
+| `Ctrl+Shift+L` | Open or close the Level Browser         |
 
-These shortcuts are listed under **Window and Views** in **Settings > Keyboard**, and the menus show the current binding next to each command.
+These shortcuts are listed under **Window and Views** and **Browsers** in **Settings > Keyboard**, and the menus show the current binding next to each command. On macOS, `Ctrl` is `⌘`.
 
 ### Snapping
 

@@ -112,6 +112,7 @@ describe('shellMenusBuiltinCreate', () => {
       'Tools',
       'View',
       'Run',
+      'Window',
       'Help',
     ]);
   });
@@ -265,7 +266,7 @@ describe('ShellMenuFile projects', () => {
     rig.workbench.dispose();
   });
 
-  it('offers the Level Browser, Save Level to Project and Save As New Level rows over the level actions', async () => {
+  it('offers the Save Level to Project and Save As New Level rows over the level actions', async () => {
     const levelRig = projectLevelActionsRigCreate();
     const toolbarActions = shellTestToolbarActionsCreate({
       gameProjectWorkbenchRead: () => levelRig.workbench,
@@ -281,8 +282,7 @@ describe('ShellMenuFile projects', () => {
     expect(saveAsNew.isEnabled?.()).toBe(true);
     saveAsNew.onClick();
     expect(levelRig.levelBrowserReveal).toHaveBeenCalledWith(true);
-    shellTestMenuActionFind(entries, 'Level Browser…').onClick();
-    expect(levelRig.levelBrowserReveal).toHaveBeenCalledWith(false);
+    expect(shellTestMenuLabelsRead(entries)).not.toContain('Level Browser…');
     await levelRig.actions.levelSaveAsNew('Menu Hall');
     expect(saveLevel.isEnabled?.()).toBe(true);
     saveLevel.onClick();
@@ -293,11 +293,12 @@ describe('ShellMenuFile projects', () => {
     levelRig.workbench.dispose();
   });
 
-  it('enables Build Level once a project is open and builds through the workbench', async () => {
+  it('enables Run > Build Level once a project is open and builds through the workbench', async () => {
     const rig = workbenchRigCreate();
     const toolbarActions = shellTestToolbarActionsCreate({ gameProjectWorkbenchRead: () => rig.workbench });
     const { context } = shellMenuBarTestRigCreate(toolbarActions);
-    const buildLevel = shellTestMenuActionFind(shellMenuBarTestEntriesBuild(context, 'File'), 'Build Level');
+    expect(shellTestMenuLabelsRead(shellMenuBarTestEntriesBuild(context, 'File'))).not.toContain('Build Level');
+    const buildLevel = shellTestMenuActionFind(shellMenuBarTestEntriesBuild(context, 'Run'), 'Build Level');
     expect(buildLevel.isEnabled?.()).toBe(false);
     await rig.workbench.projectOpen('/games/build game/broom.project.json');
     expect(buildLevel.isEnabled?.()).toBe(true);
@@ -308,26 +309,28 @@ describe('ShellMenuFile projects', () => {
   });
 });
 
-describe('ShellMenuHelp', () => {
-  it('checks Editor Sounds while audio is enabled and toggles it on click', () => {
+describe('ShellMenuView sounds', () => {
+  it('checks View > Editor Sounds while audio is enabled and toggles it on click', () => {
     let audioEnabled = true;
     const { context, toolbarActions } = shellMenuBarTestRigCreate(
       shellTestToolbarActionsCreate({ isAudioEnabled: () => audioEnabled }),
     );
-    const sounds = shellTestMenuActionFind(shellMenuBarTestEntriesBuild(context, 'Help'), 'Editor Sounds');
+    const sounds = shellTestMenuActionFind(shellMenuBarTestEntriesBuild(context, 'View'), 'Editor Sounds');
     expect(sounds.isChecked?.()).toBe(true);
     audioEnabled = false;
     expect(sounds.isChecked?.()).toBe(false);
     sounds.onClick();
     expect(toolbarActions.onToggleAudio).toHaveBeenCalledTimes(1);
   });
+});
 
-  it('opens the MCP server dialog and the AI capture panel', () => {
+describe('ShellMenuHelp', () => {
+  it('opens the MCP server dialog and keeps window and sound rows out of Help', () => {
     const { context, toolbarActions } = shellMenuBarTestRigCreate();
     const entries = shellMenuBarTestEntriesBuild(context, 'Help');
     shellTestMenuActionFind(entries, 'MCP Server…').onClick();
-    shellTestMenuActionFind(entries, 'AI Captures (Debug)…').onClick();
     expect(toolbarActions.onOpenMcpDialog).toHaveBeenCalledTimes(1);
-    expect(toolbarActions.onToggleAiCaptureDebugPanel).toHaveBeenCalledTimes(1);
+    expect(shellTestMenuLabelsRead(entries)).not.toContain('AI Captures (Debug)…');
+    expect(shellTestMenuLabelsRead(entries)).not.toContain('Editor Sounds');
   });
 });

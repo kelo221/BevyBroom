@@ -68,7 +68,7 @@ Every path is relative and must stay inside the project; a path such as `../othe
 | `name`                      | Optional. The name the editor shows for the project; `project_id` when missing.                                                                                                                              |
 | `asset_root`                | Relative to the project file: the folder the game's `AssetPlugin` loads from. The other asset paths are relative to it.                                                                                      |
 | `material_catalog`          | Relative to `asset_root`: the game's material catalog (see step 3). The game reads it and sends it to the editor.                                                                                            |
-| `level_directory`           | Relative to `asset_root`: where levels are written, one folder per level, by the live preview and by **File > Build Level**.                                                                                 |
+| `level_directory`           | Relative to `asset_root`: where levels are written, one folder per level, by the live preview and by **Run > Build Level**.                                                                                  |
 | `document_directory`        | Relative to the project file: meant for the editor's scene files, `broom/documents` by default. It is checked to stay inside the project, but neither the editor nor the game uses it yet.                   |
 | `texture_directories`       | Optional, relative to `asset_root`: folders whose images the desktop editor's Texture Browser lists as **Project textures**. See [Textures and UV mapping](textures_and_uvs.md). The game does not read it.  |
 | `sprinkle_directories`      | Optional, relative to `asset_root`: folders whose `*.txt` sprinkle definition files (Valve KeyValues) the desktop editor's Sprinkle tool loads as types. The game does not read it.                          |
@@ -191,7 +191,7 @@ Once connected:
 
 ## 7. Load a shipped level
 
-**File > Build Level** writes the open document to `<asset_root>/<level_directory>/<name>/`: a geometry GLB and a `level.broom.json` manifest with the lights, rooms, portals, transforms and components. A game with `BroomLevelPlugin` (or `BroomBridgePlugin`) loads it by name with a message:
+**Run > Build Level** writes the open document to `<asset_root>/<level_directory>/<name>/`: a geometry GLB and a `level.broom.json` manifest with the lights, rooms, portals, transforms and components. A game with `BroomLevelPlugin` (or `BroomBridgePlugin`) loads it by name with a message:
 
 ```rust
 fn load_first_level(mut loads: MessageWriter<LevelLoadRequest>) {

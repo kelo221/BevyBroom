@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { HandlerSelectionVisibility } from '@/selection/visibility/handler_selection_visibility.js';
 import { ShellMenuView } from '@/layout/shell/menubar/menus/shell_menu_view.js';
 import type { ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
-import type { ShellFloatingWindowId } from '@/layout/shell/actions/shell_floating_window.js';
 import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
 import { SNAP_PRESETS } from '@/types/snap_presets.js';
 import { formatGridIntervalLabel } from '@/layout/shell/toolbar/shell_grid_interval_label.js';
@@ -21,13 +20,6 @@ import {
   type ShellTestDocks,
   type ShellTestToolbarActions,
 } from '../../shell_test_support.js';
-
-/** Floating window rows of the View menu with the window they open. */
-const SHELL_MENU_VIEW_TEST_FLOATING_ROWS: ReadonlyArray<readonly [string, ShellFloatingWindowId]> = [
-  ['Texture Browser', 'texture_browser'],
-  ['Entity Browser', 'entity_browser'],
-  ['Level Browser', 'level_browser'],
-];
 
 /**
  * View menu rows that run one window action, with the shortcut action they
@@ -178,42 +170,11 @@ describe('ShellMenuView', () => {
     });
   });
 
-  it('reveals the inspector from Map Inspector and checks it while shown', () => {
-    const { entries, docks } = shellMenuViewTestRigCreate();
-    const row = shellTestMenuActionFind(entries, 'Map Inspector');
-    docks.frame.inspectorVisibleSet(false);
-    expect(row.isChecked?.()).toBe(false);
-    row.onClick();
-    expect(docks.frame.isInspectorVisible()).toBe(true);
-    expect(row.isChecked?.()).toBe(true);
-    expect(shellTestMenuShortcutRead(row)).toBe(shellTestShortcutLabelFormat('inspector_map'));
-  });
-
   it('lists no Entity or Face inspector rows', () => {
     const { entries } = shellMenuViewTestRigCreate();
     const labels = shellTestMenuLabelsRead(entries);
     expect(labels).not.toContain('Entity Inspector');
     expect(labels).not.toContain('Face Inspector');
-  });
-
-  SHELL_MENU_VIEW_TEST_FLOATING_ROWS.forEach(([label, windowId]) => {
-    it(`toggles the ${windowId} floating window from ${label} and checks it while open`, () => {
-      const { entries, docks } = shellMenuViewTestRigCreate();
-      let isOpen = false;
-      docks.dockCommands.floatingWindowRegister(windowId, {
-        toggle: () => {
-          isOpen = !isOpen;
-        },
-        isOpen: () => isOpen,
-      });
-      const row = shellTestMenuActionFind(entries, label);
-      expect(row.isChecked?.()).toBe(false);
-      row.onClick();
-      expect(isOpen).toBe(true);
-      expect(row.isChecked?.()).toBe(true);
-      row.onClick();
-      expect(row.isChecked?.()).toBe(false);
-    });
   });
 
   it('toggles the docks and the toolbar and checks the rows while they are shown', () => {
@@ -245,9 +206,17 @@ describe('ShellMenuView', () => {
     expect(shellTestMenuShortcutRead(row)).toBe(shellTestShortcutLabelFormat('info_panel_collapse_toggle'));
   });
 
-  it('opens a detached viewport', () => {
-    const { entries, toolbarActions } = shellMenuViewTestRigCreate();
-    shellTestMenuActionFind(entries, 'Detached Viewport…').onClick();
-    expect(toolbarActions.onOpenDetachedViewport).toHaveBeenCalledTimes(1);
+  it('leaves the windows to the Window menu', () => {
+    const { entries } = shellMenuViewTestRigCreate();
+    const labels = shellTestMenuLabelsRead(entries);
+    for (const windowLabel of [
+      'Texture Browser',
+      'Entity Browser',
+      'Level Browser',
+      'Map Inspector',
+      'Detached Viewport…',
+    ]) {
+      expect(labels).not.toContain(windowLabel);
+    }
   });
 });

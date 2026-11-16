@@ -110,6 +110,7 @@ function dockCommandsSpyCreate(): LayoutWindowShortcutDockCommands {
     infoPanelToggle: vi.fn(),
     infoPanelCollapsedToggle: vi.fn(),
     toolbarToggle: vi.fn(),
+    floatingWindowToggle: vi.fn(),
   };
 }
 
@@ -183,6 +184,27 @@ describe('layout window shortcut bindings', () => {
     expect(dockCommands.inspectorToggle).toHaveBeenCalledOnce();
     expect(dockCommands.infoPanelToggle).toHaveBeenCalledOnce();
     expect(dockCommands.toolbarToggle).toHaveBeenCalledOnce();
+    handler.unregister();
+  });
+
+  it('opens and closes each browser window from its own shortcut, which no other default shortcut uses', () => {
+    const browserShortcuts: ReadonlyArray<readonly [KeyboardShortcutAction, string]> = [
+      ['window_texture_browser', 'texture_browser'],
+      ['window_entity_browser', 'entity_browser'],
+      ['window_level_browser', 'level_browser'],
+    ];
+    const defaults = createDefaultKeyboardShortcutSettings();
+    const dockCommands = dockCommandsSpyCreate();
+    const handler = handlerWithWindowShortcutsCreate(windowActionsSpyCreate(), dockCommands);
+    for (const [action, windowId] of browserShortcuts) {
+      defaultShortcutPress(action);
+      expect(dockCommands.floatingWindowToggle).toHaveBeenLastCalledWith(windowId);
+      const clashingActions = (Object.keys(defaults) as KeyboardShortcutAction[]).filter(
+        (other) => other !== action && JSON.stringify(defaults[other]) === JSON.stringify(defaults[action]),
+      );
+      expect(clashingActions).toEqual([]);
+    }
+    expect(dockCommands.floatingWindowToggle).toHaveBeenCalledTimes(browserShortcuts.length);
     handler.unregister();
   });
 

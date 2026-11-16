@@ -1,17 +1,9 @@
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import { SNAP_PRESETS } from '@/types/snap_presets.js';
 import { formatGridIntervalLabel } from '@/layout/shell/toolbar/shell_grid_interval_label.js';
-import type { ShellFloatingWindowId } from '@/layout/shell/actions/shell_floating_window.js';
 import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 import { platformIsMac } from '@/platform/platform_kind.js';
 import { themeLookMenuBuild } from '@/theme/menu/theme_look_menu.js';
-
-/** Floating windows listed in the View menu with their labels. */
-const SHELL_MENU_VIEW_FLOATING_WINDOWS: ReadonlyArray<readonly [ShellFloatingWindowId, string]> = [
-  ['texture_browser', 'Texture Browser'],
-  ['entity_browser', 'Entity Browser'],
-  ['level_browser', 'Level Browser'],
-];
 
 /** View menu: grid, camera framing, view switching and the main window docks. */
 export class ShellMenuView extends ShellMenu {
@@ -35,15 +27,10 @@ export class ShellMenuView extends ShellMenu {
       this.separatorEntry(),
       ...this.visibilityEntriesBuild(context),
       this.separatorEntry(),
-      this.mapInspectorEntryBuild(context),
-      ...SHELL_MENU_VIEW_FLOATING_WINDOWS.map((floatingWindow) =>
-        this.floatingWindowEntryBuild(context, floatingWindow),
-      ),
-      this.separatorEntry(),
       ...this.dockToggleEntriesBuild(context),
       this.separatorEntry(),
-      this.actionEntry(context, 'Detached Viewport…', () => context.toolbarActions.onOpenDetachedViewport()),
       ...this.lookEntriesBuild(),
+      this.editorSoundsEntryBuild(context),
     ];
   }
 
@@ -64,10 +51,10 @@ export class ShellMenuView extends ShellMenu {
    * Builds the Look submenu on macOS; other platforms keep the classic look and
    * get no entries.
    *
-   * @returns Separator and Look submenu on macOS, otherwise nothing.
+   * @returns Look submenu on macOS, otherwise nothing.
    */
   private lookEntriesBuild(): ToolbarMenuEntry[] {
-    return platformIsMac() ? [this.separatorEntry(), themeLookMenuBuild()] : [];
+    return platformIsMac() ? [themeLookMenuBuild()] : [];
   }
 
   /**
@@ -133,34 +120,16 @@ export class ShellMenuView extends ShellMenu {
   }
 
   /**
-   * Builds the row that shows the Map inspector.
+   * Builds the row that switches the editor sounds on and off, checked while
+   * on.
    *
    * @param context Actions and docks the entries run.
-   * @returns Menu action entry checked while the inspector is shown.
+   * @returns Menu action entry.
    */
-  private mapInspectorEntryBuild(context: ShellMenuContext): ToolbarMenuEntry {
-    const docks = context.dockCommands;
-    return this.actionEntry(context, 'Map Inspector', () => docks.inspectorReveal(), {
-      shortcutAction: 'inspector_map',
-      isChecked: () => docks.isInspectorVisible(),
-    });
-  }
-
-  /**
-   * Builds the row that opens or closes one floating window.
-   *
-   * @param context Actions and docks the entries run.
-   * @param floatingWindow Floating window id and row label.
-   * @returns Menu action entry checked while that window is shown.
-   */
-  private floatingWindowEntryBuild(
-    context: ShellMenuContext,
-    floatingWindow: readonly [ShellFloatingWindowId, string],
-  ): ToolbarMenuEntry {
-    const [windowId, label] = floatingWindow;
-    const docks = context.dockCommands;
-    return this.actionEntry(context, label, () => docks.floatingWindowToggle(windowId), {
-      isChecked: () => docks.isFloatingWindowOpen(windowId),
+  private editorSoundsEntryBuild(context: ShellMenuContext): ToolbarMenuEntry {
+    const actions = context.toolbarActions;
+    return this.actionEntry(context, 'Editor Sounds', () => actions.onToggleAudio(), {
+      isChecked: () => actions.isAudioEnabled(),
     });
   }
 

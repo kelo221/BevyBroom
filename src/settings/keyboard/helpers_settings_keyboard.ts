@@ -75,6 +75,9 @@ const KEYBOARD_SHORTCUT_ACTIONS = [
   'csg_intersect',
   'csg_hollow',
   'csg_convex_merge',
+  'window_texture_browser',
+  'window_entity_browser',
+  'window_level_browser',
 ] as const satisfies ReadonlyArray<keyof KeyboardShortcutSettings>;
 
 /**

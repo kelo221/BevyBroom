@@ -3,7 +3,8 @@
 The main window is arranged like Hammer++. From top to bottom and left to right
 it has:
 
-1. The **menu bar** with the File, Edit, Add, Tools, View, Run, and Help menus.
+1. The **menu bar** with the File, Edit, Add, Tools, View, Run, Window, and Help
+   menus.
 2. The **toolbar**, one row of icon buttons and quick controls.
 3. The **tools palette**, a vertical column of tool buttons on the left edge.
 4. The **view column** in the center: a view bar above four viewports.
@@ -19,8 +20,9 @@ Browser**, **Replace Textures**, and the **Entity Browser**.
 ## Menu bar
 
 - **File** starts a new scene; saves, saves as, and loads BevyBroom scenes;
-  imports VMF and OBJ files; exports GLB, OBJ/MTL, and FBX models; and opens
-  **Preferences…** (the Settings dialog).
+  opens a game project and saves levels into it; imports VMF and OBJ files;
+  exports GLB, OBJ/MTL, and FBX models; and opens **Preferences…** (the
+  Settings dialog).
 - **Edit** has Undo and Redo; Cut, Copy, Paste, and Paste at Original
   Position; Duplicate and Delete; **Object Properties** (`Alt+Enter`); Select
   All, Select None, and a **Select** submenu; Group and Ungroup; a **CSG**
@@ -32,19 +34,22 @@ Browser**, **Replace Textures**, and the **Entity Browser**.
   **Terrain**, **Brushes**, **Lights**, **Portals**, and **Game Entities**. The
   new object is created using the current placement context and selected.
 - **Tools** chooses a tool; toggles Snap to Grid, Position Lock, and Stretch
-  Lock; chooses Global or Local gizmo axes; and opens the **Solid Model…**
-  panel.
-- **View** has a **Grid** submenu for the grid size, commands that frame the
-  selection in one or all views, **Cycle View** and **Maximize View**, Hide
-  Selected, Isolate Selected, and Show All, **Map Inspector** (`Ctrl+1`), the
-  **Texture Browser** and **Entity Browser** windows, **Show Inspector**,
-  **Show Info Panel**, **Show Toolbar**, and **Show Tools Palette**, and
-  **Detached Viewport…**.
-- **Run** starts **Play** mode and opens the **Game Preview…** panel.
+  Lock; and chooses Global or Local gizmo axes.
+- **View** changes what the views show: a **Grid** submenu for the grid size,
+  commands that frame the selection in one or all views, **Cycle View** and
+  **Maximize View**, Hide Selected, Isolate Selected, and Show All, **Show
+  Inspector**, **Show Info Panel**, **Show Toolbar**, and **Show Tools
+  Palette**, and **Editor Sounds**.
+- **Run** starts **Play** mode; launches, rebuilds, restarts, and stops the
+  game; runs **Build Level**; and opens the **Game Preview…** panel.
+- **Window** opens every window and panel: the **Texture Browser**
+  (`Ctrl+Shift+T`), **Entity Browser** (`Ctrl+Shift+B`), and **Level Browser**
+  (`Ctrl+Shift+L`), the **Map Inspector** (`Ctrl+1`), the **Solid Model…**
+  panel, a **Detached Viewport…**, and the **AI Captures (Debug)…** panel. On
+  macOS it also holds the system Minimize, Zoom, and Full Screen rows.
 - **Help** opens **Search Commands…** (`Ctrl+Shift+P`), this
-  **Documentation**, the **About BevyBroom…** dialog, the
-  **MCP Server…** dialog, and the **AI Captures (Debug)…** panel, and switches
-  **Editor Sounds** on or off.
+  **Documentation**, the **About BevyBroom…** dialog, and the **MCP Server…**
+  dialog.
 
 Menu rows show their current keyboard shortcut, and a check mark shows an
 option or panel that is currently on. A disabled menu item means the current
@@ -362,7 +367,8 @@ See [Textures and UV mapping](textures_and_uvs.md).
 The Texture Browser shows the face attributes of the current material above a
 grid of every material. Type in its filter to match material names and paths;
 click a material to make it current. Open it with **Browse** in the right dock,
-**Browse…** in the Face Edit Sheet, or **View > Texture Browser**.
+**Browse…** in the Face Edit Sheet, the Texture Browser button on the toolbar,
+**Window > Texture Browser**, or `Ctrl+Shift+T`.
 
 ### Replace Textures
 
@@ -376,8 +382,9 @@ Face Edit Sheet.
 
 The Entity Browser shows a thumbnail tile for every kind of object the **Add**
 menu can create, including the game's entity classes when a game is connected.
-Open it with **Browse** on the Entity Tool's view bar or **View > Entity
-Browser**.
+Open it with the Entity Browser button on the toolbar, **Window > Entity
+Browser**, `Ctrl+Shift+B` (`⌘⇧B` on macOS), or **Browse** on the Entity Tool's
+view bar.
 
 - Drag a tile onto a viewport to place that object where you drop it.
 - Click a tile to select it, then double-click it or press `Enter` to add the
@@ -390,7 +397,7 @@ A tile's number badge shows how many objects of that kind the map contains.
 
 ### Other panels
 
-**Tools > Solid Model…**, **Run > Game Preview…**, and **Help > AI Captures
+**Window > Solid Model…**, **Run > Game Preview…**, and **Window > AI Captures
 (Debug)…** also open as floating panels. **Solid Model** shows the active model
 and provides a quick **+ Box Brush** action.
 

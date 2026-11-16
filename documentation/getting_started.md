@@ -23,7 +23,7 @@ The menu bar and the toolbar are at the top. The tools palette is on the left. T
 
 To draw a brush instead, click empty space so nothing is selected, then drag in a view. In the Top view the brush gets the visible rectangle you drag; in Perspective it starts on the surface under the mouse and is one grid step tall. See [Creating and transforming objects](creating_and_transforming.md).
 
-You can also drag a tile from the **Entity Browser** onto a viewport to place an object where you drop it. Open it with **View > Entity Browser**, or **Browse** on the Entity Tool's view bar.
+You can also drag a tile from the **Entity Browser** onto a viewport to place an object where you drop it. Open it with the Entity Browser button on the toolbar, **Window > Entity Browser** or `Ctrl+Shift+B` (`⌘⇧B` on macOS), or **Browse** on the Entity Tool's view bar.
 
 New objects are placed using the editor's current placement context. If an object is outside the part of the scene you are viewing, select it in the hierarchy and press `F` to frame it.
 

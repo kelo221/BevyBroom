@@ -119,7 +119,7 @@ If the game fails to load a geometry revision, the editor sends it once more. If
 
 ## Build Level
 
-**File > Build Level** (desktop app, with a project open) writes the current document as a level the shipped game loads without the editor. The level is named after the scene file and goes to `<asset_root>/<level_directory>/<name>/` of the open project, the folder `broom_preview --level <name>` and `BroomLevelPlugin` read.
+**Run > Build Level** (desktop app, with a project open) writes the current document as a level the shipped game loads without the editor. The level is named after the scene file and goes to `<asset_root>/<level_directory>/<name>/` of the open project, the folder `broom_preview --level <name>` and `BroomLevelPlugin` read.
 
 Before anything is written, the build checks the scene with the same checks as the Issues panel. Any error, such as game components on a single brush inside a solid model, stops the build and is listed in the Console.
 
