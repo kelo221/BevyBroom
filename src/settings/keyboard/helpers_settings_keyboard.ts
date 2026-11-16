@@ -69,6 +69,12 @@ const KEYBOARD_SHORTCUT_ACTIONS = [
   'face_uv_flip_v',
   'face_uv_reset_face',
   'face_uv_reset_world',
+  'command_search',
+  'csg_union',
+  'csg_subtract',
+  'csg_intersect',
+  'csg_hollow',
+  'csg_convex_merge',
 ] as const satisfies ReadonlyArray<keyof KeyboardShortcutSettings>;
 
 /**

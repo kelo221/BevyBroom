@@ -18,6 +18,7 @@ import type { CoordinatorEditMode } from '@/edit/coordinator/coordinator_edit_mo
 import type { HandlerComponentTransform } from '@/edit/transform/handler_component_transform.js';
 import type { ObjectSelectDoubleClickProperties } from '@/tools/object_select/object_select_double_click_properties.js';
 import type { FaceEditObjectShiftClick } from '@/tools/face/object_shift_click/face_edit_object_shift_click.js';
+import type { ObjectSelectContextMenu } from '@/tools/object_select/object_select_context_menu.js';
 import type { LayoutObjectDragHost } from './layout_object_drag_setup.js';
 
 /** Dependencies for building the Shape Editor-style tool stack. */
@@ -131,6 +132,8 @@ export interface LayoutToolEditorSetupDeps {
   objectSelectDoubleClick?: ObjectSelectDoubleClickProperties;
   /** Opens the Face tool on Shift+clicked brush faces; off when omitted. */
   objectShiftClickFaceEdit?: FaceEditObjectShiftClick;
+  /** Opens the right-click menu of the map views; off when omitted. */
+  objectContextMenu?: ObjectSelectContextMenu;
 }
 
 /** Built tool system exposed to the layout for keyboard and mode switches. */

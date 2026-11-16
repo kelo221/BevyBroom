@@ -28,7 +28,7 @@ export class ShellMenuView extends ShellMenu {
     return [
       this.gridSubmenuBuild(context),
       this.separatorEntry(),
-      this.actionEntry(context, 'Frame Selection', () => window.frameSelection(), { shortcutAction: 'fit_selection' }),
+      this.frameSelectionEntryBuild(context),
       this.actionEntry(context, 'Frame Selection in All Views', () => window.frameAll(), { shortcutAction: 'fit_all' }),
       this.actionEntry(context, 'Cycle View', () => window.viewCycle(), { shortcutAction: 'view_cycle' }),
       this.actionEntry(context, 'Maximize View', () => window.viewMaximize(), { shortcutAction: 'view_maximize' }),
@@ -45,6 +45,19 @@ export class ShellMenuView extends ShellMenu {
       this.actionEntry(context, 'Detached Viewport…', () => context.toolbarActions.onOpenDetachedViewport()),
       ...this.lookEntriesBuild(),
     ];
+  }
+
+  /**
+   * Builds the Frame Selection row.
+   *
+   * @param context Actions and docks the entry runs.
+   * @returns Menu action entry.
+   */
+  frameSelectionEntryBuild(context: ShellMenuContext): ToolbarMenuEntry {
+    const window = context.windowActions;
+    return this.actionEntry(context, 'Frame Selection', () => window.frameSelection(), {
+      shortcutAction: 'fit_selection',
+    });
   }
 
   /**
@@ -102,7 +115,7 @@ export class ShellMenuView extends ShellMenu {
    * @param context Actions and docks the entries run.
    * @returns Menu action entries.
    */
-  private visibilityEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+  visibilityEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
     const window = context.windowActions;
     return [
       this.actionEntry(context, 'Hide Selected', () => window.selectionVisibilityRead()?.hideSelected(), {

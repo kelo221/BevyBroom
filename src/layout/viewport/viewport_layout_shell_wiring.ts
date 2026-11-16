@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
 import { ViewportLayoutCoordinators } from './viewport_layout_coordinators.js';
 import {
+  layoutWindowShortcutsCommandsCreate,
   layoutWindowShortcutsDockCreate,
   layoutWindowShortcutsRegister,
   layoutWindowShortcutsWindowActionsCreate,
@@ -37,6 +38,8 @@ import { DialogObjectProperties } from '@/ui/object_properties/dialog_object_pro
 import { ObjectSelectDoubleClickProperties } from '@/tools/object_select/object_select_double_click_properties.js';
 import { ObjectSelectDoubleClickNativeListener } from '@/tools/object_select/object_select_double_click_native_listener.js';
 import { objectSelectDoubleClickToolReady } from '@/tools/object_select/object_select_double_click_tool_ready.js';
+import { ObjectSelectContextMenu } from '@/tools/object_select/object_select_context_menu.js';
+import { ShellContextMenuObject } from '@/layout/shell/context_menu/shell_context_menu_object.js';
 import { FaceEditObjectShiftClick } from '@/tools/face/object_shift_click/face_edit_object_shift_click.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
 
@@ -51,6 +54,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
   private selectionVisibility: HandlerSelectionVisibility | null = null;
   private objectPropertiesDialog: DialogObjectProperties | null = null;
   private objectSelectDoubleClickNativeListener: ObjectSelectDoubleClickNativeListener | null = null;
+  private objectContextMenu: ObjectSelectContextMenu | null = null;
   protected sceneRecovery: SystemSceneRecovery | null = null;
 
   /**
@@ -177,6 +181,12 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
       this.keyboardShortcutHandler,
       layoutWindowShortcutsDockCreate(this.shellElements.dockCommands),
     );
+    layoutWindowShortcutsRegister(
+      this.keyboardShortcutHandler,
+      layoutWindowShortcutsCommandsCreate(this.shellElements.menuContext, () =>
+        this.shellElements.commandSearch.open(),
+      ),
+    );
   }
 
   /**
@@ -274,6 +284,31 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
       this.editModeCoordinator?.isActive() !== true &&
       this.toolsPaletteController?.getActiveTool() === EditorToolId.OBJECT
     );
+  }
+
+  /**
+   * Builds the right-click menu of the map views over the main window menu
+   * actions.
+   *
+   * @returns Right-click menu bound to this layout.
+   */
+  protected objectContextMenuCreate(): ObjectSelectContextMenu {
+    this.objectContextMenu?.dispose();
+    const contextMenuEntries = new ShellContextMenuObject();
+    this.objectContextMenu = new ObjectSelectContextMenu({
+      selectionManager: this.selectionManager,
+      pickObjectStackAtClientPoint: (clientX, clientY) =>
+        this.toolEditorSystem?.editorWindow.getServices()?.pickObjectStackAtClientPoint(clientX, clientY) ?? [],
+      entriesBuild: () => contextMenuEntries.entriesBuild(this.shellElements.menuContext),
+      isContextMenuAllowed: () => this.objectSelectDoubleClickAllowed(),
+    });
+    return this.objectContextMenu;
+  }
+
+  /** Closes the right-click menu of the map views and disarms its press. */
+  protected objectContextMenuDispose(): void {
+    this.objectContextMenu?.dispose();
+    this.objectContextMenu = null;
   }
 
   /** Stops forwarding the browser's double-clicks to the object tool. */

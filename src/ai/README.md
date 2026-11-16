@@ -362,7 +362,7 @@ These tools need the desktop app; the browser editor answers that it cannot star
 | Tool             | What it does                                                                                                                            |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `viewport_drag`  | Left-drag in a visible `view` (`perspective`, `top`, `front`, `side`) from world point `from` to `to`, with optional `keys` and `steps` |
-| `viewport_click` | Left-click in a visible `view` at world point `at`, with optional `keys` (`ctrl`, `shift`, `alt`)                                       |
+| `viewport_click` | Click in a visible `view` at world point `at`, with optional `keys` (`ctrl`, `shift`, `alt`) and `button` (`left`, `right`)             |
 
 - Both tools project the world points through the view camera and dispatch real pointer events, so the active tool reacts exactly as it does to the mouse. Both return `selection` like `get_selection`.
 - With the Object tool, dragging a selected object moves the selection (grid snapped; `shift` turns snapping off, `alt` moves vertically in the perspective view, `ctrl` duplicates first). Dragging empty space while nothing is selected draws a box brush (`shift` square, `alt` sets the height in the perspective view). Dragging empty space while something is selected does nothing.
@@ -370,6 +370,19 @@ These tools need the desktop app; the browser editor answers that it cannot star
 - A click selects what is under the point: `ctrl` toggles (adds an unselected object, removes a selected one), empty space deselects.
 - With the Object tool, a `shift` click on a brush face (or on a displaced face's surface) switches to the Face tool, opens the Face Edit Sheet and selects exactly that face. A `shift` click whose nearest object is no brush (a light, an entity, a mesh) adds that object, and on empty space it changes nothing.
 - The call fails when no view of that kind is visible.
+- A `right` click with the Object tool opens the right-click menu: an unselected object under the point becomes the selection first, then the menu lists the commands that apply. Read it with `get_open_menus` and run a row with `choose_open_menu_item`.
+
+## Keyboard and open menus
+
+| Tool                    | What it does                                                                                                                        |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `keyboard_input`        | Press `code` (such as `KeyP`, `Enter`, `Escape`, `ArrowDown`) with optional `keys`, or type `text` into the focused text field      |
+| `get_open_menus`        | Read-only: the open menu bar dropdowns, right-click menus (`kind` `menu`) and the command search (`kind` `command_search`, `query`) |
+| `choose_open_menu_item` | Click the first enabled row with exactly this `label` in the open menus; returns the menus still open                               |
+
+- `keyboard_input` sends real keyboard events to the element with keyboard focus, so editor shortcuts, the command search and text fields react as they do to a keyboard. `keys.ctrl` is the primary shortcut modifier: Control, or Command on macOS. `{code: "KeyP", keys: {ctrl: true, shift: true}}` opens the command search and focuses its field.
+- A key press returns `handled` (the editor used the key) and `focused` (tag and label of the focused element). Typing returns the field's `value`.
+- Each `get_open_menus` row has `label`, `shortcut` and `enabled`; command search rows also have their menu `path` and `active` (the row `Enter` runs). Right-click menus leave out rows that do not apply.
 
 ## Face editing
 

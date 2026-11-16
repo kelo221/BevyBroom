@@ -85,6 +85,16 @@ const WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, stri
   ['visibility_isolate', 'Isolate Selected'],
   ['visibility_show_all', 'Show All'],
   ['object_properties', 'Object Properties'],
+  ['command_search', 'Search Commands'],
+];
+
+/** Brush operation shortcuts of the Edit > CSG menu. */
+const CSG_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, string]> = [
+  ['csg_union', 'Union'],
+  ['csg_subtract', 'Subtract'],
+  ['csg_intersect', 'Intersect'],
+  ['csg_hollow', 'Hollow'],
+  ['csg_convex_merge', 'Convex Merge'],
 ];
 
 /**
@@ -151,6 +161,7 @@ export class SettingsKeyboardTab {
       this.buildCategory('Clip Plane Tool', CLIP_SHORTCUT_ROWS, settings),
       this.buildCategory('Sprinkle Tool', SPRINKLE_SHORTCUT_ROWS, settings),
       this.buildCategory('Window and Views', WINDOW_SHORTCUT_ROWS, settings),
+      this.buildCategory('Brush Operations', CSG_SHORTCUT_ROWS, settings),
       this.buildReminderCategory(),
     );
   }

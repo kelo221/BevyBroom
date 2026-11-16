@@ -9,6 +9,8 @@ import { EditorApiFaceUv } from './editor_api_face_uv.js';
 import { EditorApiDisplacement } from './editor_api_displacement.js';
 import { EditorApiFaceEdit } from './editor_api_face_edit.js';
 import { EditorApiViewportInput } from './editor_api_viewport_input.js';
+import { EditorApiKeyboardInput } from './editor_api_keyboard_input.js';
+import { EditorApiOpenMenus } from './editor_api_open_menus.js';
 import { EditorApiSelectionQuery } from './editor_api_selection_query.js';
 import { EditorApiSelectionVisibility } from './editor_api_selection_visibility.js';
 import { EditorApiTextureReplace } from './editor_api_texture_replace.js';
@@ -20,9 +22,9 @@ import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 /**
  * Tool groups that each answer only their own tool names: layers, main window,
  * Object Properties dialog, clipboard, brush editing, face UV, displacement,
- * face edit state, viewport input, selection queries, selection visibility,
- * material replacement, the texture browser, Entity Sprinkle and modifier
- * volumes.
+ * face edit state, viewport input, keyboard input, open menus, selection
+ * queries, selection visibility, material replacement, the texture browser,
+ * Entity Sprinkle and modifier volumes.
  */
 export class EditorApiToolGroups {
   private readonly layers: EditorApiLayers;
@@ -35,6 +37,8 @@ export class EditorApiToolGroups {
   private readonly displacement: EditorApiDisplacement;
   private readonly faceEdit: EditorApiFaceEdit;
   private readonly viewportInput: EditorApiViewportInput;
+  private readonly keyboardInput: EditorApiKeyboardInput;
+  private readonly openMenus: EditorApiOpenMenus;
   private readonly selectionQuery: EditorApiSelectionQuery;
   private readonly selectionVisibility: EditorApiSelectionVisibility;
   private readonly textureReplace: EditorApiTextureReplace;
@@ -60,6 +64,8 @@ export class EditorApiToolGroups {
     this.displacement = new EditorApiDisplacement(host);
     this.faceEdit = new EditorApiFaceEdit(host);
     this.viewportInput = new EditorApiViewportInput(host, selectionRead);
+    this.keyboardInput = new EditorApiKeyboardInput();
+    this.openMenus = new EditorApiOpenMenus();
     this.selectionQuery = new EditorApiSelectionQuery(host);
     this.selectionVisibility = new EditorApiSelectionVisibility(host);
     this.textureReplace = new EditorApiTextureReplace(host);
@@ -87,6 +93,8 @@ export class EditorApiToolGroups {
       this.displacement.displacementToolDispatch(name, args) ??
       this.faceEdit.faceEditToolDispatch(name) ??
       this.viewportInput.viewportInputToolDispatch(name, args) ??
+      this.keyboardInput.keyboardInputToolDispatch(name, args) ??
+      this.openMenus.openMenusToolDispatch(name, args) ??
       this.selectionQuery.selectionQueryToolDispatch(name, args) ??
       this.selectionVisibility.selectionVisibilityToolDispatch(name, args) ??
       this.textureReplace.textureReplaceToolDispatch(name, args) ??

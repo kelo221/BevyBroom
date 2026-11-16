@@ -48,6 +48,19 @@ export class MenuContext {
   }
 
   /**
+   * Creates a context menu that shows declarative menu entries, including
+   * submenus, check marks and shortcut labels.
+   *
+   * @param entries Menu entries to display.
+   * @returns Hidden context menu.
+   */
+  static fromEntries(entries: ToolbarMenuEntry[]): MenuContext {
+    const menu = new MenuContext(document.body, []);
+    menu.panel.entriesSet(entries);
+    return menu;
+  }
+
+  /**
    * Returns the menu panel root element.
    *
    * @returns Menu panel DOM node.

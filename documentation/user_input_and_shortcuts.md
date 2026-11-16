@@ -21,7 +21,9 @@ BevyBroom supports both direct manipulation and keyboard-driven editing. Most sh
 - The wheel zooms or moves the camera. While the right mouse button holds
   fly-look in Perspective, each wheel notch changes the fly speed instead, and
   **Settings > Mouse > Speed** follows the new value.
-- Right-click may open a context menu when navigation is not taking ownership of the gesture.
+- A right click without dragging opens the right-click menu of the commands
+  that apply to the selection (Object Select tools); see
+  [Right-click menu](understanding_the_interface.md#right-click-menu).
 
 ### In the hierarchy
 
@@ -131,6 +133,18 @@ Earlier builds may have described plain `Tab` as a toggle. In the current defaul
 | `Alt+G`   | Align to origin                                      |
 | `A`       | Cycle alignment restriction through All, X, Y, and Z |
 
+### Brush operations
+
+| Shortcut       | Action                                  |
+| -------------- | --------------------------------------- |
+| `Ctrl+Shift+U` | Union (**Edit > CSG**)                  |
+| `Ctrl+Shift+C` | Subtract                                |
+| `Ctrl+Shift+X` | Intersect                               |
+| `Ctrl+Shift+O` | Hollow the selected brushes             |
+| `Ctrl+Shift+M` | Convex Merge the selected brushes/faces |
+
+These are listed under **Brush Operations** in **Settings > Keyboard**.
+
 ### View and shading
 
 | Shortcut  | Action                           |
@@ -152,14 +166,15 @@ Earlier builds may have described plain `Tab` as a toggle. In the current defaul
 
 ### Main window
 
-| Shortcut     | Action                                  |
-| ------------ | --------------------------------------- |
-| `Ctrl+1`     | Show the right dock (Map inspector)     |
-| `Ctrl+4`     | Show or hide the info panel             |
-| `Ctrl+5`     | Show or hide the inspector              |
-| Ctrl+`       | Collapse or expand the info panel       |
-| `Ctrl+Alt+T` | Show or hide the toolbar                |
-| `Alt+Enter`  | Open Object Properties on the selection |
+| Shortcut       | Action                                  |
+| -------------- | --------------------------------------- |
+| `Ctrl+1`       | Show the right dock (Map inspector)     |
+| `Ctrl+4`       | Show or hide the info panel             |
+| `Ctrl+5`       | Show or hide the inspector              |
+| Ctrl+`         | Collapse or expand the info panel       |
+| `Ctrl+Alt+T`   | Show or hide the toolbar                |
+| `Alt+Enter`    | Open Object Properties on the selection |
+| `Ctrl+Shift+P` | Search Commands                         |
 
 These shortcuts are listed under **Window and Views** in **Settings > Keyboard**, and the menus show the current binding next to each command.
 

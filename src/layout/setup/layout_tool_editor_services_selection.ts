@@ -33,6 +33,7 @@ export type LayoutToolEditorSelectionServices = Pick<
   | 'applyObjectClickSelectionAtClientPoint'
   | 'objectClickReleaseDoubleClickHandle'
   | 'objectShiftClickFaceEditApply'
+  | 'objectContextMenuPressBegin'
   | 'isSelectionScaleAllowed'
   | 'beginObjectDragAtClientPoint'
 >;
@@ -61,6 +62,7 @@ type LayoutToolEditorSelectionPickServices = Pick<
   | 'applyObjectClickSelectionAtClientPoint'
   | 'objectClickReleaseDoubleClickHandle'
   | 'objectShiftClickFaceEditApply'
+  | 'objectContextMenuPressBegin'
   | 'isSelectionScaleAllowed'
   | 'beginObjectDragAtClientPoint'
 >;
@@ -133,6 +135,8 @@ function layoutToolEditorSelectionPickServicesCreate(
       ctx.deps.objectSelectDoubleClick?.clickRelease(clientX, clientY, isModifierHeld) === true,
     objectShiftClickFaceEditApply: (clientX, clientY) =>
       ctx.deps.objectShiftClickFaceEdit?.clickApply(clientX, clientY) === true,
+    objectContextMenuPressBegin: (clientX, clientY) =>
+      ctx.deps.objectContextMenu?.pressBegin(ctx.getPointerOwnerDocument()?.defaultView ?? window, clientX, clientY),
     isSelectionScaleAllowed: () => layoutToolEditorSelectionScaleAllowedRead(ctx),
     beginObjectDragAtClientPoint: (press) => ctx.objectDragController?.dragBegin(press) ?? null,
   };

@@ -6,6 +6,7 @@ import type { KeyboardShortcut, KeyboardShortcutAction } from '@/settings/store/
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
 import {
+  layoutWindowShortcutsCommandsCreate,
   layoutWindowShortcutsDockCreate,
   layoutWindowShortcutsRegister,
   layoutWindowShortcutsWindowActionsCreate,
@@ -261,5 +262,66 @@ describe('layout window shortcut bindings', () => {
     expect(actionCallbackSet).toHaveBeenCalledWith('play_start', callbacks.play_start);
     expect(actionCallbackSet).toHaveBeenCalledWith('view_cycle', callbacks.view_cycle);
     expect(actionCallbackSet).toHaveBeenCalledTimes(2);
+  });
+});
+
+/** Shortcut actions of the command search and the Edit > CSG rows. */
+const COMMAND_SHORTCUT_ACTIONS = [
+  'command_search',
+  'csg_union',
+  'csg_subtract',
+  'csg_intersect',
+  'csg_hollow',
+  'csg_convex_merge',
+] as const satisfies readonly KeyboardShortcutAction[];
+
+/**
+ * Creates a registered keyboard handler with the command search and brush
+ * operation shortcuts bound to spies.
+ *
+ * @returns Handler and the spies the shortcuts run.
+ */
+function handlerWithCommandShortcutsCreate(): {
+  handler: HandlerKeyboardShortcut;
+  commandSearchOpen: ReturnType<typeof vi.fn>;
+  toolbarActions: { onCsgUnion: () => void; onCsgSubtract: () => void; onCsgIntersect: () => void };
+  brushTools: { hollow: ReturnType<typeof vi.fn>; convexMerge: ReturnType<typeof vi.fn> };
+} {
+  const handler = new HandlerKeyboardShortcut(new ManagerInput(), () => createDefaultKeyboardShortcutSettings());
+  const commandSearchOpen = vi.fn();
+  const toolbarActions = { onCsgUnion: vi.fn(), onCsgSubtract: vi.fn(), onCsgIntersect: vi.fn() };
+  const brushTools = { hollow: vi.fn(), convexMerge: vi.fn() };
+  const windowActions = { ...windowActionsSpyCreate(), solidBrushToolsRead: () => brushTools as never };
+  const menuContext = { toolbarActions: toolbarActions as never, windowActions };
+  layoutWindowShortcutsRegister(handler, layoutWindowShortcutsCommandsCreate(menuContext, commandSearchOpen));
+  handler.register();
+  return { handler, commandSearchOpen, toolbarActions, brushTools };
+}
+
+/**
+ * Proves the command search and the Edit > CSG rows have default shortcuts that
+ * no other default action uses, and that each runs its command.
+ */
+describe('layout command shortcut bindings', () => {
+  it('runs the command search and every brush operation from its default shortcut', () => {
+    const { handler, commandSearchOpen, toolbarActions, brushTools } = handlerWithCommandShortcutsCreate();
+    COMMAND_SHORTCUT_ACTIONS.forEach((action) => defaultShortcutPress(action));
+    handler.unregister();
+    expect(commandSearchOpen).toHaveBeenCalledOnce();
+    expect(toolbarActions.onCsgUnion).toHaveBeenCalledOnce();
+    expect(toolbarActions.onCsgSubtract).toHaveBeenCalledOnce();
+    expect(toolbarActions.onCsgIntersect).toHaveBeenCalledOnce();
+    expect(brushTools.hollow).toHaveBeenCalledOnce();
+    expect(brushTools.convexMerge).toHaveBeenCalledOnce();
+  });
+
+  it('binds each of them to a key and modifiers no other default shortcut uses', () => {
+    const defaults = createDefaultKeyboardShortcutSettings();
+    for (const action of COMMAND_SHORTCUT_ACTIONS) {
+      const clashingActions = (Object.keys(defaults) as KeyboardShortcutAction[]).filter(
+        (other) => other !== action && JSON.stringify(defaults[other]) === JSON.stringify(defaults[action]),
+      );
+      expect(clashingActions).toEqual([]);
+    }
   });
 });

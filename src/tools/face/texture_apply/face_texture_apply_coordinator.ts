@@ -7,7 +7,7 @@ import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import { getStateTextureStampTool } from '@/tools/texture_stamp/state_texture_stamp_tool.js';
 import { FaceAttributeTransferHandler } from '@/tools/face/face_attribute_transfer_handler.js';
 import { FaceLiftedSurfaceStore } from './face_lifted_surface_store.js';
-import { FaceSecondaryClickGesture, type FaceSecondaryDragHandler } from './face_secondary_click_gesture.js';
+import { GestureSecondaryClick, type GestureSecondaryDragHandler } from '@/input/gesture/gesture_secondary_click.js';
 import { FaceTextureApplyActions } from './face_texture_apply_actions.js';
 import { FaceTextureApplyRouter } from './face_texture_apply_router.js';
 
@@ -43,7 +43,7 @@ export class FaceTextureApplyCoordinator {
   private readonly deps: FaceTextureApplyCoordinatorDeps;
   private readonly attributeTransferHandler: FaceAttributeTransferHandler;
   private readonly textureAssignment: ControllerTextureAssignment;
-  private readonly secondaryClickGesture: FaceSecondaryClickGesture;
+  private readonly secondaryClickGesture: GestureSecondaryClick;
   private readonly router: FaceTextureApplyRouter;
 
   /**
@@ -55,7 +55,7 @@ export class FaceTextureApplyCoordinator {
     this.deps = deps;
     this.attributeTransferHandler = this.attributeTransferHandlerCreate();
     this.textureAssignment = this.textureAssignmentCreate();
-    this.secondaryClickGesture = new FaceSecondaryClickGesture();
+    this.secondaryClickGesture = new GestureSecondaryClick();
     this.router = new FaceTextureApplyRouter(this.actionsCreate(), deps.showStatusMessage);
   }
 
@@ -92,7 +92,7 @@ export class FaceTextureApplyCoordinator {
     viewport: FaceTextureApplyViewport,
     clientX: number,
     clientY: number,
-    dragHandler: FaceSecondaryDragHandler | null = null,
+    dragHandler: GestureSecondaryDragHandler | null = null,
   ): void {
     const ownerWindow = viewport.pickElement.ownerDocument.defaultView ?? window;
     this.secondaryClickGesture.begin(

@@ -185,3 +185,32 @@ describe('ShellMenuEdit select entries', () => {
     }
   });
 });
+
+/** Shortcuts of the CSG submenu rows. */
+describe('ShellMenuEdit CSG shortcuts', () => {
+  it('shows the configured shortcut of every CSG row', () => {
+    const { entries } = shellMenuEditTestRigCreate();
+    const rowActions = [
+      ['Union', 'csg_union'],
+      ['Subtract', 'csg_subtract'],
+      ['Intersect', 'csg_intersect'],
+      ['Hollow', 'csg_hollow'],
+      ['Convex Merge', 'csg_convex_merge'],
+    ] as const;
+    for (const [label, action] of rowActions) {
+      expect(shellTestMenuShortcutRead(shellTestMenuActionFind(entries, 'CSG', label))).toBe(
+        shellTestShortcutLabelFormat(action),
+      );
+    }
+  });
+
+  it('builds the same rows flat for menus that list them without the CSG submenu', () => {
+    const { entries, docks, windowActions } = shellMenuEditTestRigCreate();
+    const context = shellTestMenuContextCreate(docks, undefined, windowActions);
+    const submenuLabels = shellTestMenuLabelsRead(
+      entries.flatMap((entry) => (entry.kind === 'submenu' && entry.label === 'CSG' ? entry.children : [])),
+    );
+    expect(shellTestMenuLabelsRead(new ShellMenuEdit().csgEntriesBuild(context))).toEqual(submenuLabels);
+    expect(submenuLabels).toEqual(['Union', 'Subtract', 'Intersect', 'Hollow', 'Convex Merge']);
+  });
+});

@@ -262,6 +262,16 @@ export interface EditorServices {
   objectShiftClickFaceEditApply?: (clientX: number, clientY: number) => boolean;
 
   /**
+   * Arms the object right-click menu at a right-button press of the object
+   * tool; releasing without dragging opens it. Optional so hosts without the
+   * menu can omit it.
+   *
+   * @param clientX Press client X.
+   * @param clientY Press client Y.
+   */
+  objectContextMenuPressBegin?: (clientX: number, clientY: number) => void;
+
+  /**
    * Returns whether every selected object may be scaled. Optional so hosts
    * without such rules can omit it; omitted means scaling is allowed.
    *

@@ -12,6 +12,12 @@ import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js'
 import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
 import type { EditorServices } from '@/editor/window/editor_services.js';
 
+/** Mouse button index of the left button. */
+const BOX_SELECT_PRIMARY_BUTTON = 0;
+
+/** Mouse button index of the right button. */
+const BOX_SELECT_SECONDARY_BUTTON = 2;
+
 /** Status shown when S is pressed on a selection that may not be scaled. */
 const BOX_SELECT_SCALE_NOT_ALLOWED_MESSAGE = 'Scale unavailable: point entities and lights only move and rotate';
 
@@ -110,18 +116,32 @@ export class BoxSelectTool extends Tool {
 
   /**
    * Hands a press over a surface to the Sprinkle tool while it is active,
-   * otherwise records a left-button press as a possible drag start.
+   * otherwise arms the right-click menu at a right-button press or records a
+   * left-button press as a possible drag start.
    *
    * @param button Mouse button index.
    */
   override onMouseDown(button: number): void {
-    if (this.isSingleUse || !this.editor) {
+    if (this.isSingleUse || !this.editor || this.sprinklePress.pressBegin(this.editor, button)) {
       return;
     }
-    if (this.sprinklePress.pressBegin(this.editor, button) || button !== 0) {
+    if (button === BOX_SELECT_SECONDARY_BUTTON) {
+      this.contextMenuPressBegin();
       return;
     }
-    this.dragGesture.pressBegin(boxSelectPointerSampleRead(this.editor));
+    if (button === BOX_SELECT_PRIMARY_BUTTON) {
+      this.dragGesture.pressBegin(boxSelectPointerSampleRead(this.editor));
+    }
+  }
+
+  /** Arms the right-click menu at the pointer while the tool is idle. */
+  private contextMenuPressBegin(): void {
+    if (!this.editor || !this.isObjectDoubleClickReady()) {
+      return;
+    }
+    this.editor
+      .getServices()
+      ?.objectContextMenuPressBegin?.(this.editor.lastPointerClientX, this.editor.lastPointerClientY);
   }
 
   /**
@@ -131,7 +151,7 @@ export class BoxSelectTool extends Tool {
    * @param button Mouse button index.
    */
   override onGlobalMouseUp(button: number): void {
-    if (this.sprinklePress.pressEnd(button) || button !== 0) {
+    if (this.sprinklePress.pressEnd(button) || button !== BOX_SELECT_PRIMARY_BUTTON) {
       return;
     }
     if (this.dragGesture.release()) {
@@ -161,7 +181,7 @@ export class BoxSelectTool extends Tool {
       this.sprinklePress.pressMove(this.editor);
       return;
     }
-    if (button !== 0 || !this.editor) {
+    if (button !== BOX_SELECT_PRIMARY_BUTTON || !this.editor) {
       return;
     }
     this.dragGesture.pointerMoved(boxSelectPointerSampleRead(this.editor), this.editor.getServices());

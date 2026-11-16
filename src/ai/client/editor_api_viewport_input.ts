@@ -2,7 +2,11 @@ import type * as THREE from 'three';
 import type { EditorApiHost, EditorApiViewportView } from './editor_api_host.js';
 import { failResult, okResult } from './editor_api_result.js';
 import { vec3FromUnknown } from './editor_api_math.js';
-import { EditorApiViewportPointer, type EditorApiViewportKeys } from './editor_api_viewport_pointer.js';
+import {
+  EditorApiViewportPointer,
+  editorApiModifierKeysRead,
+  type EditorApiViewportButton,
+} from './editor_api_viewport_pointer.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 import { ViewportKind } from '@/viewports/core/viewport_kind.js';
 import { pointerClientPointOfWorld, type PointerClientPoint } from '@/utils/pointer_client_project.js';
@@ -81,7 +85,7 @@ export class EditorApiViewportInput {
     if (steps === null) {
       return failResult(`steps must be a whole number from 1 to ${EDITOR_API_VIEWPORT_DRAG_MAX_STEPS}`);
     }
-    return this.withTarget(args, (target) => {
+    return this.withTarget(args, 'left', (target) => {
       const start = this.clientPointOf(target.viewport, from);
       const end = this.clientPointOf(target.viewport, to);
       target.pointer.hover(start);
@@ -93,9 +97,9 @@ export class EditorApiViewportInput {
   }
 
   /**
-   * Clicks at one world point.
+   * Clicks one mouse button at one world point.
    *
-   * @param args Tool arguments (view, at, keys).
+   * @param args Tool arguments (view, at, keys, button).
    * @returns Result with the selection afterwards.
    */
   private viewportClick(args: Record<string, unknown>): McpToolResult {
@@ -103,7 +107,11 @@ export class EditorApiViewportInput {
     if (!at) {
       return failResult('at must be {x, y, z} with finite numbers');
     }
-    return this.withTarget(args, (target) => {
+    const button = args['button'] ?? 'left';
+    if (button !== 'left' && button !== 'right') {
+      return failResult('button must be left or right');
+    }
+    return this.withTarget(args, button, (target) => {
       const point = this.clientPointOf(target.viewport, at);
       target.pointer.hover(point);
       target.pointer.press(point);
@@ -116,18 +124,20 @@ export class EditorApiViewportInput {
    * Resolves the view and keys of a call and runs the gesture body.
    *
    * @param args Tool arguments.
+   * @param button Mouse button the gesture presses.
    * @param body Gesture body.
    * @returns Tool result.
    */
   private withTarget(
     args: Record<string, unknown>,
+    button: EditorApiViewportButton,
     body: (target: EditorApiViewportTarget) => McpToolResult,
   ): McpToolResult {
     const view = args['view'];
     if (typeof view !== 'string' || !EDITOR_API_VIEWPORT_VIEW_NAMES.includes(view)) {
       return failResult(`view must be one of ${EDITOR_API_VIEWPORT_VIEW_NAMES.join(', ')}`);
     }
-    const keys = this.keysArgRead(args['keys']);
+    const keys = editorApiModifierKeysRead(args['keys']);
     if (!keys) {
       return failResult('keys must be an object with optional ctrl, shift and alt booleans');
     }
@@ -135,7 +145,7 @@ export class EditorApiViewportInput {
     if (!viewport) {
       return failResult(`No visible ${view} view`);
     }
-    return body({ viewport, pointer: new EditorApiViewportPointer(viewport.getContentElement(), keys) });
+    return body({ viewport, pointer: new EditorApiViewportPointer(viewport.getContentElement(), keys, button) });
   }
 
   /**
@@ -200,27 +210,6 @@ export class EditorApiViewportInput {
    */
   private selectionResultWithMessage(message: string): McpToolResult {
     return okResult(message, { selection: this.selectionResultRead().data });
-  }
-
-  /**
-   * Reads the optional keys argument.
-   *
-   * @param value Argument value.
-   * @returns Held keys, or null when invalid.
-   */
-  private keysArgRead(value: unknown): EditorApiViewportKeys | null {
-    if (value === undefined) {
-      return { ctrl: false, shift: false, alt: false };
-    }
-    if (typeof value !== 'object' || value === null) {
-      return null;
-    }
-    const record = value as Record<string, unknown>;
-    const names = ['ctrl', 'shift', 'alt'];
-    if (!names.every((keyName) => record[keyName] === undefined || typeof record[keyName] === 'boolean')) {
-      return null;
-    }
-    return { ctrl: record['ctrl'] === true, shift: record['shift'] === true, alt: record['alt'] === true };
   }
 
   /**

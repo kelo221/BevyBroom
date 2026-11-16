@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX,
-  FaceSecondaryClickGesture,
-} from '@/tools/face/texture_apply/face_secondary_click_gesture.js';
+  GESTURE_SECONDARY_CLICK_DRAG_THRESHOLD_PX,
+  GestureSecondaryClick,
+} from '@/input/gesture/gesture_secondary_click.js';
 
 /** Client point every press starts at. */
 const PRESS_POINT = { clientX: 120, clientY: 80 };
@@ -29,14 +29,14 @@ function nextTaskWait(): Promise<void> {
 
 /** Moves the pointer just past the drag threshold from the press point. */
 function gestureDragPastThreshold(): void {
-  const dragPx = FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX + 1;
+  const dragPx = GESTURE_SECONDARY_CLICK_DRAG_THRESHOLD_PX + 1;
   window.dispatchEvent(
     new PointerEvent('pointermove', { clientX: PRESS_POINT.clientX + dragPx, clientY: PRESS_POINT.clientY }),
   );
 }
 
-describe('FaceSecondaryClickGesture', () => {
-  const gesture = new FaceSecondaryClickGesture();
+describe('GestureSecondaryClick', () => {
+  const gesture = new GestureSecondaryClick();
 
   afterEach(async () => {
     gesture.cancel();
@@ -46,7 +46,7 @@ describe('FaceSecondaryClickGesture', () => {
   it('fires once for a right release that stays under the drag threshold and reports Alt', () => {
     const handler = vi.fn();
     gesture.begin(window, PRESS_POINT.clientX, PRESS_POINT.clientY, handler);
-    const smallMove = FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX / 2;
+    const smallMove = GESTURE_SECONDARY_CLICK_DRAG_THRESHOLD_PX / 2;
     window.dispatchEvent(new PointerEvent('pointermove', { clientX: PRESS_POINT.clientX + smallMove, clientY: 80 }));
     window.dispatchEvent(new PointerEvent('pointerup', { ...PRESS_POINT, button: 2, altKey: true }));
     window.dispatchEvent(new PointerEvent('pointerup', { ...PRESS_POINT, button: 2 }));
@@ -57,7 +57,7 @@ describe('FaceSecondaryClickGesture', () => {
   it('treats relative movement under pointer lock as a drag even when the client point stays put', () => {
     const handler = vi.fn();
     gesture.begin(window, PRESS_POINT.clientX, PRESS_POINT.clientY, handler);
-    const lockedStep = FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX / 2;
+    const lockedStep = GESTURE_SECONDARY_CLICK_DRAG_THRESHOLD_PX / 2;
     window.dispatchEvent(new PointerEvent('pointermove', { ...PRESS_POINT, movementX: lockedStep }));
     window.dispatchEvent(new PointerEvent('pointermove', { ...PRESS_POINT, movementY: lockedStep }));
     window.dispatchEvent(new PointerEvent('pointermove', { ...PRESS_POINT, movementX: lockedStep }));
@@ -69,7 +69,7 @@ describe('FaceSecondaryClickGesture', () => {
     const clickHandler = vi.fn();
     const dragHandler = vi.fn();
     gesture.begin(window, PRESS_POINT.clientX, PRESS_POINT.clientY, clickHandler, dragHandler);
-    const dragPx = FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX + 1;
+    const dragPx = GESTURE_SECONDARY_CLICK_DRAG_THRESHOLD_PX + 1;
     window.dispatchEvent(
       new PointerEvent('pointermove', { clientX: PRESS_POINT.clientX + dragPx, clientY: 80, movementX: dragPx }),
     );
