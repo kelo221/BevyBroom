@@ -130,4 +130,25 @@ describe('MenuContext', () => {
     menuEl.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     expect(menuEl.style.display).toBe('block');
   });
+
+  it('shows declarative entries with shortcuts and submenus, runs a chosen row and closes', () => {
+    const runRow = vi.fn<() => void>();
+    const entriesMenu = MenuContext.fromEntries([
+      { label: 'Run', onClick: runRow, shortcut: 'Ctrl+R' },
+      { kind: 'separator' },
+      { kind: 'submenu', label: 'More', children: [{ label: 'Nested', onClick: vi.fn() }] },
+    ]);
+    entriesMenu.show(30, 30);
+    const menuElement = entriesMenu.getElement();
+    const rows = [...menuElement.querySelectorAll<HTMLButtonElement>(':scope > button, :scope > div > button')];
+    expect(rows.map((row) => row.querySelector('.editor-toolbar-dropdown-label')?.textContent)).toEqual([
+      'Run',
+      'More',
+    ]);
+    expect(rows[0]?.querySelector('.editor-toolbar-dropdown-shortcut')?.textContent).toBe('Ctrl+R');
+    rows[0]?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(runRow).toHaveBeenCalledTimes(1);
+    expect(menuElement.isConnected).toBe(false);
+    entriesMenu.dispose();
+  });
 });

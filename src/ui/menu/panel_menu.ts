@@ -2,6 +2,7 @@ import {
   isMenuAction,
   isMenuSeparator,
   isMenuSubmenu,
+  menuActionShortcutTextResolve,
   type ToolbarMenuAction,
   type ToolbarMenuEntry,
   type ToolbarMenuSubmenu,
@@ -697,7 +698,7 @@ export class PanelMenu {
    * @param entry Action definition.
    */
   private refreshShortcutLabel(shortcutElement: HTMLElement, entry: ToolbarMenuAction): void {
-    const text = this.resolveShortcutText(entry);
+    const text = menuActionShortcutTextResolve(entry);
     if (!text) {
       shortcutElement.textContent = '';
       shortcutElement.style.display = 'none';
@@ -705,20 +706,6 @@ export class PanelMenu {
     }
     shortcutElement.textContent = text;
     shortcutElement.style.display = '';
-  }
-
-  /**
-   * Resolves the live or static shortcut string for an action.
-   *
-   * @param entry Action definition.
-   * @returns Shortcut text, or empty when none.
-   */
-  private resolveShortcutText(entry: ToolbarMenuAction): string {
-    if (!entry.shortcut) return '';
-    if (typeof entry.shortcut === 'function') {
-      return entry.shortcut()?.trim() ?? '';
-    }
-    return entry.shortcut.trim();
   }
 }
 

@@ -45,13 +45,14 @@ export const MCP_VIEWPORT_INPUT_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ),
   tool(
     'viewport_click',
-    'Left-button click in a view at the world point `at` (projected through that view camera) like a user mouse click: selects what is under the point (Ctrl toggles, empty space deselects). With the Object tool, Shift on a brush face (or a displaced face surface) switches to the Face tool, opens the Face Edit Sheet and selects exactly that face (check with get_face_edit_state); Shift on a light, entity or mesh adds it. Returns `selection` like get_selection.',
+    'Mouse click in a view at the world point `at` (projected through that view camera) like a user mouse click. Left (default) selects what is under the point (Ctrl toggles, empty space deselects). With the Object tool, Shift on a brush face (or a displaced face surface) switches to the Face tool, opens the Face Edit Sheet and selects exactly that face (check with get_face_edit_state); Shift on a light, entity or mesh adds it. Right opens the right-click menu with the Object tool: an unselected object under the point becomes the selection first, then the menu lists the commands that apply (read it with get_open_menus, run a row with choose_open_menu_item). Returns `selection` like get_selection.',
     {
       type: 'object',
       properties: {
         view: VIEWPORT_INPUT_VIEW_SCHEMA,
         at: { ...vec3Schema, description: 'World point that is clicked.' },
         keys: VIEWPORT_INPUT_KEYS_SCHEMA,
+        button: { type: 'string', enum: ['left', 'right'], description: 'Mouse button (default left).' },
       },
       required: ['view', 'at'],
     },

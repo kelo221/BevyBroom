@@ -25,7 +25,8 @@ Browser**, **Replace Textures**, and the **Entity Browser**.
   Position; Duplicate and Delete; **Object Properties** (`Alt+Enter`); Select
   All, Select None, and a **Select** submenu; Group and Ungroup; a **CSG**
   submenu that performs Union, Subtract, or Intersect on suitable selected
-  meshes; and an **Align** submenu that moves the selection to the origin, the
+  meshes and Hollow or Convex Merge on brushes, each with a shortcut
+  (`Ctrl+Shift+U`, `C`, `X`, `O` and `M`); and an **Align** submenu that moves the selection to the origin, the
   grid center, or another object.
 - **Add** organizes creation commands into flyout menus such as **Geometry**,
   **Terrain**, **Brushes**, **Lights**, **Portals**, and **Game Entities**. The
@@ -40,7 +41,8 @@ Browser**, **Replace Textures**, and the **Entity Browser**.
   **Show Info Panel**, **Show Toolbar**, and **Show Tools Palette**, and
   **Detached Viewport…**.
 - **Run** starts **Play** mode and opens the **Game Preview…** panel.
-- **Help** opens this **Documentation**, the **About BevyBroom…** dialog, the
+- **Help** opens **Search Commands…** (`Ctrl+Shift+P`), this
+  **Documentation**, the **About BevyBroom…** dialog, the
   **MCP Server…** dialog, and the **AI Captures (Debug)…** panel, and switches
   **Editor Sounds** on or off.
 
@@ -51,6 +53,34 @@ requires a compatible selection, and Object Properties requires a selection. An
 open menu appears over the viewport so every option remains visible and
 clickable. While one menu is open, moving across the other menu names switches
 between them.
+
+## Search Commands
+
+Press `Ctrl+Shift+P` (`⌘⇧P` on macOS) or choose **Help > Search Commands…** to
+find any menu command by typing part of its name or of its menu, for example
+`hollow`, `csg` or `texture browser`. Every row shows the menu the command
+lives in and its shortcut. The arrow keys move through the results, `Enter`
+runs the highlighted command, and `Escape` or a click outside closes the
+search. Commands that do not apply to the current selection are greyed out
+and do not run. While the field is empty, the commands you ran most recently
+come first.
+
+## Right-click menu
+
+A right click in any map view, without dragging, opens a menu of the commands
+that apply where you clicked; holding the right button and dragging still
+flies or pans the view. Right-clicking an object that is not selected selects
+it first; right-clicking a selected object or empty space keeps the selection.
+
+- On a selection: Cut, Copy, Paste, Duplicate, Delete, Object Properties,
+  Group and Ungroup, the CSG commands, an **Align** submenu, Hide Selected,
+  Isolate Selected, Show All and Frame Selection.
+- On empty space with nothing selected: Paste, Select All, Select None, the
+  **Select** submenu and Show All.
+
+Rows that do not apply are left out, and every row shows the same shortcut as
+in the menu bar. The menu opens with the Object Select tools (Bounds, Move,
+Rotate, Scale); the Face tool keeps right click for applying textures.
 
 ## Toolbar
 

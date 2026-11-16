@@ -2,35 +2,35 @@ import { WindowPointerDragSession } from '@/utils/session_window_pointer_drag.js
 import { WindowContextMenuSuppressSession } from '@/utils/session_window_context_menu_suppress.js';
 
 /** Pointer travel in pixels below which a right-button press counts as a click. */
-export const FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX = 4;
+export const GESTURE_SECONDARY_CLICK_DRAG_THRESHOLD_PX = 4;
 
 /** Mouse button index of the secondary (right) button. */
-const FACE_SECONDARY_CLICK_BUTTON = 2;
+const GESTURE_SECONDARY_CLICK_BUTTON = 2;
 
 /**
  * Receives a completed right-button click.
  *
  * @param isAltHeld True when Alt was held at release.
  */
-export type FaceSecondaryClickHandler = (isAltHeld: boolean) => void;
+export type GestureSecondaryClickHandler = (isAltHeld: boolean) => void;
 
 /**
  * Receives the first move that exceeds the click travel threshold.
  *
  * @param event Move that crossed the threshold.
  */
-export type FaceSecondaryDragHandler = (event: PointerEvent) => void;
+export type GestureSecondaryDragHandler = (event: PointerEvent) => void;
 
 /**
  * Tells a right-button click from a right-button drag. A press arms the
  * gesture; the release fires the click handler only when the pointer travelled
- * less than {@link FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX}, counting both client
- * movement and the relative movement reported under pointer lock. Crossing the
- * threshold hands the press to the drag handler and leaves the gesture awaiting
- * the release. From the press until just after the release, the browser context
- * menu of the owner window is suppressed.
+ * less than {@link GESTURE_SECONDARY_CLICK_DRAG_THRESHOLD_PX}, counting both
+ * client movement and the relative movement reported under pointer lock.
+ * Crossing the threshold hands the press to the drag handler and leaves the
+ * gesture awaiting the release. From the press until just after the release,
+ * the browser context menu of the owner window is suppressed.
  */
-export class FaceSecondaryClickGesture {
+export class GestureSecondaryClick {
   private readonly dragSession: WindowPointerDragSession;
   private readonly contextMenuSuppressSession: WindowContextMenuSuppressSession;
   private pressClientX: number;
@@ -38,8 +38,8 @@ export class FaceSecondaryClickGesture {
   private relativeTravelPx: number;
   private furthestClientTravelPx: number;
   private isHandedOffToDrag: boolean;
-  private clickHandler: FaceSecondaryClickHandler | null;
-  private dragHandler: FaceSecondaryDragHandler | null;
+  private clickHandler: GestureSecondaryClickHandler | null;
+  private dragHandler: GestureSecondaryDragHandler | null;
 
   /** Creates an idle gesture. */
   constructor() {
@@ -67,8 +67,8 @@ export class FaceSecondaryClickGesture {
     ownerWindow: Window,
     clientX: number,
     clientY: number,
-    clickHandler: FaceSecondaryClickHandler,
-    dragHandler: FaceSecondaryDragHandler | null = null,
+    clickHandler: GestureSecondaryClickHandler,
+    dragHandler: GestureSecondaryDragHandler | null = null,
   ): void {
     this.cancel();
     this.travelReset(clientX, clientY);
@@ -165,7 +165,7 @@ export class FaceSecondaryClickGesture {
    */
   private travelIsClick(): boolean {
     const travel = Math.max(this.relativeTravelPx, this.furthestClientTravelPx);
-    return travel < FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX;
+    return travel < GESTURE_SECONDARY_CLICK_DRAG_THRESHOLD_PX;
   }
 
   /**
@@ -181,7 +181,7 @@ export class FaceSecondaryClickGesture {
     if (!handler || !releaseEvent || releaseEvent.type !== 'pointerup') {
       return;
     }
-    if (releaseEvent.button !== FACE_SECONDARY_CLICK_BUTTON || !this.travelIsClick()) {
+    if (releaseEvent.button !== GESTURE_SECONDARY_CLICK_BUTTON || !this.travelIsClick()) {
       return;
     }
     handler(releaseEvent.altKey === true);

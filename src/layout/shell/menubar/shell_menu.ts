@@ -15,6 +15,8 @@ export interface ShellMenuContext {
   readonly toolbarActions: EditorToolbarActions;
   readonly windowActions: ShellWindowActions;
   readonly dockCommands: ShellDockCommands;
+  /** Opens the command search; menus offer no search entry without it. */
+  readonly commandSearchOpen?: () => void;
 }
 
 /** Optional parts of one menu action row. */

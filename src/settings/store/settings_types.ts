@@ -216,7 +216,13 @@ export type KeyboardShortcutAction =
   | 'face_uv_flip_h'
   | 'face_uv_flip_v'
   | 'face_uv_reset_face'
-  | 'face_uv_reset_world';
+  | 'face_uv_reset_world'
+  | 'command_search'
+  | 'csg_union'
+  | 'csg_subtract'
+  | 'csg_intersect'
+  | 'csg_hollow'
+  | 'csg_convex_merge';
 
 /** Keyboard code and modifier state for one configured shortcut. */
 export interface KeyboardShortcut {

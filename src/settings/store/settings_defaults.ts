@@ -90,6 +90,7 @@ export function createDefaultKeyboardShortcutSettings(): KeyboardShortcutSetting
     ...createDefaultWindowShortcuts(),
     ...createDefaultFaceUvShortcuts(),
     ...createDefaultSprinkleShortcuts(),
+    ...createDefaultCommandSearchAndCsgShortcuts(),
   };
 }
 
@@ -185,6 +186,27 @@ function createDefaultWindowShortcuts(): Pick<
     visibility_isolate: createShortcut('KeyI', true),
     visibility_show_all: createShortcut('KeyH', true, true),
     object_properties: createShortcut('Enter', false, false, true),
+  };
+}
+
+/**
+ * Default command search and brush operation shortcuts: Ctrl+Shift+P searches
+ * every menu command; Ctrl+Shift with U, C, X, O and M runs Union, Subtract
+ * (Hammer's Carve key), Intersect, Hollow and Convex Merge.
+ *
+ * @returns Partial keyboard shortcut settings.
+ */
+function createDefaultCommandSearchAndCsgShortcuts(): Pick<
+  KeyboardShortcutSettings,
+  'command_search' | 'csg_union' | 'csg_subtract' | 'csg_intersect' | 'csg_hollow' | 'csg_convex_merge'
+> {
+  return {
+    command_search: createShortcut('KeyP', true, true),
+    csg_union: createShortcut('KeyU', true, true),
+    csg_subtract: createShortcut('KeyC', true, true),
+    csg_intersect: createShortcut('KeyX', true, true),
+    csg_hollow: createShortcut('KeyO', true, true),
+    csg_convex_merge: createShortcut('KeyM', true, true),
   };
 }
 

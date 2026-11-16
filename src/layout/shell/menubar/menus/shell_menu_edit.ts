@@ -26,33 +26,65 @@ export class ShellMenuEdit extends ShellMenu {
    * @returns Menu entries.
    */
   entriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
-    const actions = context.toolbarActions;
     return [
-      this.actionEntry(context, 'Undo', () => actions.onUndo(), {
-        shortcutAction: 'undo',
-        textEditCommand: 'undo',
-      }),
-      this.actionEntry(context, 'Redo', () => actions.onRedo(), {
-        shortcutAction: 'redo',
-        textEditCommand: 'redo',
-      }),
+      ...this.historyEntriesBuild(context),
       this.separatorEntry(),
       ...this.clipboardEntriesBuild(context),
+      ...this.objectEntriesBuild(context),
+      this.separatorEntry(),
+      ...this.selectionEntriesBuild(context),
+      this.separatorEntry(),
+      ...this.groupEntriesBuild(context),
+      this.separatorEntry(),
+      ...this.brushEntriesBuild(context),
+      this.csgSubmenuBuild(context),
+      this.alignSubmenuBuild(context),
+    ];
+  }
+
+  /**
+   * Builds the Undo and Redo entries.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Undo and Redo entries.
+   */
+  private historyEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    const actions = context.toolbarActions;
+    return [
+      this.actionEntry(context, 'Undo', () => actions.onUndo(), { shortcutAction: 'undo', textEditCommand: 'undo' }),
+      this.actionEntry(context, 'Redo', () => actions.onRedo(), { shortcutAction: 'redo', textEditCommand: 'redo' }),
+    ];
+  }
+
+  /**
+   * Builds the Duplicate, Delete and Object Properties entries.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Entries that act on the selected objects.
+   */
+  objectEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    const actions = context.toolbarActions;
+    return [
       this.actionEntry(context, 'Duplicate', () => actions.onDuplicateSelected(), { shortcutAction: 'duplicate' }),
       this.actionEntry(context, 'Delete', () => actions.onDeleteSelected(), {
         shortcutAction: 'delete_selected',
         textEditCommand: 'delete',
       }),
       this.objectPropertiesEntryBuild(context),
-      this.separatorEntry(),
-      ...this.selectionEntriesBuild(context),
-      this.separatorEntry(),
+    ];
+  }
+
+  /**
+   * Builds the Group and Ungroup entries.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Group and Ungroup entries.
+   */
+  groupEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    const actions = context.toolbarActions;
+    return [
       this.actionEntry(context, 'Group', () => actions.onGroupSelected(), { shortcutAction: 'group' }),
       this.actionEntry(context, 'Ungroup', () => actions.onUngroupSelected(), { shortcutAction: 'ungroup' }),
-      this.separatorEntry(),
-      ...this.brushEntriesBuild(context),
-      this.csgSubmenuBuild(context),
-      this.alignSubmenuBuild(context),
     ];
   }
 
@@ -64,7 +96,7 @@ export class ShellMenuEdit extends ShellMenu {
    * @param context Actions and docks the entries run.
    * @returns Clipboard entries.
    */
-  private clipboardEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+  clipboardEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
     const window = context.windowActions;
     const isEnabled = (): boolean => window.clipboardSelectionHasObjectsIs();
     return [
@@ -109,7 +141,7 @@ export class ShellMenuEdit extends ShellMenu {
    * @param context Actions and docks the entries run.
    * @returns Selection entries.
    */
-  private selectionEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+  selectionEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
     const window = context.windowActions;
     return [
       this.actionEntry(context, 'Select All', () => window.selectAll(), {
@@ -142,26 +174,64 @@ export class ShellMenuEdit extends ShellMenu {
   }
 
   /**
-   * Builds the CSG submenu, enabled only when the selection supports booleans.
+   * Builds the CSG submenu of the brush operation entries.
    *
    * @param context Actions and docks the entries run.
-   * @returns Submenu entry.
+   * @returns CSG submenu entry.
    */
   private csgSubmenuBuild(context: ShellMenuContext): ToolbarMenuEntry {
+    return { kind: 'submenu', label: 'CSG', children: this.csgEntriesBuild(context) };
+  }
+
+  /**
+   * Builds the Union, Subtract, Intersect, Hollow and Convex Merge entries with
+   * their shortcuts.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Brush operation entries.
+   */
+  csgEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    return [...this.csgBooleanEntriesBuild(context), this.separatorEntry(), ...this.csgBrushEntriesBuild(context)];
+  }
+
+  /**
+   * Builds the Union, Subtract and Intersect entries, enabled only while the
+   * selection allows a mesh boolean.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Mesh boolean entries.
+   */
+  private csgBooleanEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
     const actions = context.toolbarActions;
     const isEnabled = (): boolean => actions.canRunCsgBoolean();
-    return {
-      kind: 'submenu',
-      label: 'CSG',
-      children: [
-        this.actionEntry(context, 'Union', () => actions.onCsgUnion(), { isEnabled }),
-        this.actionEntry(context, 'Subtract', () => actions.onCsgSubtract(), { isEnabled }),
-        this.actionEntry(context, 'Intersect', () => actions.onCsgIntersect(), { isEnabled }),
-        this.separatorEntry(),
-        this.actionEntry(context, 'Hollow', () => context.windowActions.solidBrushToolsRead()?.hollow()),
-        this.actionEntry(context, 'Convex Merge', () => context.windowActions.solidBrushToolsRead()?.convexMerge()),
-      ],
-    };
+    return [
+      this.actionEntry(context, 'Union', () => actions.onCsgUnion(), { isEnabled, shortcutAction: 'csg_union' }),
+      this.actionEntry(context, 'Subtract', () => actions.onCsgSubtract(), {
+        isEnabled,
+        shortcutAction: 'csg_subtract',
+      }),
+      this.actionEntry(context, 'Intersect', () => actions.onCsgIntersect(), {
+        isEnabled,
+        shortcutAction: 'csg_intersect',
+      }),
+    ];
+  }
+
+  /**
+   * Builds the Hollow and Convex Merge entries; Convex Merge also merges
+   * selected faces, so both stay enabled without selected objects.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Brush entries.
+   */
+  private csgBrushEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    const brushTools = this.brushToolsReader(context);
+    return [
+      this.actionEntry(context, 'Hollow', () => brushTools()?.hollow(), { shortcutAction: 'csg_hollow' }),
+      this.actionEntry(context, 'Convex Merge', () => brushTools()?.convexMerge(), {
+        shortcutAction: 'csg_convex_merge',
+      }),
+    ];
   }
 
   /**
@@ -204,7 +274,7 @@ export class ShellMenuEdit extends ShellMenu {
    * @param context Actions and docks the entries run.
    * @returns Submenu entry.
    */
-  private alignSubmenuBuild(context: ShellMenuContext): ToolbarMenuEntry {
+  alignSubmenuBuild(context: ShellMenuContext): ToolbarMenuEntry {
     const actions = context.toolbarActions;
     return {
       kind: 'submenu',

@@ -17,7 +17,13 @@ import { ShellInfoPanel } from '@/layout/shell/info_panel/shell_info_panel.js';
 import { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
 import { ShellDockCommands } from '@/layout/shell/actions/shell_dock_commands.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
-import { shellMenuBarPopulate, shellMenusBuiltinCreate } from '@/layout/shell/menubar/shell_menu_bar.js';
+import {
+  shellMenuBarPopulate,
+  shellMenusBuiltinCreate,
+  shellMenusCommandSearchSourcesCreate,
+} from '@/layout/shell/menubar/shell_menu_bar.js';
+import type { ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
+import { PanelCommandSearch } from '@/ui/command_search/panel_command_search.js';
 import { shellMenuBarNativeAttach } from '@/layout/shell/menubar/shell_menu_bar_native.js';
 import { ShellToolBarBuilder } from '@/layout/shell/toolbar/shell_tool_bar_builder.js';
 import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
@@ -125,6 +131,10 @@ export interface EditorShellElements {
   toolbar: Toolbar;
   /** Slim menu bar of text menus. */
   menuBar: Toolbar;
+  /** Actions and docks the main window menus run. */
+  menuContext: ShellMenuContext;
+  /** Search over every main window menu command. */
+  commandSearch: PanelCommandSearch;
   outlinerPanel: PanelOutliner;
   propertiesPanel: PanelProperties;
   statusBar: StatusBar;
@@ -159,6 +169,13 @@ export interface EditorShellActionBundles {
   windowActions: ShellWindowActions;
 }
 
+/** Menu bar, the context its menus run in and the command search over them. */
+interface EditorShellMenus {
+  menuBar: Toolbar;
+  menuContext: ShellMenuContext;
+  commandSearch: PanelCommandSearch;
+}
+
 /** Docks and bars created before the panels are mounted. */
 interface EditorShellSkeleton {
   frame: ShellFrame;
@@ -188,7 +205,7 @@ export class BuilderEditorShell {
     bundles: EditorShellActionBundles,
   ): EditorShellElements {
     const skeleton = this.skeletonCreate(editorContainer);
-    const menuBar = this.menuBarCreate(skeleton, bundles);
+    const menus = this.menusCreate(skeleton, bundles);
     const toolbar = new Toolbar(skeleton.frame.toolbarHostRead());
     const toolbarParts = new ShellToolBarBuilder().build(toolbar, bundles.toolbarActions, bundles.windowActions);
     const railParent = skeleton.frame.toolsPaletteHostRead();
@@ -199,7 +216,7 @@ export class BuilderEditorShell {
       viewportPaneGrid: viewportShell.paneGrid,
       viewports: this.createViewportContainers(viewportShell.paneGrid),
       toolbar,
-      menuBar,
+      ...menus,
       outlinerPanel: this.createOutliner(
         skeleton.inspector.slotRead('map_outliner'),
         services,
@@ -235,25 +252,30 @@ export class BuilderEditorShell {
   }
 
   /**
-   * Creates the menu bar and fills it with the main window menus, and moves
-   * them into the native menu bar when the desktop app offers one.
+   * Creates the menu bar and fills it with the main window menus, moves them
+   * into the native menu bar when the desktop app offers one, and creates the
+   * command search over the same menus.
    *
    * @param skeleton Frame and docks.
    * @param bundles Toolbar and window actions the menus run.
-   * @returns Menu bar.
+   * @returns Menu bar, menu context and command search.
    */
-  private menuBarCreate(skeleton: EditorShellSkeleton, bundles: EditorShellActionBundles): Toolbar {
+  private menusCreate(skeleton: EditorShellSkeleton, bundles: EditorShellActionBundles): EditorShellMenus {
     const menuBarHost = skeleton.frame.menuBarHostRead();
     const menuBar = new Toolbar(menuBarHost, 'menubar');
     const menus = shellMenusBuiltinCreate();
-    const context = {
+    const commandSearch = new PanelCommandSearch(menuBarHost.ownerDocument, () =>
+      shellMenusCommandSearchSourcesCreate(menus, menuContext),
+    );
+    const menuContext: ShellMenuContext = {
       toolbarActions: bundles.toolbarActions,
       windowActions: bundles.windowActions,
       dockCommands: skeleton.dockCommands,
+      commandSearchOpen: () => commandSearch.open(),
     };
-    shellMenuBarPopulate(menuBar, menus, context);
-    shellMenuBarNativeAttach(menuBarHost, menus, context);
-    return menuBar;
+    shellMenuBarPopulate(menuBar, menus, menuContext);
+    shellMenuBarNativeAttach(menuBarHost, menus, menuContext);
+    return { menuBar, menuContext, commandSearch };
   }
 
   /**

@@ -4,6 +4,7 @@ import { MCP_INFO_PANEL_TOOL_DEFINITIONS } from './registry_mcp_tool_info_panel.
 import { MCP_LAYER_TOOL_DEFINITIONS } from './registry_mcp_tool_layers.js';
 import { MCP_MAIN_WINDOW_TOOL_DEFINITIONS } from './registry_mcp_tool_main_window.js';
 import { MCP_VIEWPORT_INPUT_TOOL_DEFINITIONS } from './registry_mcp_tool_viewport_input.js';
+import { MCP_UI_INPUT_TOOL_DEFINITIONS } from './registry_mcp_tool_ui_input.js';
 import { MCP_CLIPBOARD_TOOL_DEFINITIONS } from './registry_mcp_tool_clipboard.js';
 import { MCP_BRUSH_TOOL_DEFINITIONS } from './registry_mcp_tool_brush_tools.js';
 import { MCP_FACE_UV_TOOL_DEFINITIONS } from './registry_mcp_tool_face_uv.js';
@@ -824,6 +825,7 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ...MCP_DISPLACEMENT_TOOL_DEFINITIONS,
   ...MCP_FACE_EDIT_TOOL_DEFINITIONS,
   ...MCP_VIEWPORT_INPUT_TOOL_DEFINITIONS,
+  ...MCP_UI_INPUT_TOOL_DEFINITIONS,
   ...MCP_PROJECT_TOOL_DEFINITIONS,
   ...MCP_TEXTURE_TOOL_DEFINITIONS,
   ...MCP_SPRINKLE_TOOL_DEFINITIONS,

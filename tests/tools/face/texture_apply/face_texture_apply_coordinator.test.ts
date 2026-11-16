@@ -11,7 +11,7 @@ import { SurfaceUvMatrix } from '@/texture/uv_matrix/surface_uv_matrix.js';
 import type { FaceTextureMapping } from '@/texture/uv/face_texture_mapping.js';
 import { faceUvRowMagnitude } from '@/texture/uv/operations/face_uv_operation_math.js';
 import { alignToViewProjectOntoPlane } from '@/texture/uv/operations/face_uv_operation_align_to_view.js';
-import { FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX } from '@/tools/face/texture_apply/face_secondary_click_gesture.js';
+import { GESTURE_SECONDARY_CLICK_DRAG_THRESHOLD_PX } from '@/input/gesture/gesture_secondary_click.js';
 import {
   FACE_TEXTURE_APPLY_TEST_START_TEXTURE,
   faceTextureApplyTestClientPoint,
@@ -161,7 +161,7 @@ describe('FaceTextureApplyCoordinator', () => {
   it('keeps a right-button drag for the camera and applies nothing', () => {
     const undoCountBefore = scene.commandStack.getUndoCount();
     getStateTexturePaint().setLastTextureId(CURRENT_TEXTURE);
-    rightClick(scene, FRONT, { dragPx: FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX * 3, altKey: false });
+    rightClick(scene, FRONT, { dragPx: GESTURE_SECONDARY_CLICK_DRAG_THRESHOLD_PX * 3, altKey: false });
     expect(mappingRead(scene, FRONT).textureId).toBe(FACE_TEXTURE_APPLY_TEST_START_TEXTURE);
     expect(scene.commandStack.getUndoCount()).toBe(undoCountBefore);
   });

@@ -317,6 +317,7 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
       },
       objectSelectDoubleClick: this.objectSelectDoubleClickCreate(),
       objectShiftClickFaceEdit: this.objectShiftClickFaceEditCreate(),
+      objectContextMenu: this.objectContextMenuCreate(),
     });
     this.keyboardShortcutHandler = createAndRegisterKeyboardShortcuts(
       this.inputManager,
@@ -818,6 +819,7 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
     this.sceneRecoveryDispose();
     this.objectPropertiesDialogDispose();
     this.objectSelectDoubleClickDispose();
+    this.objectContextMenuDispose();
     this.toolEditorSystem?.uninstallFocusPointerRouter();
     this.inputManager?.dispose();
     this.viewportRegistry?.dispose();

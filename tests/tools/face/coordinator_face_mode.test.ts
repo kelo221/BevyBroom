@@ -5,7 +5,7 @@ import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { SelectionMode } from '@/types/selection_mode.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
-import { FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX } from '@/tools/face/texture_apply/face_secondary_click_gesture.js';
+import { GESTURE_SECONDARY_CLICK_DRAG_THRESHOLD_PX } from '@/input/gesture/gesture_secondary_click.js';
 
 /** Minimal viewport stand-in for face mode coordinator wiring. */
 class MockViewport {
@@ -121,7 +121,7 @@ function coordinatorWithViewportCreate(
  * @param clientY Press client Y.
  */
 function secondaryDragPastClickThresholdDispatch(clientX: number, clientY: number): void {
-  const dragPx = FACE_SECONDARY_CLICK_DRAG_THRESHOLD_PX + 1;
+  const dragPx = GESTURE_SECONDARY_CLICK_DRAG_THRESHOLD_PX + 1;
   window.dispatchEvent(new PointerEvent('pointermove', { clientX: clientX + dragPx, clientY, movementX: dragPx }));
 }
 

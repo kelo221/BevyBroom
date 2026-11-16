@@ -140,3 +140,19 @@ export function isMenuSubmenu(entry: ToolbarMenuEntry): entry is ToolbarMenuSubm
 export function isMenuAction(entry: ToolbarMenuEntry): entry is ToolbarMenuAction {
   return !isMenuSeparator(entry) && !isMenuSubmenu(entry);
 }
+
+/**
+ * Resolves the live or static shortcut text of an action row.
+ *
+ * @param entry Action row.
+ * @returns Trimmed shortcut text, or an empty string when the row has none.
+ */
+export function menuActionShortcutTextResolve(entry: ToolbarMenuAction): string {
+  if (!entry.shortcut) {
+    return '';
+  }
+  if (typeof entry.shortcut === 'function') {
+    return entry.shortcut()?.trim() ?? '';
+  }
+  return entry.shortcut.trim();
+}

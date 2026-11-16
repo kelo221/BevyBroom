@@ -233,6 +233,12 @@ Ctrl+1  Show the Map inspector
 Ctrl+4  Toggle the info panel
 Ctrl+5  Toggle the inspector
 Ctrl+Alt+T    Toggle the toolbar
+Ctrl+Shift+P  Search commands
+Ctrl+Shift+U  Union
+Ctrl+Shift+C  Subtract
+Ctrl+Shift+X  Intersect
+Ctrl+Shift+O  Hollow
+Ctrl+Shift+M  Convex merge
 ```
 
 All shortcuts can be rebound in Settings > Keyboard.
@@ -253,7 +259,8 @@ All shortcuts can be rebound in Settings > Keyboard.
 - **Remembered layout** — dock visibility, sizes, and floating-window positions are restored between sessions
 - **Floating panels** — draggable Solid Model, Game Preview, Texture Browser, and other tool panels
 - **Status bar** — real-time feedback on tool state, snap settings, and shading mode
-- **Context menus** — right-click actions on objects in the outliner and viewports
+- **Search Commands** — `Ctrl+Shift+P` finds and runs any menu command by name, with its menu and shortcut
+- **Context menus** — a right click (without dragging) in a map view lists the commands that apply to the selection; the outliner has its own
 
 ### Standalone executable updates
 
