@@ -1,64 +1,102 @@
 import type * as THREE from 'three';
-import { PrefabSerializer } from './prefab_serializer.js';
+import { ClipboardPayloadEncoder } from '@/clipboard/payload/clipboard_payload_encoder.js';
+import type { ClipboardPayload } from '@/clipboard/payload/clipboard_payload_types.js';
+import { prefabPayloadScope } from './payload/prefab_payload_scope.js';
 import type { PrefabTemplate } from './prefab_types.js';
 
 /** Listener notified when the Prefab catalog changes. */
 export type PrefabCatalogStoreListener = () => void;
 
+/** Keeps the prefabs of a catalog in files, such as those of the open project. */
+export interface PrefabCatalogPersistence {
+  /**
+   * Saves a prefab that was added or replaced.
+   *
+   * @param template Prefab to save.
+   */
+  templateSave(template: PrefabTemplate): void;
+  /**
+   * Deletes the file of a removed prefab.
+   *
+   * @param template Removed prefab.
+   */
+  templateDelete(template: PrefabTemplate): void;
+}
+
+/** Category of prefabs created without one. */
+export const PREFAB_CATEGORY_DEFAULT = 'Prefabs';
+
 /**
  * Stores categorized `PrefabTemplate` definitions for Hammer++'s Prefab
- * `Categories / Objects` picker and `Create Prefab` workflow.
+ * `Categories / Objects` picker and `Create Prefab` workflow. With a
+ * persistence attached, every added, replaced or removed prefab is saved or
+ * deleted there too.
  */
 export class PrefabCatalogStore {
   private readonly templates: Map<string, PrefabTemplate>;
   private readonly listeners: Set<PrefabCatalogStoreListener>;
+  private persistence: PrefabCatalogPersistence | null;
+  private persistedIds: Set<string>;
   private nextStampCounter: number;
-  private nextTemplateCounter: number;
 
-  /** Creates a Prefab catalog store. */
+  /** Creates an empty Prefab catalog store without persistence. */
   constructor() {
     this.templates = new Map();
     this.listeners = new Set();
+    this.persistence = null;
+    this.persistedIds = new Set();
     this.nextStampCounter = 1;
-    this.nextTemplateCounter = 1;
   }
 
   /**
-   * Registers or replaces a prefab template in the catalog.
+   * Registers or replaces a prefab template and saves it to the persistence.
    *
    * @param template Prefab template to add.
    */
   templateAdd(template: PrefabTemplate): void {
     this.templates.set(template.id, template);
+    if (this.persistence !== null) {
+      this.persistedIds.add(template.id);
+      this.persistence.templateSave(template);
+    }
     this.listenersNotify();
   }
 
   /**
    * Captures live scene objects into a new prefab template with a fresh id
-   * without adding it to the catalog.
+   * derived from its name, without adding it to the catalog.
    *
    * @param name Display name of the new prefab.
    * @param category Category name.
    * @param objects Root scene objects to capture.
-   * @returns Captured `PrefabTemplate`.
+   * @returns Captured template, or null when nothing capturable was given.
    */
-  templateCapture(name: string, category: string, objects: readonly THREE.Object3D[]): PrefabTemplate {
-    const id = `prefab_${this.nextTemplateCounter++}_${name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
-    return PrefabSerializer.captureObjects(id, name, category, objects);
+  templateCapture(name: string, category: string, objects: readonly THREE.Object3D[]): PrefabTemplate | null {
+    const payload = ClipboardPayloadEncoder.encode(objects);
+    if (payload === null) {
+      return null;
+    }
+    return { id: this.idAllocate(name), name, category: category.trim() || PREFAB_CATEGORY_DEFAULT, payload };
   }
 
   /**
-   * Removes a prefab template by id.
+   * Removes a prefab template by id and deletes it from the persistence that
+   * holds it.
    *
    * @param id Template id.
    * @returns True when removed.
    */
   templateRemove(id: string): boolean {
-    const deleted = this.templates.delete(id);
-    if (deleted) {
-      this.listenersNotify();
+    const template = this.templates.get(id);
+    if (template === undefined) {
+      return false;
     }
-    return deleted;
+    this.templates.delete(id);
+    if (this.persistence !== null && this.persistedIds.delete(id)) {
+      this.persistence.templateDelete(template);
+    }
+    this.listenersNotify();
+    return true;
   }
 
   /**
@@ -72,6 +110,43 @@ export class PrefabCatalogStore {
   }
 
   /**
+   * Lists every prefab template in insertion order.
+   *
+   * @returns Templates.
+   */
+  templatesRead(): PrefabTemplate[] {
+    return [...this.templates.values()];
+  }
+
+  /**
+   * Returns whether a template is kept by the attached persistence.
+   *
+   * @param id Template id.
+   * @returns True for persisted templates.
+   */
+  isPersisted(id: string): boolean {
+    return this.persistence !== null && this.persistedIds.has(id);
+  }
+
+  /**
+   * Attaches the persistence and shows the prefabs it holds, replacing the
+   * prefabs of the persistence attached before; null detaches it and removes
+   * its prefabs from the catalog. Nothing is saved or deleted while doing so.
+   *
+   * @param persistence Persistence to attach, or null.
+   * @param templates Prefabs the persistence holds.
+   */
+  persistenceAttach(persistence: PrefabCatalogPersistence | null, templates: readonly PrefabTemplate[]): void {
+    this.persistedIds.forEach((id) => this.templates.delete(id));
+    this.persistence = persistence;
+    this.persistedIds = new Set(persistence === null ? [] : templates.map((template) => template.id));
+    if (persistence !== null) {
+      templates.forEach((template) => this.templates.set(template.id, template));
+    }
+    this.listenersNotify();
+  }
+
+  /**
    * Lists all distinct prefab categories in insertion order.
    *
    * @returns Category names.
@@ -80,7 +155,7 @@ export class PrefabCatalogStore {
     const seen = new Set<string>();
     this.templates.forEach((tpl) => seen.add(tpl.category));
     if (seen.size === 0) {
-      seen.add('Prefabs');
+      seen.add(PREFAB_CATEGORY_DEFAULT);
     }
     return [...seen];
   }
@@ -92,32 +167,23 @@ export class PrefabCatalogStore {
    * @returns Matching prefab templates.
    */
   templatesByCategoryRead(category: string): PrefabTemplate[] {
-    const list: PrefabTemplate[] = [];
-    this.templates.forEach((tpl) => {
-      if (tpl.category === category) {
-        list.push(tpl);
-      }
-    });
-    return list;
+    return this.templatesRead().filter((template) => template.category === category);
   }
 
   /**
-   * Stamps a prefab template at `targetOrigin` with an auto-incrementing scope
-   * suffix.
+   * Returns the payload that places a copy of a prefab, with its internal names
+   * and entity I/O targets scoped by an auto-incrementing suffix.
    *
    * @param id Template id.
-   * @param targetOrigin World position.
-   * @param scoped Whether to scope internal Entity I/O names (`true` by
-   *   default).
-   * @returns Instantiated group, or null when template id is unknown.
+   * @param scoped Whether to scope internal names (`true` by default).
+   * @returns Payload at the captured position, or null when the id is unknown.
    */
-  stampTemplate(id: string, targetOrigin: THREE.Vector3, scoped: boolean = true): THREE.Group | null {
+  placementPayloadRead(id: string, scoped: boolean = true): ClipboardPayload | null {
     const template = this.templateFind(id);
     if (!template) {
       return null;
     }
-    const suffix = scoped ? `inst${this.nextStampCounter++}` : '';
-    return PrefabSerializer.instantiateTemplate(template, targetOrigin, suffix);
+    return prefabPayloadScope(template.payload, scoped ? `inst${this.nextStampCounter++}` : '');
   }
 
   /**
@@ -131,6 +197,26 @@ export class PrefabCatalogStore {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  /**
+   * Derives an unused id from a prefab name: lower case letters, digits and
+   * underscores, with a number appended while the id is taken.
+   *
+   * @param name Prefab name.
+   * @returns Unused id.
+   */
+  private idAllocate(name: string): string {
+    const base =
+      name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'prefab';
+    let candidate = base;
+    for (let counter = 2; this.templates.has(candidate); counter += 1) {
+      candidate = `${base}_${counter}`;
+    }
+    return candidate;
   }
 
   /** Notifies all registered listeners. */

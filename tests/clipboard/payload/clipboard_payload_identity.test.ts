@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
+import { GameEntityLogicStore } from '@/game_entity/logic/game_entity_logic_store.js';
 import { markAsSolidCsgGroup } from '@/solid/model/solid_group.js';
 import type { SerializedSolidTreeNode } from '@/solid/io/solid_model_codec.js';
 import { ClipboardPayloadEncoder } from '@/clipboard/payload/clipboard_payload_encoder.js';
@@ -58,6 +59,29 @@ describe('clipboard payload identity and offset', () => {
     const newGroupIds = groupNodeIdsCollect(refreshed.brushes.hierarchy ?? []);
     expect(newGroupIds).toHaveLength(oldGroupIds.size);
     newGroupIds.forEach((id) => expect(oldGroupIds.has(id)).toBe(false));
+  });
+
+  it('points entity I/O targets at the renamed copies and keeps targets outside the payload', () => {
+    const world = new THREE.Group();
+    const lever = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial());
+    lever.name = 'Lever';
+    const gate = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial());
+    gate.name = 'Gate';
+    world.add(lever, gate);
+    GameEntityLogicStore.write(lever, [
+      { output: 'OnPull', target: 'Gate', input: 'Open', parameter: '', delay: 0, times_to_fire: -1 },
+      { output: 'OnPull', target: 'Siren', input: 'Start', parameter: '', delay: 0, times_to_fire: -1 },
+    ]);
+    const payload = ClipboardPayloadEncoder.encode([lever, gate]);
+    if (payload === null) throw new Error('Nothing was encoded');
+    const refreshed = clipboardPayloadIdentitiesRefresh(payload);
+    const gateCopyName = refreshed.objects.find(
+      (entry) => entry.uuid !== gate.uuid && entry.name !== lever.name && entry.gameLogicOutputs === undefined,
+    )?.name;
+    const leverCopy = refreshed.objects.find((entry) => (entry.gameLogicOutputs ?? []).length > 0);
+    expect(gateCopyName).toBeDefined();
+    expect(gateCopyName).not.toBe('Gate');
+    expect(leverCopy?.gameLogicOutputs?.map((output) => output.target)).toEqual([gateCopyName, 'Siren']);
   });
 
   it('leaves the read payload unchanged', () => {

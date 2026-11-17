@@ -1,73 +1,141 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { GameEntityLogicStore } from '@/game_entity/logic/game_entity_logic_store.js';
-import { PrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
+import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
+import { PrefabCatalogStore, type PrefabCatalogPersistence } from '@/prefab/prefab_catalog_store.js';
+import type { PrefabTemplate } from '@/prefab/prefab_types.js';
+import {
+  clipboardTestBrushMeshRead,
+  clipboardTestBrushAdd,
+  clipboardTestModelAdd,
+  clipboardTestWorldCreate,
+} from '../clipboard/clipboard_test_world.js';
 
-describe('Wave 2D: Prefab Library, Scoped Entity I/O Stamping, and toEntity/toWorld', () => {
-  it('captures a multi-object prefab and scopes internal Entity I/O target names on each stamp', () => {
-    const button = new THREE.Mesh();
-    button.name = 'DoorButton';
-    button.position.set(2, 0, 0);
+/**
+ * Adds a named box mesh to a world.
+ *
+ * @param world World root.
+ * @param name Object name.
+ * @param position World position.
+ * @returns The mesh.
+ */
+function namedBoxAdd(world: THREE.Object3D, name: string, position: THREE.Vector3): THREE.Mesh {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 3), new THREE.MeshStandardMaterial());
+  mesh.name = name;
+  mesh.position.copy(position);
+  world.add(mesh);
+  return mesh;
+}
+
+/**
+ * Captures objects into a template, failing the test when nothing was captured.
+ *
+ * @param store Catalog store.
+ * @param objects Objects to capture.
+ * @returns Template.
+ */
+function templateCaptureOrFail(store: PrefabCatalogStore, objects: THREE.Object3D[]): PrefabTemplate {
+  const template = store.templateCapture('Vault Entry', 'Doors', objects);
+  if (template === null) {
+    throw new Error('the test objects can be captured');
+  }
+  return template;
+}
+
+/** Persistence recording what it was asked to save and delete. */
+class PrefabPersistenceRecorder implements PrefabCatalogPersistence {
+  readonly saved: string[] = [];
+  readonly deleted: string[] = [];
+
+  /** @inheritdoc */
+  templateSave(template: PrefabTemplate): void {
+    this.saved.push(template.id);
+  }
+
+  /** @inheritdoc */
+  templateDelete(template: PrefabTemplate): void {
+    this.deleted.push(template.id);
+  }
+}
+
+/** Prefabs keep full copies of objects and brushes and place scoped copies. */
+describe('PrefabCatalogStore', () => {
+  it('places copies whose geometry, game data and scoped entity I/O targets survive', () => {
+    const testWorld = clipboardTestWorldCreate();
+    const button = namedBoxAdd(testWorld.world, 'DoorButton', new THREE.Vector3(2, 0, 0));
+    GameEntityComponentStore.write(button, { 'game::Button': { label: 'Open' } });
     GameEntityLogicStore.write(button, [
-      {
-        output: 'OnPressed',
-        target: 'VaultDoor',
-        input: 'Open',
-        parameter: '',
-        delay: 0.5,
-        times_to_fire: -1,
-      },
-      {
-        output: 'OnPressed',
-        target: 'GlobalAlarm',
-        input: 'Trigger',
-        parameter: '',
-        delay: 0,
-        times_to_fire: 1,
-      },
+      { output: 'OnPressed', target: 'VaultDoor', input: 'Open', parameter: '', delay: 0.5, times_to_fire: -1 },
+      { output: 'OnPressed', target: 'GlobalAlarm', input: 'Trigger', parameter: '', delay: 0, times_to_fire: 1 },
     ]);
-
-    const door = new THREE.Mesh();
-    door.name = 'VaultDoor';
-    door.position.set(6, 0, 0);
-
+    const door = namedBoxAdd(testWorld.world, 'VaultDoor', new THREE.Vector3(6, 0, 0));
     const store = new PrefabCatalogStore();
-    const tpl = store.templateCapture('Vault Entry', 'Doors', [button, door]);
-    store.templateAdd(tpl);
-    expect(store.categoriesRead()).toEqual(['Doors']);
-
-    const stampA = store.stampTemplate(tpl.id, new THREE.Vector3(10, 0, 10), true);
-    const stampB = store.stampTemplate(tpl.id, new THREE.Vector3(20, 0, 10), true);
-    expect(stampA).not.toBeNull();
-    expect(stampB).not.toBeNull();
-
-    const btnA = stampA?.children[0] ?? null;
-    const doorA = stampA?.children[1] ?? null;
-    const btnB = stampB?.children[0] ?? null;
-    const doorB = stampB?.children[1] ?? null;
-
-    expect(btnA?.name).toBe('DoorButton_inst1');
-    expect(doorA?.name).toBe('VaultDoor_inst1');
-    expect(btnB?.name).toBe('DoorButton_inst2');
-    expect(doorB?.name).toBe('VaultDoor_inst2');
-
-    if (btnA && btnB) {
-      const outputsA = GameEntityLogicStore.read(btnA);
-      const outputsB = GameEntityLogicStore.read(btnB);
-      expect(outputsA[0]?.target).toBe('VaultDoor_inst1');
-      expect(outputsA[1]?.target).toBe('GlobalAlarm');
-      expect(outputsB[0]?.target).toBe('VaultDoor_inst2');
-      expect(outputsB[1]?.target).toBe('GlobalAlarm');
-    }
+    const template = templateCaptureOrFail(store, [button, door]);
+    store.templateAdd(template);
+    const firstPayload = store.placementPayloadRead(template.id);
+    const secondPayload = store.placementPayloadRead(template.id);
+    if (firstPayload === null || secondPayload === null) throw new Error('the template is placeable');
+    const placed = testWorld.controller.payloadPaste(firstPayload, new THREE.Vector3(0, 0, 10)).roots;
+    testWorld.controller.payloadPaste(secondPayload, new THREE.Vector3(0, 0, 20));
+    const placedButton = placed.find((object) => object.name.startsWith('DoorButton'));
+    const placedDoor = placed.find((object) => object.name.startsWith('VaultDoor'));
+    if (!(placedButton instanceof THREE.Mesh) || placedDoor === undefined) throw new Error('both objects are placed');
+    const capturedSize = new THREE.Box3().setFromObject(button).getSize(new THREE.Vector3());
+    expect(new THREE.Box3().setFromObject(placedButton).getSize(new THREE.Vector3())).toEqual(capturedSize);
+    expect(placedButton.position.z).toBeCloseTo(button.position.z + 10);
+    expect(GameEntityComponentStore.read(placedButton)).toEqual(GameEntityComponentStore.read(button));
+    const targets = GameEntityLogicStore.read(placedButton).map((output) => output.target);
+    expect(targets).toEqual([placedDoor.name, 'GlobalAlarm']);
+    const secondDoorName = secondPayload.objects.find((entry) => entry.name.startsWith('VaultDoor'))?.name;
+    expect(secondDoorName).not.toBe(placedDoor.name);
+    expect(template.payload.objects.map((entry) => entry.name)).toEqual(['DoorButton', 'VaultDoor']);
   });
 
-  it('captures templates with distinct ids without adding them to the catalog', () => {
+  it('captures brushes of a solid model and places them into the world model', () => {
+    const testWorld = clipboardTestWorldCreate();
+    const model = clipboardTestModelAdd(testWorld.world, 'World');
+    const brush = clipboardTestBrushAdd(model, new THREE.Vector3(4, 0, 0));
+    const brushMesh = clipboardTestBrushMeshRead(brush);
     const store = new PrefabCatalogStore();
-    const first = store.templateCapture('Crate', 'Props', [new THREE.Mesh()]);
-    const second = store.templateCapture('Crate', 'Props', [new THREE.Mesh()]);
-    expect(first.id).not.toBe(second.id);
-    expect(store.templateFind(first.id)).toBeNull();
+    const template = templateCaptureOrFail(store, [brushMesh]);
+    expect(template.payload.brushes.brushes.length).toBe(1);
+    const brushCountBefore = model.getBrushes().length;
+    const payload = store.placementPayloadRead(template.id) ?? template.payload;
+    store.templateAdd(template);
+    testWorld.controller.payloadPaste(payload, new THREE.Vector3(0, 0, 8));
+    expect(model.getBrushes().length).toBe(brushCountBefore + 1);
+  });
+
+  it('derives readable unused ids from names', () => {
+    const testWorld = clipboardTestWorldCreate();
+    const crate = namedBoxAdd(testWorld.world, 'Crate', new THREE.Vector3());
+    const store = new PrefabCatalogStore();
+    const first = store.templateCapture('Shelf Row', 'Store', [crate]);
+    if (first === null) throw new Error('captured');
     store.templateAdd(first);
-    expect(store.templateFind(first.id)).toBe(first);
+    const second = store.templateCapture('Shelf Row', 'Store', [crate]);
+    expect(first.id).toBe('shelf_row');
+    expect(second?.id).toBe('shelf_row_2');
+    expect(store.templateCapture('Empty', 'Store', [])).toBeNull();
+  });
+
+  it('saves and deletes through an attached persistence and swaps its prefabs when another attaches', () => {
+    const testWorld = clipboardTestWorldCreate();
+    const crate = namedBoxAdd(testWorld.world, 'Crate', new THREE.Vector3());
+    const store = new PrefabCatalogStore();
+    const sessionOnly = templateCaptureOrFail(store, [crate]);
+    store.templateAdd(sessionOnly);
+    const persistence = new PrefabPersistenceRecorder();
+    const fromFile: PrefabTemplate = { ...sessionOnly, id: 'from_file', name: 'From file' };
+    store.persistenceAttach(persistence, [fromFile]);
+    expect(store.templatesRead().map((template) => template.id)).toEqual([sessionOnly.id, 'from_file']);
+    const created = templateCaptureOrFail(store, [crate]);
+    store.templateAdd(created);
+    store.templateRemove('from_file');
+    store.templateRemove(sessionOnly.id);
+    expect(persistence.saved).toEqual([created.id]);
+    expect(persistence.deleted).toEqual(['from_file']);
+    store.persistenceAttach(null, []);
+    expect(store.templatesRead()).toEqual([]);
   });
 });

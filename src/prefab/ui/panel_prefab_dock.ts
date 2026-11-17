@@ -1,8 +1,8 @@
-import * as THREE from 'three';
+import type * as THREE from 'three';
 import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
 import type { UndoCommand } from '@/commands/command_undo.js';
-import { CommandPrimitiveCreate } from '@/tools/creation/commands/command_primitive_create.js';
+import type { ClipboardPayload } from '@/clipboard/payload/clipboard_payload_types.js';
 import {
   SHELL_DOCK_COMPACT_GAP_PX,
   shellDockCompactButtonCreate,
@@ -12,6 +12,7 @@ import {
 import { InputWheelBindingSelect } from '@/ui/input/wheel/input_wheel_binding_select.js';
 import { getPrefabCatalogStore, type PrefabCatalogStore } from '../prefab_catalog_store.js';
 import { CommandPrefabTemplateAdd } from '../commands/command_prefab_template_add.js';
+import { CommandPrefabTemplateRemove } from '../commands/command_prefab_template_remove.js';
 import { CommandPrefabEntityTie } from '../commands/command_prefab_entity_tie.js';
 import { CommandPrefabEntityWorldMove } from '../commands/command_prefab_entity_world_move.js';
 
@@ -26,6 +27,8 @@ export interface PanelPrefabDockHandlers {
   worldRootRead: () => THREE.Object3D;
   /** Records and runs an undoable command, then refreshes the editor. */
   commandRun: (command: UndoCommand) => void;
+  /** Places a copy of a prefab's payload as one undoable step and selects it. */
+  payloadPlace: (payload: ClipboardPayload) => void;
 }
 
 /**
@@ -186,7 +189,9 @@ export class PanelPrefabDock {
     const insertBtn = this.createButton('Insert', 'panel-prefab-insert', () => this.onInsertPrefab());
     insertBtn.title = 'Insert the chosen prefab';
     const createBtn = this.createButton('Create Prefab', 'panel-prefab-create', () => this.onCreatePrefab());
-    row.append(this.nameInput, insertBtn, createBtn);
+    const deleteBtn = this.createButton('Delete', 'panel-prefab-delete', () => this.onDeletePrefab());
+    deleteBtn.title = 'Delete the chosen prefab (its project file too)';
+    row.append(this.nameInput, insertBtn, createBtn, deleteBtn);
     return row;
   }
 
@@ -240,15 +245,14 @@ export class PanelPrefabDock {
   }
 
   /**
-   * Stamps the selected prefab template into the world root as one undoable
+   * Places a copy of the chosen prefab where it was captured, as one undoable
    * step.
    */
   private onInsertPrefab(): void {
-    const id = this.objectSelect.value;
-    if (!id) return;
-    const stamped = this.store.stampTemplate(id, new THREE.Vector3(0, 0, 0), true);
-    if (!stamped) return;
-    this.handlers.commandRun(new CommandPrimitiveCreate(stamped, this.handlers.worldRootRead()));
+    const payload = this.store.placementPayloadRead(this.objectSelect.value, true);
+    if (payload) {
+      this.handlers.payloadPlace(payload);
+    }
   }
 
   /**
@@ -257,14 +261,21 @@ export class PanelPrefabDock {
    */
   private onCreatePrefab(): void {
     const selected = this.handlers.selectedObjectsRead();
-    if (selected.length === 0) return;
-    const name = this.nameInput.value.trim() || `Prefab ${this.store.categoriesRead().length}`;
-    const category = this.categorySelect.value || 'Prefabs';
-    const templateAdd = new CommandPrefabTemplateAdd(this.store, this.store.templateCapture(name, category, selected));
-    this.handlers.commandRun(templateAdd);
-    this.categorySelect.value = templateAdd.templateRead().category;
+    const name = this.nameInput.value.trim() || `Prefab ${this.store.templatesRead().length + 1}`;
+    const template = this.store.templateCapture(name, this.categorySelect.value, selected);
+    if (template === null) return;
+    this.handlers.commandRun(new CommandPrefabTemplateAdd(this.store, template));
+    this.categorySelect.value = template.category;
     this.syncObjectOptions();
-    this.objectSelect.value = templateAdd.templateRead().id;
+    this.objectSelect.value = template.id;
+  }
+
+  /** Deletes the chosen prefab as one undoable step. */
+  private onDeletePrefab(): void {
+    const template = this.store.templateFind(this.objectSelect.value);
+    if (template) {
+      this.handlers.commandRun(new CommandPrefabTemplateRemove(this.store, template));
+    }
   }
 
   /**

@@ -14,6 +14,7 @@ import { ProjectRecentStore } from '@/project/recent/project_recent_store.js';
 import { gameProcessControlResolve } from '@/project/control/game_process_control_desktop.js';
 import { ControllerLevelBuild } from '@/level_build/controller_level_build.js';
 import { gameEntityClassProjectLibrarySetup } from '@/game_entity/class/project/game_entity_class_project_library_setup.js';
+import { prefabProjectLibrarySetup } from '@/prefab/project/prefab_project_library_setup.js';
 import { sprinkleDefinitionLibraryProjectSetup } from '@/tools/sprinkle/definition/setup/sprinkle_definition_library_setup.js';
 import { ProjectLevelService } from '@/project/level/project_level_service.js';
 import { GlbExporter } from '@/io/glb/glb_exporter.js';
@@ -97,6 +98,7 @@ export class LayoutGamePreview {
       this.textureProjectSourceLoader = this.textureProjectSourceLoaderCreate(this.workbench);
       sprinkleDefinitionLibraryProjectSetup(this.workbench, gameProcessControlResolve());
       gameEntityClassProjectLibrarySetup(this.workbench, gameProcessControlResolve());
+      prefabProjectLibrarySetup(this.workbench, gameProcessControlResolve());
     }
     return this.workbench;
   }

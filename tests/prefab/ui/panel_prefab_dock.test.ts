@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
-import { CommandStack } from '@/commands/command_stack.js';
+import type { CommandStack } from '@/commands/command_stack.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import { PrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
 import { PanelPrefabDock } from '@/prefab/ui/panel_prefab_dock.js';
@@ -10,6 +10,7 @@ import {
   INPUT_WHEEL_TEST_NOTCH_UP,
   inputWheelTestDispatch,
 } from '../../ui/input/wheel/input_wheel_test_support.js';
+import { clipboardTestWorldCreate } from '../../clipboard/clipboard_test_world.js';
 
 /** Dock, world, history and selection a prefab dock test works with. */
 interface PrefabDockTestRig {
@@ -34,11 +35,16 @@ const prefabDockTestDocks: PanelPrefabDock[] = [];
 function prefabDockTestRigCreate(): PrefabDockTestRig {
   const host = document.createElement('div');
   document.body.appendChild(host);
-  const world = new THREE.Group();
-  const selection: THREE.Object3D[] = [new THREE.Mesh(), new THREE.Mesh()];
+  const testWorld = clipboardTestWorldCreate();
+  const world = testWorld.world;
+  const selection: THREE.Object3D[] = [0, 3].map((offsetX) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial());
+    mesh.position.x = offsetX;
+    return mesh;
+  });
   selection.forEach((object) => world.add(object));
   const store = new PrefabCatalogStore();
-  const stack = new CommandStack(16);
+  const stack = testWorld.commandStack;
   const afterCommand = vi.fn();
   const dock = new PanelPrefabDock(
     host,
@@ -49,6 +55,7 @@ function prefabDockTestRigCreate(): PrefabDockTestRig {
         stack.push(command);
         afterCommand();
       },
+      payloadPlace: (payload) => testWorld.controller.payloadPaste(payload, new THREE.Vector3()),
     },
     store,
   );
@@ -75,11 +82,15 @@ afterEach(() => {
 
 /** Unit tests for the undoable actions of the prefab dock. */
 describe('PanelPrefabDock', () => {
-  it('shows the four compact action buttons', () => {
+  it('shows the compact action buttons', () => {
     const { host } = prefabDockTestRigCreate();
-    ['panel-prefab-insert', 'panel-prefab-create', 'panel-prefab-to-world', 'panel-prefab-to-entity'].forEach(
-      (className) => expect(host.querySelector(`button.${className}`)).not.toBeNull(),
-    );
+    [
+      'panel-prefab-insert',
+      'panel-prefab-create',
+      'panel-prefab-delete',
+      'panel-prefab-to-world',
+      'panel-prefab-to-entity',
+    ].forEach((className) => expect(host.querySelector(`button.${className}`)).not.toBeNull());
   });
 
   it('keeps every action button label on one line, ellipsized with a tooltip, and lets the name field shrink', () => {
@@ -110,17 +121,28 @@ describe('PanelPrefabDock', () => {
     expect(store.templateFind(createdId)).not.toBeNull();
   });
 
-  it('inserts the chosen prefab as one undoable step', () => {
-    const { host, world, stack } = prefabDockTestRigCreate();
+  it('inserts a copy of every captured object of the chosen prefab as one undoable step', () => {
+    const { host, world, stack, selection } = prefabDockTestRigCreate();
     prefabDockTestButtonClick(host, 'panel-prefab-create');
     const childCountBefore = world.children.length;
     prefabDockTestButtonClick(host, 'panel-prefab-insert');
-    expect(world.children.length).toBe(childCountBefore + 1);
-    const stamped = world.children[world.children.length - 1];
+    expect(world.children.length).toBe(childCountBefore + selection.length);
+    const placed = world.children.slice(childCountBefore);
+    expect(placed.map((object) => object.position.x)).toEqual(selection.map((object) => object.position.x));
     stack.undo();
     expect(world.children.length).toBe(childCountBefore);
     stack.redo();
-    expect(world.children[world.children.length - 1]).toBe(stamped);
+    expect(world.children.slice(childCountBefore)).toEqual(placed);
+  });
+
+  it('deletes the chosen prefab as one undoable step', () => {
+    const { host, store, stack } = prefabDockTestRigCreate();
+    prefabDockTestButtonClick(host, 'panel-prefab-create');
+    const createdId = host.querySelector<HTMLSelectElement>('.panel-prefab-object-select')?.value ?? '';
+    prefabDockTestButtonClick(host, 'panel-prefab-delete');
+    expect(store.templateFind(createdId)).toBeNull();
+    stack.undo();
+    expect(store.templateFind(createdId)).not.toBeNull();
   });
 
   it('steps the Objects list with the wheel so Insert stamps the newly chosen prefab', () => {
@@ -139,9 +161,9 @@ describe('PanelPrefabDock', () => {
         : INPUT_WHEEL_TEST_NOTCH_DOWN;
     inputWheelTestDispatch(objectSelect, wheelTowardFirst);
     expect(objectSelect.value).toBe(firstId);
-    const stampSpy = vi.spyOn(store, 'stampTemplate');
+    const placementSpy = vi.spyOn(store, 'placementPayloadRead');
     prefabDockTestButtonClick(host, 'panel-prefab-insert');
-    expect(stampSpy.mock.calls[0]?.[0]).toBe(firstId);
+    expect(placementSpy.mock.calls[0]?.[0]).toBe(firstId);
   });
 
   it('ties the selection to an entity and moves it back to world, each undoable', () => {

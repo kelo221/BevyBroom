@@ -22,33 +22,52 @@ export function clipboardPayloadIdentitiesRefresh(payload: ClipboardPayload): Cl
 }
 
 /**
- * Gives object entries new uuids, relinks their parents and renames content
- * entries.
+ * Gives object entries new uuids, relinks their parents, renames content
+ * entries and points entity I/O targets at the renamed copies.
  *
  * @param entries Entries changed in place.
  */
 function clipboardEntriesIdentitiesRefresh(entries: ObjectEntry[]): void {
   const uuidByOld = new Map(entries.map((entry) => [entry.uuid, THREE.MathUtils.generateUUID()] as const));
+  const nameByOld = new Map<string, string>();
   entries.forEach((entry) => {
     entry.uuid = uuidByOld.get(entry.uuid) ?? THREE.MathUtils.generateUUID();
     entry.parentId = entry.parentId === null ? null : (uuidByOld.get(entry.parentId) ?? null);
-    clipboardEntryNameRefresh(entry);
+    clipboardEntryNameRefresh(entry, nameByOld);
     if (entry.solidModel) {
       clipboardSolidIdentitiesRefresh(entry.solidModel as unknown as SerializedSolidModel);
     }
   });
+  entries.forEach((entry) => clipboardEntryLogicTargetsRename(entry, nameByOld));
 }
 
 /**
- * Gives a mesh or group entry a fresh hierarchy name; entity entries keep their
- * names.
+ * Gives a mesh or group entry a fresh hierarchy name and remembers the rename;
+ * entity entries keep their names.
  *
  * @param entry Entry changed in place.
+ * @param nameByOld Receives the new name under the old one.
  */
-function clipboardEntryNameRefresh(entry: ObjectEntry): void {
+function clipboardEntryNameRefresh(entry: ObjectEntry, nameByOld: Map<string, string>): void {
   if (entry.type === 'mesh' || entry.type === 'group') {
-    entry.name = hierarchyNameAllocator.allocateFromSourceName(entry.name);
+    const newName = hierarchyNameAllocator.allocateFromSourceName(entry.name);
+    nameByOld.set(entry.name, newName);
+    entry.name = newName;
   }
+}
+
+/**
+ * Points the entity I/O outputs of an entry at the new names of renamed copied
+ * objects; targets outside the payload stay as they are.
+ *
+ * @param entry Entry changed in place.
+ * @param nameByOld New names by old name.
+ */
+function clipboardEntryLogicTargetsRename(entry: ObjectEntry, nameByOld: ReadonlyMap<string, string>): void {
+  entry.gameLogicOutputs = entry.gameLogicOutputs?.map((output) => ({
+    ...output,
+    target: nameByOld.get(output.target) ?? output.target,
+  }));
 }
 
 /**
