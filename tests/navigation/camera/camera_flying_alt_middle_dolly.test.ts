@@ -44,6 +44,7 @@ function middleDragRigCreate(): MiddleDragRig {
 function middleDragApply(rig: MiddleDragRig, movementY: number, altKey: boolean): THREE.Vector3 {
   const before = rig.camera.position.clone();
   rig.canvas.dispatchEvent(new PointerEvent('pointerdown', { button: MIDDLE_BUTTON, pointerId: 1 }));
+  rig.canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 0, movementY: 0, pointerId: 1 }));
   rig.canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 0, movementY, altKey, pointerId: 1 }));
   rig.canvas.dispatchEvent(new PointerEvent('pointerup', { button: MIDDLE_BUTTON, pointerId: 1 }));
   return rig.camera.position.clone().sub(before);

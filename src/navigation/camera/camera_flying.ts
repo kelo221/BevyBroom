@@ -52,6 +52,7 @@ export class CameraFlying {
   private isDisposed: boolean;
   private isEnabled: boolean;
   private holdsPointerLock: boolean;
+  private isLockedFirstMovePending: boolean;
   private readonly scratchLocalForward: THREE.Vector3;
   private readonly scratchWorldForward: THREE.Vector3;
   private readonly scratchWorldRight: THREE.Vector3;
@@ -91,6 +92,7 @@ export class CameraFlying {
     this.isDisposed = false;
     this.isEnabled = true;
     this.holdsPointerLock = false;
+    this.isLockedFirstMovePending = false;
     this.activeButtons = new Set();
     this.yaw = initialYaw;
     this.pitch = initialPitch;
@@ -273,21 +275,30 @@ export class CameraFlying {
     this.pitch = Math.asin(THREE.MathUtils.clamp(this.scratchLocalForward.y, -1, 1));
   }
 
-  /** Takes one shared pointer-lock ref if this camera does not already hold one. */
+  /**
+   * Takes one shared pointer-lock ref if this camera does not already hold one,
+   * and skips the next move, which may carry the jump to the lock position when
+   * the browser grants the lock at once.
+   */
   private takePointerLock(): void {
     if (this.holdsPointerLock) {
       return;
     }
     managerPointerLock.lock(this.canvas);
     this.holdsPointerLock = true;
+    this.isLockedFirstMovePending = true;
   }
 
-  /** Drops this camera's shared pointer-lock ref when held. */
+  /**
+   * Drops this camera's shared pointer-lock ref when held and forgets a pending
+   * first locked move.
+   */
   private dropPointerLock(): void {
     if (!this.holdsPointerLock) {
       return;
     }
     this.holdsPointerLock = false;
+    this.isLockedFirstMovePending = false;
     managerPointerLock.unlock();
   }
 
@@ -300,6 +311,7 @@ export class CameraFlying {
       return;
     }
     if (managerPointerLock.isBrowserLocked()) {
+      this.isLockedFirstMovePending = true;
       return;
     }
     this.isRotating = false;
@@ -314,7 +326,7 @@ export class CameraFlying {
    * @param event The pointer move event.
    */
   private onPointerMove(event: PointerEvent): void {
-    if (!this.isEnabled) {
+    if (!this.isEnabled || this.lockedFirstMoveSkip()) {
       return;
     }
     if (this.isRotating) {
@@ -325,6 +337,22 @@ export class CameraFlying {
     } else if (this.isPanning) {
       this.handlePan(event.movementX, event.movementY);
     }
+  }
+
+  /**
+   * Consumes the first pointer move after pointer lock starts. Browsers (WebKit
+   * on macOS in particular) report that move with the cursor's jump to the lock
+   * position as its movement, which would tilt or pan the view on every
+   * right-button or middle-button press.
+   *
+   * @returns True when the move must be ignored.
+   */
+  private lockedFirstMoveSkip(): boolean {
+    if (!this.isLockedFirstMovePending) {
+      return false;
+    }
+    this.isLockedFirstMovePending = false;
+    return true;
   }
 
   /**
