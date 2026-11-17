@@ -1,13 +1,16 @@
 import * as THREE from 'three';
 import { EntityVisualBillboard } from '@/entity/visual/entity_visual_billboard.js';
 import { EntityVisualBuilder } from '@/entity/visual/entity_visual_builder.js';
+import {
+  ENTITY_POINT_BOX_SHAPE_DEFAULT,
+  ENTITY_POINT_BOX_SIZE,
+  EntityVisualPointBoxGeometry,
+  type EntityPointBoxShape,
+} from '@/entity/visual/entity_visual_point_box_geometry.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 import { shadingExemptFlag } from '@/viewports/shading/shading_exempt.js';
 
-/** Edge length of the clickable box of point entities in meters. */
-export const ENTITY_POINT_BOX_SIZE = 0.4;
-
-/** Icon edge length as a share of the box edge length. */
+/** Icon edge length as a share of the default box edge length. */
 const ENTITY_POINT_BOX_ICON_SHARE = 0.85;
 
 /** Opacity of the box faces at full marker opacity. */
@@ -15,16 +18,6 @@ const ENTITY_POINT_BOX_FILL_OPACITY = 0.2;
 
 /** UserData flag on the edge lines of a point box. */
 const ENTITY_POINT_BOX_EDGES_USERDATA_KEY = 'isEntityPointBoxEdges';
-
-/** Box geometry shared by every point box; never disposed. */
-const entityPointBoxGeometry = new THREE.BoxGeometry(
-  ENTITY_POINT_BOX_SIZE,
-  ENTITY_POINT_BOX_SIZE,
-  ENTITY_POINT_BOX_SIZE,
-);
-
-/** Edge geometry shared by every point box; never disposed. */
-const entityPointBoxEdgesGeometry = new THREE.EdgesGeometry(entityPointBoxGeometry);
 
 /** What a point box shows. */
 export interface EntityPointBoxLook {
@@ -35,6 +28,8 @@ export interface EntityPointBoxLook {
   readonly opacity: number;
   /** Optional step run before every draw of the icon. */
   readonly beforeRender?: () => void;
+  /** Size and placement of the box; the small box on the origin when left out. */
+  readonly shape?: EntityPointBoxShape;
 }
 
 /**
@@ -52,12 +47,27 @@ export class EntityVisualPointBox {
    * @returns The box marker mesh.
    */
   static ensure(owner: THREE.Object3D, look: EntityPointBoxLook): THREE.Mesh {
-    const marker = EntityVisualBuilder.markerEnsure(owner, entityPointBoxGeometry, look.name);
-    shadingExemptFlag(marker);
-    EntityVisualPointBox.edgesEnsure(marker);
+    const marker = EntityVisualPointBox.shapeApply(owner, look.shape ?? ENTITY_POINT_BOX_SHAPE_DEFAULT, look.name);
     const iconSize = ENTITY_POINT_BOX_SIZE * ENTITY_POINT_BOX_ICON_SHARE;
     EntityVisualBillboard.iconEnsure(owner, look.iconName, iconSize, look.beforeRender);
     EntityVisualPointBox.tint(owner, look.colorHex, look.opacity);
+    return marker;
+  }
+
+  /**
+   * Gives the owner's box marker and its edges the geometry of a shape,
+   * creating them when they are missing. The icon is left as it is.
+   *
+   * @param owner Entity owner group.
+   * @param shape Size and placement of the box.
+   * @param name Name of the marker mesh.
+   * @returns The box marker mesh.
+   */
+  static shapeApply(owner: THREE.Object3D, shape: EntityPointBoxShape, name: string): THREE.Mesh {
+    const geometryPair = EntityVisualPointBoxGeometry.pairOf(shape);
+    const marker = EntityVisualBuilder.markerEnsure(owner, geometryPair.faces, name);
+    shadingExemptFlag(marker);
+    EntityVisualPointBox.edgesEnsure(marker, geometryPair.edges);
     return marker;
   }
 
@@ -79,16 +89,19 @@ export class EntityVisualPointBox {
   }
 
   /**
-   * Adds the edge lines under the marker when they are missing.
+   * Gives the edge lines under the marker an edge geometry, adding the lines
+   * when they are missing.
    *
    * @param marker Box marker mesh.
+   * @param edgesGeometry Edge geometry of the marker's box.
    */
-  private static edgesEnsure(marker: THREE.Mesh): void {
-    if (EntityVisualPointBox.edgesFind(marker)) {
+  private static edgesEnsure(marker: THREE.Mesh, edgesGeometry: THREE.BufferGeometry): void {
+    const existing = EntityVisualPointBox.edgesFind(marker);
+    if (existing) {
+      existing.geometry = edgesGeometry;
       return;
     }
-    const material = new THREE.LineBasicMaterial({ transparent: true });
-    const edges = new THREE.LineSegments(entityPointBoxEdgesGeometry, material);
+    const edges = new THREE.LineSegments(edgesGeometry, new THREE.LineBasicMaterial({ transparent: true }));
     edges.name = 'Entity Box Edges';
     edges.raycast = () => {};
     edges.userData[ENTITY_POINT_BOX_EDGES_USERDATA_KEY] = true;

@@ -78,6 +78,16 @@ export interface PreviewPlaceableField {
   hidden?: boolean;
 }
 
+/**
+ * Box the editor draws as the marker of a game entity carrying a class, in
+ * meters in the entity's own space: its edge lengths and where its center sits
+ * relative to the entity's origin.
+ */
+export interface PreviewPlaceableMarkerBox {
+  size: [number, number, number];
+  offset: [number, number, number];
+}
+
 /** One placeable component type of the game. */
 export interface PreviewPlaceableClass {
   type_path: string;
@@ -85,6 +95,12 @@ export interface PreviewPlaceableClass {
   category: string;
   placement: PreviewPlaceablePlacement;
   marker_color: [number, number, number];
+  /** Marker box of entities whose box is not picked by a field value. */
+  marker_box?: PreviewPlaceableMarkerBox;
+  /** Field path whose value, as text, picks the marker box from `marker_boxes`. */
+  marker_box_field?: string;
+  /** Marker boxes by the text value of `marker_box_field`. */
+  marker_boxes?: Record<string, PreviewPlaceableMarkerBox>;
   fields: PreviewPlaceableField[];
   inputs?: PreviewPlaceableIoPin[];
   outputs?: PreviewPlaceableIoPin[];

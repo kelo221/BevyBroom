@@ -8,6 +8,7 @@ import {
   type PreviewPlaceableFieldKind,
   type PreviewPlaceableIoParameterKind,
   type PreviewPlaceableIoPin,
+  type PreviewPlaceableMarkerBox,
 } from '@/preview/protocol/preview_protocol_placeable_types.js';
 import { gameEntityFieldValueFromUnknown } from '@/game_entity/component/game_entity_component_value.js';
 
@@ -16,6 +17,9 @@ export type GameEntityClass = PreviewPlaceableClass;
 
 /** One field of a game component class. */
 export type GameEntityField = PreviewPlaceableField;
+
+/** Box a game entity marker is drawn as, in the entity's own space. */
+export type GameEntityMarkerBox = PreviewPlaceableMarkerBox;
 
 /** One asset type that asset fields may reference. */
 export type GameEntityAssetType = PreviewPlaceableAssetType;
@@ -77,7 +81,84 @@ export function gameEntityClassFromUnknown(value: unknown): GameEntityClass | nu
     fields: gameEntityArrayRead(value['fields'], gameEntityFieldFromUnknown),
   };
   gameEntityClassPinsRead(value, gameClass);
+  gameEntityClassMarkerBoxesRead(value, gameClass);
   return gameClass;
+}
+
+/**
+ * Copies the marker box declarations of an untrusted class, leaving out every
+ * one that is missing or malformed.
+ *
+ * @param value Untrusted class record.
+ * @param gameClass Class being built.
+ */
+function gameEntityClassMarkerBoxesRead(value: Record<string, unknown>, gameClass: GameEntityClass): void {
+  const markerBox = gameEntityMarkerBoxFromUnknown(value['marker_box']);
+  if (markerBox !== null) {
+    gameClass.marker_box = markerBox;
+  }
+  if (gameEntityTextIsFilled(value['marker_box_field'])) {
+    gameClass.marker_box_field = value['marker_box_field'];
+  }
+  const markerBoxes = gameEntityMarkerBoxMapRead(value['marker_boxes']);
+  if (Object.keys(markerBoxes).length > 0) {
+    gameClass.marker_boxes = markerBoxes;
+  }
+}
+
+/**
+ * Reads untrusted marker boxes keyed by field value.
+ *
+ * @param value Any value.
+ * @returns Every valid box by its key; empty when the value is not an object.
+ */
+function gameEntityMarkerBoxMapRead(value: unknown): Record<string, GameEntityMarkerBox> {
+  const markerBoxes: Record<string, GameEntityMarkerBox> = {};
+  if (!gameEntityRecordIs(value)) {
+    return markerBoxes;
+  }
+  for (const [key, entry] of Object.entries(value)) {
+    const markerBox = gameEntityMarkerBoxFromUnknown(entry);
+    if (markerBox !== null) {
+      markerBoxes[key] = markerBox;
+    }
+  }
+  return markerBoxes;
+}
+
+/**
+ * Reads one untrusted marker box.
+ *
+ * @param value Any value.
+ * @returns Valid box, or null when its size is missing or not positive. A
+ *   missing or malformed offset reads as the origin.
+ */
+export function gameEntityMarkerBoxFromUnknown(value: unknown): GameEntityMarkerBox | null {
+  if (!gameEntityRecordIs(value)) {
+    return null;
+  }
+  const size = gameEntityVector3Read(value['size']);
+  if (size === null || size.some((edge) => edge <= 0)) {
+    return null;
+  }
+  return { size, offset: gameEntityVector3Read(value['offset']) ?? [0, 0, 0] };
+}
+
+/**
+ * Reads an untrusted list of three finite numbers.
+ *
+ * @param value Any value.
+ * @returns The three numbers, or null when the value is not such a list.
+ */
+function gameEntityVector3Read(value: unknown): [number, number, number] | null {
+  if (!Array.isArray(value) || value.length !== 3) {
+    return null;
+  }
+  const [x, y, z] = value as unknown[];
+  if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') {
+    return null;
+  }
+  return [x, y, z].every(Number.isFinite) ? [x, y, z] : null;
 }
 
 /**

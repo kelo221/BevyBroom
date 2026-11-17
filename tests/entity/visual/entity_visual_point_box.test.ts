@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { entityOwnerOfPart, entityPickMeshIs } from '@/entity/model/entity_owner_keys.js';
 import { EntityVisualBillboard } from '@/entity/visual/entity_visual_billboard.js';
-import { ENTITY_POINT_BOX_SIZE } from '@/entity/visual/entity_visual_point_box.js';
+import { ENTITY_POINT_BOX_SIZE } from '@/entity/visual/entity_visual_point_box_geometry.js';
 import { GameEntityOwner } from '@/game_entity/owner/game_entity_owner.js';
 import { LightOwner } from '@/light/model/light_owner.js';
 import { lightSettingsCreateDefault } from '@/light/model/light_settings.js';

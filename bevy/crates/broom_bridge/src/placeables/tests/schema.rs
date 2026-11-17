@@ -7,7 +7,8 @@ use super::*;
 use crate::placeables::class_list;
 use crate::placeables::{BroomProperties, PlaceableAssetTypes, PlaceableClasses};
 use crate::protocol::{
-    PlaceableClass, PlaceableClassList, PlaceableField, PlaceableFieldKind, PlaceablePlacement,
+    PlaceableClass, PlaceableClassList, PlaceableField, PlaceableFieldKind, PlaceableMarkerBox,
+    PlaceablePlacement,
 };
 use crate::test_support::TemporaryDirectory;
 
@@ -64,6 +65,35 @@ fn registered_classes_are_described_with_their_options() {
         PlaceableFieldKind::PropertyMap
     );
     assert!(list.generation > 0);
+}
+
+/// The marker boxes a class is registered with reach the editor, the picked ones keyed by the
+/// field value, and a class registered without them reports none.
+#[test]
+fn marker_boxes_are_described_with_their_options() {
+    let app = placeables_app();
+    let directory = TemporaryDirectory::new("placeable_marker_boxes");
+    let list = classes_of(&app, directory.path());
+    let door = class_of::<TestDoor>(&list);
+    assert_eq!(
+        door.marker_box,
+        Some(PlaceableMarkerBox {
+            size: [1.0, 2.0, 0.2],
+            offset: [0.0, 1.0, 0.0]
+        })
+    );
+    assert_eq!(door.marker_box_field.as_deref(), Some("kind"));
+    let iron = door
+        .marker_boxes
+        .get("Iron")
+        .expect("the iron box is described");
+    assert_eq!(iron.size, [3.0, 2.5, 0.4]);
+    assert_eq!(iron.offset, [1.5, 1.25, 0.0]);
+    let weight = class_of::<TestWeight>(&list);
+    assert_eq!(weight.marker_box, None);
+    assert!(weight.marker_boxes.is_empty());
+    let wire = serde_json::to_value(weight).expect("serializes");
+    assert!(wire.get("marker_boxes").is_none());
 }
 
 /// Each field's kind follows its Rust type and its default is the component's `Default`

@@ -5,7 +5,9 @@ import * as THREE from 'three';
 import { EditorApi } from '@/ai/client/editor_api.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 import { GameEntityClassRegistry } from '@/game_entity/class/game_entity_class_registry.js';
-import type { GameEntityClass } from '@/game_entity/class/game_entity_class_schema.js';
+import type { GameEntityClass, GameEntityMarkerBox } from '@/game_entity/class/game_entity_class_schema.js';
+import { GameEntityOwner } from '@/game_entity/owner/game_entity_owner.js';
+import { GameEntityVisualBuilder } from '@/game_entity/visual/game_entity_visual_builder.js';
 import { CommandGameEntityComponentsSet } from '@/game_entity/commands/command_game_entity_components_set.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import { GlbExporter } from '@/io/glb/glb_exporter.js';
@@ -252,6 +254,69 @@ describe.skipIf(!environment.isConfigured)('game components in the game preview 
     },
     STEP_TIMEOUT_MILLISECONDS * 2,
   );
+
+  it(
+    'draws the door marker as the box the game declares, picked by the door kind',
+    async () => {
+      const door = doorClass();
+      const plainBox = door.marker_box;
+      const kindField = door.marker_box_field;
+      expect(plainBox).toBeDefined();
+      expect(kindField).toBeDefined();
+      const [pickedValue, pickedBox] = Object.entries(door.marker_boxes ?? {})[0] ?? [];
+      if (plainBox === undefined || kindField === undefined || pickedValue === undefined || pickedBox === undefined) {
+        throw new Error('the game declares the door marker boxes');
+      }
+      expectMarkerMatches(doorMarkerBoundsRead(), plainBox);
+      toolData(
+        api.invokeTool('set_game_components', {
+          id: doorEntityId,
+          components: { [PREVIEW_E2E_DOOR_COMPONENT]: { [kindField]: pickedValue } },
+        }),
+      );
+      expectMarkerMatches(doorMarkerBoundsRead(), pickedBox);
+      toolData(
+        api.invokeTool('set_game_components', {
+          id: doorEntityId,
+          components: { [PREVIEW_E2E_DOOR_COMPONENT]: { [kindField]: doorDefault(kindField) } },
+        }),
+      );
+      expectMarkerMatches(doorMarkerBoundsRead(), plainBox);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  /**
+   * Returns the box the door entity's marker fills in the entity's own space,
+   * after the marker had its chance to follow class and component changes.
+   *
+   * @returns Bounds of the marker geometry.
+   */
+  function doorMarkerBoundsRead(): THREE.Box3 {
+    const owner = parts.world.getObjectByProperty('uuid', doorEntityId);
+    if (owner === undefined) {
+      throw new Error('the door entity is in the scene');
+    }
+    GameEntityVisualBuilder.refresh(owner);
+    const geometry = GameEntityOwner.markerOf(owner)?.geometry;
+    geometry?.computeBoundingBox();
+    return geometry?.boundingBox?.clone() ?? new THREE.Box3();
+  }
+
+  /**
+   * Expects marker bounds to match a declared marker box.
+   *
+   * @param bounds Measured marker bounds.
+   * @param markerBox Declared box.
+   */
+  function expectMarkerMatches(bounds: THREE.Box3, markerBox: GameEntityMarkerBox): void {
+    const expected = new THREE.Box3().setFromCenterAndSize(
+      new THREE.Vector3(...markerBox.offset),
+      new THREE.Vector3(...markerBox.size),
+    );
+    expect(bounds.min.distanceTo(expected.min)).toBeLessThan(1e-5);
+    expect(bounds.max.distanceTo(expected.max)).toBeLessThan(1e-5);
+  }
 
   it(
     'applies field overrides and keeps the defaults of the other fields',

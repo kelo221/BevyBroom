@@ -120,6 +120,17 @@ fn default_times_to_fire() -> i32 {
     -1
 }
 
+/// The box the editor draws as the marker of a game entity carrying a class, in metres in the
+/// entity's own space.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+pub struct PlaceableMarkerBox {
+    /// Edge lengths along x, y and z.
+    pub size: [f32; 3],
+    /// Where the box's centre sits relative to the entity's origin.
+    #[serde(default)]
+    pub offset: [f32; 3],
+}
+
 /// A component type the game lets the editor place.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct PlaceableClass {
@@ -131,6 +142,15 @@ pub struct PlaceableClass {
     pub placement: PlaceablePlacement,
     /// sRGB color of the editor marker.
     pub marker_color: [f32; 3],
+    /// The marker box of entities whose box is not picked by a field value.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub marker_box: Option<PlaceableMarkerBox>,
+    /// The field path whose value, as text, picks the marker box from `marker_boxes`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub marker_box_field: Option<String>,
+    /// Marker boxes by the text value of `marker_box_field`.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub marker_boxes: BTreeMap<String, PlaceableMarkerBox>,
     pub fields: Vec<PlaceableField>,
     /// Declared entity I/O inputs on this class.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

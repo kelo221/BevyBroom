@@ -120,7 +120,10 @@ impl Plugin for SamplePlaceablesPlugin {
             .register_placeable::<Door>(
                 PlaceableOptions::point()
                     .category("Doors")
-                    .marker_color(Srgba::rgb(0.9, 0.5, 0.1)),
+                    .marker_color(Srgba::rgb(0.9, 0.5, 0.1))
+                    .marker_box(Vec3::new(1.0, 2.0, 0.2), Vec3::new(0.0, 1.0, 0.0))
+                    .marker_box_field("kind")
+                    .marker_box_for("Iron", Vec3::new(3.0, 2.5, 0.4), Vec3::new(1.5, 1.25, 0.0)),
             )
             .register_placeable::<Spinner>(
                 PlaceableOptions::any()
