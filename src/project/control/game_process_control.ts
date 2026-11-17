@@ -1,3 +1,10 @@
+import type {
+  ProjectDataFileChangeResult,
+  ProjectDataFileKind,
+  ProjectDataFileRemoveRequest,
+  ProjectDataFilesReadResult,
+  ProjectDataFileWriteRequest,
+} from '@/project/data/project_data_file_types.js';
 import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
 import type {
   LevelBuildPublishRequest,
@@ -139,6 +146,30 @@ export abstract class GameProcessControl {
    * @returns The renamed level, or why nothing was moved.
    */
   abstract projectLevelRename(request: ProjectLevelRenameRequest): Promise<ProjectLevelWriteResult>;
+
+  /**
+   * Reads every file of one kind of the open project's data.
+   *
+   * @param kind Kind of data.
+   * @returns The files, or why they cannot be read.
+   */
+  abstract projectDataFilesRead(kind: ProjectDataFileKind): Promise<ProjectDataFilesReadResult>;
+
+  /**
+   * Writes one file of the open project's data.
+   *
+   * @param request Kind, file name and text.
+   * @returns Success, or why nothing was written.
+   */
+  abstract projectDataFileWrite(request: ProjectDataFileWriteRequest): Promise<ProjectDataFileChangeResult>;
+
+  /**
+   * Removes one file of the open project's data.
+   *
+   * @param request Kind and file name.
+   * @returns Success, or why nothing was removed.
+   */
+  abstract projectDataFileRemove(request: ProjectDataFileRemoveRequest): Promise<ProjectDataFileChangeResult>;
 }
 
 /**
@@ -271,6 +302,33 @@ export class GameProcessControlUnavailable extends GameProcessControl {
    * @returns Failure result.
    */
   async projectLevelRename(): Promise<ProjectLevelWriteResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that project data files need the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectDataFilesRead(): Promise<ProjectDataFilesReadResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that project data files need the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectDataFileWrite(): Promise<ProjectDataFileChangeResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that project data files need the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectDataFileRemove(): Promise<ProjectDataFileChangeResult> {
     return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
   }
 

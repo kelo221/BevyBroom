@@ -50,6 +50,27 @@ describe('ProjectDefinitionParser', () => {
     expect(definition.build).toBeNull();
   });
 
+  it('resolves the class file and prefab directory against the project directory', () => {
+    const directory = '/games/Kärrchen';
+    const definition = ProjectDefinitionParser.parse(
+      projectJsonCreate({ entity_classes: 'broom/classes.json', prefab_directory: 'broom/prefabs/' }),
+      `${directory}/broom.project.json`,
+    );
+    expect(definition.entityClassesFile).toBe(`${directory}/broom/classes.json`);
+    expect(definition.prefabDirectory).toBe(`${directory}/broom/prefabs`);
+    const plain = ProjectDefinitionParser.parse(projectJsonCreate(), `${directory}/broom.project.json`);
+    expect(plain.entityClassesFile).toBeNull();
+    expect(plain.prefabDirectory).toBeNull();
+  });
+
+  it('refuses a class file outside the project or not ending in .json, and an empty prefab directory', () => {
+    const parseWith = (fields: Record<string, unknown>) => () =>
+      ProjectDefinitionParser.parse(projectJsonCreate(fields), '/game/broom.project.json');
+    expect(parseWith({ entity_classes: '../shared/classes.json' })).toThrow(/entity_classes/);
+    expect(parseWith({ entity_classes: 'broom/classes.txt' })).toThrow(/\.json/);
+    expect(parseWith({ prefab_directory: '  ' })).toThrow(/prefab_directory/);
+  });
+
   it('refuses a preview section that is not an object', () => {
     const parse = (): unknown =>
       ProjectDefinitionParser.parse(projectJsonCreate({ preview: 'bun' }), '/game/broom.project.json');

@@ -34,6 +34,8 @@ function definitionCreate(root: string): ProjectDefinition {
     levels: [],
     textureDirectories: [],
     sprinkleDirectories: [],
+    entityClassesFile: null,
+    prefabDirectory: null,
     launch: { program: 'bin/game.exe', arguments: [], workingDirectory: root, endpoint: 'http://127.0.0.1:15702' },
     build: { program: 'cargo', arguments: ['build'], workingDirectory: `${root}/source`, endpoint: '' },
   };

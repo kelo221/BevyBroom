@@ -1,3 +1,10 @@
+import type {
+  ProjectDataFileChangeResult,
+  ProjectDataFileKind,
+  ProjectDataFileRemoveRequest,
+  ProjectDataFilesReadResult,
+  ProjectDataFileWriteRequest,
+} from '@/project/data/project_data_file_types.js';
 import type { ElectrobunDesktopBunRpcClient } from '@/ai/shared/mcp_rpc_schema.js';
 import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
 import { GameProcessControl, GameProcessControlUnavailable } from '@/project/control/game_process_control.js';
@@ -176,6 +183,37 @@ export class GameProcessControlDesktop extends GameProcessControl {
    */
   projectLevelRename(request: ProjectLevelRenameRequest): Promise<ProjectLevelWriteResult> {
     return this.rpc.request.projectLevelRename(request);
+  }
+
+  /**
+   * Asks the main process for every file of one kind of the open project's
+   * data.
+   *
+   * @param kind Kind of data.
+   * @returns The files, or why they cannot be read.
+   */
+  projectDataFilesRead(kind: ProjectDataFileKind): Promise<ProjectDataFilesReadResult> {
+    return this.rpc.request.projectDataFilesRead({ kind });
+  }
+
+  /**
+   * Asks the main process to write one file of the open project's data.
+   *
+   * @param request Kind, file name and text.
+   * @returns Success, or why nothing was written.
+   */
+  projectDataFileWrite(request: ProjectDataFileWriteRequest): Promise<ProjectDataFileChangeResult> {
+    return this.rpc.request.projectDataFileWrite(request);
+  }
+
+  /**
+   * Asks the main process to remove one file of the open project's data.
+   *
+   * @param request Kind and file name.
+   * @returns Success, or why nothing was removed.
+   */
+  projectDataFileRemove(request: ProjectDataFileRemoveRequest): Promise<ProjectDataFileChangeResult> {
+    return this.rpc.request.projectDataFileRemove(request);
   }
 }
 

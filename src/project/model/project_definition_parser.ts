@@ -10,6 +10,7 @@ import {
 import type { ProjectDefinition } from '@/project/model/project_definition.js';
 import { ProjectBuildCommandResolver } from '@/project/build/project_build_command_resolver.js';
 import { ProjectLevelEntriesParser } from '@/project/model/project_level_entries_parser.js';
+import { ProjectDataFieldsParser } from '@/project/model/project_data_fields_parser.js';
 
 /** Name used for the top level of the project file in error messages. */
 const PROJECT_SECTION_PATH = 'project';
@@ -47,6 +48,14 @@ export class ProjectDefinitionParser {
       levels: ProjectLevelEntriesParser.levelsRead(project, ProjectDefinitionParser.isContainedRelativePath),
       textureDirectories: ProjectDefinitionParser.assetDirectoriesRead(project, 'texture_directories'),
       sprinkleDirectories: ProjectDefinitionParser.assetDirectoriesRead(project, 'sprinkle_directories'),
+      entityClassesFile: ProjectDefinitionParser.projectPathJoin(
+        projectDirectory,
+        ProjectDataFieldsParser.entityClassesFileRead(project, ProjectDefinitionParser.isContainedRelativePath),
+      ),
+      prefabDirectory: ProjectDefinitionParser.projectPathJoin(
+        projectDirectory,
+        ProjectDataFieldsParser.prefabDirectoryRead(project, ProjectDefinitionParser.isContainedRelativePath),
+      ),
       launch,
       build:
         preview === null || launch === null
@@ -139,6 +148,17 @@ export class ProjectDefinitionParser {
       );
     }
     return directory.replace(/\\/g, '/').replace(/\/+$/, '') || '.';
+  }
+
+  /**
+   * Joins the project directory and an optional project-relative path.
+   *
+   * @param projectDirectory Absolute project directory.
+   * @param relativePath Project-relative path, or null.
+   * @returns Absolute path, or null when no path was given.
+   */
+  private static projectPathJoin(projectDirectory: string, relativePath: string | null): string | null {
+    return relativePath === null ? null : previewLaunchDirectoryJoin(projectDirectory, relativePath);
   }
 
   /**

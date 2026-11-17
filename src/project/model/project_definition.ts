@@ -39,6 +39,16 @@ export interface ProjectDefinition {
    */
   sprinkleDirectories: string[];
   /**
+   * Absolute path of the file declaring the project's game entity classes,
+   * forward slashes; null when the project file names none.
+   */
+  entityClassesFile: string | null;
+  /**
+   * Absolute directory holding the project's prefab files, forward slashes;
+   * null when the project file names none.
+   */
+  prefabDirectory: string | null;
+  /**
    * Command that starts the game preview, or null when the project file has no
    * preview section.
    */

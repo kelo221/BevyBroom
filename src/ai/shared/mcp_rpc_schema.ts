@@ -17,6 +17,13 @@ import type {
   SprinkleDefinitionFilesReadResult,
   SprinkleDefinitionOpenResult,
 } from '@/tools/sprinkle/definition/sprinkle_definition.js';
+import type {
+  ProjectDataFileChangeResult,
+  ProjectDataFileKind,
+  ProjectDataFileRemoveRequest,
+  ProjectDataFilesReadResult,
+  ProjectDataFileWriteRequest,
+} from '@/project/data/project_data_file_types.js';
 import type { NativeMenuActionRunParams, NativeMenuBarWire } from '@/native_menu/native_menu_types.js';
 import type {
   FileDialogDesktopFileStat,
@@ -56,6 +63,9 @@ export interface ElectrobunDesktopRpcSchema {
       projectLevelWrite: { params: ProjectLevelWriteRequest; response: ProjectLevelWriteResult };
       projectLevelCreate: { params: ProjectLevelCreateRequest; response: ProjectLevelWriteResult };
       projectLevelRename: { params: ProjectLevelRenameRequest; response: ProjectLevelWriteResult };
+      projectDataFilesRead: { params: { kind: ProjectDataFileKind }; response: ProjectDataFilesReadResult };
+      projectDataFileWrite: { params: ProjectDataFileWriteRequest; response: ProjectDataFileChangeResult };
+      projectDataFileRemove: { params: ProjectDataFileRemoveRequest; response: ProjectDataFileChangeResult };
       nativeMenuBarSet: { params: NativeMenuBarWire; response: void };
       textFileOpen: { params: FileDialogDesktopTextFileOpenParams; response: FileDialogDesktopTextFile | null };
       savePathPick: { params: FileDialogDesktopSavePickParams; response: string | null };
@@ -95,6 +105,9 @@ export interface ElectrobunDesktopBunRpcClient {
     projectLevelWrite: (params: ProjectLevelWriteRequest) => Promise<ProjectLevelWriteResult>;
     projectLevelCreate: (params: ProjectLevelCreateRequest) => Promise<ProjectLevelWriteResult>;
     projectLevelRename: (params: ProjectLevelRenameRequest) => Promise<ProjectLevelWriteResult>;
+    projectDataFilesRead: (params: { kind: ProjectDataFileKind }) => Promise<ProjectDataFilesReadResult>;
+    projectDataFileWrite: (params: ProjectDataFileWriteRequest) => Promise<ProjectDataFileChangeResult>;
+    projectDataFileRemove: (params: ProjectDataFileRemoveRequest) => Promise<ProjectDataFileChangeResult>;
     nativeMenuBarSet: (bar: NativeMenuBarWire) => Promise<void>;
     textFileOpen: (params: FileDialogDesktopTextFileOpenParams) => Promise<FileDialogDesktopTextFile | null>;
     savePathPick: (params: FileDialogDesktopSavePickParams) => Promise<string | null>;
