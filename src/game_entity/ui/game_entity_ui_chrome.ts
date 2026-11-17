@@ -5,6 +5,7 @@ import {
   PANEL_PROPERTIES_ROW_INDENT_STEP_PX,
   panelPropertiesGroupRowMark,
   panelPropertiesRowCaptionPaint,
+  panelPropertiesRowFieldStretch,
   panelPropertiesRowIndentWrite,
   panelPropertiesRowMark,
 } from '@/ui/properties/panel_properties_row.js';
@@ -111,6 +112,27 @@ export class GameEntityUiChrome {
   }
 
   /**
+   * Creates a read-only row: a caption and a value text in the editor column.
+   *
+   * @param label Row caption.
+   * @param valueText Value shown beside the caption.
+   * @param helpText Help shown for the row.
+   * @returns Row element.
+   */
+  static infoRowCreate(label: string, valueText: string, helpText: string): HTMLElement {
+    const row = GameEntityUiChrome.rowCreate();
+    GameEntityUiChrome.rowIndentApply(row, 0);
+    row.dataset['readOnly'] = 'true';
+    panelPropertiesRowMark(row, label, helpText);
+    const value = document.createElement('span');
+    value.textContent = valueText;
+    value.title = helpText;
+    value.style.padding = '0 4px';
+    row.append(GameEntityUiChrome.captionTextCreate(label, helpText), panelPropertiesRowFieldStretch(value));
+    return row;
+  }
+
+  /**
    * Indents a row by its group nesting depth, both as left padding and as the
    * recorded depth table hosts read.
    *
@@ -155,17 +177,30 @@ export class GameEntityUiChrome {
    * @returns Caption element.
    */
   private static captionCreate(field: GameEntityField, overridden: boolean): HTMLElement {
+    const title = overridden ? `${field.path} (changed from the game default)` : field.path;
+    const caption = GameEntityUiChrome.captionTextCreate(field.label, title);
+    if (overridden) {
+      caption.style.color = GAME_ENTITY_OVERRIDE_COLOR;
+    }
+    return caption;
+  }
+
+  /**
+   * Creates a fixed-width caption with a tooltip.
+   *
+   * @param text Caption text.
+   * @param title Tooltip text.
+   * @returns Caption element.
+   */
+  private static captionTextCreate(text: string, title: string): HTMLElement {
     const caption = document.createElement('span');
-    caption.textContent = field.label;
-    caption.title = overridden ? `${field.path} (changed from the game default)` : field.path;
+    caption.textContent = text;
+    caption.title = title;
     caption.style.width = '11ch';
     caption.style.flexShrink = '0';
     caption.style.overflow = 'hidden';
     caption.style.textOverflow = 'ellipsis';
     panelPropertiesRowCaptionPaint(caption);
-    if (overridden) {
-      caption.style.color = GAME_ENTITY_OVERRIDE_COLOR;
-    }
     return caption;
   }
 

@@ -8,7 +8,7 @@ import { GameEntityComponentResolver } from '@/game_entity/component/game_entity
 import type { GameEntityComponents } from '@/game_entity/component/game_entity_component_store.js';
 import { GameEntityComponentsEdit } from '@/game_entity/component/game_entity_components_edit.js';
 import { gameEntityFieldEditorCreate } from '@/game_entity/ui/fields/game_entity_field_editor_factory.js';
-import { GameEntityComponentBoxNote } from '@/game_entity/ui/game_entity_component_box_note.js';
+import { GameEntityComponentBoxInfo } from '@/game_entity/ui/game_entity_component_box_info.js';
 import { GameEntityUiChrome } from '@/game_entity/ui/game_entity_ui_chrome.js';
 import type { PreviewFieldValue } from '@/preview/protocol/preview_protocol_placeable_types.js';
 import { panelPropertiesRowFieldStretch } from '@/ui/properties/panel_properties_row.js';
@@ -60,17 +60,17 @@ export class GameEntityComponentBlock {
     this.element.dataset['gameComponent'] = typePath;
     this.element.appendChild(this.titleCreate());
     this.fieldsAppend(this.element, this.fieldsShown(), 0);
-    this.boxNoteAppend();
+    this.boxRowAppend();
   }
 
   /**
-   * Appends the read-only line naming the box the class gives the objects, when
+   * Appends the read-only row naming the box the class gives the objects, when
    * the class declares one.
    */
-  private boxNoteAppend(): void {
-    const noteText = GameEntityComponentBoxNote.textOf(this.gameClass, this.componentsList);
-    if (noteText !== null) {
-      this.element.appendChild(GameEntityUiChrome.noteCreate(noteText));
+  private boxRowAppend(): void {
+    const boxRow = GameEntityComponentBoxInfo.rowOf(this.gameClass, this.componentsList);
+    if (boxRow !== null) {
+      this.element.appendChild(GameEntityUiChrome.infoRowCreate(boxRow.label, boxRow.valueText, boxRow.helpText));
     }
   }
 
