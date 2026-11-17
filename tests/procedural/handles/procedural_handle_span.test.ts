@@ -66,6 +66,14 @@ describe('ProceduralHandleSpan', () => {
     );
   });
 
+  it('shows one arrow pointing across the line, turning with the object', () => {
+    const { owner, settings, across } = moverCreate();
+    const axes = handle.axesFor({ owner, camera: new THREE.Camera() }, settings);
+    expect(axes).toHaveLength(1);
+    const expected = across.clone().transformDirection(owner.matrixWorld);
+    expect(axes[0]?.distanceTo(expected)).toBeLessThan(1e-9);
+  });
+
   it('sets the length to twice the distance across the line, ignoring movement along it', () => {
     const { owner, settings, middle, across } = moverCreate();
     const along = new THREE.Vector3(0, 1, 0).cross(across).normalize();

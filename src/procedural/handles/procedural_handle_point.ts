@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { EntityHandle, type EntityHandleSnap, type EntityHandleView } from '@/entity/handles/entity_handle.js';
+import { entityHandleWorldAxes } from '@/entity/handles/entity_handle_axis.js';
 import { ProceduralParametersRead } from '@/procedural/generator/procedural_parameters_read.js';
 import type { ProceduralSettings } from '@/procedural/model/procedural_settings.js';
 
 /**
- * Ball on one point parameter of a procedural object, such as a box corner or
- * the end of an escalator. It moves on the plane facing the camera, and its
- * world position snaps to the grid like a brush vertex.
+ * Ball on one point parameter of a procedural object, such as the end of an
+ * escalator, with move arrows along world X, Y and Z. The ball moves on the
+ * plane facing the camera, an arrow only along its axis, and the world position
+ * snaps to the grid like a brush vertex.
  */
 export class ProceduralHandlePoint extends EntityHandle<ProceduralSettings> {
   readonly handleName: string;
@@ -33,6 +35,19 @@ export class ProceduralHandlePoint extends EntityHandle<ProceduralSettings> {
    */
   worldPositionFor(view: EntityHandleView, settings: ProceduralSettings): THREE.Vector3 {
     return view.owner.localToWorld(ProceduralParametersRead.vector3(settings.parameters, this.parameterPath));
+  }
+
+  /**
+   * Returns world X, Y and Z as the point's move arrows.
+   *
+   * @param view Owner and camera.
+   * @param settings Current valid settings.
+   * @returns Unit world axes.
+   */
+  override axesFor(view: EntityHandleView, settings: ProceduralSettings): readonly THREE.Vector3[] {
+    void view;
+    void settings;
+    return entityHandleWorldAxes();
   }
 
   /**

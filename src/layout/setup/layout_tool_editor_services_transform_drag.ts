@@ -24,6 +24,7 @@ export type LayoutToolEditorTransformDragServices = Pick<
   | 'commitActiveTransformDrag'
   | 'cancelActiveTransformDrag'
   | 'tryBeginPermanentGizmoDragFromEditorPointer'
+  | 'tryBeginEntityHandleDragFromEditorPointer'
   | 'probePermanentGizmoUnderPointer'
   | 'publishTransformDragVisualEnd'
   | 'setWidgetMode'
@@ -43,6 +44,7 @@ type LayoutToolEditorTransformCommitServices = Pick<
   | 'commitActiveTransformDrag'
   | 'cancelActiveTransformDrag'
   | 'tryBeginPermanentGizmoDragFromEditorPointer'
+  | 'tryBeginEntityHandleDragFromEditorPointer'
   | 'probePermanentGizmoUnderPointer'
 >;
 
@@ -109,6 +111,13 @@ function layoutToolEditorTransformCommitServicesCreate(
     cancelActiveTransformDrag: () => layoutToolEditorActiveTransformDragCancel(ctx),
     tryBeginPermanentGizmoDragFromEditorPointer: (clientX, clientY, modifiers) =>
       layoutToolEditorPermanentGizmoDragBegin(ctx, clientX, clientY, modifiers),
+    tryBeginEntityHandleDragFromEditorPointer: (clientX, clientY, modifiers) =>
+      !layoutToolEditorEditModeActiveRead(ctx) &&
+      layoutToolEditorPermanentGizmoBridgeRead(ctx)?.tryBeginEntityHandleDragFromEditorPointer(
+        clientX,
+        clientY,
+        modifiers,
+      ) === true,
     probePermanentGizmoUnderPointer: (clientX, clientY, modifiers) =>
       layoutToolEditorPermanentGizmoProbe(ctx, clientX, clientY, modifiers),
   };

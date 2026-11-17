@@ -331,6 +331,30 @@ describe('TransformInteractionBridge', () => {
     expect(LightOwner.settingsRead(light)?.radius).not.toBe(startRadius);
   });
 
+  it('grabs and drags a selected light ball while the transform gizmo is hidden', () => {
+    const { entityHandles, light } = selectLightWithHandles();
+    const bridge = createBridge(() => true, { entityHandles });
+    bridge.setViewportProbe(() => viewport as unknown as Viewport3D);
+    viewport.getGizmoGroup().userData['gizmoWantedVisible'] = false;
+    viewport.getGizmoGroup().clear();
+    const target = entityHandles.overlay.targets()[0];
+    const ball = target
+      ? entityHandleClientPointOf(target, { camera: viewport.getCamera(), element: viewport.getContentElement() })
+      : null;
+    if (!ball) throw new Error('light ball not shown');
+    const startRadius = LightOwner.settingsRead(light)?.radius;
+    expect(
+      bridge.probeGizmoUnderPointer(ball.x, ball.y, { shiftKey: false, ctrlKey: false, altKey: false, metaKey: false }),
+    ).toBe(true);
+    const noKeys = { shiftKey: false, ctrlKey: false, altKey: false, metaKey: false };
+    expect(bridge.tryBeginEntityHandleDragFromEditorPointer(ball.x + 200, ball.y + 200, noKeys)).toBe(false);
+    expect(bridge.tryBeginEntityHandleDragFromEditorPointer(ball.x, ball.y, { ...noKeys, shiftKey: true })).toBe(false);
+    expect(bridge.tryBeginEntityHandleDragFromEditorPointer(ball.x, ball.y, noKeys)).toBe(true);
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: ball.x + 30, clientY: ball.y }));
+    window.dispatchEvent(new MouseEvent('pointerup', { clientX: ball.x + 30, clientY: ball.y }));
+    expect(LightOwner.settingsRead(light)?.radius).not.toBe(startRadius);
+  });
+
   /**
    * Selects only a point light's marker and creates a handle system for it.
    *

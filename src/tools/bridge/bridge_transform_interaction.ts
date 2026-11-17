@@ -97,7 +97,8 @@ export class BridgeTransformInteraction {
   wireViewports(_viewports: Array<Viewport3D | Viewport2D>): void {}
 
   /**
-   * Handles a transform pointer event for the given viewport.
+   * Handles a transform pointer event for the given viewport. Entity handles
+   * take a press first, even while the transform gizmo is hidden.
    *
    * @param event The pointer event.
    * @param viewport The viewport that owns camera and gizmo group.
@@ -106,10 +107,10 @@ export class BridgeTransformInteraction {
   onTransformEvent(event: MouseEvent, viewport: Viewport3D | Viewport2D): boolean {
     if (!this.deps.selectionManager) return false;
     if (this.shouldSkipDisabledInteraction()) return false;
-    if (!this.hasGizmoHandles()) return false;
-    if (!this.isGizmoInteractable(viewport)) return false;
     if (this.shouldSkipGizmoForMultiSelect(event)) return false;
     if (this.tryBeginEntityHandleDrag(event, viewport)) return true;
+    if (!this.hasGizmoHandles()) return false;
+    if (!this.isGizmoInteractable(viewport)) return false;
     const eventParams = this.buildTransformEventParams(viewport);
     return this.dispatchTransformEvent(
       event.type,
@@ -144,8 +145,30 @@ export class BridgeTransformInteraction {
   }
 
   /**
-   * Returns whether a gizmo or bounds control lies under the pointer without
-   * starting a drag.
+   * Begins dragging the entity handle under a client point, whatever transform
+   * gizmo is shown.
+   *
+   * @param clientX Pointer client X.
+   * @param clientY Pointer client Y.
+   * @param modifiers Modifier keys; multi-select presses never grab a handle.
+   * @returns True when a handle drag started.
+   */
+  tryBeginEntityHandleDragFromEditorPointer(
+    clientX: number,
+    clientY: number,
+    modifiers: { shiftKey: boolean; ctrlKey: boolean; altKey: boolean; metaKey: boolean },
+  ): boolean {
+    const viewport = this.findViewportAtClientPoint(clientX, clientY);
+    if (!viewport || !this.deps.selectionManager || this.shouldSkipDisabledInteraction()) return false;
+    const event = this.createSyntheticPointerDown(clientX, clientY, modifiers);
+    if (this.shouldSkipGizmoForMultiSelect(event)) return false;
+    return this.tryBeginEntityHandleDrag(event, viewport);
+  }
+
+  /**
+   * Returns whether an entity handle, gizmo or bounds control lies under the
+   * pointer without starting a drag. Entity handles count even while the
+   * transform gizmo is hidden.
    *
    * @param clientX Pointer client X.
    * @param clientY Pointer client Y.
@@ -159,17 +182,32 @@ export class BridgeTransformInteraction {
   ): boolean {
     if (!this.deps.selectionManager) return false;
     if (this.shouldSkipDisabledInteraction()) return false;
-    if (!this.hasGizmoHandles()) return false;
     if (modifiers.shiftKey || modifiers.ctrlKey || modifiers.metaKey) return false;
     const viewport = this.findViewportAtClientPoint(clientX, clientY);
     if (!viewport) return false;
-    if (!this.isGizmoInteractable(viewport)) return false;
     const event = this.createSyntheticPointerDown(clientX, clientY, modifiers);
+    if (this.isEntityHandleUnderPointer(event, viewport)) return true;
+    if (!this.hasGizmoHandles()) return false;
+    if (!this.isGizmoInteractable(viewport)) return false;
     return this.probeGizmoHitOnViewport(event, viewport);
   }
 
   /**
-   * Returns whether a handle or bounds face is under the pointer on a viewport.
+   * Returns whether an entity handle ball or arrow is under a press on a
+   * viewport.
+   *
+   * @param event Synthetic pointer event.
+   * @param viewport Viewport under the pointer.
+   * @returns True when a handle is hit.
+   */
+  private isEntityHandleUnderPointer(event: MouseEvent, viewport: Viewport3D | Viewport2D): boolean {
+    const pointer = { camera: viewport.getCamera(), element: viewport.getContentElement(), event };
+    return this.deps.entityHandles?.probe(pointer) === true;
+  }
+
+  /**
+   * Returns whether a gizmo handle or bounds face is under the pointer on a
+   * viewport.
    *
    * @param event Synthetic pointer event.
    * @param viewport Viewport under the pointer.
@@ -180,7 +218,6 @@ export class BridgeTransformInteraction {
     const pickElement = viewport.getContentElement();
     const gizmoGroup = viewport.getGizmoGroup();
     if (!gizmoGroup) return false;
-    if (this.deps.entityHandles?.probe({ camera, element: pickElement, event })) return true;
     const handles = this.deps.transformGizmo.getHandles();
     if (isBoundsWidgetMode(this.deps.transformGizmo.getMode())) {
       const kind = typeof viewport.getViewportKind === 'function' ? viewport.getViewportKind() : undefined;

@@ -6,6 +6,7 @@ import type { EntityKind } from '@/entity/model/entity_owner_keys.js';
 import { ProceduralGeneratorRegistry } from '@/procedural/generator/procedural_generator_registry.js';
 import { ProceduralHandlePoint } from '@/procedural/handles/procedural_handle_point.js';
 import { ProceduralHandleSpan } from '@/procedural/handles/procedural_handle_span.js';
+import { ProceduralHandleFace } from '@/procedural/handles/procedural_handle_face.js';
 import type { ProceduralSettings } from '@/procedural/model/procedural_settings.js';
 import { ProceduralSettingsRules } from '@/procedural/model/procedural_settings_rules.js';
 import { PROCEDURAL_ICON_UNKNOWN, ProceduralVisualBuilder } from '@/procedural/visual/procedural_visual_builder.js';
@@ -92,8 +93,9 @@ export class ProceduralDefinition extends EntityDefinition<ProceduralSettings> {
   }
 
   /**
-   * Returns one point handle per point field of the generator, then one span
-   * handle per length field it shows across a line.
+   * Returns one point handle per point field of the generator, one span handle
+   * per length field it shows across a line, then one face handle per box face
+   * it shows.
    *
    * @param settings Valid settings.
    * @returns Point handles.
@@ -106,6 +108,7 @@ export class ProceduralDefinition extends EntityDefinition<ProceduralSettings> {
     return [
       ...generator.handlePointPaths().map((path) => new ProceduralHandlePoint(path)),
       ...generator.handleSpans().map((definition) => new ProceduralHandleSpan(definition)),
+      ...generator.handleFaces().map((definition) => new ProceduralHandleFace(definition)),
     ];
   }
 

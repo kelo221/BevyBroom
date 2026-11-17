@@ -8,7 +8,7 @@ const PROCEDURAL_SETTINGS_DESCRIPTION =
 export const MCP_PROCEDURAL_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(
     'list_procedural_generators',
-    'The procedural generators the editor knows, with their fields, defaults, point handles and material slots.',
+    'The procedural generators the editor knows, with their fields, defaults, point handles (handlePoints), box face handles (handleFaces, such as max_y) and material slots.',
     emptySchema(),
   ),
   tool(
@@ -32,4 +32,20 @@ export const MCP_PROCEDURAL_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
     required: ['id', 'settings'],
   }),
+  tool(
+    'get_entity_handles',
+    'Read-only: the handles of an entity (procedural object, light, ...) as a view shows them once the entity is selected. Each handle has its `name`, the world `position` of its ball and the `arrows` the view lets the user grab, each with its world `direction` and the world `tip` of the arrow in that view (arrows pointing into the view are left out). Press on the ball or between the ball and an arrow tip with viewport_drag to drag the handle like a user; an arrow drag moves the handle only along its direction. Procedural boxes show one handle per face with an arrow along the face normal; points such as escalator ends show X, Y and Z arrows.',
+    {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Entity id (object uuid), such as the id add_procedural returns.' },
+        view: {
+          type: 'string',
+          enum: ['perspective', 'top', 'front', 'side'],
+          description: 'View the handles are read in.',
+        },
+      },
+      required: ['id', 'view'],
+    },
+  ),
 ];

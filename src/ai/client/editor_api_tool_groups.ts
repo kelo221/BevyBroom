@@ -20,6 +20,8 @@ import { EditorApiTextureBrowser } from './editor_api_texture_browser.js';
 import { EditorApiSprinkle } from './editor_api_sprinkle.js';
 import { EditorApiModifierVolumes } from './editor_api_modifier_volumes.js';
 import { EditorApiProcedural } from './editor_api_procedural.js';
+import { EditorApiEntityHandles } from './editor_api_entity_handles.js';
+import { editorApiVisibleViewportFind } from './editor_api_viewport_locate.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 
 /**
@@ -27,8 +29,8 @@ import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
  * Object Properties dialog, clipboard, brush editing, face UV, displacement,
  * face edit state, viewport input, keyboard input, open menus, the entity
  * browser, outliner row clicks, selection queries, selection visibility,
- * material replacement, the texture browser, Entity Sprinkle, modifier volumes
- * and procedural objects.
+ * material replacement, the texture browser, Entity Sprinkle, modifier volumes,
+ * procedural objects and entity handles.
  */
 export class EditorApiToolGroups {
   private readonly layers: EditorApiLayers;
@@ -52,6 +54,7 @@ export class EditorApiToolGroups {
   private readonly sprinkle: EditorApiSprinkle;
   private readonly modifierVolumes: EditorApiModifierVolumes;
   private readonly procedural: EditorApiProcedural;
+  private readonly entityHandles: EditorApiEntityHandles;
 
   /**
    * Creates every tool group over the editor host.
@@ -82,6 +85,7 @@ export class EditorApiToolGroups {
     this.sprinkle = new EditorApiSprinkle(host);
     this.modifierVolumes = new EditorApiModifierVolumes(host);
     this.procedural = new EditorApiProcedural(host);
+    this.entityHandles = new EditorApiEntityHandles(host, (view) => editorApiVisibleViewportFind(host, view));
   }
 
   /**
@@ -113,7 +117,8 @@ export class EditorApiToolGroups {
       this.textureBrowser.textureBrowserToolDispatch(name) ??
       this.sprinkle.sprinkleToolDispatch(name, args) ??
       this.modifierVolumes.modifierVolumeToolDispatch(name, args) ??
-      this.procedural.proceduralToolDispatch(name, args)
+      this.procedural.proceduralToolDispatch(name, args) ??
+      this.entityHandles.entityHandlesToolDispatch(name, args)
     );
   }
 }

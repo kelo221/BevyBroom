@@ -40,6 +40,19 @@ export class ProceduralHandleSpan extends EntityHandle<ProceduralSettings> {
   }
 
   /**
+   * Returns the direction across the line, in world space, as the ball's only
+   * arrow.
+   *
+   * @param view Owner and camera.
+   * @param settings Current valid settings.
+   * @returns One unit world direction.
+   */
+  override axesFor(view: EntityHandleView, settings: ProceduralSettings): readonly THREE.Vector3[] {
+    view.owner.updateWorldMatrix(true, false);
+    return [this.acrossOf(settings).transformDirection(view.owner.matrixWorld)];
+  }
+
+  /**
    * Returns the plane through the ball that faces the camera.
    *
    * @param view Owner and camera of the dragging pane.

@@ -6,7 +6,7 @@ import { EntityHandleOverlay } from '@/entity/handles/entity_handle_overlay.js';
 import {
   type EntityHandlePane,
   type EntityHandlePointer,
-  entityHandlePickAt,
+  entityHandleGrabAt,
   entityHandleRayAt,
 } from '@/entity/handles/entity_handle_picker.js';
 import { entityHandleTargetsOf } from '@/entity/handles/entity_handle_targets.js';
@@ -88,7 +88,7 @@ export class EntityHandleSystem {
    * @returns True when a press there would grab a handle.
    */
   probe(pointer: EntityHandlePointer): boolean {
-    return entityHandlePickAt(this.overlay.targets(), pointer) !== null;
+    return entityHandleGrabAt(this.overlay.targets(), pointer) !== null;
   }
 
   /**
@@ -110,8 +110,8 @@ export class EntityHandleSystem {
    * @returns True when a handle was grabbed.
    */
   dragBegin(pointer: EntityHandlePointer, ownerWindow: Window, onEnded: () => void): boolean {
-    const target = entityHandlePickAt(this.overlay.targets(), pointer);
-    if (!target || !this.session.begin(target, pointer.camera, entityHandleRayAt(pointer))) {
+    const grab = entityHandleGrabAt(this.overlay.targets(), pointer);
+    if (!grab || !this.session.begin(grab.target, pointer.camera, entityHandleRayAt(pointer), grab.axis)) {
       return false;
     }
     const onKeyDown = (event: KeyboardEvent): void => this.dragKeyDown(event);

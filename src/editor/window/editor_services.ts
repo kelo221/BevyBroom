@@ -305,6 +305,22 @@ export interface EditorServices {
   ): boolean;
 
   /**
+   * Begins dragging the entity handle ball or arrow under a client point, such
+   * as a light radius or a procedural face handle, whatever tool or gizmo is
+   * active.
+   *
+   * @param clientX Pointer client X.
+   * @param clientY Pointer client Y.
+   * @param modifiers Modifier keys; multi-select presses never grab a handle.
+   * @returns True when a handle drag started.
+   */
+  tryBeginEntityHandleDragFromEditorPointer?(
+    clientX: number,
+    clientY: number,
+    modifiers: { shiftKey: boolean; ctrlKey: boolean; altKey: boolean; metaKey: boolean },
+  ): boolean;
+
+  /**
    * Probes whether a permanent gizmo or bounds control is under the pointer
    * without starting a drag.
    *

@@ -2,7 +2,12 @@ import * as THREE from 'three';
 import type { GameEntityField } from '@/game_entity/class/game_entity_class_schema.js';
 import type { ProceduralPart } from '@/procedural/build/procedural_part.js';
 import { ProceduralPartBox } from '@/procedural/build/procedural_part_box.js';
-import { ProceduralGenerator, type ProceduralMaterialSlot } from '@/procedural/generator/procedural_generator.js';
+import {
+  ProceduralGenerator,
+  proceduralHandleBoxFacesOf,
+  type ProceduralHandleFaceDefinition,
+  type ProceduralMaterialSlot,
+} from '@/procedural/generator/procedural_generator.js';
 import { ProceduralParametersRead } from '@/procedural/generator/procedural_parameters_read.js';
 import type { ProceduralParameters } from '@/procedural/model/procedural_settings.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
@@ -27,6 +32,13 @@ const PROCEDURAL_GENERATOR_BOX_FIELDS: readonly GameEntityField[] = [
   { path: PROCEDURAL_GENERATOR_BOX_CORNER_A, label: 'Corner A', kind: 'vector3', default: [-0.5, 0, -0.5] },
   { path: PROCEDURAL_GENERATOR_BOX_CORNER_B, label: 'Corner B', kind: 'vector3', default: [0.5, 1, 0.5] },
 ];
+
+/** Face handles of the box: both sides of each axis. */
+const PROCEDURAL_GENERATOR_BOX_FACES: readonly ProceduralHandleFaceDefinition[] = proceduralHandleBoxFacesOf(
+  PROCEDURAL_GENERATOR_BOX_CORNER_A,
+  PROCEDURAL_GENERATOR_BOX_CORNER_B,
+  PROCEDURAL_GENERATOR_BOX_MIN_SIZE,
+);
 
 /** Material slots of the box. */
 const PROCEDURAL_GENERATOR_BOX_SLOTS: readonly ProceduralMaterialSlot[] = [
@@ -62,12 +74,12 @@ export class ProceduralGeneratorBox extends ProceduralGenerator {
   }
 
   /**
-   * Shows both corners as handles.
+   * Shows each of the six faces as a handle that moves only that face.
    *
-   * @returns Corner field paths.
+   * @returns Face handle definitions.
    */
-  override handlePointPaths(): readonly string[] {
-    return [PROCEDURAL_GENERATOR_BOX_CORNER_A, PROCEDURAL_GENERATOR_BOX_CORNER_B];
+  override handleFaces(): readonly ProceduralHandleFaceDefinition[] {
+    return PROCEDURAL_GENERATOR_BOX_FACES;
   }
 
   /**

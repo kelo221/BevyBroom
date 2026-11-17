@@ -538,7 +538,31 @@ export class EditorInputBridge {
       this.resolveEventDocument(event),
       this.resolveModifierFlagsFromEvent(event),
     );
+    if (this.entityHandleDragBeginFromPress(event)) {
+      return;
+    }
     this.editor.onMouseDown(event.button);
+  }
+
+  /**
+   * Starts dragging the entity handle under a primary press when no tool is
+   * busy, so handles work with every tool and gizmo mode.
+   *
+   * @param event Pointer press.
+   * @returns True when a handle drag started and the press is used up.
+   */
+  private entityHandleDragBeginFromPress(event: PointerEvent): boolean {
+    if (event.button !== 0 || this.editor.getActiveEventReceiver().isBusy()) {
+      return false;
+    }
+    const services = this.editor.getServices();
+    const modifiers = {
+      shiftKey: event.shiftKey,
+      ctrlKey: event.ctrlKey,
+      altKey: event.altKey,
+      metaKey: event.metaKey,
+    };
+    return services?.tryBeginEntityHandleDragFromEditorPointer?.(event.clientX, event.clientY, modifiers) === true;
   }
 
   /**

@@ -32,16 +32,15 @@ function boxParameters(
 
 /** The two-corner box proves the generator framework. */
 describe('ProceduralGeneratorBox', () => {
-  it('defaults to a box with a volume and offers both corners as handles', () => {
+  it('defaults to a box with a volume and offers its six faces as handles instead of corner points', () => {
     const parameters = generator.parametersCreateDefault();
     const cornerA = ProceduralParametersRead.vector3(parameters, PROCEDURAL_GENERATOR_BOX_CORNER_A);
     const cornerB = ProceduralParametersRead.vector3(parameters, PROCEDURAL_GENERATOR_BOX_CORNER_B);
     const size = cornerB.clone().sub(cornerA);
     expect(Math.min(Math.abs(size.x), Math.abs(size.y), Math.abs(size.z))).toBeGreaterThan(0);
-    expect(generator.handlePointPaths()).toEqual([
-      PROCEDURAL_GENERATOR_BOX_CORNER_A,
-      PROCEDURAL_GENERATOR_BOX_CORNER_B,
-    ]);
+    expect(generator.handlePointPaths()).toEqual([]);
+    const faces = generator.handleFaces().map((face) => `${face.side}_${face.axis}`);
+    expect(new Set(faces)).toEqual(new Set(['min_x', 'max_x', 'min_y', 'max_y', 'min_z', 'max_z']));
   });
 
   it('builds one convex part spanning the corners in either order', () => {
