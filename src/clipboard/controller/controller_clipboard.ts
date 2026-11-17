@@ -182,7 +182,7 @@ export class ControllerClipboard {
    *
    * @returns Selected roots.
    */
-  private selectionRootsRead(): THREE.Object3D[] {
+  selectionRootsRead(): THREE.Object3D[] {
     const selection = this.host.selectionManager;
     const inspectorObjects = selection.getInspectorObjects();
     const objects = inspectorObjects.length > 0 ? inspectorObjects : [...selection.getSelectedObjects()];
