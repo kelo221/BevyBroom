@@ -20,7 +20,13 @@ describe('EntityBrowserSettingsStore', () => {
     const storage = new MemorySettingsStorage();
     const first = new EntityBrowserSettingsStore(storage);
     expect(first.optionsRead()).toEqual(ENTITY_BROWSER_VIEW_OPTIONS_DEFAULT);
-    const changed = { sortMode: 'name', groupByCategory: false, usedOnly: true, searchText: 'door' } as const;
+    const changed = {
+      sortMode: 'name',
+      groupByCategory: false,
+      usedOnly: true,
+      searchText: 'door',
+      viewMode: 'single_3d',
+    } as const;
     first.optionsUpdate(changed);
     expect(new EntityBrowserSettingsStore(storage).optionsRead()).toEqual(changed);
   });
@@ -29,10 +35,11 @@ describe('EntityBrowserSettingsStore', () => {
     const storage = new MemorySettingsStorage();
     storage.setItem(
       ENTITY_BROWSER_SETTINGS_STORAGE_KEY,
-      JSON.stringify({ sortMode: 'size', usedOnly: true, searchText: 3 }),
+      JSON.stringify({ sortMode: 'size', usedOnly: true, searchText: 3, viewMode: 'wireframe' }),
     );
     const options = new EntityBrowserSettingsStore(storage).optionsRead();
     expect(options.sortMode).toBe(ENTITY_BROWSER_VIEW_OPTIONS_DEFAULT.sortMode);
+    expect(options.viewMode).toBe(ENTITY_BROWSER_VIEW_OPTIONS_DEFAULT.viewMode);
     expect(options.usedOnly).toBe(true);
     expect(options.searchText).toBe(ENTITY_BROWSER_VIEW_OPTIONS_DEFAULT.searchText);
     storage.setItem(ENTITY_BROWSER_SETTINGS_STORAGE_KEY, '{not json');

@@ -1,6 +1,16 @@
 /** Order of the tiles: by name, or by category then name. */
 export type EntityBrowserSortMode = 'name' | 'category';
 
+/**
+ * How the browser shows its kinds: icon tiles, tiles showing each kind's meshes
+ * rendered in 3D, or one large orbitable 3D tile of the selected kind above the
+ * tile grid.
+ */
+export type EntityBrowserViewMode = 'icons' | 'tiles_3d' | 'single_3d';
+
+/** Every view mode in menu order. */
+export const ENTITY_BROWSER_VIEW_MODES: readonly EntityBrowserViewMode[] = ['icons', 'tiles_3d', 'single_3d'];
+
 /** Display choices of the entity browser. */
 export interface EntityBrowserViewOptions {
   /** Tile order. */
@@ -11,6 +21,8 @@ export interface EntityBrowserViewOptions {
   readonly usedOnly: boolean;
   /** Case-insensitive name filter; empty shows every tile. */
   readonly searchText: string;
+  /** How the kinds are shown. */
+  readonly viewMode: EntityBrowserViewMode;
 }
 
 /** Display choices of a browser that was never configured. */
@@ -19,6 +31,7 @@ export const ENTITY_BROWSER_VIEW_OPTIONS_DEFAULT: EntityBrowserViewOptions = Obj
   groupByCategory: true,
   usedOnly: false,
   searchText: '',
+  viewMode: 'tiles_3d',
 });
 
 /**
@@ -37,7 +50,29 @@ export function entityBrowserViewOptionsSanitize(value: unknown): EntityBrowserV
     groupByCategory: entityBrowserViewOptionsBoolean(record['groupByCategory'], defaults.groupByCategory),
     usedOnly: entityBrowserViewOptionsBoolean(record['usedOnly'], defaults.usedOnly),
     searchText: typeof record['searchText'] === 'string' ? record['searchText'] : defaults.searchText,
+    viewMode: entityBrowserViewModeSanitize(record['viewMode'], defaults.viewMode),
   };
+}
+
+/**
+ * Returns a stored view mode, or a fallback when the value is not a known mode.
+ *
+ * @param value Stored value.
+ * @param fallback Mode used when the stored one is invalid.
+ * @returns View mode.
+ */
+export function entityBrowserViewModeSanitize(value: unknown, fallback: EntityBrowserViewMode): EntityBrowserViewMode {
+  return ENTITY_BROWSER_VIEW_MODES.find((viewMode) => viewMode === value) ?? fallback;
+}
+
+/**
+ * Returns whether a view mode draws kinds with their 3D meshes.
+ *
+ * @param viewMode View mode.
+ * @returns True for the 3D tile and single 3D tile modes.
+ */
+export function entityBrowserViewModeIs3d(viewMode: EntityBrowserViewMode): boolean {
+  return viewMode !== 'icons';
 }
 
 /**

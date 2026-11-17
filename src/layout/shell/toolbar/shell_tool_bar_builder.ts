@@ -9,6 +9,10 @@ import { getStateSelectionFilter } from '@/selection/filter/state_selection_filt
 import { TOOLBAR_OVERFLOW_PRIORITY_TRAILING } from '@/ui/toolbar/overflow/toolbar_overflow_item.js';
 import type { ToolbarOverflowController } from '@/ui/toolbar/overflow/toolbar_overflow_controller.js';
 import type { ToolbarOverflowMeasure } from '@/ui/toolbar/overflow/toolbar_overflow_measure.js';
+import {
+  ShellToolBarBrowserGroup,
+  type ShellToolBarBrowserDocks,
+} from '@/layout/shell/toolbar/shell_tool_bar_browser_group.js';
 
 /** CSS class of the toolbar slot that receives the active tool options. */
 export const SHELL_TOOL_BAR_TOOL_OPTIONS_SLOT_CLASS = 'shell-toolbar-tool-options-slot';
@@ -28,9 +32,9 @@ export interface ShellToolBarParts {
 
 /**
  * Fills the single main toolbar row: history, object edits, snapping and the
- * grid size, gizmo axes and texture locks, then the active tool options, the
- * overflow menu, and on the right the layout chooser and the MCP server
- * status.
+ * grid size, gizmo axes, texture locks and the browser windows, then the active
+ * tool options, the overflow menu, and on the right the layout chooser and the
+ * MCP server status.
  */
 export class ShellToolBarBuilder {
   /**
@@ -39,6 +43,8 @@ export class ShellToolBarBuilder {
    * @param toolbar Main toolbar.
    * @param actions Scene toolbar actions.
    * @param windowActions Window actions for the grid size.
+   * @param browserDocks Dock commands of the browser window buttons; the
+   *   buttons are left out when omitted.
    * @param overflowMeasure Optional width check of the row for the overflow
    *   menu.
    * @returns Slots for the tool options and the layout chooser, and the
@@ -48,9 +54,14 @@ export class ShellToolBarBuilder {
     toolbar: Toolbar,
     actions: EditorToolbarActions,
     windowActions: ShellWindowActions,
+    browserDocks?: ShellToolBarBrowserDocks,
     overflowMeasure?: ToolbarOverflowMeasure,
   ): ShellToolBarParts {
     this.globalActionsAdd(toolbar, actions, windowActions);
+    if (browserDocks) {
+      toolbar.addSeparator();
+      ShellToolBarBrowserGroup.add(toolbar, browserDocks, windowActions);
+    }
     toolbar.addSeparator();
     const toolOptionsSlot = toolbar.addSlot(SHELL_TOOL_BAR_TOOL_OPTIONS_SLOT_CLASS);
     const overflow = toolbar.addOverflowMenu(overflowMeasure);

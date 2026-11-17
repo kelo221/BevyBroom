@@ -37,8 +37,6 @@ export class ShellMenuTools extends ShellMenu {
         isChecked: () => actions.isStretchLockEnabled(),
       }),
       this.gizmoAxesSubmenuBuild(context),
-      this.separatorEntry(),
-      this.actionEntry(context, 'Solid Model…', () => actions.onToggleSolidModelPanel()),
     ];
   }
 

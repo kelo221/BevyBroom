@@ -5,7 +5,17 @@ import { EntityBrowserSettingsStore } from '@/entity_browser/state/entity_browse
 import { EntityBrowser, type EntityBrowserHost } from '@/entity_browser/ui/entity_browser.js';
 import { ENTITY_BROWSER_TILE_ID_ATTRIBUTE } from '@/entity_browser/ui/entity_browser_tile.js';
 import { MemorySettingsStorage } from '@/settings/storage/settings_storage.js';
-import { entityBrowserTestEditorCreate, type EntityBrowserTestEditor } from '../entity_browser_test_support.js';
+import type { EntityBrowserPreviewRendererFactory } from '@/entity_browser/preview/entity_browser_preview_renderer.js';
+import { ENTITY_BROWSER_THUMBNAIL_IMAGE_ATTRIBUTE } from '@/entity_browser/ui/entity_browser_thumbnail.js';
+import {
+  ENTITY_BROWSER_PREVIEW_PANE_MESSAGE_NO_PREVIEW,
+  ENTITY_BROWSER_PREVIEW_PANE_MESSAGE_UNAVAILABLE,
+} from '@/entity_browser/ui/entity_browser_preview_pane.js';
+import {
+  entityBrowserTestEditorCreate,
+  entityBrowserTestPreviewRendererCreate,
+  type EntityBrowserTestEditor,
+} from '../entity_browser_test_support.js';
 
 /** A mounted browser over a test editor, with its drop spy. */
 interface MountedBrowser {
@@ -22,9 +32,14 @@ const mountedBrowsers: EntityBrowser[] = [];
  * Mounts a browser over a fresh test editor.
  *
  * @param storage Settings storage shared between browsers.
+ * @param previewRendererFactory Creates the 3D preview renderer; none draws in
+ *   3D when omitted.
  * @returns Mounted browser.
  */
-function browserMount(storage: MemorySettingsStorage = new MemorySettingsStorage()): MountedBrowser {
+function browserMount(
+  storage: MemorySettingsStorage = new MemorySettingsStorage(),
+  previewRendererFactory: EntityBrowserPreviewRendererFactory = () => null,
+): MountedBrowser {
   const editor = entityBrowserTestEditorCreate();
   const entityPlace = vi.fn<EntityBrowserHost['entityPlace']>();
   const browser = new EntityBrowser({
@@ -33,6 +48,7 @@ function browserMount(storage: MemorySettingsStorage = new MemorySettingsStorage
     entityPlace,
     settingsStore: new EntityBrowserSettingsStore(storage),
     ownerDocument: document,
+    previewRendererFactory,
   });
   document.body.appendChild(browser.getElement());
   mountedBrowsers.push(browser);
@@ -74,6 +90,43 @@ function controlButton(browser: EntityBrowser, label: string): HTMLButtonElement
   const button = buttons.find((candidate) => candidate.textContent === label);
   if (!button) throw new Error(`missing ${label} button`);
   return button;
+}
+
+/**
+ * Returns the controls dropdown offering a value.
+ *
+ * @param browser Browser.
+ * @param optionValue Value one of its options carries.
+ * @returns Select element.
+ */
+function controlSelect(browser: EntityBrowser, optionValue: string): HTMLSelectElement {
+  const selects = [...browser.getElement().querySelectorAll('select')];
+  const select = selects.find((candidate) => [...candidate.options].some((option) => option.value === optionValue));
+  if (!select) throw new Error(`missing dropdown offering ${optionValue}`);
+  return select;
+}
+
+/**
+ * Picks a value in a dropdown the way a user does.
+ *
+ * @param select Select element.
+ * @param value Value to pick.
+ */
+function selectPick(select: HTMLSelectElement, value: string): void {
+  select.value = value;
+  select.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+/**
+ * Gives an element a layout size, which the test document does not compute.
+ *
+ * @param element Element.
+ * @param widthPx Width in CSS pixels.
+ * @param heightPx Height in CSS pixels.
+ */
+function elementSizeSet(element: HTMLElement, widthPx: number, heightPx: number): void {
+  Object.defineProperty(element, 'clientWidth', { configurable: true, value: widthPx });
+  Object.defineProperty(element, 'clientHeight', { configurable: true, value: heightPx });
 }
 
 /**
@@ -164,11 +217,8 @@ describe('EntityBrowser', () => {
 
   it('sorts by name when chosen in the sort dropdown', () => {
     const { browser } = browserMount();
-    const select = browser.getElement().querySelector('select');
-    if (!select) throw new Error('missing sort dropdown');
     browser.optionsUpdate({ groupByCategory: false });
-    select.value = 'name';
-    select.dispatchEvent(new Event('change', { bubbles: true }));
+    selectPick(controlSelect(browser, 'name'), 'name');
     const labels = browser.shownEntriesList().map((entry) => entry.label.toLowerCase());
     expect(labels).toEqual([...labels].sort((first, second) => first.localeCompare(second)));
   });
@@ -213,5 +263,67 @@ describe('EntityBrowser', () => {
     pointerDispatch(tile, 'pointerdown', 10, 10);
     pointerDispatch(document.body, 'pointerup', 11, 10);
     expect(entityPlace).not.toHaveBeenCalled();
+  });
+
+  it("shows each kind's rendered 3D meshes on its tile in the 3D Tiles view and icons in the Icons view", () => {
+    const renderer = entityBrowserTestPreviewRendererCreate();
+    const { browser } = browserMount(undefined, () => renderer);
+    const imageSelector = `[${ENTITY_BROWSER_THUMBNAIL_IMAGE_ATTRIBUTE}]`;
+    selectPick(controlSelect(browser, 'tiles_3d'), 'tiles_3d');
+    for (const entryId of ['geometry.box', 'lights.point', 'portals.room', 'game_entity.empty']) {
+      expect(tileFind(browser, entryId).querySelector(imageSelector)).not.toBeNull();
+    }
+    expect(tileFind(browser, 'terrain.terrain').querySelector(imageSelector)).toBeNull();
+    selectPick(controlSelect(browser, 'icons'), 'icons');
+    expect(browser.getElement().querySelector(imageSelector)).toBeNull();
+    const imagesDrawn = renderer.renderToImageUrl.mock.calls.length;
+    selectPick(controlSelect(browser, 'tiles_3d'), 'tiles_3d');
+    expect(renderer.renderToImageUrl.mock.calls.length).toBe(imagesDrawn);
+  });
+
+  it('shows one large orbitable 3D tile of the selected kind above the grid in the 1 Tile 3D view', () => {
+    const renderer = entityBrowserTestPreviewRendererCreate();
+    const { browser } = browserMount(undefined, () => renderer);
+    const pane = browser.previewPaneRead();
+    elementSizeSet(pane.element, 320, 200);
+    selectPick(controlSelect(browser, 'single_3d'), 'single_3d');
+    expect(pane.element.isConnected).toBe(true);
+    expect(pane.element.nextElementSibling?.getAttribute('role')).toBe('listbox');
+    expect(pane.element.contains(renderer.canvas)).toBe(true);
+    expect(pane.entryRead()?.id).toBe(browser.shownEntriesList()[0]?.id);
+    tileFind(browser, 'lights.spot').click();
+    expect(pane.entryRead()?.id).toBe('lights.spot');
+    expect(pane.element.textContent).toContain('Spot Light');
+    expect(renderer.renderToCanvas).toHaveBeenLastCalledWith(expect.anything(), expect.anything(), 320, 200);
+    const yawBefore = pane.orbit.yaw;
+    const drawsBefore = renderer.renderToCanvas.mock.calls.length;
+    pane.element.dispatchEvent(new PointerEvent('pointerdown', { clientX: 10, clientY: 10, button: 0, pointerId: 7 }));
+    pane.element.dispatchEvent(new PointerEvent('pointermove', { clientX: 60, clientY: 10, pointerId: 7 }));
+    expect(pane.orbit.yaw).not.toBe(yawBefore);
+    expect(renderer.renderToCanvas.mock.calls.length).toBeGreaterThan(drawsBefore);
+    selectPick(controlSelect(browser, 'icons'), 'icons');
+    expect(pane.element.isConnected).toBe(false);
+  });
+
+  it('says so in the 1 Tile 3D view when a kind has no meshes or 3D drawing is unavailable', () => {
+    const renderer = entityBrowserTestPreviewRendererCreate();
+    const drawing = browserMount(undefined, () => renderer).browser;
+    elementSizeSet(drawing.previewPaneRead().element, 320, 200);
+    drawing.optionsUpdate({ viewMode: 'single_3d' });
+    drawing.selectedEntrySet('terrain.terrain');
+    expect(drawing.previewPaneRead().messageRead()).toBe(ENTITY_BROWSER_PREVIEW_PANE_MESSAGE_NO_PREVIEW);
+    drawing.selectedEntrySet('geometry.box');
+    expect(drawing.previewPaneRead().messageRead()).toBe('');
+    const without3d = browserMount().browser;
+    without3d.optionsUpdate({ viewMode: 'single_3d' });
+    expect(without3d.previewPaneRead().messageRead()).toBe(ENTITY_BROWSER_PREVIEW_PANE_MESSAGE_UNAVAILABLE);
+  });
+
+  it('frees the 3D renderer when disposed', () => {
+    const renderer = entityBrowserTestPreviewRendererCreate();
+    const { browser } = browserMount(undefined, () => renderer);
+    browser.optionsUpdate({ viewMode: 'tiles_3d' });
+    browser.dispose();
+    expect(renderer.dispose).toHaveBeenCalledTimes(1);
   });
 });

@@ -207,7 +207,12 @@ export class BuilderEditorShell {
     const skeleton = this.skeletonCreate(editorContainer);
     const menus = this.menusCreate(skeleton, bundles);
     const toolbar = new Toolbar(skeleton.frame.toolbarHostRead());
-    const toolbarParts = new ShellToolBarBuilder().build(toolbar, bundles.toolbarActions, bundles.windowActions);
+    const toolbarParts = new ShellToolBarBuilder().build(
+      toolbar,
+      bundles.toolbarActions,
+      bundles.windowActions,
+      skeleton.dockCommands,
+    );
     const railParent = skeleton.frame.toolsPaletteHostRead();
     const viewportShell = this.createViewportShell(skeleton.frame.viewColumnRead());
     return {

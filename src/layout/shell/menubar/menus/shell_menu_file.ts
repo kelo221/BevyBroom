@@ -48,9 +48,6 @@ export class ShellMenuFile extends ShellMenu {
       }),
       this.recentProjectsSubmenuBuild(context),
       ...this.projectLevelEntriesBuild(context),
-      this.actionEntry(context, 'Build Level', () => void workbenchRead().levelBuild(), {
-        isEnabled: () => workbenchRead().statusRead()?.project != null,
-      }),
     ];
   }
 
@@ -65,9 +62,6 @@ export class ShellMenuFile extends ShellMenu {
     const isProjectOpen = (): boolean =>
       context.toolbarActions.gameProjectWorkbenchRead().statusRead()?.project != null;
     return [
-      this.actionEntry(context, 'Level Browser…', () => levelActionsRead().levelBrowserReveal(false), {
-        isChecked: () => context.dockCommands.isFloatingWindowOpen('level_browser'),
-      }),
       this.actionEntry(context, 'Save Level to Project', () => void levelActionsRead().levelSave(true), {
         isEnabled: () => levelActionsRead().serviceRead().openLevelRead() !== null,
       }),

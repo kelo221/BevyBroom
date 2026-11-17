@@ -20,6 +20,7 @@ function makeEntry(id: string, label: string): EntityBrowserCatalogEntry {
     iconColor: null,
     tooltip: label,
     objectMatches: null,
+    previewCreate: null,
     activate: vi.fn(),
   };
 }

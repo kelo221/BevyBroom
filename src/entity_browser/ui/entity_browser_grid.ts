@@ -22,6 +22,19 @@ export interface EntityBrowserGridHost {
    * @param event Pointer press.
    */
   entryPress(entry: EntityBrowserCatalogEntry, event: PointerEvent): void;
+  /**
+   * Returns the rendered 3D image a tile shows instead of its icon.
+   *
+   * @param entry Catalog entry.
+   * @returns Image data URL, or null to show the icon.
+   */
+  imageUrlResolve(entry: EntityBrowserCatalogEntry): string | null;
+  /**
+   * Reports that the selected tile changed.
+   *
+   * @param entry Selected catalog entry, or null when none is selected.
+   */
+  selectionChanged(entry: EntityBrowserCatalogEntry | null): void;
 }
 
 /**
@@ -67,6 +80,7 @@ export class EntityBrowserGrid {
       this.selectedEntryId = null;
     }
     this.tiles.get(this.selectedEntryId ?? '')?.selectedSet(true);
+    this.host.selectionChanged(this.selectedEntryRead());
   }
 
   /**
@@ -87,6 +101,7 @@ export class EntityBrowserGrid {
     this.tiles.get(this.selectedEntryId ?? '')?.selectedSet(false);
     this.selectedEntryId = entryId !== null && this.tiles.has(entryId) ? entryId : null;
     this.tiles.get(this.selectedEntryId ?? '')?.selectedSet(true);
+    this.host.selectionChanged(this.selectedEntryRead());
   }
 
   /**
@@ -125,7 +140,8 @@ export class EntityBrowserGrid {
     const grid = ownerDocument.createElement('div');
     entityBrowserStyleGroupGrid(grid);
     for (const entry of group.entries) {
-      const tile = new EntityBrowserTile(ownerDocument, entry, usageCounts.get(entry.id) ?? 0);
+      const usageCount = usageCounts.get(entry.id) ?? 0;
+      const tile = new EntityBrowserTile(ownerDocument, entry, usageCount, this.host.imageUrlResolve(entry));
       this.tiles.set(entry.id, tile);
       grid.appendChild(tile.element);
     }

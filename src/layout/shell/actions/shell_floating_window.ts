@@ -14,4 +14,19 @@ export interface ShellFloatingWindow {
    * @returns True while shown.
    */
   isOpen(): boolean;
+  /**
+   * Registers a callback run whenever the window opens or closes.
+   *
+   * @param listener Receives whether the window is open now.
+   * @returns Function that removes the callback.
+   */
+  openChangeListenerAdd?(listener: (isOpen: boolean) => void): () => void;
 }
+
+/**
+ * Receives that a registered floating window opened or closed.
+ *
+ * @param windowId Floating window id.
+ * @param isOpen Whether the window is open now.
+ */
+export type ShellFloatingWindowOpenChangeListener = (windowId: ShellFloatingWindowId, isOpen: boolean) => void;

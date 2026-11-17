@@ -97,6 +97,13 @@ const CSG_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, string]
   ['csg_convex_merge', 'Convex Merge'],
 ];
 
+/** Shortcuts of the Window menu that open the browser windows. */
+const BROWSER_WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, string]> = [
+  ['window_texture_browser', 'Texture Browser'],
+  ['window_entity_browser', 'Entity Browser'],
+  ['window_level_browser', 'Level Browser'],
+];
+
 /**
  * Fixed keyboard reminders for the clipboard, face editing and 3D fly
  * navigation. Modifier placeholders are filled with the names of the current
@@ -161,6 +168,7 @@ export class SettingsKeyboardTab {
       this.buildCategory('Clip Plane Tool', CLIP_SHORTCUT_ROWS, settings),
       this.buildCategory('Sprinkle Tool', SPRINKLE_SHORTCUT_ROWS, settings),
       this.buildCategory('Window and Views', WINDOW_SHORTCUT_ROWS, settings),
+      this.buildCategory('Browsers', BROWSER_WINDOW_SHORTCUT_ROWS, settings),
       this.buildCategory('Brush Operations', CSG_SHORTCUT_ROWS, settings),
       this.buildReminderCategory(),
     );

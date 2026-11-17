@@ -22,8 +22,9 @@ export class EntityBrowserTile {
    * @param ownerDocument Document that owns the tile.
    * @param entry Catalog entry the tile shows.
    * @param usageCount Number of objects of this kind in the map.
+   * @param imageUrl Rendered 3D image of the entry, or null to show its icon.
    */
-  constructor(ownerDocument: Document, entry: EntityBrowserCatalogEntry, usageCount: number) {
+  constructor(ownerDocument: Document, entry: EntityBrowserCatalogEntry, usageCount: number, imageUrl: string | null) {
     this.entry = entry;
     this.element = ownerDocument.createElement('div');
     this.element.setAttribute(ENTITY_BROWSER_TILE_ID_ATTRIBUTE, entry.id);
@@ -31,7 +32,7 @@ export class EntityBrowserTile {
     entityBrowserStyleTile(this.element);
     this.usageBadge = ownerDocument.createElement('span');
     entityBrowserStyleUsageBadge(this.usageBadge);
-    this.element.append(entityBrowserThumbnailCreate(ownerDocument, entry), this.labelCreate(ownerDocument));
+    this.element.append(entityBrowserThumbnailCreate(ownerDocument, entry, imageUrl), this.labelCreate(ownerDocument));
     this.element.appendChild(this.usageBadge);
     this.usageCountSet(usageCount);
     this.selectedSet(false);

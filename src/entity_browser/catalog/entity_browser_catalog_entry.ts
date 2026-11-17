@@ -1,4 +1,4 @@
-import type { AddMenuCatalogObjectMatcher } from '@/layout/setup/add_menu_catalog.js';
+import type { AddMenuCatalogObjectMatcher, AddMenuCatalogPreviewFactory } from '@/layout/setup/add_menu_catalog.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 
 /** One placeable kind the entity browser lists as a tile. */
@@ -21,6 +21,8 @@ export interface EntityBrowserCatalogEntry {
   readonly tooltip: string;
   /** Recognizes scene objects of this kind, or null when usage is unknown. */
   readonly objectMatches: AddMenuCatalogObjectMatcher | null;
+  /** Builds the standalone 3D preview of the kind, or null when it has none. */
+  readonly previewCreate: AddMenuCatalogPreviewFactory | null;
   /** Adds the kind the way its Add menu entry does. */
   readonly activate: () => void;
 }

@@ -24,10 +24,6 @@ export class ShellMenuHelp extends ShellMenu {
       }),
       this.separatorEntry(),
       this.actionEntry(context, 'MCP Server…', () => actions.onOpenMcpDialog()),
-      this.actionEntry(context, 'AI Captures (Debug)…', () => actions.onToggleAiCaptureDebugPanel()),
-      this.actionEntry(context, 'Editor Sounds', () => actions.onToggleAudio(), {
-        isChecked: () => actions.isAudioEnabled(),
-      }),
     ];
   }
 

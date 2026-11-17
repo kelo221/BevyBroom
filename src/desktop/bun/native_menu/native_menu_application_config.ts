@@ -93,18 +93,38 @@ function nativeMenuApplicationAppMenuConfig(
   };
 }
 
+/** Name of the page menu that receives the standard macOS window rows. */
+export const NATIVE_MENU_APPLICATION_WINDOW_LABEL = 'Window';
+
 /**
- * Builds the standard macOS Window menu.
+ * Returns the standard macOS rows that size and arrange the window.
  *
+ * @returns Minimize, Zoom and Full Screen rows.
+ */
+function nativeMenuApplicationWindowRoleItems(): NativeMenuApplicationConfigItem[] {
+  return [
+    { role: 'minimize', accelerator: 'command+m' },
+    { role: 'zoom' },
+    { role: 'toggleFullScreen', accelerator: 'command+control+f' },
+  ];
+}
+
+/**
+ * Builds the macOS Window menu: the standard window rows, then the page's own
+ * Window rows when it has any, then Bring All to Front.
+ *
+ * @param pageItems Rows of the page's Window menu; empty when it has none.
  * @returns Window menu item.
  */
-function nativeMenuApplicationWindowMenuConfig(): NativeMenuApplicationConfigItem {
+function nativeMenuApplicationWindowMenuConfig(
+  pageItems: readonly NativeMenuApplicationConfigItem[],
+): NativeMenuApplicationConfigItem {
+  const pageSection = pageItems.length > 0 ? [{ type: 'divider' } as const, ...pageItems] : [];
   return {
-    label: 'Window',
+    label: NATIVE_MENU_APPLICATION_WINDOW_LABEL,
     submenu: [
-      { role: 'minimize', accelerator: 'command+m' },
-      { role: 'zoom' },
-      { role: 'toggleFullScreen', accelerator: 'command+control+f' },
+      ...nativeMenuApplicationWindowRoleItems(),
+      ...pageSection,
       { type: 'divider' },
       { role: 'bringAllToFront' },
     ],
@@ -113,7 +133,9 @@ function nativeMenuApplicationWindowMenuConfig(): NativeMenuApplicationConfigIte
 
 /**
  * Converts a page menu bar into the complete application menu: the app menu,
- * the page menus, and a Window menu placed before Help.
+ * the page menus, and one Window menu that holds the standard window rows and
+ * the page's own Window rows, placed where the page's Window menu is or else
+ * before Help.
  *
  * @param bar Page menu bar.
  * @param applicationName Name shown in the application menu.
@@ -123,11 +145,33 @@ export function nativeMenuApplicationConfigBuild(
   bar: NativeMenuBarWire,
   applicationName: string,
 ): NativeMenuApplicationConfigItem[] {
-  const pageMenus = bar.menus.map(nativeMenuApplicationMenuConfig);
-  const helpIndex = bar.menus.findIndex((menu) => menu.label === 'Help');
-  const windowInsertIndex = helpIndex < 0 ? pageMenus.length : helpIndex;
-  pageMenus.splice(windowInsertIndex, 0, nativeMenuApplicationWindowMenuConfig());
+  const pageWindowMenu = bar.menus.find((menu) => menu.label === NATIVE_MENU_APPLICATION_WINDOW_LABEL);
+  const otherMenus = bar.menus.filter((menu) => menu !== pageWindowMenu);
+  const pageMenus = otherMenus.map(nativeMenuApplicationMenuConfig);
+  const windowItems = pageWindowMenu ? pageWindowMenu.items.map(nativeMenuApplicationItemConfig) : [];
+  const insertIndex = nativeMenuApplicationWindowInsertIndex(bar.menus, pageWindowMenu);
+  pageMenus.splice(insertIndex, 0, nativeMenuApplicationWindowMenuConfig(windowItems));
   return [nativeMenuApplicationAppMenuConfig(bar, applicationName), ...pageMenus];
+}
+
+/**
+ * Returns where the Window menu goes among the page menus without the page's
+ * own Window menu: its own place when the page has one, otherwise before Help
+ * or at the end.
+ *
+ * @param menus Page menus in bar order.
+ * @param pageWindowMenu The page's Window menu, or undefined.
+ * @returns Insert index.
+ */
+function nativeMenuApplicationWindowInsertIndex(
+  menus: readonly NativeMenuWire[],
+  pageWindowMenu: NativeMenuWire | undefined,
+): number {
+  if (pageWindowMenu) {
+    return menus.indexOf(pageWindowMenu);
+  }
+  const helpIndex = menus.findIndex((menu) => menu.label === 'Help');
+  return helpIndex < 0 ? menus.length : helpIndex;
 }
 
 /**

@@ -27,7 +27,7 @@ have toolbar buttons:
 | No. | Former glyph    | Where the action lives now                                                                                               |
 | --- | --------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | 10  | UV Editor       | The face attributes on the **Material** tab of the Face Edit Sheet. See [Face attribute glyphs](#face-attribute-glyphs). |
-| 11  | Texture Browser | The floating **Texture Browser** (**View > Texture Browser**, or **Browse** in the right dock).                          |
+| 11  | Texture Browser | The floating **Texture Browser** (**Window > Texture Browser**, or **Browse** in the right dock).                        |
 | 12  | Tools           | The tools palette on the left and the tool options in the view bar above the viewports. See [Tool glyphs](#tool-glyphs). |
 | 13  | Settings        | **File > Preferences…** opens the Settings dialog for view, mouse, keyboard, game profile, and update preferences.       |
 | 14  | Documentation   | **Help > Documentation** opens the web-hosted user guide in a separate browser tab.                                      |
@@ -36,7 +36,7 @@ have toolbar buttons:
 Cube, sphere, cylinder, plane, terrain, and solid-model creation live in the
 categorized **Add** menu instead of occupying separate toolbar glyphs.
 Choose **Geometry**, **Terrain**, or **Brushes**, then select the object type;
-the editor creates and selects it. **Tools > Solid Model…** opens the Solid
+the editor creates and selects it. **Window > Solid Model…** opens the Solid
 Model panel rather than creating one.
 
 ## Viewport glyphs that moved into the corner label menu

@@ -1,4 +1,4 @@
-import { addMenuCatalogInfoRead, type AddMenuCatalogObjectMatcher } from '@/layout/setup/add_menu_catalog.js';
+import { addMenuCatalogInfoRead, type AddMenuCatalogInfo } from '@/layout/setup/add_menu_catalog.js';
 import type { AddMenuActions } from '@/layout/setup/add_menu_entries.js';
 import { AddMenuSectionRegistry } from '@/layout/setup/add_menu_section_registry.js';
 import { isMenuAction, isMenuSubmenu, type ToolbarMenuAction, type ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
@@ -61,7 +61,7 @@ export class EntityBrowserCatalogBuilder {
       return;
     }
     this.entryIds.add(id);
-    this.entries.push(this.entryCreate(action, id, categoryPath, catalogInfo?.objectMatches ?? null));
+    this.entries.push(this.entryCreate(action, id, categoryPath, catalogInfo));
   }
 
   /**
@@ -70,14 +70,15 @@ export class EntityBrowserCatalogBuilder {
    * @param action Menu action.
    * @param id Entry id.
    * @param categoryPath Labels of the submenus leading to the action.
-   * @param objectMatches Usage matcher, or null when usage is unknown.
+   * @param catalogInfo Catalog information of the action, or null when it has
+   *   none.
    * @returns Catalog entry.
    */
   private entryCreate(
     action: ToolbarMenuAction,
     id: string,
     categoryPath: readonly string[],
-    objectMatches: AddMenuCatalogObjectMatcher | null,
+    catalogInfo: AddMenuCatalogInfo | null,
   ): EntityBrowserCatalogEntry {
     const category = EntityBrowserCatalogBuilder.categoryJoin(categoryPath);
     return {
@@ -89,7 +90,8 @@ export class EntityBrowserCatalogBuilder {
       iconName: action.icon ?? null,
       iconColor: action.iconColor ?? null,
       tooltip: EntityBrowserCatalogBuilder.tooltipResolve(action),
-      objectMatches,
+      objectMatches: catalogInfo?.objectMatches ?? null,
+      previewCreate: catalogInfo?.previewCreate ?? null,
       activate: () => EntityBrowserCatalogBuilder.actionActivate(action),
     };
   }

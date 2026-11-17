@@ -222,7 +222,10 @@ export type KeyboardShortcutAction =
   | 'csg_subtract'
   | 'csg_intersect'
   | 'csg_hollow'
-  | 'csg_convex_merge';
+  | 'csg_convex_merge'
+  | 'window_texture_browser'
+  | 'window_entity_browser'
+  | 'window_level_browser';
 
 /** Keyboard code and modifier state for one configured shortcut. */
 export interface KeyboardShortcut {

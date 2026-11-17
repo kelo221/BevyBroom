@@ -181,9 +181,8 @@ describe('ShellMenuTools', () => {
     expect(row.isChecked?.()).toBe(true);
   });
 
-  it('opens the solid model panel', () => {
-    const { entries, toolbarActions } = shellMenuToolsTestRigCreate();
-    shellTestMenuActionFind(entries, 'Solid Model…').onClick();
-    expect(toolbarActions.onToggleSolidModelPanel).toHaveBeenCalledTimes(1);
+  it('leaves the Solid Model panel to the Window menu', () => {
+    const { entries } = shellMenuToolsTestRigCreate();
+    expect(shellTestMenuLabelsRead(entries)).not.toContain('Solid Model…');
   });
 });

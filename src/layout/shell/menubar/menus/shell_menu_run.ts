@@ -26,6 +26,7 @@ export class ShellMenuRun extends ShellMenu {
       this.actionEntry(context, 'Play', () => context.windowActions.playStart(), { shortcutAction: 'play_start' }),
       this.separatorEntry(),
       ...this.gameActionEntriesBuild(context),
+      this.levelBuildEntryBuild(context),
       this.separatorEntry(),
       this.actionEntry(context, 'Game Preview…', () => context.toolbarActions.onToggleGamePreviewPanel()),
     ];
@@ -44,5 +45,19 @@ export class ShellMenuRun extends ShellMenu {
         isEnabled: () => projectWorkbenchActionIsAvailable(actions.gameProjectWorkbenchRead().statusRead(), action),
       }),
     );
+  }
+
+  /**
+   * Builds the row that writes the open document as a level of the open
+   * project.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Menu action entry, enabled while a project is open.
+   */
+  private levelBuildEntryBuild(context: ShellMenuContext): ToolbarMenuEntry {
+    const workbenchRead = context.toolbarActions.gameProjectWorkbenchRead;
+    return this.actionEntry(context, 'Build Level', () => void workbenchRead().levelBuild(), {
+      isEnabled: () => workbenchRead().statusRead()?.project != null,
+    });
   }
 }

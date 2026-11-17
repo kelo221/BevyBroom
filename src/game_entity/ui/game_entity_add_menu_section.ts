@@ -64,7 +64,11 @@ function gameEntityAddMenuEmptyEntry(actions: AddMenuActions): ToolbarMenuEntry 
       onClick: () =>
         actions.onAddEntityPlaced(() => GameEntityOwner.createDefault('Game Entity'), GAME_ENTITY_PLACEMENT_RADIUS),
     },
-    { id: 'game_entity.empty', objectMatches: gameEntityAddMenuEmptyMatches },
+    {
+      id: 'game_entity.empty',
+      objectMatches: gameEntityAddMenuEmptyMatches,
+      previewCreate: () => GameEntityOwner.createDefault('Game Entity'),
+    },
   );
 }
 
@@ -114,6 +118,7 @@ function gameEntityAddMenuClassEntry(actions: AddMenuActions, gameClass: GameEnt
     {
       id: gameEntityClassIdOf(gameClass.type_path),
       objectMatches: (object) => Object.hasOwn(GameEntityComponentStore.read(object), gameClass.type_path),
+      previewCreate: () => gameEntityCreateForClass(gameClass),
     },
   );
 }

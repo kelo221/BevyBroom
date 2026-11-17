@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { vi } from 'vitest';
 import { CommandStack } from '@/commands/command_stack.js';
 import type { EntityBrowserCatalogEntry } from '@/entity_browser/catalog/entity_browser_catalog_entry.js';
+import type { EntityBrowserPreviewRenderer } from '@/entity_browser/preview/entity_browser_preview_renderer.js';
 import type { AddMenuActions } from '@/layout/setup/add_menu_entries.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { HandlerPrimitiveCreation } from '@/tools/creation/handler_primitive_creation.js';
@@ -114,6 +115,7 @@ export function entityBrowserTestEntryCreate(
     iconColor: null,
     tooltip: '',
     objectMatches: null,
+    previewCreate: null,
     activate: vi.fn(),
   };
 }
@@ -130,4 +132,32 @@ export function entityBrowserTestNewChildren(
   before: readonly THREE.Object3D[],
 ): THREE.Object3D[] {
   return world.children.filter((child) => !before.includes(child));
+}
+
+/** Preview renderer double that records what it was asked to draw. */
+export interface EntityBrowserTestPreviewRenderer extends EntityBrowserPreviewRenderer {
+  /** Calls that drew into the live canvas. */
+  readonly renderToCanvas: ReturnType<typeof vi.fn<EntityBrowserPreviewRenderer['renderToCanvas']>>;
+  /** Calls that drew a tile image. */
+  readonly renderToImageUrl: ReturnType<typeof vi.fn<EntityBrowserPreviewRenderer['renderToImageUrl']>>;
+  /** Calls that freed the renderer. */
+  readonly dispose: ReturnType<typeof vi.fn<EntityBrowserPreviewRenderer['dispose']>>;
+}
+
+/**
+ * Creates a preview renderer double whose tile images are data URLs numbered in
+ * drawing order.
+ *
+ * @returns Renderer double.
+ */
+export function entityBrowserTestPreviewRendererCreate(): EntityBrowserTestPreviewRenderer {
+  let imageCount = 0;
+  return {
+    canvas: document.createElement('canvas'),
+    renderToCanvas: vi.fn<EntityBrowserPreviewRenderer['renderToCanvas']>(),
+    renderToImageUrl: vi.fn<EntityBrowserPreviewRenderer['renderToImageUrl']>(
+      () => `data:image/png;base64,image${++imageCount}`,
+    ),
+    dispose: vi.fn<EntityBrowserPreviewRenderer['dispose']>(),
+  };
 }

@@ -2,7 +2,7 @@
 
 Texturing has two parts: choosing an image and controlling how that image is placed on the selected surfaces. Choosing happens in the floating **Texture Browser**. Placement happens in the **Face Edit Sheet**.
 
-Face Select (`Shift+Tab`) opens the Face Edit Sheet. **Textures** on the view bar reopens it if you closed it. Open the Texture Browser with **Browse** in the right dock, **Browse…** in the Face Edit Sheet, or **View > Texture Browser**. See [Understanding the interface](understanding_the_interface.md).
+Face Select (`Shift+Tab`) opens the Face Edit Sheet. **Textures** on the view bar reopens it if you closed it. Open the Texture Browser with **Browse** in the right dock, **Browse…** in the Face Edit Sheet, or **Window > Texture Browser** (`Ctrl+Shift+T`). See [Understanding the interface](understanding_the_interface.md).
 
 ## Open a texture folder
 

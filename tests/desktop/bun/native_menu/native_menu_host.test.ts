@@ -67,6 +67,24 @@ describe('NativeMenuHost', () => {
     expect(appRows.some((item) => 'role' in item && item.role === 'quit')).toBe(true);
   });
 
+  it('merges the page Window menu into the one macOS Window menu, keeping its place in the bar', () => {
+    const sources = [
+      ...new NativeMenuTestMenus().sourcesCreate(),
+      { label: 'Window', entries: [{ label: 'Entity Browser', onClick: () => undefined }] },
+      { label: 'Help', entries: [{ label: 'Documentation', onClick: () => undefined }] },
+    ];
+    const config = nativeMenuApplicationConfigBuild(NativeMenuSerializer.serialize(sources).bar, 'Broom');
+    const labels = config.map((item) => ('label' in item ? item.label : ''));
+    expect(labels).toEqual(['Broom', 'File', 'Edit', 'Window', 'Help']);
+    const windowMenu = config[3];
+    const windowRows = windowMenu && 'submenu' in windowMenu ? (windowMenu.submenu ?? []) : [];
+    const roles = windowRows.map((item) => ('role' in item ? item.role : undefined));
+    const pageRowIndex = windowRows.findIndex((item) => 'label' in item && item.label === 'Entity Browser');
+    expect(roles[0]).toBe('minimize');
+    expect(pageRowIndex).toBeGreaterThan(roles.indexOf('toggleFullScreen'));
+    expect(roles[roles.length - 1]).toBe('bringAllToFront');
+  });
+
   it('forwards clicks on page rows to the page and ignores system rows', () => {
     const menus = new NativeMenuTestMenus();
     const serialization = NativeMenuSerializer.serialize(menus.sourcesCreate());

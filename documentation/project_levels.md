@@ -32,7 +32,8 @@ and defaults to `broom/documents`.
 
 ## Level Browser
 
-Open it from **File > Level Browser…** or **View > Level Browser**. It lists the
+Open it from **Window > Level Browser**, the Level Browser button on the
+toolbar, or `Ctrl+Shift+L` (`⌘⇧L` on macOS). It lists the
 levels of the open project with their name and when they were last changed, and
 marks the level that is open.
 

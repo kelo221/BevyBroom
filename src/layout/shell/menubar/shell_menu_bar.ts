@@ -7,12 +7,13 @@ import { ShellMenuAdd } from '@/layout/shell/menubar/menus/shell_menu_add.js';
 import { ShellMenuTools } from '@/layout/shell/menubar/menus/shell_menu_tools.js';
 import { ShellMenuView } from '@/layout/shell/menubar/menus/shell_menu_view.js';
 import { ShellMenuRun } from '@/layout/shell/menubar/menus/shell_menu_run.js';
+import { ShellMenuWindow } from '@/layout/shell/menubar/menus/shell_menu_window.js';
 import { ShellMenuHelp } from '@/layout/shell/menubar/menus/shell_menu_help.js';
 
 /**
  * Creates the main window menus in menu bar order.
  *
- * @returns File, Edit, Add, Tools, View, Run and Help menus.
+ * @returns File, Edit, Add, Tools, View, Run, Window and Help menus.
  */
 export function shellMenusBuiltinCreate(): ShellMenu[] {
   return [
@@ -22,6 +23,7 @@ export function shellMenusBuiltinCreate(): ShellMenu[] {
     new ShellMenuTools(),
     new ShellMenuView(),
     new ShellMenuRun(),
+    new ShellMenuWindow(),
     new ShellMenuHelp(),
   ];
 }
