@@ -17,10 +17,16 @@ export const SHELL_MENU_WINDOW_BROWSERS: readonly ShellMenuWindowBrowser[] = [
   { windowId: 'level_browser', label: 'Level Browser', shortcutAction: 'window_level_browser' },
 ];
 
+/** Window menu row that arranges the open floating windows side by side. */
+export const SHELL_MENU_WINDOW_TILE_LABEL = 'Tile Floating Windows';
+
+/** Window menu row that floats every tool window at its default place and size. */
+export const SHELL_MENU_WINDOW_RESET_LABEL = 'Reset Window Layout';
+
 /**
  * Window menu: every window and panel the editor opens, in one place. The
  * browsers come first, then the inspector pages and tool panels, then extra
- * views and debug windows.
+ * views and debug windows, then the window layout commands.
  */
 export class ShellMenuWindow extends ShellMenu {
   readonly label = 'Window';
@@ -42,6 +48,9 @@ export class ShellMenuWindow extends ShellMenu {
       this.actionEntry(context, 'Detached Viewport…', () => actions.onOpenDetachedViewport()),
       this.separatorEntry(),
       this.actionEntry(context, 'AI Captures (Debug)…', () => actions.onToggleAiCaptureDebugPanel()),
+      this.separatorEntry(),
+      this.actionEntry(context, SHELL_MENU_WINDOW_TILE_LABEL, () => context.dockCommands.floatingWindowsTile()),
+      this.actionEntry(context, SHELL_MENU_WINDOW_RESET_LABEL, () => context.dockCommands.toolWindowLayoutReset()),
     ];
   }
 

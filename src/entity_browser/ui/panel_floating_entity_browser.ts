@@ -25,6 +25,8 @@ export class PanelFloatingEntityBrowser extends PanelFloatingContentHost {
         height: '520px',
         corner: 'bottom-right',
         centered: true,
+        layoutId: 'entity_browser',
+        layoutRestoresOpen: true,
       },
       entityBrowser.getElement(),
     );

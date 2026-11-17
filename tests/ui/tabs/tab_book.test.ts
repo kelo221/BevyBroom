@@ -161,4 +161,22 @@ describe('TabBook', () => {
     expect(listener).not.toHaveBeenCalled();
     book.dispose();
   });
+
+  it('removes a tab with its page and shows the first remaining tab when the active one goes', () => {
+    const { book } = tabBookCreate(['map', 'entity', 'face'], 'mounted');
+    book.tabShow('entity');
+    book.tabRemove('entity');
+    expect(book.tabIdsList()).toEqual(['map', 'face']);
+    expect(book.getActiveTabId()).toBe('map');
+    expect(book.tabButtonRead('entity')).toBeNull();
+    expect(book.getContentElement().querySelector('[data-page-of="entity"]')).toBeNull();
+    book.tabRemove('unknown');
+    expect(book.tabIdsList()).toEqual(['map', 'face']);
+  });
+
+  it('renames a tab button', () => {
+    const { book } = tabBookCreate(['map'], 'mounted');
+    book.tabLabelSet('map', 'World Map');
+    expect(book.tabButtonRead('map')?.textContent).toBe('World Map');
+  });
 });

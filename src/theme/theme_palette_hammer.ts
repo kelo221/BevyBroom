@@ -92,6 +92,10 @@ export const ThemePaletteHammer = Object.freeze({
   tabActiveBackground: '#ffffff',
   /** Text and underline of the active tab. */
   tabActiveAccent: '#0078d7',
+  /** Fill of the preview showing where a dragged window docks. */
+  dockDropPreviewFill: 'rgba(0, 120, 215, 0.22)',
+  /** Border of the preview showing where a dragged window docks. */
+  dockDropPreviewBorder: '#0078d7',
   /** Background of the title bar of floating windows. */
   windowTitleBackground: '#ffffff',
   /** Dim suffix for auto hex ids in the outliner (e.g. ".001" after Brush). */

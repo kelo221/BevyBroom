@@ -11,11 +11,15 @@ export interface PanelFloatingToolWindowOptions {
   readonly width: string;
   /** Placement and dismiss options of the floating panel. */
   readonly floating: FloatingPanelOptions;
+  /** Stable id keying the window's saved dock, position and size. */
+  readonly layoutId: string;
 }
 
 /**
- * Floating tool window with the editor's tool chrome, a standard title bar and
- * a padded body. Owns cleanup functions its subclasses register.
+ * Tool window with the editor's tool chrome, a standard title bar and a padded
+ * body that scrolls when the window is smaller than its content; resizable by
+ * its edges and dockable to the main window. Owns cleanup functions its
+ * subclasses register.
  */
 export abstract class PanelFloatingToolWindow extends PanelFloating {
   protected readonly body: HTMLElement;
@@ -28,7 +32,7 @@ export abstract class PanelFloatingToolWindow extends PanelFloating {
    * @param options Title, class, width and placement.
    */
   protected constructor(host: HTMLElement, options: PanelFloatingToolWindowOptions) {
-    super(host, options.floating);
+    super(host, { ...options.floating, layoutId: options.layoutId });
     this.root.classList.add(options.className);
     applyFloatingPanelToolChrome(this.root, { width: options.width, borderBox: true, overflowHidden: true });
     this.body = this.bodyCreate();
@@ -62,6 +66,9 @@ export abstract class PanelFloatingToolWindow extends PanelFloating {
     body.style.flexDirection = 'column';
     body.style.gap = '6px';
     body.style.padding = '8px';
+    body.style.flex = '1 1 auto';
+    body.style.minHeight = '0';
+    body.style.overflow = 'auto';
     return body;
   }
 }

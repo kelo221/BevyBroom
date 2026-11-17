@@ -16,12 +16,12 @@ const MCP_MAIN_WINDOW_FLOATING_WINDOW_PROPERTIES = Object.fromEntries(
 export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(
     'get_main_window',
-    `The main window arrangement: inspectorVisible, infoPanelVisible, infoPanelCollapsed (folded to its one-line strip) and infoPanelTab (console or issues), toolbarVisible, the menu bar titles in order, menuBarInWindow (false once the menus moved into the native macOS menu bar), themeLook (classic or mac_glass), and floatingWindows (${MCP_MAIN_WINDOW_FLOATING_WINDOW_LIST}) as true while shown.`,
+    `The main window arrangement: inspectorVisible, infoPanelVisible, infoPanelCollapsed (folded to its one-line strip) and infoPanelTab (console or issues), toolbarVisible, the menu bar titles in order, menuBarInWindow (false once the menus moved into the native macOS menu bar), themeLook (classic or mac_glass), floatingWindows (${MCP_MAIN_WINDOW_FLOATING_WINDOW_LIST}) as true while shown, and toolWindows: every resizable, dockable tool window by layout id with its title, placement (left, right, bottom or floating), isOpen and rect ({left, top, width, height} in CSS pixels while open).`,
     emptySchema(),
   ),
   tool(
     'set_main_window',
-    'Show or hide the inspector, info panel and toolbar, fold or unfold the info panel, switch the info panel tab, and show or hide floating windows. Omitted fields stay as they are. Returns the new arrangement like get_main_window.',
+    'Show or hide the inspector, info panel and toolbar, fold or unfold the info panel, switch the info panel tab, show or hide floating windows, dock or float tool windows, move and size floating tool windows, and tile the floating ones. Omitted fields stay as they are. Returns the new arrangement like get_main_window.',
     {
       type: 'object',
       properties: {
@@ -39,6 +39,37 @@ export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
           description: `Show or hide floating windows by id (${MCP_MAIN_WINDOW_FLOATING_WINDOW_LIST}). True shows, false hides. Omitted ids stay as they are.`,
           properties: MCP_MAIN_WINDOW_FLOATING_WINDOW_PROPERTIES,
         },
+        toolWindowPlacements: {
+          type: 'object',
+          description:
+            'Dock tool windows by layout id (see get_main_window toolWindows) to left, right or bottom, where windows on the same edge become tabs, or float them with floating. Open windows move at once; closed ones open there next time.',
+          additionalProperties: { type: 'string', enum: ['left', 'right', 'bottom', 'floating'] },
+        },
+        toolWindowRects: {
+          type: 'object',
+          description:
+            'Floating position and size of tool windows by layout id: {left, top, width, height} in CSS pixels, at least 160 by 90.',
+          additionalProperties: {
+            type: 'object',
+            properties: {
+              left: { type: 'number' },
+              top: { type: 'number' },
+              width: { type: 'number' },
+              height: { type: 'number' },
+            },
+            required: ['left', 'top', 'width', 'height'],
+          },
+        },
+        resetWindowLayout: {
+          type: 'boolean',
+          description:
+            'True floats every tool window at its default place and size before the other tool window fields apply (Window > Reset Window Layout).',
+        },
+        tileFloatingWindows: {
+          type: 'boolean',
+          description:
+            'True arranges the open floating tool windows side by side over the map area (Window > Tile Floating Windows).',
+        },
       },
     },
   ),
@@ -49,7 +80,7 @@ export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ),
   tool(
     'get_shell_layout',
-    'Read-only screen rectangles ({x, y, width, height} in CSS pixels) of the main window areas: views (map views above the info panel), infoPanel (Console / Issues panel) and inspector (right dock). Hidden areas are zero sized.',
+    'Read-only screen rectangles ({x, y, width, height} in CSS pixels) of the main window areas: views (map views above the info panel), infoPanel (Console / Issues panel), inspector (right dock) and the tool window docks dockLeft, dockRight and dockBottom. Hidden areas are zero sized.',
     emptySchema(),
   ),
   tool(

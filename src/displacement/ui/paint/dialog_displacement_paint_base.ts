@@ -56,6 +56,7 @@ export abstract class DialogDisplacementPaintBase extends PanelFloatingToolWindo
       className,
       width: '280px',
       floating: { corner: 'top-left', draggable: true, closeOnEscape: true },
+      layoutId: `displacement_${paintTool}`,
     });
     this.sharedCommitHandlersBind();
   }

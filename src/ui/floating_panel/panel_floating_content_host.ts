@@ -23,6 +23,10 @@ export interface PanelFloatingContentHostOptions {
   readonly centered?: boolean;
   /** True to close the window on Escape; stays open on Escape when omitted. */
   readonly closeOnEscape?: boolean;
+  /** Stable id keying the window's saved dock, position and size. */
+  readonly layoutId: string;
+  /** True to reopen the window at startup when it was open at quit. */
+  readonly layoutRestoresOpen?: boolean;
 }
 
 /**
@@ -37,6 +41,8 @@ function hostOptionsBuild(options: PanelFloatingContentHostOptions): FloatingPan
     draggable: true,
     centered: options.centered === true,
     closeOnEscape: options.closeOnEscape ?? false,
+    layoutId: options.layoutId,
+    layoutRestoresOpen: options.layoutRestoresOpen === true,
   };
   if (options.corner) {
     hostOptions.corner = options.corner;
@@ -45,8 +51,9 @@ function hostOptionsBuild(options: PanelFloatingContentHostOptions): FloatingPan
 }
 
 /**
- * Non-modal floating tool window with a draggable title bar and one body that
- * hosts an element, reporting every open and close to a listener.
+ * Non-modal tool window with a draggable title bar and one body that hosts an
+ * element, resizable by its edges and dockable to the main window, reporting
+ * every open and close to a listener.
  */
 export class PanelFloatingContentHost extends PanelFloating {
   private readonly body: HTMLElement;

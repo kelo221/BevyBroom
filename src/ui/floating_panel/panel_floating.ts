@@ -17,6 +17,9 @@ import {
   type FloatingPanelTitleBarOptions,
   type FloatingPanelTitleBarParts,
 } from './panel_floating_title_bar.js';
+import { PanelFloatingLayout } from './layout/panel_floating_layout.js';
+import { PanelFloatingLayoutRegistry } from './layout/panel_floating_layout_registry.js';
+import { PanelFloatingTitleDrag } from './panel_floating_title_drag.js';
 
 /** Startup corner placement relative to the viewport anchor. */
 export type FloatingPanelCorner = 'top-left' | 'bottom-left' | 'bottom-right';
@@ -64,6 +67,17 @@ export interface FloatingPanelOptions {
   backdropClassName?: string;
   /** Optional backdrop background CSS. Defaults to a dim scrim when modal. */
   backdropBackground?: string;
+  /**
+   * Stable id of a non-modal window that can be resized by its edges, docked to
+   * an edge of the main window and floated again; the id keys its saved dock,
+   * position and size. Windows without an id keep a fixed size.
+   */
+  layoutId?: string;
+  /**
+   * When true, a window with a layout id that was open at quit opens again at
+   * startup, docked or floating as it was.
+   */
+  layoutRestoresOpen?: boolean;
 }
 
 /**
@@ -92,15 +106,15 @@ export abstract class PanelFloating {
   private readonly closeOnBackdropClick: boolean;
   private readonly closeOnEscape: boolean;
   private readonly stackLayer: FloatingPanelStackLayer;
-  private dragOffsetX: number;
-  private dragOffsetY: number;
-  private isDragging: boolean;
+  private readonly titleDrag: PanelFloatingTitleDrag;
   private isShellMounted: boolean;
   private hasFreeFirstPlacement: boolean;
   private freeFirstPlacementRetryFrameId: number | null;
   private freeFirstPlacementRetryCount: number;
   private besideResolver: (() => HTMLElement | null) | null;
   private readonly boundDocumentKeyDown: (event: KeyboardEvent) => void;
+  private readonly layout: PanelFloatingLayout | null;
+  private isDisposing: boolean;
 
   /**
    * Creates a floating panel shell. The shell stays out of the document until
@@ -124,17 +138,20 @@ export abstract class PanelFloating {
     this.closeOnEscape = options.closeOnEscape ?? this.modal;
     this.stackLayer = options.stackLayer ?? (this.modal ? 'modal' : 'tool');
     this.isVisible = false;
-    this.isDragging = false;
     this.isShellMounted = false;
     this.hasFreeFirstPlacement = false;
     this.freeFirstPlacementRetryFrameId = null;
     this.freeFirstPlacementRetryCount = 0;
     this.besideResolver = options.besideResolver ?? null;
-    this.dragOffsetX = 0;
-    this.dragOffsetY = 0;
     this.boundDocumentKeyDown = (event) => this.onDocumentKeyDown(event);
+    this.isDisposing = false;
     this.root = this.createShellRoot();
     this.backdrop = this.modal ? this.createModalBackdrop(options) : null;
+    this.layout = this.layoutCreate(options);
+    this.titleDrag = this.titleDragCreate();
+    if (this.layout !== null) {
+      PanelFloatingLayoutRegistry.panelAdd(this);
+    }
     FloatingPanelStack.register(
       this.getStackElement(),
       () => this.clampToScreenIfVisible(),
@@ -192,13 +209,14 @@ export abstract class PanelFloating {
       return;
     }
     this.isVisible = true;
-    this.mountShellIntoHost();
+    if (this.layout?.dockedMount() !== true) {
+      this.floatingMount();
+    }
     this.applyVisibleDisplayStyles();
-    this.positionDefaultIfNeeded();
-    this.clampToScreenIfNeeded();
     FloatingPanelStack.bringToFront(this.getStackElement(), this.stackLayer);
     this.bindEscapeWhileOpen();
     this.onAfterShow();
+    this.layout?.openStateSave(true);
   }
 
   /**
@@ -214,7 +232,10 @@ export abstract class PanelFloating {
     this.freeFirstPlacementRetryStop();
     this.unbindEscapeWhileOpen();
     this.onAfterHide();
-    this.unmountShellFromHost();
+    this.unmountShell();
+    if (!this.isDisposing) {
+      this.layout?.openStateSave(false);
+    }
   }
 
   /** Toggles visibility. */
@@ -262,9 +283,9 @@ export abstract class PanelFloating {
     this.clampToScreenIfNeeded();
   }
 
-  /** Clamps the panel into the browser window while it is visible. */
+  /** Clamps the panel into the browser window while it is visible and floating. */
   clampToScreenIfVisible(): void {
-    if (!this.isVisible) {
+    if (!this.isVisible || this.isDocked()) {
       return;
     }
     this.clampToScreenIfNeeded();
@@ -272,10 +293,63 @@ export abstract class PanelFloating {
 
   /** Hides if open, unregisters from the stack, and drops any remaining DOM. */
   dispose(): void {
+    this.isDisposing = true;
     this.freeFirstPlacementRetryStop();
     this.hide(true);
     FloatingPanelStack.unregister(this.getStackElement());
     this.unmountShellFromHost();
+    this.layout?.dispose();
+  }
+
+  /**
+   * Returns the id that keys the window's saved dock, position and size.
+   *
+   * @returns Layout id, or null for a window that is not laid out.
+   */
+  layoutIdRead(): string | null {
+    return this.layout?.layoutIdRead() ?? null;
+  }
+
+  /**
+   * Returns the window title shown on its dock tab.
+   *
+   * @returns Title text, or an empty string for a window that is not laid out.
+   */
+  layoutTitleRead(): string {
+    return this.layout?.titleRead() ?? '';
+  }
+
+  /**
+   * Returns whether the window reopens at startup when it was open at quit.
+   *
+   * @returns True for a laid out window that reopens.
+   */
+  layoutRestoresOpenRead(): boolean {
+    return this.layout?.restoresOpenRead() ?? false;
+  }
+
+  /**
+   * Returns whether the window lives in a dock instead of floating.
+   *
+   * @returns True while docked.
+   */
+  isDocked(): boolean {
+    return this.layout?.isDocked() ?? false;
+  }
+
+  /**
+   * Places the floating window under a pointer with its title bar there and
+   * keeps dragging it, as when a docked tab is dragged out of its dock.
+   *
+   * @param event Pointer event of the ongoing drag.
+   */
+  titleDragContinueAt(event: PointerEvent): void {
+    if (!this.isVisible || this.isDocked()) {
+      return;
+    }
+    const rect = this.root.getBoundingClientRect();
+    this.setTopLeftPosition(event.clientX - rect.width / 2, event.clientY - Theme.viewportLabelHeightPx / 2);
+    this.titleDrag.begin(event);
   }
 
   /**
@@ -315,7 +389,7 @@ export abstract class PanelFloating {
     if (!this.draggable) {
       return;
     }
-    bar.addEventListener('pointerdown', (event) => this.onTitleBarPointerDown(event));
+    bar.addEventListener('pointerdown', (event) => this.titleDrag.titleBarPressHandle(event));
   }
 
   /**
@@ -336,6 +410,7 @@ export abstract class PanelFloating {
       onClose: options.onClose ?? (() => this.hide(true)),
     });
     this.bindTitleBarDrag(parts.bar);
+    this.layout?.titleBarSet(parts.bar, parts.title);
     return parts;
   }
 
@@ -350,15 +425,6 @@ export abstract class PanelFloating {
     this.root.style.top = `${top}px`;
     this.root.style.bottom = 'auto';
     this.root.style.right = 'auto';
-  }
-
-  /**
-   * Converts a bottom-anchored layout to top/left using the current rect.
-   *
-   * @param rect Current panel bounding rect.
-   */
-  protected convertBottomToTopPosition(rect: DOMRect): void {
-    this.setTopLeftPosition(rect.left, rect.top);
   }
 
   /** Clamps the current panel rect into the browser window. */
@@ -389,6 +455,46 @@ export abstract class PanelFloating {
    */
   protected getStackElement(): HTMLElement {
     return this.backdrop ?? this.root;
+  }
+
+  /**
+   * Creates the resize and dock layout of a non-modal window with a layout id.
+   *
+   * @param options Floating panel options.
+   * @returns Layout, or null for windows without a layout id.
+   */
+  private layoutCreate(options: FloatingPanelOptions): PanelFloatingLayout | null {
+    if (options.layoutId === undefined || this.modal) {
+      return null;
+    }
+    return new PanelFloatingLayout(this, this.root, {
+      layoutId: options.layoutId,
+      restoresOpen: options.layoutRestoresOpen === true,
+    });
+  }
+
+  /**
+   * Mounts the shell under the host and places it at its remembered rect, or at
+   * its default place.
+   */
+  private floatingMount(): void {
+    this.mountShellIntoHost();
+    this.positionDefaultIfNeeded();
+    if (this.layout?.floatingRectRestore() === true) {
+      this.hasFreeFirstPlacement = true;
+      this.freeFirstPlacementRetryStop();
+    }
+    this.clampToScreenIfNeeded();
+  }
+
+  /** Takes the shell out of its dock or out of the host. */
+  private unmountShell(): void {
+    if (this.layout?.isMountedDocked() === true) {
+      this.layout.dockedUnmount();
+      this.root.style.display = 'none';
+      return;
+    }
+    this.unmountShellFromHost();
   }
 
   /** Mounts the shell under the host (backdrop + root when modal). */
@@ -623,7 +729,7 @@ export abstract class PanelFloating {
    * @param event Document keydown event.
    */
   private onDocumentKeyDown(event: KeyboardEvent): void {
-    if (event.key !== 'Escape') {
+    if (event.key !== 'Escape' || this.isDocked()) {
       return;
     }
     event.preventDefault();
@@ -631,89 +737,40 @@ export abstract class PanelFloating {
   }
 
   /**
-   * Starts title-bar drag when the pointer is not on a button.
+   * Creates the title bar drag of this window.
    *
-   * @param event Pointer down on the title bar.
+   * @returns Title bar drag.
    */
-  private onTitleBarPointerDown(event: PointerEvent): void {
-    if (event.button !== 0) {
-      return;
-    }
-    const target = event.target as HTMLElement;
-    if (target.tagName === 'BUTTON') {
-      return;
-    }
-    this.beginDrag(event);
+  private titleDragCreate(): PanelFloatingTitleDrag {
+    return new PanelFloatingTitleDrag({
+      root: this.root,
+      paddingPx: this.paddingPx,
+      dragStarted: () => this.titleDragStarted(),
+      positionSet: (left, top) => this.setTopLeftPosition(left, top),
+      dragMoved: (event) => this.layout?.titleDragMove(event),
+      dragEnded: (event) => this.titleDragEnded(event),
+    });
   }
 
-  /**
-   * Begins a drag session with screen clamping on move.
-   *
-   * @param event Pointer down event.
-   */
-  private beginDrag(event: PointerEvent): void {
-    this.isDragging = true;
+  /** Raises the window and keeps its dragged position on later opens. */
+  private titleDragStarted(): void {
     this.hasFreeFirstPlacement = true;
     this.freeFirstPlacementRetryStop();
     FloatingPanelStack.bringToFront(this.getStackElement(), this.stackLayer);
-    this.dragOffsetsFromPointerWrite(event);
-    this.dragMoveListenersBind();
   }
 
   /**
-   * Converts the panel to a top-left position and stores the pointer offset
-   * inside it.
+   * Docks the window when the drag ended over a dock target, or else clamps it
+   * to the screen and remembers its rect.
    *
-   * @param event Pointer down event.
+   * @param event Pointer release.
    */
-  private dragOffsetsFromPointerWrite(event: PointerEvent): void {
-    const rect = this.root.getBoundingClientRect();
-    this.dragOffsetX = event.clientX - rect.left;
-    this.dragOffsetY = event.clientY - rect.top;
-    this.root.style.position = 'fixed';
-    this.convertBottomToTopPosition(rect);
-  }
-
-  /** Binds window pointer-move and pointer-up listeners for the drag. */
-  private dragMoveListenersBind(): void {
-    const onMove = (moveEvent: PointerEvent) => this.onDragMove(moveEvent);
-    const onUp = () => this.dragPointerUpHandle(onMove, onUp);
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-  }
-
-  /**
-   * Ends the drag, clamps the panel, and removes the window pointer listeners.
-   *
-   * @param onMove Pointer-move listener to remove.
-   * @param onUp Pointer-up listener to remove.
-   */
-  private dragPointerUpHandle(onMove: (moveEvent: PointerEvent) => void, onUp: () => void): void {
-    this.isDragging = false;
-    this.clampToScreen();
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
-  }
-
-  /**
-   * Updates panel position while dragging, clamped to the screen.
-   *
-   * @param moveEvent Pointer move event.
-   */
-  private onDragMove(moveEvent: PointerEvent): void {
-    if (!this.isDragging) {
+  private titleDragEnded(event: PointerEvent): void {
+    if (this.layout?.titleDragEnd(event) === true) {
       return;
     }
-    const rect = this.root.getBoundingClientRect();
-    const nextLeft = moveEvent.clientX - this.dragOffsetX;
-    const nextTop = moveEvent.clientY - this.dragOffsetY;
-    const clamped = clampFloatingPanelRectToScreen(
-      { left: nextLeft, top: nextTop, width: rect.width, height: rect.height },
-      window.innerWidth,
-      window.innerHeight,
-      this.paddingPx,
-    );
-    this.setTopLeftPosition(clamped.left, clamped.top);
+    this.clampToScreen();
+    this.layout?.floatingRectSave();
   }
 
   /** Places the panel at the configured corner of the live placement anchor. */

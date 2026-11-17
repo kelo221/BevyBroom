@@ -25,6 +25,8 @@ export class PanelFloatingLevelBrowser extends PanelFloatingContentHost {
         height: '400px',
         corner: 'bottom-left',
         centered: true,
+        layoutId: 'level_browser',
+        layoutRestoresOpen: true,
       },
       levelBrowser.getElement(),
     );

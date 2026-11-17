@@ -50,6 +50,7 @@ const DIALOG_TEXTURE_REPLACE_HOST_OPTIONS: PanelFloatingContentHostOptions = {
   height: 'auto',
   centered: true,
   closeOnEscape: true,
+  layoutId: 'texture_replace',
 };
 
 /**

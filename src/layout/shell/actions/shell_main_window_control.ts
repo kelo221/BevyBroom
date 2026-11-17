@@ -10,6 +10,9 @@ import { THEME_LOOK_CURRENT } from '@/theme/theme_look_current.js';
 import type { ShellDockCommands } from './shell_dock_commands.js';
 import { SHELL_FLOATING_WINDOW_IDS, type ShellFloatingWindowId } from './shell_floating_window.js';
 import { shellMainWindowLayoutRead, type ShellMainWindowLayout } from './shell_main_window_layout.js';
+import type { DockManagerWindowState } from '@/ui/dock/manager/dock_manager.js';
+import type { DockSide } from '@/ui/dock/dock_side.js';
+import type { PanelFloatingLayoutRect } from '@/ui/floating_panel/layout/panel_floating_layout_rect.js';
 
 /** Info panel tabs in display order. */
 export const SHELL_MAIN_WINDOW_INFO_PANEL_TABS: readonly ShellInfoPanelTabId[] = SHELL_INFO_PANEL_TAB_IDS;
@@ -37,13 +40,26 @@ export interface ShellMainWindowState {
   themeLook: ThemeLook;
   /** True while each registered floating window is shown. */
   floatingWindows: Record<ShellFloatingWindowId, boolean>;
+  /**
+   * Placement, open state and rect of every resizable, dockable tool window by
+   * layout id.
+   */
+  toolWindows: Record<string, DockManagerWindowState>;
 }
 
 /** Changes to the main window arrangement; omitted fields stay as they are. */
 export type ShellMainWindowChanges = Partial<
-  Omit<ShellMainWindowState, 'menus' | 'menuBarInWindow' | 'themeLook' | 'floatingWindows'>
+  Omit<ShellMainWindowState, 'menus' | 'menuBarInWindow' | 'themeLook' | 'floatingWindows' | 'toolWindows'>
 > & {
   floatingWindows?: Partial<Record<ShellFloatingWindowId, boolean>>;
+  /** Dock edge or floating for tool windows by layout id. */
+  toolWindowPlacements?: Record<string, DockSide | 'floating'>;
+  /** Floating rect for tool windows by layout id. */
+  toolWindowRects?: Record<string, PanelFloatingLayoutRect>;
+  /** True to arrange the open floating tool windows side by side. */
+  tileFloatingWindows?: boolean;
+  /** True to float every tool window at its default place and size first. */
+  resetWindowLayout?: boolean;
 };
 
 /** Main window parts the control reads and changes. */
@@ -79,6 +95,7 @@ export class ShellMainWindowControl {
       menuBarInWindow: this.parts.frame.isMenuBarVisible(),
       themeLook: THEME_LOOK_CURRENT,
       floatingWindows: this.floatingWindowsRead(),
+      toolWindows: this.parts.dockCommands?.toolWindowStatesRead() ?? {},
     };
   }
 
@@ -95,6 +112,7 @@ export class ShellMainWindowControl {
     if (changes.infoPanelCollapsed !== undefined) this.parts.frame.infoPanelCollapsedSet(changes.infoPanelCollapsed);
     if (changes.toolbarVisible !== undefined) this.parts.frame.toolbarVisibleSet(changes.toolbarVisible);
     this.floatingWindowsApply(changes.floatingWindows);
+    this.toolWindowsApply(changes);
     return this.stateRead();
   }
 
@@ -156,6 +174,31 @@ export class ShellMainWindowControl {
       if (visible !== undefined) {
         this.parts.dockCommands?.floatingWindowVisibleSet(windowId, visible);
       }
+    }
+  }
+
+  /**
+   * Applies the layout reset, tool window placements, rects and tiling of a
+   * change, in that order.
+   *
+   * @param changes Main window changes.
+   */
+  private toolWindowsApply(changes: ShellMainWindowChanges): void {
+    const dockCommands = this.parts.dockCommands;
+    if (!dockCommands) {
+      return;
+    }
+    if (changes.resetWindowLayout === true) {
+      dockCommands.toolWindowLayoutReset();
+    }
+    Object.entries(changes.toolWindowRects ?? {}).forEach(([windowId, rect]) =>
+      dockCommands.toolWindowFloatingRectSet(windowId, rect),
+    );
+    Object.entries(changes.toolWindowPlacements ?? {}).forEach(([windowId, placement]) =>
+      dockCommands.toolWindowDock(windowId, placement === 'floating' ? null : placement),
+    );
+    if (changes.tileFloatingWindows === true) {
+      dockCommands.floatingWindowsTile();
     }
   }
 }

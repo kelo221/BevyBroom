@@ -25,6 +25,8 @@ export class PanelFloatingTextureBrowser extends PanelFloatingContentHost {
         height: '600px',
         corner: 'bottom-right',
         centered: true,
+        layoutId: 'texture_browser',
+        layoutRestoresOpen: true,
       },
       faceInspector.getElement(),
     );

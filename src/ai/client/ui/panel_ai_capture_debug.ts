@@ -33,7 +33,7 @@ export class PanelAiCaptureDebug extends PanelFloating {
     defaultAnchor: HTMLElement | null = null,
     store: StoreAiCaptureDebug = sharedAiCaptureDebugStore,
   ) {
-    super(host, { corner: 'bottom-right', insetBelowViewportToolbar: false }, defaultAnchor);
+    super(host, { corner: 'bottom-right', insetBelowViewportToolbar: false, layoutId: 'ai_captures' }, defaultAnchor);
     this.store = store;
     this.listHost = document.createElement('div');
     this.statusLabel = document.createElement('div');

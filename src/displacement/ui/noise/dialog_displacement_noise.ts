@@ -34,6 +34,7 @@ export class DialogDisplacementNoise extends PanelFloatingToolWindow {
       className: 'dialog-displacement-noise',
       width: '260px',
       floating: { centered: true, draggable: true, closeOnEscape: true },
+      layoutId: 'displacement_noise',
     });
     this.body.append(this.fieldsRowBuild(), this.applyRowBuild());
     this.commitHandlersBind();

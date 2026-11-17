@@ -27,7 +27,7 @@ export class SolidModelPanel extends PanelFloating {
    * @param defaultAnchor Element used for default open position.
    */
   constructor(host: HTMLElement, handlers: SolidModelPanelHandlers, defaultAnchor: HTMLElement | null = null) {
-    super(host, { corner: 'top-left', insetBelowViewportToolbar: true }, defaultAnchor);
+    super(host, { corner: 'top-left', insetBelowViewportToolbar: true, layoutId: 'solid_model' }, defaultAnchor);
     this.handlers = handlers;
     this.model = null;
     this.statusLabel = document.createElement('div');

@@ -1,5 +1,6 @@
 import { UiStackLayers } from '@/ui/stack/ui_stack_layers.js';
 import { doesElementContainEventTarget } from '@/utils/dom_node_realm.js';
+import { PANEL_FLOATING_DOCKED_ATTRIBUTE } from './layout/panel_floating_docked_style.js';
 
 /** Stacking band for floating tool windows versus modal/confirm dialogs. */
 export type FloatingPanelStackLayer = 'tool' | 'modal' | 'confirm';
@@ -95,13 +96,14 @@ export class FloatingPanelStack {
   }
 
   /**
-   * Returns whether a registered panel is in the document and displayed.
+   * Returns whether a registered panel is in the document, displayed and
+   * floating rather than docked.
    *
    * @param panel Panel root or modal backdrop element.
    * @returns True while the panel is open.
    */
   private static panelIsOpen(panel: HTMLElement): boolean {
-    return panel.isConnected && panel.style.display !== 'none';
+    return panel.isConnected && panel.style.display !== 'none' && !panel.hasAttribute(PANEL_FLOATING_DOCKED_ATTRIBUTE);
   }
 
   /**

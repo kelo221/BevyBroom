@@ -1,3 +1,4 @@
+import { dockWindowLayoutsSanitize } from '@/ui/dock/state/dock_window_layout.js';
 import { SHELL_INSPECTOR_WIDTH_PREVIOUS_DEFAULT_PX, shellStateDefaultCreate, type ShellState } from './shell_state.js';
 
 /**
@@ -23,6 +24,7 @@ export function shellStateSanitize(value: unknown): ShellState {
     toolbarVisible: shellStateBooleanRead(record['toolbarVisible'], defaults.toolbarVisible),
     toolsPaletteVisible: shellStateBooleanRead(record['toolsPaletteVisible'], defaults.toolsPaletteVisible),
     splitSizesPx: shellStateSplitSizesRead(record['splitSizesPx']),
+    windowLayouts: dockWindowLayoutsSanitize(record['windowLayouts']),
   };
 }
 
