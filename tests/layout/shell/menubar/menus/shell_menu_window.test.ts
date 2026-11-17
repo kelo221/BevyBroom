@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { SHELL_MENU_WINDOW_BROWSERS, ShellMenuWindow } from '@/layout/shell/menubar/menus/shell_menu_window.js';
+import {
+  SHELL_MENU_WINDOW_BROWSERS,
+  SHELL_MENU_WINDOW_RESET_LABEL,
+  SHELL_MENU_WINDOW_TILE_LABEL,
+  ShellMenuWindow,
+} from '@/layout/shell/menubar/menus/shell_menu_window.js';
+import { PanelFloatingContentHost } from '@/ui/floating_panel/panel_floating_content_host.js';
 import type { ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import {
@@ -51,8 +57,8 @@ afterEach(() => {
 
 /**
  * The Window menu gathers every window and panel: the browsers with their
- * shortcuts, the Map inspector, the Solid Model panel, the detached viewport
- * and the AI capture debug panel.
+ * shortcuts, the Map inspector, the Solid Model panel, the detached viewport,
+ * the AI capture debug panel and the window layout commands.
  */
 describe('ShellMenuWindow', () => {
   it('is labelled Window and lists the browsers first, in their own section', () => {
@@ -102,5 +108,23 @@ describe('ShellMenuWindow', () => {
     expect(toolbarActions.onToggleSolidModelPanel).toHaveBeenCalledTimes(1);
     expect(toolbarActions.onOpenDetachedViewport).toHaveBeenCalledTimes(1);
     expect(toolbarActions.onToggleAiCaptureDebugPanel).toHaveBeenCalledTimes(1);
+  });
+
+  it('tiles the open floating tool windows and resets the window layout', () => {
+    const { entries } = shellMenuWindowTestRigCreate();
+    const toolWindow = new PanelFloatingContentHost(
+      document.body,
+      { titleText: 'Menu Tool', className: 'menu-tool', width: '240px', height: '200px', layoutId: 'menu_tool' },
+      document.createElement('div'),
+    );
+    toolWindow.show();
+    shellTestMenuActionFind(entries, SHELL_MENU_WINDOW_TILE_LABEL).onClick();
+    expect(toolWindow.getRootElement().style.width).toMatch(/px$/);
+    shellMenuWindowTestRig?.docks.dockCommands.toolWindowDock('menu_tool', 'left');
+    expect(toolWindow.isDocked()).toBe(true);
+    shellTestMenuActionFind(entries, SHELL_MENU_WINDOW_RESET_LABEL).onClick();
+    expect(toolWindow.isDocked()).toBe(false);
+    expect(toolWindow.isOpen()).toBe(true);
+    toolWindow.dispose();
   });
 });

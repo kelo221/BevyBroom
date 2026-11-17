@@ -46,7 +46,7 @@ export class PanelDataAssetEditor extends PanelFloating {
     host: HTMLElement,
     clientResolve: () => GameEntityDataAssetClient | null = () => GameEntityDataAssetClient.activeRead(),
   ) {
-    super(host, { corner: 'top-left', insetBelowViewportToolbar: true });
+    super(host, { corner: 'top-left', insetBelowViewportToolbar: true, layoutId: 'data_asset_editor' });
     this.clientResolve = clientResolve;
     this.headerLine = this.lineCreate();
     this.createPathInput = new InputText('Data asset path');

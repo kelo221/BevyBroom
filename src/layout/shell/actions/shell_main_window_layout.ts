@@ -16,6 +16,12 @@ export interface ShellMainWindowLayout {
   infoPanel: ShellMainWindowBounds;
   /** Right-hand inspector; zero sized while hidden. */
   inspector: ShellMainWindowBounds;
+  /** Tool window dock left of the map views; zero sized while empty. */
+  dockLeft: ShellMainWindowBounds;
+  /** Tool window dock right of the map views; zero sized while empty. */
+  dockRight: ShellMainWindowBounds;
+  /** Tool window dock below the map views; zero sized while empty. */
+  dockBottom: ShellMainWindowBounds;
 }
 
 /**
@@ -29,6 +35,9 @@ export function shellMainWindowLayoutRead(frame: ShellFrame): ShellMainWindowLay
     views: shellMainWindowBoundsRead(frame.viewsPaneRead()),
     infoPanel: shellMainWindowBoundsRead(frame.infoPanelHostRead()),
     inspector: shellMainWindowBoundsRead(frame.inspectorHostRead()),
+    dockLeft: shellMainWindowBoundsRead(frame.dockSplittersRead().dockPaneRead('left')),
+    dockRight: shellMainWindowBoundsRead(frame.dockSplittersRead().dockPaneRead('right')),
+    dockBottom: shellMainWindowBoundsRead(frame.dockSplittersRead().dockPaneRead('bottom')),
   };
 }
 

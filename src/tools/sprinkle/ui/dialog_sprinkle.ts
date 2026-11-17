@@ -46,6 +46,7 @@ export class DialogSprinkle extends PanelFloatingToolWindow {
       className: 'dialog-sprinkle',
       width: '380px',
       floating: { centered: true, draggable: true, closeOnEscape: true },
+      layoutId: 'entity_sprinkle',
     });
     this.definitionControls = new SprinkleControlsDefinition(services);
     this.gridControls = new SprinkleControlsGrid(services);

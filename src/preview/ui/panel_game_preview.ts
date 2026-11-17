@@ -34,7 +34,7 @@ export class PanelGamePreview extends PanelFloating {
    * @param workbench Project workbench shown and driven by the panel.
    */
   constructor(host: HTMLElement, service: PreviewLinkService, workbench: ProjectWorkbench) {
-    super(host, { corner: 'bottom-right', insetBelowViewportToolbar: false });
+    super(host, { corner: 'bottom-right', insetBelowViewportToolbar: false, layoutId: 'game_preview' });
     this.service = service;
     this.projectSection = new PanelGamePreviewProjectSection(workbench);
     this.endpointInput = document.createElement('input');

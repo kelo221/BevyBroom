@@ -7,6 +7,7 @@ import {
   type ShellMainWindowControl,
 } from '@/layout/shell/actions/shell_main_window_control.js';
 import { SHELL_FLOATING_WINDOW_IDS, type ShellFloatingWindowId } from '@/layout/shell/actions/shell_floating_window.js';
+import { editorApiToolWindowsProblemFind } from './editor_api_main_window_tool_windows.js';
 import { platformReportBuild, platformReportSourcesCurrent } from '@/platform/report/platform_report.js';
 
 /** Fields of set_main_window that take true or false. */
@@ -63,7 +64,8 @@ export class EditorApiMainWindow {
    * @returns Result with the new arrangement, or the validation failure.
    */
   private mainWindowSet(control: ShellMainWindowControl, args: Record<string, unknown>): McpToolResult {
-    const problem = this.changesProblemFind(args);
+    const knownToolWindowIds = Object.keys(control.stateRead().toolWindows);
+    const problem = this.changesProblemFind(args) ?? editorApiToolWindowsProblemFind(args, knownToolWindowIds);
     if (problem !== null) {
       return failResult(problem);
     }

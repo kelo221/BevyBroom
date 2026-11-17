@@ -58,6 +58,22 @@ describe('ShellStateStore', () => {
     expect(second.splitSizeRead('unknown', 77)).toBe(77);
   });
 
+  it('keeps tool window placements in a new store and forgets them on clear', () => {
+    const storage = memoryStorageCreate();
+    const first = new ShellStateStore(storage);
+    const placement = {
+      side: 'right' as const,
+      floatingRect: { left: 5, top: 6, width: 320, height: 240 },
+      isOpen: true,
+    };
+    first.windowLayoutWrite('entity_browser', placement);
+    const second = new ShellStateStore(storage);
+    expect(second.windowLayoutRead('entity_browser')).toEqual(placement);
+    expect(second.windowLayoutRead('level_browser').side).toBeNull();
+    second.windowLayoutsClear();
+    expect(new ShellStateStore(storage).windowLayoutRead('entity_browser').side).toBeNull();
+  });
+
   it('replaces malformed stored fields with defaults', () => {
     const storage = memoryStorageCreate();
     storage.setItem(

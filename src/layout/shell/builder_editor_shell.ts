@@ -253,7 +253,7 @@ export class BuilderEditorShell {
     const infoPanel = new ShellInfoPanel(stateStore);
     frame.inspectorHostRead().appendChild(inspector.getElement());
     frame.infoPanelHostRead().appendChild(infoPanel.getElement());
-    return { frame, inspector, infoPanel, dockCommands: new ShellDockCommands(frame, infoPanel) };
+    return { frame, inspector, infoPanel, dockCommands: new ShellDockCommands(frame, infoPanel, stateStore) };
   }
 
   /**

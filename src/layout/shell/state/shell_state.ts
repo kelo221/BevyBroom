@@ -1,4 +1,5 @@
 import { Theme } from '@/theme.js';
+import type { DockWindowLayout } from '@/ui/dock/state/dock_window_layout.js';
 
 /** Saved arrangement of the main window panels. */
 export interface ShellState {
@@ -20,6 +21,8 @@ export interface ShellState {
   toolsPaletteVisible: boolean;
   /** Sizes of inner splitters in CSS pixels, keyed by splitter name. */
   splitSizesPx: Record<string, number>;
+  /** Dock, floating rect and open state of each tool window, keyed by layout id. */
+  windowLayouts: Record<string, DockWindowLayout>;
 }
 
 /** Smallest inspector width in CSS pixels. */
@@ -50,5 +53,6 @@ export function shellStateDefaultCreate(): ShellState {
     toolbarVisible: true,
     toolsPaletteVisible: true,
     splitSizesPx: {},
+    windowLayouts: {},
   };
 }

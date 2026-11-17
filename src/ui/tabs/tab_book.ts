@@ -152,6 +152,49 @@ export class TabBook {
   }
 
   /**
+   * Removes a tab, its button and its page wrapper. Removing the active tab
+   * shows the first remaining visible tab.
+   *
+   * @param tabId Tab to remove.
+   */
+  tabRemove(tabId: string): void {
+    const entry = this.entries.get(tabId);
+    if (!entry) {
+      return;
+    }
+    this.entries.delete(tabId);
+    entry.button.remove();
+    entry.pageWrapper?.remove();
+    if (this.activeTabId === tabId) {
+      this.activeTabId = null;
+      this.activeTabFallbackShow();
+    }
+  }
+
+  /**
+   * Changes the label of a tab.
+   *
+   * @param tabId Tab to rename.
+   * @param label New label.
+   */
+  tabLabelSet(tabId: string, label: string): void {
+    const entry = this.entries.get(tabId);
+    if (entry) {
+      entry.button.textContent = label;
+    }
+  }
+
+  /**
+   * Returns the button of a tab.
+   *
+   * @param tabId Tab id.
+   * @returns Tab button, or null for an unknown tab.
+   */
+  tabButtonRead(tabId: string): HTMLButtonElement | null {
+    return this.entries.get(tabId)?.button ?? null;
+  }
+
+  /**
    * Shows or hides a tab button. Hiding the active tab moves the view to the
    * first visible tab; a hidden tab cannot be shown until it is visible again.
    *
