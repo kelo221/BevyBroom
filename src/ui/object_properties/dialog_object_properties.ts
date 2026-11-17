@@ -67,7 +67,7 @@ export class DialogObjectProperties extends PanelFloating {
    * @param dependencies Editor services the dialog edits through.
    */
   constructor(host: HTMLElement, dependencies: DialogObjectPropertiesDependencies) {
-    super(host, { centered: true, draggable: true, closeOnEscape: true });
+    super(host, { centered: true, draggable: true, closeOnEscape: true, layoutId: 'object_properties' });
     this.dependencies = dependencies;
     this.editedObjects = [];
     this.session = new ObjectPropertiesSession(dependencies.commandStack, () => dependencies.afterWorldMutation());

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { PANEL_FLOATING_RESIZE_EDGE_ATTRIBUTE } from '@/ui/floating_panel/layout/panel_floating_resize_handles.js';
 import { PanelFloatingToolWindow } from '@/ui/floating_panel/panel_floating_tool_window.js';
 
 /** Tool window exposing its body and cleanup registration to the test. */
@@ -15,6 +16,7 @@ class PanelFloatingToolWindowTest extends PanelFloatingToolWindow {
       className: 'panel-floating-tool-window-test',
       width: '200px',
       floating: { centered: true, draggable: true, closeOnEscape: true },
+      layoutId: 'test_tool_window',
     });
   }
 
@@ -63,8 +65,11 @@ describe('PanelFloatingToolWindow', () => {
     const toolWindow = panelFloatingToolWindowTestCreate('Tool Window Title');
     const root = toolWindow.getRootElement();
     expect(root.classList.contains('panel-floating-tool-window-test')).toBe(true);
-    expect(root.lastElementChild).toBe(toolWindow.bodyRead());
-    expect(root.firstElementChild?.textContent).toContain('Tool Window Title');
+    const contentChildren = [...root.children].filter(
+      (child) => !child.hasAttribute(PANEL_FLOATING_RESIZE_EDGE_ATTRIBUTE),
+    );
+    expect(contentChildren.at(-1)).toBe(toolWindow.bodyRead());
+    expect(contentChildren[0]?.textContent).toContain('Tool Window Title');
     expect(root.querySelector('button[title="Close"]')).not.toBeNull();
   });
 

@@ -30,6 +30,7 @@ function contentHostTestCreate(): ContentHostTestRig {
       width: '200px',
       height: '100px',
       corner: 'top-left',
+      layoutId: 'test_window',
     },
     content,
   );
@@ -86,6 +87,7 @@ describe('PanelFloatingContentHost', () => {
         height: `${panelHeight}px`,
         corner: 'top-left',
         centered: true,
+        layoutId: 'test_centered',
       },
       document.createElement('div'),
     );
@@ -115,6 +117,7 @@ describe('PanelFloatingContentHost', () => {
         height: 'auto',
         corner: 'top-left',
         closeOnEscape: true,
+        layoutId: 'test_escape',
       },
       document.createElement('div'),
     );

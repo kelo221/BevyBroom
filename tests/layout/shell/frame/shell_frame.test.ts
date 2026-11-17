@@ -110,8 +110,25 @@ describe('ShellFrame', () => {
     expect(inspectorHost.contains(viewColumn)).toBe(false);
     expect(infoPanelHost.contains(viewColumn)).toBe(false);
     expect(inspectorHost.contains(infoPanelHost)).toBe(false);
-    expect(viewColumn.parentElement?.parentElement).toBe(infoPanelHost.parentElement);
-    expect(infoPanelHost.parentElement?.parentElement?.parentElement).toBe(inspectorHost.parentElement);
+    expect(infoPanelHost.parentElement?.contains(viewColumn)).toBe(true);
+    expect(inspectorHost.parentElement?.contains(infoPanelHost)).toBe(true);
+  });
+
+  it('places the tool window docks left, right and below the views, hidden while empty', () => {
+    const { frame } = shellFrameTestCreate(shellTestStorageCreate());
+    const docks = frame.dockSplittersRead();
+    const viewColumn = frame.viewColumnRead();
+    const infoPanelHost = frame.infoPanelHostRead();
+    expect(docks.dockAreaRead().contains(infoPanelHost)).toBe(true);
+    expect(docks.dockAreaRead().contains(frame.inspectorHostRead())).toBe(false);
+    expect(docks.dockPaneRead('left').contains(viewColumn)).toBe(false);
+    expect(docks.viewsAndBottomDockRead().contains(docks.dockPaneRead('bottom'))).toBe(true);
+    expect(docks.viewsAndBottomDockRead().contains(infoPanelHost)).toBe(false);
+    for (const side of ['left', 'right', 'bottom'] as const) {
+      expect(docks.isDockPaneVisible(side)).toBe(false);
+      docks.dockPaneVisibleSet(side, true);
+      expect(docks.isDockPaneVisible(side)).toBe(true);
+    }
   });
 
   it('starts the view column empty so the map views begin right under the toolbar', () => {

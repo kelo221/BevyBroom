@@ -7,6 +7,7 @@ import {
   type ShellState,
 } from '@/layout/shell/state/shell_state.js';
 import type { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
+import { ShellFrameDockSplitters } from './shell_frame_dock_splitters.js';
 
 /** Smallest width of the map views next to the inspector in CSS pixels. */
 const SHELL_FRAME_VIEWS_MIN_WIDTH_PX = 320;
@@ -25,9 +26,9 @@ export type ShellFrameVisibilityListener = () => void;
 
 /**
  * Main window skeleton: a menu bar row, a single toolbar row, the vertical
- * tools palette on the left, the map views with the info panel below them, and
- * the inspector on the right. Dock sizes and visibility are kept in the shell
- * state store.
+ * tools palette on the left, the map views with the info panel below them, the
+ * tool window docks left, right and below the map views, and the inspector on
+ * the right. Dock sizes and visibility are kept in the shell state store.
  */
 export class ShellFrame {
   private readonly root: HTMLElement;
@@ -36,6 +37,7 @@ export class ShellFrame {
   private readonly toolbarHost: HTMLElement;
   private readonly inspectorSplitter: SplitterBox;
   private readonly infoPanelSplitter: SplitterBox;
+  private readonly dockSplitters: ShellFrameDockSplitters;
   private readonly viewColumn: HTMLElement;
   private readonly toolsPaletteHost: HTMLElement;
   private readonly visibilityListeners: Set<ShellFrameVisibilityListener>;
@@ -55,6 +57,7 @@ export class ShellFrame {
     this.toolbarHost = this.rowCreate('shell-toolbar-host');
     this.inspectorSplitter = this.inspectorSplitterCreate(stateStore.getState());
     this.infoPanelSplitter = this.infoPanelSplitterCreate(stateStore.getState());
+    this.dockSplitters = new ShellFrameDockSplitters(stateStore);
     this.viewColumn = this.viewColumnCreate();
     this.toolsPaletteHost = this.toolsPaletteHostCreate();
     this.splittersMount();
@@ -200,7 +203,16 @@ export class ShellFrame {
    * @returns Map views pane.
    */
   viewsPaneRead(): HTMLElement {
-    return this.infoPanelSplitter.getFirstPane();
+    return this.dockSplitters.viewsPaneRead();
+  }
+
+  /**
+   * Returns the tool window docks around the map views.
+   *
+   * @returns Dock splitters.
+   */
+  dockSplittersRead(): ShellFrameDockSplitters {
+    return this.dockSplitters;
   }
 
   /**
@@ -269,6 +281,7 @@ export class ShellFrame {
   /** Removes the main window from the document. */
   dispose(): void {
     this.visibilityListeners.clear();
+    this.dockSplitters.dispose();
     this.infoPanelSplitter.dispose();
     this.inspectorSplitter.dispose();
     this.root.remove();
@@ -383,14 +396,17 @@ export class ShellFrame {
   }
 
   /**
-   * Nests the splitters: the tools palette and the views over the info panel
-   * side by side on the left, the inspector on the right.
+   * Nests the splitters: the tools palette and the docks around the views over
+   * the info panel side by side on the left, the inspector on the right; the
+   * bottom dock sits between the views and the info panel.
    */
   private splittersMount(): void {
-    this.infoPanelSplitter.getFirstPane().appendChild(this.viewColumn);
+    this.dockSplitters.viewsPaneRead().appendChild(this.viewColumn);
+    this.infoPanelSplitter.getFirstPane().appendChild(this.dockSplitters.viewsAndBottomDockRead());
+    this.dockSplitters.centerPaneRead().appendChild(this.infoPanelSplitter.getElement());
     const bodyRow = this.inspectorSplitter.getFirstPane();
     bodyRow.style.flexDirection = 'row';
-    bodyRow.append(this.toolsPaletteHost, this.infoPanelSplitter.getElement());
+    bodyRow.append(this.toolsPaletteHost, this.dockSplitters.dockAreaRead());
     this.root.appendChild(this.inspectorSplitter.getElement());
   }
 

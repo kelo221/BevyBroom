@@ -31,6 +31,8 @@ export const ThemePaletteMacGlassDark: ThemePalette = Object.freeze({
   secondaryTextColor: 'rgba(235, 235, 245, 0.66)',
   tabActiveBackground: 'rgba(255, 255, 255, 0.14)',
   tabActiveAccent: '#0a84ff',
+  dockDropPreviewFill: 'rgba(10, 132, 255, 0.24)',
+  dockDropPreviewBorder: '#0a84ff',
   windowTitleBackground: 'rgba(48, 49, 54, 0.80)',
   outlinerNameIdColor: 'rgba(235, 235, 245, 0.45)',
   outlinerSelectedColor: 'rgba(10, 132, 255, 0.30)',

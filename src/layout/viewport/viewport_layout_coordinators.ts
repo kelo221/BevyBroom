@@ -82,6 +82,7 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     this.setupSnapSettingsController();
     this.installToolEditorFocusSystem();
     this.setupSceneRecovery();
+    this.shellElements.dockCommands.toolWindowsOpenRestore();
   }
 
   /**

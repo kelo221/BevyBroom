@@ -1,6 +1,10 @@
 import type { ShellFrame } from '@/layout/shell/frame/shell_frame.js';
 import type { ShellInfoPanel, ShellInfoPanelTabId } from '@/layout/shell/info_panel/shell_info_panel.js';
 import { ShellInfoPanelCollapseBinding } from '@/layout/shell/info_panel/shell_info_panel_collapse_binding.js';
+import type { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
+import { DockManager, type DockManagerWindowState } from '@/ui/dock/manager/dock_manager.js';
+import type { DockSide } from '@/ui/dock/dock_side.js';
+import type { PanelFloatingLayoutRect } from '@/ui/floating_panel/layout/panel_floating_layout_rect.js';
 import type {
   ShellFloatingWindow,
   ShellFloatingWindowId,
@@ -9,7 +13,7 @@ import type {
 
 /**
  * Commands that show, hide and switch the main window docks and floating
- * windows.
+ * windows, and dock, float and tile the tool windows.
  */
 export class ShellDockCommands {
   private readonly frame: ShellFrame;
@@ -18,6 +22,7 @@ export class ShellDockCommands {
   private readonly infoPanelCollapseBinding: ShellInfoPanelCollapseBinding;
   private readonly floatingWindowOpenChangeListeners = new Set<ShellFloatingWindowOpenChangeListener>();
   private readonly floatingWindowUnsubscribers: (() => void)[] = [];
+  private readonly dockManager: DockManager;
 
   /**
    * Creates dock commands over the main window docks and lets clicks on the
@@ -25,12 +30,14 @@ export class ShellDockCommands {
    *
    * @param frame Main window skeleton that shows and hides the docks.
    * @param infoPanel Bottom info panel.
+   * @param stateStore Store of the saved tool window placements.
    */
-  constructor(frame: ShellFrame, infoPanel: ShellInfoPanel) {
+  constructor(frame: ShellFrame, infoPanel: ShellInfoPanel, stateStore: ShellStateStore) {
     this.frame = frame;
     this.infoPanel = infoPanel;
     this.floatingWindows = new Map();
     this.infoPanelCollapseBinding = new ShellInfoPanelCollapseBinding(frame, infoPanel);
+    this.dockManager = new DockManager(frame.dockSplittersRead(), stateStore);
   }
 
   /**
@@ -38,6 +45,7 @@ export class ShellDockCommands {
    * windows and their listeners.
    */
   dispose(): void {
+    this.dockManager.dispose();
     this.infoPanelCollapseBinding.dispose();
     this.floatingWindowUnsubscribers.splice(0).forEach((unsubscribe) => unsubscribe());
     this.floatingWindowOpenChangeListeners.clear();
@@ -101,6 +109,51 @@ export class ShellDockCommands {
     if (this.isFloatingWindowOpen(windowId) !== visible) {
       this.floatingWindowToggle(windowId);
     }
+  }
+
+  /**
+   * Docks a tool window to an edge of the main window, or floats it with null.
+   *
+   * @param windowId Layout id of the window.
+   * @param side Dock edge, or null to float.
+   */
+  toolWindowDock(windowId: string, side: DockSide | null): void {
+    this.dockManager.windowDock(windowId, side);
+  }
+
+  /**
+   * Reports where each tool window is docked or floating and whether it is
+   * open.
+   *
+   * @returns Window states by layout id.
+   */
+  toolWindowStatesRead(): Record<string, DockManagerWindowState> {
+    return this.dockManager.windowStatesRead();
+  }
+
+  /**
+   * Moves and sizes a tool window's floating rect.
+   *
+   * @param windowId Layout id of the window.
+   * @param rect Floating rect in client pixels.
+   */
+  toolWindowFloatingRectSet(windowId: string, rect: PanelFloatingLayoutRect): void {
+    this.dockManager.windowFloatingRectSet(windowId, rect);
+  }
+
+  /** Arranges every open floating tool window side by side over the map area. */
+  floatingWindowsTile(): void {
+    this.dockManager.floatingWindowsTile();
+  }
+
+  /** Floats every tool window at its default place and size. */
+  toolWindowLayoutReset(): void {
+    this.dockManager.layoutReset();
+  }
+
+  /** Opens the tool windows that were open at quit and reopen at startup. */
+  toolWindowsOpenRestore(): void {
+    this.dockManager.windowsOpenRestore();
   }
 
   /** Shows the inspector when it is hidden. */

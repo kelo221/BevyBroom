@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { EditorApi } from '@/ai/client/editor_api.js';
 import { findMcpTool } from '@/ai/server/registry_mcp_tool.js';
 import { Toolbar } from '@/ui/toolbar/toolbar.js';
+import { PanelFloatingContentHost } from '@/ui/floating_panel/panel_floating_content_host.js';
 import { ShellMainWindowControl, type ShellMainWindowState } from '@/layout/shell/actions/shell_main_window_control.js';
 import type { ShellMainWindowLayout } from '@/layout/shell/actions/shell_main_window_layout.js';
 import { editorApiTestHostCreate } from './editor_api_test_host.js';
@@ -67,6 +68,38 @@ describe('EditorApi main window tools', () => {
     const closed = api.invokeTool('set_main_window', { floatingWindows: { texture_browser: false } });
     expect((closed.data as ShellMainWindowState).floatingWindows.texture_browser).toBe(false);
     expect(api.invokeTool('set_main_window', { floatingWindows: { face_edit: true } }).ok).toBe(false);
+  });
+
+  it('docks, floats, sizes and tiles tool windows and reports where they are', () => {
+    const toolWindow = new PanelFloatingContentHost(
+      document.body,
+      { titleText: 'Api Tool', className: 'api-tool', width: '240px', height: '200px', layoutId: 'api_tool' },
+      document.createElement('div'),
+    );
+    toolWindow.show();
+    const docked = api.invokeTool('set_main_window', { toolWindowPlacements: { api_tool: 'bottom' } });
+    expect(docked.ok).toBe(true);
+    expect((docked.data as ShellMainWindowState).toolWindows['api_tool']).toMatchObject({
+      title: 'Api Tool',
+      placement: 'bottom',
+      isOpen: true,
+    });
+    expect(docks.frame.dockSplittersRead().dockPaneRead('bottom').contains(toolWindow.getRootElement())).toBe(true);
+    const rect = { left: 30, top: 40, width: 333, height: 222 };
+    api.invokeTool('set_main_window', {
+      toolWindowPlacements: { api_tool: 'floating' },
+      toolWindowRects: { api_tool: rect },
+    });
+    expect(toolWindow.getRootElement().style.width).toBe(`${rect.width}px`);
+    expect(api.invokeTool('set_main_window', { tileFloatingWindows: true }).ok).toBe(true);
+    api.invokeTool('set_main_window', { toolWindowPlacements: { api_tool: 'right' } });
+    const reset = api.invokeTool('set_main_window', { resetWindowLayout: true });
+    expect((reset.data as ShellMainWindowState).toolWindows['api_tool']?.placement).toBe('floating');
+    expect(api.invokeTool('set_main_window', { resetWindowLayout: 'yes' }).ok).toBe(false);
+    expect(api.invokeTool('set_main_window', { toolWindowPlacements: { api_tool: 'top' } }).ok).toBe(false);
+    expect(api.invokeTool('set_main_window', { toolWindowPlacements: { no_window: 'left' } }).ok).toBe(false);
+    expect(api.invokeTool('set_main_window', { toolWindowRects: { api_tool: { ...rect, width: 1 } } }).ok).toBe(false);
+    toolWindow.dispose();
   });
 
   it('switches the info panel tab and hides the info panel', () => {

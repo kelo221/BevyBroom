@@ -1,12 +1,17 @@
 import { areEditorStorageWritesSuppressed } from '@/settings/storage/clear_editor_storage.js';
 import type { ShellState } from './shell_state.js';
+import {
+  dockWindowLayoutDefault,
+  type DockLayoutStorage,
+  type DockWindowLayout,
+} from '@/ui/dock/state/dock_window_layout.js';
 import { shellStateSanitize } from './shell_state_sanitizer.js';
 
 /** Storage key of the saved main window arrangement. */
 export const SHELL_STATE_STORAGE_KEY = 'bevybroom.settings.shell';
 
 /** Loads, updates and saves the main window arrangement. */
-export class ShellStateStore {
+export class ShellStateStore implements DockLayoutStorage {
   private readonly storage: Storage | null;
   private state: ShellState;
 
@@ -26,7 +31,11 @@ export class ShellStateStore {
    * @returns Shell state.
    */
   getState(): ShellState {
-    return { ...this.state, splitSizesPx: { ...this.state.splitSizesPx } };
+    return {
+      ...this.state,
+      splitSizesPx: { ...this.state.splitSizesPx },
+      windowLayouts: { ...this.state.windowLayouts },
+    };
   }
 
   /**
@@ -34,7 +43,7 @@ export class ShellStateStore {
    *
    * @param changes Fields to replace.
    */
-  update(changes: Partial<Omit<ShellState, 'splitSizesPx'>>): void {
+  update(changes: Partial<Omit<ShellState, 'splitSizesPx' | 'windowLayouts'>>): void {
     this.state = { ...this.state, ...changes };
     this.persist();
   }
@@ -58,6 +67,33 @@ export class ShellStateStore {
    */
   splitSizeWrite(splitKey: string, sizePx: number): void {
     this.state = { ...this.state, splitSizesPx: { ...this.state.splitSizesPx, [splitKey]: sizePx } };
+    this.persist();
+  }
+
+  /**
+   * Returns the saved placement of a tool window.
+   *
+   * @param windowId Window layout id.
+   * @returns Saved placement, or the floating default.
+   */
+  windowLayoutRead(windowId: string): DockWindowLayout {
+    return this.state.windowLayouts[windowId] ?? dockWindowLayoutDefault();
+  }
+
+  /**
+   * Saves the placement of a tool window.
+   *
+   * @param windowId Window layout id.
+   * @param layout Placement to save.
+   */
+  windowLayoutWrite(windowId: string, layout: DockWindowLayout): void {
+    this.state = { ...this.state, windowLayouts: { ...this.state.windowLayouts, [windowId]: layout } };
+    this.persist();
+  }
+
+  /** Forgets the placement of every tool window. */
+  windowLayoutsClear(): void {
+    this.state = { ...this.state, windowLayouts: {} };
     this.persist();
   }
 
