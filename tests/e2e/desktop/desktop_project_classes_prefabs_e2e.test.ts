@@ -142,7 +142,7 @@ describe.skipIf(!isConfigured)('desktop app project classes and prefabs end to e
       );
       expect(status.project?.canLaunch).toBe(false);
       const launch = await client.toolCall('game_launch');
-      expect(JSON.stringify(launch)).toContain(GAME_PROCESS_NO_PREVIEW_REFUSAL);
+      expect(launch.message).toBe(GAME_PROCESS_NO_PREVIEW_REFUSAL);
     },
     STEP_TIMEOUT_MILLISECONDS,
   );
