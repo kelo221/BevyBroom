@@ -235,7 +235,7 @@ function cloneGroupForExport(group: THREE.Group, options: ExportSceneOptions): T
  *   own geometry.
  * @returns Mesh clone without helper children.
  */
-function cloneContentMeshForExport(
+export function cloneContentMeshForExport(
   mesh: THREE.Mesh,
   options: ExportSceneOptions,
   sourceGeometry: THREE.BufferGeometry = mesh.geometry,

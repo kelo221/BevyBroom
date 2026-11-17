@@ -123,6 +123,22 @@ export class ObjectDataContributorRegistry {
   }
 
   /**
+   * Returns what every contributor builds the export geometry of an entity
+   * owner from.
+   *
+   * @param owner Entity owner.
+   * @returns Joined descriptions, empty when no contributor exports geometry
+   *   for the owner.
+   */
+  static exportEntitySignatureDescribe(owner: THREE.Object3D): string {
+    return ObjectDataContributorRegistry.contributors
+      .list()
+      .map((contributor) => contributor.exportEntitySignatureDescribe(owner))
+      .filter((description): description is string => description !== null)
+      .join(';');
+  }
+
+  /**
    * Lets every contributor copy its data of one object onto a duplicate.
    *
    * @param source Duplicated object.
