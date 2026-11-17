@@ -6,6 +6,7 @@ import {
   gameEntityClassListFromUnknown,
   gameEntityClassShortName,
   gameEntityIoPinFromUnknown,
+  gameEntityMarkerBoxFromUnknown,
 } from '@/game_entity/class/game_entity_class_schema.js';
 import { testClassListCreate, testDoorClassCreate } from '../game_entity_test_classes.js';
 
@@ -82,6 +83,51 @@ describe('game entity class schema', () => {
     const gameClass = gameEntityClassFromUnknown({ type_path: 'game::things::Crate', inputs: [] });
     expect(gameClass && 'inputs' in gameClass).toBe(false);
     expect(gameClass && 'outputs' in gameClass).toBe(false);
+  });
+
+  it('keeps the marker boxes of a class and drops the malformed ones', () => {
+    const plainBox = { size: [1, 2, 0.5], offset: [0, 1, 0] };
+    const gameClass = gameEntityClassFromUnknown({
+      type_path: 'game::store::Shelf',
+      marker_box: plainBox,
+      marker_box_field: 'fixture',
+      marker_boxes: { tall: { size: [4, 2, 1] }, flat: { size: [4, 0, 1] }, odd: 'box' },
+    });
+    expect(gameClass?.marker_box).toEqual(plainBox);
+    expect(gameClass?.marker_box_field).toBe('fixture');
+    expect(gameClass?.marker_boxes).toEqual({ tall: { size: [4, 2, 1], offset: [0, 0, 0] } });
+  });
+
+  it('leaves marker box keys out of classes that declare none', () => {
+    const gameClass = gameEntityClassFromUnknown({ type_path: 'game::store::Start', marker_boxes: {} });
+    expect(gameClass === null ? [] : Object.keys(gameClass)).not.toEqual(
+      expect.arrayContaining(['marker_box', 'marker_box_field', 'marker_boxes']),
+    );
+  });
+
+  it('refuses marker boxes without a positive finite size', () => {
+    expect(gameEntityMarkerBoxFromUnknown({ size: [1, -1, 1] })).toBeNull();
+    expect(gameEntityMarkerBoxFromUnknown({ size: [1, 1] })).toBeNull();
+    expect(gameEntityMarkerBoxFromUnknown({ size: [1, Number.NaN, 1] })).toBeNull();
+    expect(gameEntityMarkerBoxFromUnknown({ size: [1, 1, 1], offset: ['x', 0, 0] })).toEqual({
+      size: [1, 1, 1],
+      offset: [0, 0, 0],
+    });
+  });
+
+  it('keeps the marker boxes of every class in the shared bridge fixture', () => {
+    const raw = JSON.parse(
+      readFileSync(resolve(FIXTURE_BRIDGE_DIRECTORY, 'placeable_classes_sample.json'), 'utf8'),
+    ) as { classes: Array<Record<string, unknown>> };
+    const list = gameEntityClassListFromUnknown(raw);
+    const rawWithBoxes = raw.classes.filter((entry) => entry['marker_box'] !== undefined);
+    expect(rawWithBoxes.length).toBeGreaterThan(0);
+    rawWithBoxes.forEach((rawClass) => {
+      const parsed = list?.classes.find((entry) => entry.type_path === rawClass['type_path']);
+      expect(parsed?.marker_box).toEqual(rawClass['marker_box']);
+      expect(parsed?.marker_box_field).toEqual(rawClass['marker_box_field']);
+      expect(parsed?.marker_boxes).toEqual(rawClass['marker_boxes']);
+    });
   });
 
   it('rejects values that are not objects', () => {
