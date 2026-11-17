@@ -9,6 +9,8 @@
 //! - [`AppDataAssetExt::register_data_asset`] makes a type a data asset the editor edits.
 //! - [`BroomGltfComponentsPlugin`] does the same for the `broom_components` node extras of a
 //!   GLB exported by the editor, without the bridge.
+//! - [`BroomProceduralProp`] carries the generator and parameters of a procedural object, as a
+//!   built-in placeable like [`BroomProperties`].
 //! - [`BroomGltfDisplacementPlugin`] inserts [`BroomDisplacementSurface`] with the collision
 //!   flags of displacement surfaces from their `broom_displacement` node extras.
 
@@ -20,6 +22,7 @@ pub(crate) mod data_assets;
 mod displacement;
 mod extras;
 mod points;
+mod procedural;
 mod properties;
 mod registry;
 mod schema;
@@ -47,6 +50,7 @@ pub use data_assets::{
 pub use displacement::{BroomDisplacementSurface, BroomGltfDisplacementPlugin};
 pub use extras::BroomGltfComponentsPlugin;
 pub use points::AuthoredGameEntity;
+pub use procedural::BroomProceduralProp;
 pub use properties::{BroomProperties, PropertyValue};
 pub use registry::{AppPlaceableExt, PlaceableClasses, PlaceableOptions};
 pub use sync::PlacedComponents;
@@ -100,6 +104,17 @@ fn placeable_basics_init(app: &mut App) {
     if !has_properties {
         app.register_placeable::<BroomProperties>(
             PlaceableOptions::any().category("Data").label("Properties"),
+        );
+    }
+    let has_procedural = app
+        .world()
+        .resource::<PlaceableClasses>()
+        .contains(BroomProceduralProp::type_path());
+    if !has_procedural {
+        app.register_placeable::<BroomProceduralProp>(
+            PlaceableOptions::any()
+                .category("Procedural")
+                .label("Procedural Prop"),
         );
     }
     let has_images = app

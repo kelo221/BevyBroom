@@ -5,6 +5,7 @@ import { ObjectDataContributorLightNodes } from '@/light/export/object_data_cont
 import { ObjectDataContributorLayers } from '@/layer/persistence/object_data_contributor_layers.js';
 import type { ObjectDataContributor } from '@/object_data/object_data_contributor.js';
 import { ObjectDataContributorPortalCells } from '@/portal/export/object_data_contributor_portal_cells.js';
+import { ObjectDataContributorProcedural } from '@/procedural/export/object_data_contributor_procedural.js';
 import { ObjectDataContributorPreviewEntitySettings } from '@/preview/state/object_data_contributor_preview_entity_settings.js';
 import { ObjectDataContributorProjectLink } from '@/project/document/object_data_contributor_project_link.js';
 import { ObjectDataContributorPolygonOutline } from '@/tools/polygon/object_data_contributor_polygon_outline.js';
@@ -22,6 +23,7 @@ export function objectDataContributorsBuiltinCreate(): readonly ObjectDataContri
     new ObjectDataContributorPortalCells(),
     new ObjectDataContributorLightNodes(),
     new ObjectDataContributorGameComponents(),
+    new ObjectDataContributorProcedural(),
     new ObjectDataContributorGameLogic(),
     new ObjectDataContributorPolygonOutline(),
     new ObjectDataContributorSprinkleMark(),

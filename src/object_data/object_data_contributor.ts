@@ -83,6 +83,18 @@ export abstract class ObjectDataContributor {
   }
 
   /**
+   * Describes what the export children of an entity owner are built from, so
+   * the game preview sends new geometry exactly when they change.
+   *
+   * @param _owner Entity owner.
+   * @returns Text that changes with the exported geometry, or null when this
+   *   contributor exports no geometry for the owner.
+   */
+  exportEntitySignatureDescribe(_owner: THREE.Object3D): string | null {
+    return null;
+  }
+
+  /**
    * Writes this feature's export extras of one object onto its export node.
    *
    * @param _source Live scene object.

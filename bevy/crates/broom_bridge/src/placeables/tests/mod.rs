@@ -6,6 +6,7 @@ mod data_assets;
 mod displacement;
 mod extras;
 mod manifest;
+mod procedural;
 mod schema;
 mod sync;
 
