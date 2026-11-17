@@ -37,7 +37,7 @@ export class ProceduralVisualBuilder {
    */
   static refresh(owner: THREE.Object3D, settings: ProceduralSettings): void {
     EntityVisualBuilder.guidesRemove(owner);
-    const parts = ProceduralBuild.partsOf(settings);
+    const parts = ProceduralBuild.displayPartsOf(settings);
     if (parts === null) {
       ProceduralVisualBuilder.unknownMarkerEnsure(owner);
       return;
