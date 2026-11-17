@@ -17,6 +17,7 @@ import { EditorApiTextureReplace } from './editor_api_texture_replace.js';
 import { EditorApiTextureBrowser } from './editor_api_texture_browser.js';
 import { EditorApiSprinkle } from './editor_api_sprinkle.js';
 import { EditorApiModifierVolumes } from './editor_api_modifier_volumes.js';
+import { EditorApiProcedural } from './editor_api_procedural.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 
 /**
@@ -24,7 +25,7 @@ import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
  * Object Properties dialog, clipboard, brush editing, face UV, displacement,
  * face edit state, viewport input, keyboard input, open menus, selection
  * queries, selection visibility, material replacement, the texture browser,
- * Entity Sprinkle and modifier volumes.
+ * Entity Sprinkle, modifier volumes and procedural objects.
  */
 export class EditorApiToolGroups {
   private readonly layers: EditorApiLayers;
@@ -45,6 +46,7 @@ export class EditorApiToolGroups {
   private readonly textureBrowser: EditorApiTextureBrowser;
   private readonly sprinkle: EditorApiSprinkle;
   private readonly modifierVolumes: EditorApiModifierVolumes;
+  private readonly procedural: EditorApiProcedural;
 
   /**
    * Creates every tool group over the editor host.
@@ -72,6 +74,7 @@ export class EditorApiToolGroups {
     this.textureBrowser = new EditorApiTextureBrowser();
     this.sprinkle = new EditorApiSprinkle(host);
     this.modifierVolumes = new EditorApiModifierVolumes(host);
+    this.procedural = new EditorApiProcedural(host);
   }
 
   /**
@@ -100,7 +103,8 @@ export class EditorApiToolGroups {
       this.textureReplace.textureReplaceToolDispatch(name, args) ??
       this.textureBrowser.textureBrowserToolDispatch(name) ??
       this.sprinkle.sprinkleToolDispatch(name, args) ??
-      this.modifierVolumes.modifierVolumeToolDispatch(name, args)
+      this.modifierVolumes.modifierVolumeToolDispatch(name, args) ??
+      this.procedural.proceduralToolDispatch(name, args)
     );
   }
 }

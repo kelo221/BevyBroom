@@ -14,6 +14,7 @@ import { MCP_PROJECT_TOOL_DEFINITIONS } from './registry_mcp_tool_project.js';
 import { MCP_TEXTURE_TOOL_DEFINITIONS } from './registry_mcp_tool_textures.js';
 import { MCP_SPRINKLE_TOOL_DEFINITIONS } from './registry_mcp_tool_sprinkle.js';
 import { MCP_MODIFIER_VOLUME_TOOL_DEFINITIONS } from './registry_mcp_tool_modifier_volumes.js';
+import { MCP_PROCEDURAL_TOOL_DEFINITIONS } from './registry_mcp_tool_procedural.js';
 import { emptySchema, tool, vec3Schema, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
 export type { McpToolDefinition } from './registry_mcp_tool_helpers.js';
@@ -830,6 +831,7 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ...MCP_TEXTURE_TOOL_DEFINITIONS,
   ...MCP_SPRINKLE_TOOL_DEFINITIONS,
   ...MCP_MODIFIER_VOLUME_TOOL_DEFINITIONS,
+  ...MCP_PROCEDURAL_TOOL_DEFINITIONS,
 ];
 
 /**

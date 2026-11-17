@@ -55,8 +55,8 @@ pub mod prelude {
     pub use crate::placeables::{
         AppDataAssetExt, AppPlaceableAssetExt, AppPlaceableExt, AuthoredGameEntity,
         BroomDisplacementSurface, BroomGltfComponentsPlugin, BroomGltfDisplacementPlugin,
-        BroomProperties, FieldHidden, FieldLabel, FieldRange, FieldStep, PlaceableOptions,
-        PropertyValue,
+        BroomProceduralProp, BroomProperties, FieldHidden, FieldLabel, FieldRange, FieldStep,
+        PlaceableOptions, PropertyValue,
     };
     pub use crate::project::{PROJECT_FILE_NAME, ProjectPaths};
     pub use crate::{BroomBridgePlugin, BroomLevelPlugin};

@@ -548,7 +548,11 @@ function pickMaterialAssignment(materials: ContentViewLitMaterial[]): THREE.Mate
  * @param cache Texture map cache that resolves the id to a diffuse map.
  * @returns Content view-lit material.
  */
-function createSurfaceMaterial(color: number, textureId: string, cache: TextureMapCache): ContentViewLitMaterial {
+export function createSurfaceMaterial(
+  color: number,
+  textureId: string,
+  cache: TextureMapCache,
+): ContentViewLitMaterial {
   const material = createContentViewLitMaterial(color, cache.resolve(textureId), {
     flatShading: true,
     side: THREE.FrontSide,

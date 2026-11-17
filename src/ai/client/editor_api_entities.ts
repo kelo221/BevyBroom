@@ -53,11 +53,35 @@ export class EditorApiEntities {
     if (!settings) {
       return failResult(`Invalid ${kind} settings`);
     }
-    const owner = entityOwner.create(args.name ?? this.entityDefaultName(kind), settings);
-    editorApiTransformApply(owner, args);
+    return this.entityOwnerAdd(entityOwner, settings, args.name ?? this.entityDefaultName(kind), args);
+  }
+
+  /**
+   * Adds an entity with complete settings at the requested transform as one
+   * undo step.
+   *
+   * @param entityOwner Owner helper of the entity's kind.
+   * @param settings Valid settings of the new entity.
+   * @param name Display name.
+   * @param transform Requested position, rotation and scale.
+   * @returns Result naming the new entity's id and its settings.
+   */
+  entityOwnerAdd(
+    entityOwner: EntityOwner<object>,
+    settings: object,
+    name: string,
+    transform: EditorApiTransformArgs,
+  ): McpToolResult {
+    const owner = entityOwner.create(name, settings);
+    editorApiTransformApply(owner, transform);
     this.host.commandStack.push(new CommandPrimitiveCreate(owner, this.host.worldObject));
     this.host.refreshAfterWorldMutation();
-    return okResult(`Added ${kind} ${owner.name}`, { id: owner.uuid, settings }, { createdIds: [owner.uuid] });
+    const stored = entityOwner.settingsRead(owner) ?? settings;
+    return okResult(
+      `Added ${entityOwner.kind} ${owner.name}`,
+      { id: owner.uuid, settings: stored },
+      { createdIds: [owner.uuid] },
+    );
   }
 
   /**

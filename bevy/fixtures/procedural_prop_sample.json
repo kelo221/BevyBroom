@@ -1,0 +1,10 @@
+{
+  "broom_components": {
+    "broom_bridge::placeables::procedural::BroomProceduralProp": {
+      "generator": "box",
+      "version": 1,
+      "parameters": "{\"corner_a\":[-1,0,-0.5],\"corner_b\":[1,2,0.5]}",
+      "derived": "{\"size\":[2,2,1]}"
+    }
+  }
+}
