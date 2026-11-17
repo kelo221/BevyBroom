@@ -47,16 +47,16 @@ export class EntityVisualPointBox {
    * @returns The box marker mesh.
    */
   static ensure(owner: THREE.Object3D, look: EntityPointBoxLook): THREE.Mesh {
-    const marker = EntityVisualPointBox.shapeApply(owner, look.shape ?? ENTITY_POINT_BOX_SHAPE_DEFAULT, look.name);
     const iconSize = ENTITY_POINT_BOX_SIZE * ENTITY_POINT_BOX_ICON_SHARE;
     EntityVisualBillboard.iconEnsure(owner, look.iconName, iconSize, look.beforeRender);
+    const marker = EntityVisualPointBox.shapeApply(owner, look.shape ?? ENTITY_POINT_BOX_SHAPE_DEFAULT, look.name);
     EntityVisualPointBox.tint(owner, look.colorHex, look.opacity);
     return marker;
   }
 
   /**
    * Gives the owner's box marker and its edges the geometry of a shape,
-   * creating them when they are missing. The icon is left as it is.
+   * creating them when they are missing, and moves the icon to the box center.
    *
    * @param owner Entity owner group.
    * @param shape Size and placement of the box.
@@ -68,6 +68,7 @@ export class EntityVisualPointBox {
     const marker = EntityVisualBuilder.markerEnsure(owner, geometryPair.faces, name);
     shadingExemptFlag(marker);
     EntityVisualPointBox.edgesEnsure(marker, geometryPair.edges);
+    EntityVisualBillboard.iconFind(owner)?.position.set(...shape.offset);
     return marker;
   }
 

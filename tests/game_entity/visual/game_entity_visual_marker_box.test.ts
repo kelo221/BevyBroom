@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
+import { EntityVisualBillboard } from '@/entity/visual/entity_visual_billboard.js';
 import { ENTITY_POINT_BOX_SIZE } from '@/entity/visual/entity_visual_point_box_geometry.js';
 import type { GameEntityClass, GameEntityMarkerBox } from '@/game_entity/class/game_entity_class_schema.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
@@ -146,5 +147,15 @@ describe('GameEntityVisualMarkerBox', () => {
     }
     edges.geometry.computeBoundingBox();
     expectBoxesMatch(edges.geometry.boundingBox ?? new THREE.Box3(), faceBounds);
+  });
+
+  it('keeps the icon in the center of the chosen box', () => {
+    cleanups.push(doorClassWithBoxesInstall());
+    const door = doorClassWithBoxes();
+    const owner = gameEntityCreateForClass(door);
+    GameEntityComponentStore.write(owner, { [door.type_path]: { kind: 'Iron' } });
+    const center = markerBoundsRead(owner).getCenter(new THREE.Vector3());
+    const icon = EntityVisualBillboard.iconFind(owner);
+    expect(icon?.position.distanceTo(center)).toBeLessThan(1e-6);
   });
 });
