@@ -417,6 +417,7 @@ describe('FlyingCamera', () => {
 
     // Start panning with middle button
     canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 1, pointerId: 1 }));
+    canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 0, movementY: 0, pointerId: 1 }));
 
     // Simulate many small pan movements
     const smallStep = 5;
@@ -433,6 +434,7 @@ describe('FlyingCamera', () => {
     camera.position.set(0, 0, 0);
     canvas.dispatchEvent(new PointerEvent('pointerup', { button: 1, pointerId: 1 }));
     canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 1, pointerId: 1 }));
+    canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 0, movementY: 0, pointerId: 1 }));
 
     // Simulate one large movement equal to the sum of small steps
     const largeDelta = smallStep * steps;
@@ -635,5 +637,27 @@ describe('FlyingCamera wheel fly speed', () => {
     flyingCameraWheel(rig, -1);
     expect(listener.mock.calls).toEqual([[rig.flyingCamera.getMoveSpeed()]]);
     rig.flyingCamera.dispose();
+  });
+
+  it('ignores the jump of the first move after pointer lock starts, then looks normally', () => {
+    const inputManager = new ManagerInput();
+    const canvas = document.createElement('canvas');
+    (canvas as unknown as { requestPointerLock: () => void }).requestPointerLock = () => {
+      Object.defineProperty(document, 'pointerLockElement', { value: canvas, configurable: true });
+      document.dispatchEvent(new Event('pointerlockchange'));
+    };
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+    const flyingCamera = new CameraFlying(canvas, camera, inputManager, 0, 0);
+    const positionBefore = camera.position.clone();
+    canvas.dispatchEvent(new PointerEvent('pointerdown', { button: 2, pointerId: 1 }));
+    const pitchBefore = flyingCamera.getPitch();
+    canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 0, movementY: -400 } as PointerEventInit));
+    flyingCamera.update(0.016);
+    expect(flyingCamera.getPitch()).toBe(pitchBefore);
+    expect(camera.position.distanceTo(positionBefore)).toBe(0);
+    canvas.dispatchEvent(new PointerEvent('pointermove', { movementX: 0, movementY: -10 } as PointerEventInit));
+    expect(flyingCamera.getPitch()).toBeGreaterThan(pitchBefore);
+    inputManager.dispose();
+    flyingCamera.dispose();
   });
 });
