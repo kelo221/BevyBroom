@@ -28,9 +28,28 @@ export class ProceduralPartBox {
     cornerMinimum: THREE.Vector3,
     cornerMaximum: THREE.Vector3,
   ): ProceduralPart {
-    const corners = ProceduralPartBox.cornersCreate(cornerMinimum, cornerMaximum);
+    return ProceduralPartBox.fromCorners(
+      name,
+      materialSlot,
+      ProceduralPartBox.cornersCreate(cornerMinimum, cornerMaximum),
+    );
+  }
+
+  /**
+   * Creates the part of a box moved by an orientation-keeping affine map, such
+   * as a sheared or turned box, from its eight mapped corners.
+   *
+   * @param name Part name.
+   * @param materialSlot Material slot that textures the part.
+   * @param corners Eight corners indexed like an axis-aligned box: bit 0 of the
+   *   index picks maximum X, bit 1 maximum Y and bit 2 maximum Z before the
+   *   map.
+   * @returns Convex part with six planar quad faces.
+   */
+  static fromCorners(name: string, materialSlot: string, corners: readonly THREE.Vector3[]): ProceduralPart {
+    const fallback = corners[0] ?? new THREE.Vector3();
     const faces = PROCEDURAL_PART_BOX_FACE_CORNERS.map((indices) =>
-      indices.map((index) => (corners[index] ?? cornerMinimum).clone()),
+      indices.map((index) => (corners[index] ?? fallback).clone()),
     );
     return { name, materialSlot, faces };
   }
@@ -43,7 +62,7 @@ export class ProceduralPartBox {
    * @param cornerMaximum Corner with the largest coordinates.
    * @returns Corners by index.
    */
-  private static cornersCreate(cornerMinimum: THREE.Vector3, cornerMaximum: THREE.Vector3): THREE.Vector3[] {
+  static cornersCreate(cornerMinimum: THREE.Vector3, cornerMaximum: THREE.Vector3): THREE.Vector3[] {
     const corners: THREE.Vector3[] = [];
     for (let index = 0; index < 8; index++) {
       corners.push(

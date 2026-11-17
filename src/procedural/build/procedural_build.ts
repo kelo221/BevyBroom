@@ -24,6 +24,22 @@ export class ProceduralBuild {
   }
 
   /**
+   * Returns the parts the editor shows: the built parts, or the generator's
+   * placeholder when the parameters build none.
+   *
+   * @param settings Valid settings.
+   * @returns Parts to show, or null when the generator is unknown.
+   */
+  static displayPartsOf(settings: ProceduralSettings): ProceduralPart[] | null {
+    const generator = ProceduralGeneratorRegistry.find(settings.generatorId);
+    if (generator === null) {
+      return null;
+    }
+    const parts = generator.partsBuild(settings.parameters);
+    return parts.length > 0 ? parts : generator.placeholderPartsBuild(settings.parameters);
+  }
+
+  /**
    * Returns a key equal for settings that build the same parts with the same
    * textures.
    *

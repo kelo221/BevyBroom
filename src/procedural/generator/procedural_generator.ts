@@ -1,14 +1,32 @@
+import * as THREE from 'three';
 import type { GameEntityField } from '@/game_entity/class/game_entity_class_schema.js';
 import type { ProceduralPart } from '@/procedural/build/procedural_part.js';
+import { ProceduralPartBox } from '@/procedural/build/procedural_part_box.js';
 import { proceduralFieldValueSanitize } from '@/procedural/generator/procedural_field_value_sanitize.js';
 import type { ProceduralMaterials, ProceduralParameters } from '@/procedural/model/procedural_settings.js';
 import { DEFAULT_CHECKER_TEXTURE_ID } from '@/texture/library/texture_id.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 
+/**
+ * Edge length of the cube shown for objects whose parameters build nothing, in
+ * meters.
+ */
+const PROCEDURAL_GENERATOR_PLACEHOLDER_SIZE = 0.25;
+
 /** One material slot of a generator: the parts that share one texture. */
 export interface ProceduralMaterialSlot {
   readonly name: string;
   readonly label: string;
+}
+
+/**
+ * A length field shown as a handle beside the line between two point fields,
+ * such as a width: the handle sits across the line at half the length.
+ */
+export interface ProceduralHandleSpanDefinition {
+  readonly path: string;
+  readonly lineStartPath: string;
+  readonly lineEndPath: string;
 }
 
 /**
@@ -62,6 +80,16 @@ export abstract class ProceduralGenerator {
   }
 
   /**
+   * Returns the length fields shown as handles across a line between two
+   * points. None unless a generator names them.
+   *
+   * @returns Span handle definitions.
+   */
+  handleSpans(): readonly ProceduralHandleSpanDefinition[] {
+    return [];
+  }
+
+  /**
    * Returns values worked out from the parameters that the game should read
    * instead of computing them again. None unless a generator adds them.
    *
@@ -83,6 +111,28 @@ export abstract class ProceduralGenerator {
   issuesDescribe(parameters: ProceduralParameters): string[] {
     void parameters;
     return [];
+  }
+
+  /**
+   * Returns what the editor shows of an object whose parameters build no parts,
+   * so it can still be seen, clicked and fixed. Never exported. The default is
+   * a small cube on the object's origin.
+   *
+   * @param parameters Valid parameters.
+   * @returns Placeholder parts.
+   */
+  placeholderPartsBuild(parameters: ProceduralParameters): ProceduralPart[] {
+    void parameters;
+    const half = PROCEDURAL_GENERATOR_PLACEHOLDER_SIZE / 2;
+    const slot = this.materialSlots()[0]?.name ?? '';
+    return [
+      ProceduralPartBox.create(
+        'Placeholder',
+        slot,
+        new THREE.Vector3(-half, 0, -half),
+        new THREE.Vector3(half, half * 2, half),
+      ),
+    ];
   }
 
   /**

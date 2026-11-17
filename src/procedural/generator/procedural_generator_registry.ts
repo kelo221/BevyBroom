@@ -1,4 +1,5 @@
 import { ProceduralGeneratorBox } from '@/procedural/generator/box/procedural_generator_box.js';
+import { ProceduralGeneratorPeopleMover } from '@/procedural/generator/people_mover/procedural_generator_people_mover.js';
 import type { ProceduralGenerator } from '@/procedural/generator/procedural_generator.js';
 import { RegistryExtensible } from '@/utils/registry/registry_extensible.js';
 
@@ -8,7 +9,7 @@ import { RegistryExtensible } from '@/utils/registry/registry_extensible.js';
  * @returns Generators in menu order.
  */
 function proceduralGeneratorsBuiltinCreate(): readonly ProceduralGenerator[] {
-  return [new ProceduralGeneratorBox()];
+  return [new ProceduralGeneratorBox(), new ProceduralGeneratorPeopleMover()];
 }
 
 /**
