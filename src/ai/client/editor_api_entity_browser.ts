@@ -87,7 +87,7 @@ export class EditorApiEntityBrowser {
    *
    * @param args Tool arguments with tileId, view and at.
    * @returns Result with the selection after the drop, which holds what was
-   *   placed.
+   *   placed, and the page text left selected by the drag.
    */
   private tileDrag(args: Record<string, unknown>): McpToolResult {
     const tileId = typeof args['tileId'] === 'string' ? args['tileId'] : '';
@@ -108,7 +108,8 @@ export class EditorApiEntityBrowser {
     const dropPoint = editorApiViewportClientPointOf(viewport, at);
     this.pointerDragSend(tile, viewport.getContentElement(), dropPoint);
     const selection = this.selectionResultRead().data;
-    return okResult(`Dragged ${tileId} into the ${view} view`, { selection, dropPoint });
+    const pageSelectedText = this.ownerDocument.getSelection()?.toString() ?? '';
+    return okResult(`Dragged ${tileId} into the ${view} view`, { selection, dropPoint, pageSelectedText });
   }
 
   /**

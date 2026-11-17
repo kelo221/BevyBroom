@@ -123,6 +123,18 @@ describe('prefabs in the entity browser', () => {
     );
   });
 
+  it('names a category equal to the section once and leaves the map usage line out of prefab tooltips', () => {
+    const rig = sharedRigCreate();
+    const prefabId = prefabAdd(rig, 'Crate Stack', PREFAB_ADD_MENU_SECTION_LABEL);
+    expect(prefabEntryFind(prefabId).category).toBe(PREFAB_ADD_MENU_SECTION_LABEL);
+    const browser = browserMount();
+    const tile = browser
+      .getElement()
+      .querySelector<HTMLElement>(`[${ENTITY_BROWSER_TILE_ID_ATTRIBUTE}="${prefabCatalogIdOf(prefabId)}"]`);
+    expect(tile?.title).toContain('Crate Stack');
+    expect(tile?.title).not.toContain('Used');
+  });
+
   it('places a dropped prefab tile resting on the floor under the drop point', () => {
     const rig = sharedRigCreate();
     const prefabId = prefabAdd(rig, 'Crate', 'Props');

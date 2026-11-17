@@ -258,6 +258,30 @@ describe('EntityBrowser', () => {
     expect(entityPlace).not.toHaveBeenCalled();
   });
 
+  it('selects no page text while a tile is dragged and restores text selection afterwards', () => {
+    const { browser } = browserMount();
+    const pageText = document.createElement('p');
+    pageText.textContent = 'page text that must stay unselected';
+    document.body.appendChild(pageText);
+    const bodyUserSelectBefore = document.body.style.userSelect;
+    const tile = tileFind(browser, 'lights.spot');
+    const press = new PointerEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      clientX: 10,
+      clientY: 10,
+      button: 0,
+    });
+    tile.dispatchEvent(press);
+    expect(press.defaultPrevented).toBe(true);
+    document.getSelection()?.selectAllChildren(document.body);
+    pointerDispatch(document, 'pointermove', 60, 60);
+    expect(document.body.style.userSelect).toBe('none');
+    pointerDispatch(document.body, 'pointerup', 300, 200);
+    expect(document.getSelection()?.toString() ?? '').toBe('');
+    expect(document.body.style.userSelect).toBe(bodyUserSelectBefore);
+  });
+
   it('places nothing for a press released before the drag threshold', () => {
     const { browser, entityPlace } = browserMount();
     const tile = tileFind(browser, 'lights.spot');

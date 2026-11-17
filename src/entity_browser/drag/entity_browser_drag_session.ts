@@ -1,5 +1,6 @@
 import type { EntityBrowserCatalogEntry } from '@/entity_browser/catalog/entity_browser_catalog_entry.js';
 import { EntityBrowserDragGhost } from '@/entity_browser/drag/entity_browser_drag_ghost.js';
+import { TextSelectionSuppression } from '@/ui/text_selection/text_selection_suppression.js';
 
 /** Pointer travel in CSS pixels before a press on a tile becomes a drag. */
 export const ENTITY_BROWSER_DRAG_THRESHOLD_PX = 4;
@@ -31,7 +32,8 @@ export interface EntityBrowserDragHost {
 /**
  * Follows one press on a tile: once the pointer travels past a threshold a
  * ghost follows it, and releasing over a placement target outside the browser
- * places the entry there. Escape or a cancelled pointer abort the drag.
+ * places the entry there. Escape or a cancelled pointer abort the drag. The
+ * page selects no text while the session runs.
  */
 export class EntityBrowserDragSession {
   private readonly host: EntityBrowserDragHost;
@@ -41,6 +43,7 @@ export class EntityBrowserDragSession {
   private readonly startY: number;
   private ghost: EntityBrowserDragGhost | null = null;
   private readonly abortController = new AbortController();
+  private readonly textSelectionSuppression: TextSelectionSuppression;
 
   /**
    * Starts following a press on a tile.
@@ -55,6 +58,8 @@ export class EntityBrowserDragSession {
     this.ownerDocument = host.sourceElement.ownerDocument;
     this.startX = pressEvent.clientX;
     this.startY = pressEvent.clientY;
+    this.textSelectionSuppression = new TextSelectionSuppression(this.ownerDocument);
+    this.textSelectionSuppression.begin();
     this.documentListenersAdd();
   }
 
@@ -70,6 +75,7 @@ export class EntityBrowserDragSession {
   /** Stops following the pointer and removes the ghost without placing. */
   cancel(): void {
     this.abortController.abort();
+    this.textSelectionSuppression.end();
     this.ghost?.dispose();
     this.ghost = null;
     this.host.ended();

@@ -130,6 +130,7 @@ export type McpToolName =
   | 'choose_open_menu_item'
   | 'get_entity_browser_tiles'
   | 'entity_browser_drag'
+  | 'outliner_click'
   | 'project_open'
   | 'project_status'
   | 'build_level'

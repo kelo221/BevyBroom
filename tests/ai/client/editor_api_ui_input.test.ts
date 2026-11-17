@@ -206,7 +206,9 @@ describe('EditorApi keyboard and open menu tools', () => {
       'choose_open_menu_item',
       'get_entity_browser_tiles',
       'entity_browser_drag',
+      'outliner_click',
     ]);
+    expect(required['outliner_click']).toEqual(['id']);
     expect(required['choose_open_menu_item']).toEqual(['label']);
     expect(required['entity_browser_drag']).toEqual(['tileId', 'view', 'at']);
   });

@@ -11,8 +11,8 @@ import { CommandPrefabTemplateAdd } from '@/prefab/commands/command_prefab_templ
 import { CommandPrefabTemplateRemove } from '@/prefab/commands/command_prefab_template_remove.js';
 import { CommandPrefabTemplateUpdate } from '@/prefab/commands/command_prefab_template_update.js';
 import { PrefabFileCodec } from '@/prefab/payload/prefab_file_codec.js';
-import { PREFAB_CATEGORY_DEFAULT, type PrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
-import type { PrefabTemplate } from '@/prefab/prefab_types.js';
+import type { PrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
+import { PREFAB_CATEGORY_DEFAULT, type PrefabTemplate } from '@/prefab/prefab_types.js';
 import { PrefabEditorPrompts, type PrefabEditorPromptShow } from '@/prefab/actions/prefab_editor_prompts.js';
 import type { ProjectDataFileChangeResult } from '@/project/data/project_data_file_types.js';
 

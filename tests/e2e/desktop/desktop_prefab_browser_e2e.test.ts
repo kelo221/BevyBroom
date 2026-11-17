@@ -8,6 +8,8 @@ import { e2eRequiredConfigurationAssert, e2eWindowsShownRead } from '../preview_
 import { DesktopE2eAppProcess } from './desktop_e2e_app_process.js';
 import { desktopE2eBoundsTopFaceGripPoint } from './desktop_e2e_bounds.js';
 import { DesktopE2eMcpClient } from './desktop_e2e_mcp_client.js';
+import { PREFAB_CATEGORY_DEFAULT } from '@/prefab/prefab_types.js';
+import { PREFAB_ADD_MENU_SECTION_LABEL } from '@/prefab/ui/prefab_add_menu_section.js';
 import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
 
 /**
@@ -196,19 +198,27 @@ describe.skipIf(desktopExecutable === '')('desktop prefabs in the Entity Browser
     'shows the prefab as a selected tile and places it on the floor where the tile is dropped',
     async () => {
       const tile = await prefabTileWait();
-      expect(tile).toMatchObject({ label: PREFAB_NAME, category: 'Prefabs / Prefabs', selected: true });
+      expect(tile).toMatchObject({
+        label: PREFAB_NAME,
+        category: `${PREFAB_ADD_MENU_SECTION_LABEL} / ${PREFAB_CATEGORY_DEFAULT}`,
+        selected: true,
+      });
       const kiosk = kioskBounds ?? { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } };
       const grid = await client.toolDataExpectOk<{ interval: number }>('get_snap_settings');
       const step = grid.interval > 0 ? grid.interval : 1;
       const kioskCentre = { x: (kiosk.min.x + kiosk.max.x) / 2, z: (kiosk.min.z + kiosk.max.z) / 2 };
       await client.toolCallExpectOk('delete_brushes', { brushIds: [kioskBrushId] });
       const dropAt = { x: kioskCentre.x + 2 * step, y: floorTop, z: kioskCentre.z - step };
-      const dropped = await client.toolDataExpectOk<{ selection: { brushIds: string[] } }>('entity_browser_drag', {
+      const dropped = await client.toolDataExpectOk<{
+        selection: { brushIds: string[] };
+        pageSelectedText: string;
+      }>('entity_browser_drag', {
         tileId: tile.id,
         view: 'top',
         at: dropAt,
       });
       expect(dropped.selection.brushIds).toHaveLength(1);
+      expect(dropped.pageSelectedText).toBe('');
       const placed = await brushBoundsRead(dropped.selection.brushIds[0] ?? '');
       expect(placed.min.y).toBeCloseTo(floorTop, 3);
       expect((placed.min.x + placed.max.x) / 2).toBeCloseTo(dropAt.x, 3);

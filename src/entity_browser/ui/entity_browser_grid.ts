@@ -194,15 +194,19 @@ export class EntityBrowserGrid {
   }
 
   /**
-   * Reports a primary-button press on a tile.
+   * Reports a primary-button press on a tile, keeping the press from starting a
+   * text selection while still focusing the tile area.
    *
    * @param event Pointer press.
    */
   private tilePressFromEvent(event: PointerEvent): void {
     const entry = this.tiles.get(this.tileEntryIdFromEvent(event) ?? '')?.entry ?? null;
-    if (entry !== null && event.button === 0) {
-      this.host.entryPress(entry, event);
+    if (entry === null || event.button !== 0) {
+      return;
     }
+    event.preventDefault();
+    this.element.focus({ preventScroll: true });
+    this.host.entryPress(entry, event);
   }
 
   /**

@@ -4,6 +4,7 @@ import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { MenuContext, MenuContextItem } from '@/ui/menu/menu_context.js';
 import { hexToRgb } from '@/utils/utils_color.js';
 import { OutlinerTree } from './outliner_tree.js';
+import { OutlinerSelectionRange } from './outliner_selection_range.js';
 import type { OutlinerDropPlacement } from './outliner_drop_placement.js';
 import { selectionMeshesFromHierarchyCollect } from '@/selection/object/selection_hierarchy_meshes.js';
 import { collapseToHierarchyRoots } from '@/utils/hierarchy_selection.js';
@@ -110,6 +111,7 @@ export class PanelOutliner {
   private faceModeSelectionHandler: OutlinerFaceModeSelectionHandler | null;
   private hierarchySelection: Set<THREE.Object3D>;
   private isApplyingOutlinerSelection: boolean;
+  private readonly selectionRange: OutlinerSelectionRange;
 
   /**
    * Creates a new outliner panel bound to a selection manager and scene root.
@@ -136,6 +138,7 @@ export class PanelOutliner {
     this.faceModeSelectionHandler = null;
     this.hierarchySelection = new Set();
     this.isApplyingOutlinerSelection = false;
+    this.selectionRange = new OutlinerSelectionRange();
     this.applyContainerStyles();
     this.createTree();
     container.appendChild(this.container);
@@ -464,27 +467,61 @@ export class PanelOutliner {
   }
 
   /**
-   * Updates hierarchy multi-selection from an outliner row click.
+   * Updates hierarchy multi-selection from an outliner row click: Ctrl/Meta
+   * toggles the row, Shift selects every shown row from the last plain or
+   * toggle click to this row, and a plain click selects only this row.
    *
    * @param obj Clicked hierarchy object.
-   * @param additive Shift-add mode.
-   * @param toggle Ctrl/Meta toggle mode.
+   * @param isRangeClick Shift range mode.
+   * @param isToggleClick Ctrl/Meta toggle mode.
    */
-  private updateHierarchySelection(obj: THREE.Object3D, additive: boolean, toggle: boolean): void {
-    if (toggle) {
-      if (this.hierarchySelection.has(obj)) {
-        this.hierarchySelection.delete(obj);
-      } else {
-        this.hierarchySelection.add(obj);
-      }
+  private updateHierarchySelection(obj: THREE.Object3D, isRangeClick: boolean, isToggleClick: boolean): void {
+    if (isToggleClick) {
+      this.hierarchySelectionToggle(obj);
       return;
     }
-    if (additive) {
+    if (isRangeClick && this.hierarchySelectionRangeApply(obj)) {
+      return;
+    }
+    if (isRangeClick) {
       this.hierarchySelection.add(obj);
+      this.selectionRange.anchorSet(obj);
       return;
     }
     this.hierarchySelection.clear();
     this.hierarchySelection.add(obj);
+    this.selectionRange.anchorSet(obj);
+  }
+
+  /**
+   * Adds a row to the hierarchy selection when unselected, removes it when
+   * selected, and makes it the start of later range clicks.
+   *
+   * @param obj Clicked hierarchy object.
+   */
+  private hierarchySelectionToggle(obj: THREE.Object3D): void {
+    if (this.hierarchySelection.has(obj)) {
+      this.hierarchySelection.delete(obj);
+    } else {
+      this.hierarchySelection.add(obj);
+    }
+    this.selectionRange.anchorSet(obj);
+  }
+
+  /**
+   * Replaces the hierarchy selection with the shown rows from the range anchor
+   * to a clicked row, keeping the anchor.
+   *
+   * @param obj Clicked hierarchy object.
+   * @returns False when the anchor is not shown, leaving the selection alone.
+   */
+  private hierarchySelectionRangeApply(obj: THREE.Object3D): boolean {
+    const range = this.selectionRange.rangeCollect(this.tree?.visibleObjectsRead() ?? [], obj);
+    if (range === null) {
+      return false;
+    }
+    this.hierarchySelection = new Set(range);
+    return true;
   }
 
   /**

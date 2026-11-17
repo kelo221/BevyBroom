@@ -8,7 +8,7 @@ import {
   OUTLINER_INDENT_PX,
   OUTLINER_ROW_HEIGHT_PX,
 } from './outliner_drop_placement.js';
-import { OUTLINER_ROW_ELEMENT_CLASS } from './outliner_tree_drag_row_hit.js';
+import { OUTLINER_ROW_ELEMENT_CLASS, OUTLINER_ROW_OBJECT_UUID_ATTRIBUTE } from './outliner_tree_drag_row_hit.js';
 import { IconOutlinerVisibility } from './icon_outliner_visibility.js';
 import { outlinerItemApplyIconFromObject } from './outliner_item_icon.js';
 import { extractHierarchyNameBase, parseHierarchyHexSuffix } from '@/utils/utils_hierarchy_name_allocator.js';
@@ -155,7 +155,7 @@ export class OutlinerItem {
       this.setIntoDropHighlight(false);
     }
     this.object = object;
-    this.rowElement.dataset['outlinerObjectUuid'] = object.uuid;
+    this.rowElement.setAttribute(OUTLINER_ROW_OBJECT_UUID_ATTRIBUTE, object.uuid);
     this.applyNameLabelText(object.name);
     this.setDepth(depth);
     this.setHasChildren(hasChildren);
@@ -477,7 +477,7 @@ export class OutlinerItem {
   /** Applies base styles to the row element. */
   private applyRowStyles(): void {
     this.rowElement.classList.add(OUTLINER_ROW_ELEMENT_CLASS);
-    this.rowElement.dataset['outlinerObjectUuid'] = this.object.uuid;
+    this.rowElement.setAttribute(OUTLINER_ROW_OBJECT_UUID_ATTRIBUTE, this.object.uuid);
     this.rowElement.style.display = 'flex';
     this.rowElement.style.alignItems = 'center';
     this.rowElement.style.boxSizing = 'border-box';
@@ -685,6 +685,7 @@ export class OutlinerItem {
   /** Binds interaction events to the row element. */
   private bindRowEvents(): void {
     this.rowElement.draggable = true;
+    this.rowElement.addEventListener('mousedown', (event: MouseEvent) => this.modifierPressTextSelectionPrevent(event));
     this.rowElement.addEventListener('click', (event: MouseEvent) => {
       if (event.detail > 1) return;
       if (this.onSelect) {
@@ -709,6 +710,19 @@ export class OutlinerItem {
         this.rowElement.style.background = 'transparent';
       }
     });
+  }
+
+  /**
+   * Keeps a Shift, Ctrl or Meta press on the row from extending or starting a
+   * page text selection, so the click only changes the row selection.
+   *
+   * @param event Mouse press on the row.
+   */
+  private modifierPressTextSelectionPrevent(event: MouseEvent): void {
+    if (event.shiftKey || event.ctrlKey || event.metaKey) {
+      event.preventDefault();
+      this.rowElement.ownerDocument.getSelection()?.removeAllRanges();
+    }
   }
 
   /**

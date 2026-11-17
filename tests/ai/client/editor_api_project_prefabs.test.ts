@@ -6,6 +6,7 @@ import { LightOwner } from '@/light/model/light_owner.js';
 import { lightSettingsCreateDefault } from '@/light/model/light_settings.js';
 import { getPrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
 import { selectionMeshesFromHierarchyCollect } from '@/selection/object/selection_hierarchy_meshes.js';
+import { PREFAB_CATEGORY_DEFAULT } from '@/prefab/prefab_types.js';
 import { editorApiTestHostCreate } from './editor_api_test_host.js';
 
 /** Data of a list_prefabs result. */
@@ -76,7 +77,9 @@ describe('EditorApi prefab tools', () => {
     parts.host.commandStack.undo();
     parts.host.commandStack.undo();
     const listed = ((await api.invokeToolAsync('list_prefabs')).data as PrefabListData).prefabs;
-    expect(listed).toEqual([expect.objectContaining({ id: prefabId, name: 'Aisle Lamp', category: 'Prefabs' })]);
+    expect(listed).toEqual([
+      expect.objectContaining({ id: prefabId, name: 'Aisle Lamp', category: PREFAB_CATEGORY_DEFAULT }),
+    ]);
     expect((await api.invokeToolAsync('update_prefab', { prefabId: 'missing', name: 'X' })).ok).toBe(false);
   });
 

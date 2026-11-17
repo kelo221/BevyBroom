@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { PREFAB_CATEGORY_DEFAULT } from '@/prefab/prefab_catalog_store.js';
+import { PREFAB_CATEGORY_DEFAULT } from '@/prefab/prefab_types.js';
 import { clipboardTestSelect } from '../../clipboard/clipboard_test_world.js';
 import {
   prefabActionsTestBoundsRead,

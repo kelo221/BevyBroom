@@ -65,4 +65,17 @@ export const MCP_UI_INPUT_TOOL_DEFINITIONS: McpToolDefinition[] = [
       required: ['tileId', 'view', 'at'],
     },
   ),
+  tool(
+    'outliner_click',
+    'Click the outliner row of a brush (brushId), CSG group (groupId) or solid model (solidModelId) like a user. A plain click selects only that row; `shift` selects every shown row from the last plain or Ctrl click to this row, up or down; `ctrl` toggles the row. Returns `selection` afterwards and `pageSelectedText`, the page text left selected (empty when the click selected no text). The row must be shown: its parents expanded and the outliner visible.',
+    {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'brushId, groupId or solidModelId of the row.' },
+        shift: { type: 'boolean', description: 'Hold Shift: select the range from the last plain click.' },
+        ctrl: { type: 'boolean', description: 'Hold Ctrl: toggle the row.' },
+      },
+      required: ['id'],
+    },
+  ),
 ];
