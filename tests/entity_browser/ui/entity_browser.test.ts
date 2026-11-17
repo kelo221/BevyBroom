@@ -187,12 +187,13 @@ describe('EntityBrowser', () => {
 
   it('groups tiles under category headers only while Group is on', () => {
     const { browser } = browserMount();
+    const gridText = (): string => browser.getElement().querySelector('[role="listbox"]')?.textContent ?? '';
     browser.optionsUpdate({ groupByCategory: false });
-    const headersWhenFlat = browser.getElement().textContent ?? '';
+    const headersWhenFlat = gridText();
     controlButton(browser, 'Group').click();
     expect(browser.optionsRead().groupByCategory).toBe(true);
     expect(controlButton(browser, 'Group').getAttribute('aria-pressed')).toBe('true');
-    expect(browser.getElement().textContent ?? '').toContain('Lights');
+    expect(gridText()).toContain('Lights');
     expect(headersWhenFlat).not.toContain('Lights');
   });
 

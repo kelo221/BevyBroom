@@ -23,6 +23,14 @@ export interface EntityBrowserGridHost {
    */
   entryPress(entry: EntityBrowserCatalogEntry, event: PointerEvent): void;
   /**
+   * Opens the right-click menu of a tile.
+   *
+   * @param entry Catalog entry of the tile.
+   * @param clientX Client X of the click.
+   * @param clientY Client Y of the click.
+   */
+  entryContextMenu(entry: EntityBrowserCatalogEntry, clientX: number, clientY: number): void;
+  /**
    * Returns the rendered 3D image a tile shows instead of its icon.
    *
    * @param entry Catalog entry.
@@ -154,6 +162,23 @@ export class EntityBrowserGrid {
     this.element.addEventListener('dblclick', (event) => this.tileActivateFromEvent(event));
     this.element.addEventListener('pointerdown', (event) => this.tilePressFromEvent(event));
     this.element.addEventListener('keydown', (event) => this.keyPressed(event));
+    this.element.addEventListener('contextmenu', (event) => this.tileContextMenuFromEvent(event));
+  }
+
+  /**
+   * Selects the right-clicked tile and reports the click for its menu.
+   *
+   * @param event Context menu event.
+   */
+  private tileContextMenuFromEvent(event: MouseEvent): void {
+    const entryId = this.tileEntryIdFromEvent(event);
+    const entry = this.tiles.get(entryId ?? '')?.entry ?? null;
+    if (entry === null) {
+      return;
+    }
+    event.preventDefault();
+    this.selectedEntrySet(entry.id);
+    this.host.entryContextMenu(entry, event.clientX, event.clientY);
   }
 
   /**

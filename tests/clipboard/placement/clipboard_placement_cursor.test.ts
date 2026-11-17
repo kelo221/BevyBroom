@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { clipboardPlacementCursorOffsetCompute } from '@/clipboard/placement/clipboard_placement_cursor.js';
+import {
+  CLIPBOARD_PLACEMENT_AIM_OPTIONS_PASTE,
+  clipboardPlacementAimFromViewportPoint,
+  clipboardPlacementAimOffsetCompute,
+  clipboardPlacementCursorOffsetCompute,
+} from '@/clipboard/placement/clipboard_placement_cursor.js';
 
 /**
  * Builds a perspective camera at a position looking at a target.
@@ -79,5 +84,84 @@ describe('clipboard placement cursor', () => {
     expect(offset.z).toBe(0);
     expect(offset.x).toBe(4);
     expect(offset.y).toBe(2);
+  });
+});
+
+/**
+ * Builds an orthographic camera looking straight down at a point from far
+ * above.
+ *
+ * @param target Point in the middle of the view.
+ * @param height Height of the camera above the target.
+ * @returns Camera.
+ */
+function orthographicTopCameraCreate(target: THREE.Vector3, height: number): THREE.OrthographicCamera {
+  const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, height * 4);
+  camera.position.copy(target).setY(target.y + height);
+  camera.up.set(0, 0, -1);
+  camera.lookAt(target);
+  camera.updateMatrixWorld();
+  return camera;
+}
+
+/** Placement of content at an aimed point of a view. */
+describe('clipboard placement aim', () => {
+  const contentBounds = new THREE.Box3(new THREE.Vector3(-1, 7, -1), new THREE.Vector3(1, 9, 1));
+  const restingOptions = { isRestingInDownwardViews: true };
+
+  it('aims at the same point a pointer at the middle of the view does', () => {
+    const camera = perspectiveCameraCreate(new THREE.Vector3(2, 20, 9), new THREE.Vector3(2, 0, 1));
+    const aim = clipboardPlacementAimFromViewportPoint(viewMiddlePointCreate(camera));
+    const aimed = clipboardPlacementAimOffsetCompute(
+      aim,
+      contentBounds,
+      new THREE.Group(),
+      0,
+      CLIPBOARD_PLACEMENT_AIM_OPTIONS_PASTE,
+    );
+    const pointed = clipboardPlacementCursorOffsetCompute(
+      viewMiddlePointCreate(camera),
+      contentBounds,
+      new THREE.Group(),
+      0,
+    );
+    expect(aimed.distanceTo(pointed)).toBeLessThan(1e-6);
+  });
+
+  it('rests content on the surface under a top view aim when asked to', () => {
+    const world = new THREE.Group();
+    const platform = new THREE.Mesh(new THREE.BoxGeometry(8, 3, 8), new THREE.MeshBasicMaterial());
+    platform.position.set(-5, 1.5, 6);
+    world.add(platform);
+    world.updateMatrixWorld(true);
+    const camera = orthographicTopCameraCreate(platform.position, 500);
+    const aim = { camera, ndc: new THREE.Vector2(0, 0) };
+    const moved = contentBounds
+      .clone()
+      .translate(clipboardPlacementAimOffsetCompute(aim, contentBounds, world, 1, restingOptions));
+    expect(moved.min.y).toBeCloseTo(new THREE.Box3().setFromObject(platform).max.y, 5);
+    expect(moved.getCenter(new THREE.Vector3()).x).toBeCloseTo(platform.position.x, 5);
+    expect(moved.getCenter(new THREE.Vector3()).z).toBeCloseTo(platform.position.z, 5);
+  });
+
+  it('rests content on the ground plane in a top view far above it', () => {
+    const target = new THREE.Vector3(12, 0, -3);
+    const aim = { camera: orthographicTopCameraCreate(target, 900), ndc: new THREE.Vector2(0, 0) };
+    const offset = clipboardPlacementAimOffsetCompute(aim, contentBounds, new THREE.Group(), 1, restingOptions);
+    const moved = contentBounds.clone().translate(offset);
+    expect(moved.min.y).toBeCloseTo(0, 5);
+    expect(moved.getCenter(new THREE.Vector3()).setY(0).distanceTo(target)).toBeLessThan(1e-4);
+  });
+
+  it('keeps the depth in a top view for a paste', () => {
+    const aim = { camera: orthographicTopCameraCreate(new THREE.Vector3(4, 0, 4), 300), ndc: new THREE.Vector2(0, 0) };
+    const offset = clipboardPlacementAimOffsetCompute(
+      aim,
+      contentBounds,
+      new THREE.Group(),
+      1,
+      CLIPBOARD_PLACEMENT_AIM_OPTIONS_PASTE,
+    );
+    expect(offset.y).toBe(0);
   });
 });

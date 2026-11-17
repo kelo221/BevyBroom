@@ -1,5 +1,6 @@
 import type * as THREE from 'three';
-import type { ToolbarMenuAction } from '@/ui/menu/menu_types.js';
+import type { ClipboardPlacementAim } from '@/clipboard/placement/clipboard_placement_cursor.js';
+import type { ToolbarMenuAction, ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 
 /** Returns whether a scene object is an instance of one placeable kind. */
 export type AddMenuCatalogObjectMatcher = (object: THREE.Object3D) => boolean;
@@ -9,6 +10,12 @@ export type AddMenuCatalogObjectMatcher = (object: THREE.Object3D) => boolean;
  * the 3D view, never added to the map.
  */
 export type AddMenuCatalogPreviewFactory = () => THREE.Object3D;
+
+/** Places one instance of a kind at an aimed point of a view. */
+export type AddMenuCatalogAimPlacer = (aim: ClipboardPlacementAim) => void;
+
+/** Builds the entries of the right-click menu catalogs show for one kind. */
+export type AddMenuCatalogContextEntriesFactory = () => ToolbarMenuEntry[];
 
 /**
  * Describes how a placeable Add menu action appears in catalogs that list every
@@ -21,6 +28,13 @@ export interface AddMenuCatalogInfo {
   readonly objectMatches?: AddMenuCatalogObjectMatcher;
   /** Builds the 3D preview of the kind; catalogs show the icon when omitted. */
   readonly previewCreate?: AddMenuCatalogPreviewFactory;
+  /**
+   * Places the kind at an aimed point, such as a drop on a view; catalogs run
+   * the action along the view ray through the point when omitted.
+   */
+  readonly placeAtAim?: AddMenuCatalogAimPlacer;
+  /** Builds the kind's right-click menu in catalogs; no menu when omitted. */
+  readonly contextEntriesCreate?: AddMenuCatalogContextEntriesFactory;
 }
 
 /** Add menu action that carries catalog information. */

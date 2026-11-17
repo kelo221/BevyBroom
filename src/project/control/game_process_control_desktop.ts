@@ -2,6 +2,7 @@ import type {
   ProjectDataFileChangeResult,
   ProjectDataFileKind,
   ProjectDataFileRemoveRequest,
+  ProjectDataFileRevealRequest,
   ProjectDataFilesReadResult,
   ProjectDataFileWriteRequest,
 } from '@/project/data/project_data_file_types.js';
@@ -214,6 +215,16 @@ export class GameProcessControlDesktop extends GameProcessControl {
    */
   projectDataFileRemove(request: ProjectDataFileRemoveRequest): Promise<ProjectDataFileChangeResult> {
     return this.rpc.request.projectDataFileRemove(request);
+  }
+
+  /**
+   * Shows one file of the open project's data in the system file manager.
+   *
+   * @param request Kind and file name.
+   * @returns Success, or why the file could not be shown.
+   */
+  projectDataFileReveal(request: ProjectDataFileRevealRequest): Promise<ProjectDataFileChangeResult> {
+    return this.rpc.request.projectDataFileReveal(request);
   }
 }
 

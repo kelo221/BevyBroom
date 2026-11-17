@@ -19,6 +19,9 @@ import {
 } from '@/layout/shell/mount/layout_shell_panels.js';
 import { getVisGroupSharedServices } from '@/visgroup/visgroup_shared_services.js';
 import { getPrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
+import type { PrefabEditorActionsHost } from '@/prefab/actions/prefab_editor_actions.js';
+import { clipboardControllerActive } from '@/clipboard/controller/clipboard_controller_active.js';
+import { gameProcessControlResolve } from '@/project/control/game_process_control_desktop.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
 import type { DialogSprinkleServices } from '@/tools/sprinkle/ui/dialog_sprinkle.js';
 import type { ProjectLevelActions } from '@/project/level/project_level_actions.js';
@@ -78,6 +81,7 @@ export function layoutShellPanelsCreate(source: LayoutShellPanelsSource): Layout
     dockPanels: layoutShellDockPanelsOptionsCreate(source),
     hammerBar: layoutShellHammerBarOptionsCreate(source),
     sprinkleDialog: layoutShellSprinkleDialogServicesCreate(source),
+    prefabActions: layoutShellPrefabActionsHostCreate(source),
   });
 }
 
@@ -106,9 +110,30 @@ function layoutShellHammerBarOptionsCreate(source: LayoutShellPanelsSource): Lay
     worldObject: source.worldObject,
     selectionManager: source.selectionManager,
     visGroupServices: getVisGroupSharedServices(),
-    prefabCatalogStore: getPrefabCatalogStore(),
     commandStack: source.commandStack,
     afterWorldMutation: () => source.refreshAfterWorldMutation(),
+  };
+}
+
+/**
+ * Builds the services the prefab actions use from the shell source.
+ *
+ * @param source Editor parts the panels are built from.
+ * @returns Prefab actions host.
+ */
+function layoutShellPrefabActionsHostCreate(source: LayoutShellPanelsSource): PrefabEditorActionsHost {
+  return {
+    store: getPrefabCatalogStore(),
+    worldObject: source.worldObject,
+    commandRun: (command) => {
+      source.commandStack.push(command);
+      source.refreshAfterWorldMutation();
+    },
+    clipboardControllerRead: () => clipboardControllerActive.controllerRead(),
+    selectedObjectsRead: () => source.selectionManager.getInspectorObjects(),
+    activeCameraRead: () => source.activeCameraRead?.() ?? null,
+    prefabFileReveal: (name) => gameProcessControlResolve().projectDataFileReveal({ kind: 'prefabs', name }),
+    statusReport: (message) => source.statusBar?.setLastAction(message),
   };
 }
 

@@ -1,10 +1,5 @@
-import {
-  dialogChromeActionButtonApply,
-  dialogChromeBodyTextApply,
-  dialogChromePanelApply,
-  dialogChromeTitleApply,
-} from './dialog_chrome_styles.js';
-import { PanelFloating } from '@/ui/floating_panel/panel_floating.js';
+import { dialogChromeBodyTextApply } from './dialog_chrome_styles.js';
+import { DialogModalChoice } from './dialog_modal_choice.js';
 
 /**
  * Options for a reusable modal message box (Yes/No style prompts such as File →
@@ -58,132 +53,45 @@ export function showConfirmDialog(options: MessageBoxOptions): Promise<boolean> 
 /** @deprecated Prefer {@link MessageBoxOptions}. */
 export type ConfirmDialogOptions = MessageBoxOptions;
 
+/** Smallest width of a message box in pixels. */
+const DIALOG_MESSAGE_BOX_MIN_WIDTH_PX = 360;
+
+/** Largest width of a message box in pixels. */
+const DIALOG_MESSAGE_BOX_MAX_WIDTH_PX = 440;
+
 /**
- * Modal Yes/No message box built on {@link PanelFloating}. Settles once when the
- * user chooses a button, Escape, or the backdrop.
+ * Modal Yes/No message box. Settles once when the user chooses a button,
+ * Escape, or the backdrop.
  */
-class DialogMessageBox extends PanelFloating {
+class DialogMessageBox extends DialogModalChoice {
   private readonly options: MessageBoxOptions;
-  private readonly settle: (confirmed: boolean) => void;
-  private settled: boolean;
-  private readonly boundKeyDown: (event: KeyboardEvent) => void;
 
   /**
    * @param options Dialog configuration.
    * @param settle Callback invoked once with the user decision.
    */
   constructor(options: MessageBoxOptions, settle: (confirmed: boolean) => void) {
-    super(options.host, {
-      corner: 'top-left',
-      modal: true,
-      centered: true,
-      draggable: false,
-      closeOnEscape: false,
-      closeOnBackdropClick: false,
-      stackLayer: 'confirm',
-      backdropClassName: 'editor-message-box-backdrop',
-    });
+    super(
+      {
+        host: options.host,
+        title: options.title,
+        confirmLabel: options.confirmLabel ?? 'Yes',
+        cancelLabel: options.cancelLabel ?? 'No',
+        minWidthPx: DIALOG_MESSAGE_BOX_MIN_WIDTH_PX,
+        maxWidthPx: DIALOG_MESSAGE_BOX_MAX_WIDTH_PX,
+      },
+      settle,
+    );
     this.options = options;
-    this.settle = settle;
-    this.settled = false;
-    this.boundKeyDown = (event) => this.handleKeyDown(event);
-    this.buildDialog();
-    this.bindBackdropDismiss();
-  }
-
-  /** Focuses the cancel button after the shell becomes visible. */
-  protected override onAfterShow(): void {
-    document.addEventListener('keydown', this.boundKeyDown);
-    const cancelButton = this.root.querySelector<HTMLButtonElement>('[data-message-box-cancel="true"]');
-    cancelButton?.focus();
-  }
-
-  /** Removes temporary key listeners when hidden. */
-  protected override onAfterHide(): void {
-    document.removeEventListener('keydown', this.boundKeyDown);
-  }
-
-  /** Builds title, message body, and action buttons into the shell. */
-  private buildDialog(): void {
-    this.root.className = 'editor-message-box-panel';
-    this.root.setAttribute('role', 'alertdialog');
-    this.root.setAttribute('aria-modal', 'true');
-    this.root.setAttribute('aria-labelledby', 'editor-message-box-title');
-    this.applyPanelChrome();
-    this.root.appendChild(this.createTitle());
-    this.root.appendChild(this.createMessageBody());
-    this.root.appendChild(this.createButtonRow());
-    this.root.addEventListener('mousedown', (event) => event.stopPropagation());
-  }
-
-  /** Binds backdrop click as a cancel action. */
-  private bindBackdropDismiss(): void {
-    const backdrop = this.getBackdropElement();
-    if (!backdrop) {
-      return;
-    }
-    backdrop.addEventListener('mousedown', (event) => {
-      if (event.target === backdrop) {
-        this.settleDecision(false);
-      }
-    });
+    this.dialogBuild();
   }
 
   /**
-   * Handles Escape as cancel and Enter as confirm when focus is not a button.
+   * Creates the message body with an optional bold line.
    *
-   * @param event Document keydown event.
+   * @returns Body container.
    */
-  private handleKeyDown(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      this.settleDecision(false);
-      return;
-    }
-    if (event.key === 'Enter' && !(event.target instanceof HTMLButtonElement)) {
-      event.preventDefault();
-      this.settleDecision(true);
-    }
-  }
-
-  /**
-   * Settles the promise once and hides the dialog.
-   *
-   * @param confirmed True when the user chose Yes.
-   */
-  private settleDecision(confirmed: boolean): void {
-    if (this.settled) {
-      return;
-    }
-    this.settled = true;
-    this.hide(true);
-    this.settle(confirmed);
-  }
-
-  /** Applies classic Windows dialog chrome to the dialog panel. */
-  private applyPanelChrome(): void {
-    dialogChromePanelApply(this.root, 360, 440);
-  }
-
-  /**
-   * Creates the dialog title heading.
-   *
-   * @returns Title element.
-   */
-  private createTitle(): HTMLElement {
-    const title = document.createElement('h2');
-    title.id = 'editor-message-box-title';
-    title.textContent = this.options.title;
-    dialogChromeTitleApply(title);
-    return title;
-  }
-
-  /**
-   * Creates the message body block (main text plus optional bold footer line).
-   *
-   * @returns Message container element.
-   */
-  private createMessageBody(): HTMLElement {
+  protected bodyCreate(): HTMLElement {
     const body = document.createElement('div');
     body.style.margin = '0 0 18px';
     body.appendChild(this.createMessageParagraph(this.options.message, false));
@@ -194,7 +102,7 @@ class DialogMessageBox extends PanelFloating {
   }
 
   /**
-   * Creates one message paragraph.
+   * Creates one paragraph of the message body.
    *
    * @param text Paragraph text.
    * @param bold Whether to render in bold.
@@ -207,55 +115,5 @@ class DialogMessageBox extends PanelFloating {
     dialogChromeBodyTextApply(message, bold);
     message.style.whiteSpace = 'pre-wrap';
     return message;
-  }
-
-  /**
-   * Creates the Yes/No button row aligned to the right.
-   *
-   * @returns Button row container.
-   */
-  private createButtonRow(): HTMLElement {
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.justifyContent = 'flex-end';
-    row.style.gap = '8px';
-    row.appendChild(this.createButton(this.options.cancelLabel ?? 'No', false, true));
-    row.appendChild(this.createButton(this.options.confirmLabel ?? 'Yes', true, false));
-    return row;
-  }
-
-  /**
-   * Creates one dialog action button.
-   *
-   * @param label Button text.
-   * @param isConfirm Whether the button accepts the prompt.
-   * @param isCancel Whether the button is the default cancel focus target.
-   * @returns Styled button element.
-   */
-  private createButton(label: string, isConfirm: boolean, isCancel: boolean): HTMLButtonElement {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = label;
-    if (isCancel) {
-      button.dataset['messageBoxCancel'] = 'true';
-      button.dataset['confirmCancel'] = 'true';
-    }
-    if (isConfirm) {
-      button.dataset['messageBoxAccept'] = 'true';
-      button.dataset['confirmAccept'] = 'true';
-    }
-    this.styleActionButton(button, isConfirm);
-    button.addEventListener('click', () => this.settleDecision(isConfirm));
-    return button;
-  }
-
-  /**
-   * Applies compact chrome to a dialog button.
-   *
-   * @param button Button element.
-   * @param isPrimary Whether the button is the affirmative action.
-   */
-  private styleActionButton(button: HTMLButtonElement, isPrimary: boolean): void {
-    dialogChromeActionButtonApply(button, isPrimary);
   }
 }

@@ -3,6 +3,7 @@ import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_bru
 import { selectionQueriesList } from '@/selection/query/selection_query_registry.js';
 import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 import { formatKeyboardShortcut } from '@/settings/keyboard/keyboard_shortcut_format.js';
+import { prefabEditorActionsActive } from '@/prefab/actions/prefab_editor_actions_active.js';
 
 /**
  * Builds the label of a fixed primary modifier shortcut such as Ctrl+C, or ⌘C
@@ -75,16 +76,38 @@ export class ShellMenuEdit extends ShellMenu {
   }
 
   /**
-   * Builds the Group and Ungroup entries.
+   * Builds the Group, Ungroup and prefab entries.
    *
    * @param context Actions and docks the entries run.
-   * @returns Group and Ungroup entries.
+   * @returns Group, Ungroup, Make Prefab, Tie to Entity and Move to World
+   *   entries.
    */
   groupEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
     const actions = context.toolbarActions;
     return [
       this.actionEntry(context, 'Group', () => actions.onGroupSelected(), { shortcutAction: 'group' }),
       this.actionEntry(context, 'Ungroup', () => actions.onUngroupSelected(), { shortcutAction: 'ungroup' }),
+      ...this.prefabEntriesBuild(context),
+    ];
+  }
+
+  /**
+   * Builds the Make Prefab, Tie to Entity and Move to World entries, enabled
+   * only while something is selected.
+   *
+   * @param context Menu context.
+   * @returns Menu entries.
+   */
+  private prefabEntriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
+    const isEnabled = (): boolean => context.windowActions.selectionHasObjectsIs();
+    const prefabActions = () => prefabEditorActionsActive.read();
+    return [
+      this.actionEntry(context, 'Make Prefab…', () => void prefabActions()?.makeFromSelection(), {
+        isEnabled,
+        shortcutAction: 'prefab_make',
+      }),
+      this.actionEntry(context, 'Tie to Entity', () => prefabActions()?.entityTie(), { isEnabled }),
+      this.actionEntry(context, 'Move to World', () => prefabActions()?.worldMove(), { isEnabled }),
     ];
   }
 

@@ -11,6 +11,7 @@ import { EditorApiFaceEdit } from './editor_api_face_edit.js';
 import { EditorApiViewportInput } from './editor_api_viewport_input.js';
 import { EditorApiKeyboardInput } from './editor_api_keyboard_input.js';
 import { EditorApiOpenMenus } from './editor_api_open_menus.js';
+import { EditorApiEntityBrowser } from './editor_api_entity_browser.js';
 import { EditorApiSelectionQuery } from './editor_api_selection_query.js';
 import { EditorApiSelectionVisibility } from './editor_api_selection_visibility.js';
 import { EditorApiTextureReplace } from './editor_api_texture_replace.js';
@@ -39,6 +40,7 @@ export class EditorApiToolGroups {
   private readonly viewportInput: EditorApiViewportInput;
   private readonly keyboardInput: EditorApiKeyboardInput;
   private readonly openMenus: EditorApiOpenMenus;
+  private readonly entityBrowser: EditorApiEntityBrowser;
   private readonly selectionQuery: EditorApiSelectionQuery;
   private readonly selectionVisibility: EditorApiSelectionVisibility;
   private readonly textureReplace: EditorApiTextureReplace;
@@ -66,6 +68,7 @@ export class EditorApiToolGroups {
     this.viewportInput = new EditorApiViewportInput(host, selectionRead);
     this.keyboardInput = new EditorApiKeyboardInput();
     this.openMenus = new EditorApiOpenMenus();
+    this.entityBrowser = new EditorApiEntityBrowser(host, selectionRead);
     this.selectionQuery = new EditorApiSelectionQuery(host);
     this.selectionVisibility = new EditorApiSelectionVisibility(host);
     this.textureReplace = new EditorApiTextureReplace(host);
@@ -95,6 +98,7 @@ export class EditorApiToolGroups {
       this.viewportInput.viewportInputToolDispatch(name, args) ??
       this.keyboardInput.keyboardInputToolDispatch(name, args) ??
       this.openMenus.openMenusToolDispatch(name, args) ??
+      this.entityBrowser.entityBrowserToolDispatch(name, args) ??
       this.selectionQuery.selectionQueryToolDispatch(name, args) ??
       this.selectionVisibility.selectionVisibilityToolDispatch(name, args) ??
       this.textureReplace.textureReplaceToolDispatch(name, args) ??

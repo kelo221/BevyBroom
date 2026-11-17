@@ -19,8 +19,10 @@ export interface EntityBrowserViewOptions {
   readonly groupByCategory: boolean;
   /** True to show only kinds used in the current map. */
   readonly usedOnly: boolean;
-  /** Case-insensitive name filter; empty shows every tile. */
+  /** Case-insensitive name or category filter; empty shows every tile. */
   readonly searchText: string;
+  /** Top-level category whose tiles are shown; empty shows every category. */
+  readonly categoryFilter: string;
   /** How the kinds are shown. */
   readonly viewMode: EntityBrowserViewMode;
 }
@@ -31,6 +33,7 @@ export const ENTITY_BROWSER_VIEW_OPTIONS_DEFAULT: EntityBrowserViewOptions = Obj
   groupByCategory: true,
   usedOnly: false,
   searchText: '',
+  categoryFilter: '',
   viewMode: 'tiles_3d',
 });
 
@@ -50,6 +53,7 @@ export function entityBrowserViewOptionsSanitize(value: unknown): EntityBrowserV
     groupByCategory: entityBrowserViewOptionsBoolean(record['groupByCategory'], defaults.groupByCategory),
     usedOnly: entityBrowserViewOptionsBoolean(record['usedOnly'], defaults.usedOnly),
     searchText: typeof record['searchText'] === 'string' ? record['searchText'] : defaults.searchText,
+    categoryFilter: typeof record['categoryFilter'] === 'string' ? record['categoryFilter'] : defaults.categoryFilter,
     viewMode: entityBrowserViewModeSanitize(record['viewMode'], defaults.viewMode),
   };
 }

@@ -93,6 +93,8 @@ export class EntityBrowserCatalogBuilder {
       objectMatches: catalogInfo?.objectMatches ?? null,
       previewCreate: catalogInfo?.previewCreate ?? null,
       activate: () => EntityBrowserCatalogBuilder.actionActivate(action),
+      placeAtAim: catalogInfo?.placeAtAim ?? null,
+      contextEntriesCreate: catalogInfo?.contextEntriesCreate ?? null,
     };
   }
 

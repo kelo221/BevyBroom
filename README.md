@@ -250,7 +250,7 @@ All shortcuts can be rebound in Settings > Keyboard.
 - **Toolbar** — undo and redo, snap and grid size, gizmo axes, and texture locks
 - **Tools palette** — Object Select, Entity, Block, Face, Apply Texture, Clip, Vertex, Polygon, Sprinkle, and Grid
 - **View bar** — the active tool's options and the workspace tabs above the viewports
-- **Right dock** — selection filter, current texture, VisGroups, prefabs, and the Map section with layers and the outliner
+- **Right dock** — selection filter, current texture, VisGroups, and the Map section with layers and the outliner
 - **Outliner** — collapsible tree view of the scene hierarchy
 - **Object Properties** — floating dialog for class, transform, material, brush, and game-component edits (`Alt+Enter`)
 - **Face Edit Sheet** — floating window for per-face textures and displacements

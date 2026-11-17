@@ -36,7 +36,7 @@ describe('EditorApi prefab tools', () => {
   });
 
   it('lists every prefab tool in the MCP catalog', () => {
-    ['list_prefabs', 'create_prefab', 'place_prefab', 'delete_prefab'].forEach((name) =>
+    ['list_prefabs', 'create_prefab', 'place_prefab', 'update_prefab', 'delete_prefab'].forEach((name) =>
       expect(findMcpTool(name)).toBeDefined(),
     );
   });
@@ -64,6 +64,20 @@ describe('EditorApi prefab tools', () => {
     expect(((await api.invokeToolAsync('list_prefabs')).data as PrefabListData).prefabs).toEqual([]);
     parts.host.commandStack.undo();
     expect(((await api.invokeToolAsync('list_prefabs')).data as PrefabListData).prefabs.length).toBe(1);
+  });
+
+  it('renames and recategorizes a prefab under the same id, undoably, and refuses an unknown one', async () => {
+    const { api, parts } = prefabApiCreate();
+    const prefabId = ((await api.invokeToolAsync('create_prefab', { name: 'Aisle Lamp' })).data as { id: string }).id;
+    const updated = await api.invokeToolAsync('update_prefab', { prefabId, name: 'Ceiling Lamp', category: 'Lights' });
+    expect(updated.data).toEqual(expect.objectContaining({ id: prefabId, name: 'Ceiling Lamp', category: 'Lights' }));
+    const kept = await api.invokeToolAsync('update_prefab', { prefabId, name: '  ' });
+    expect(kept.data).toEqual(expect.objectContaining({ name: 'Ceiling Lamp' }));
+    parts.host.commandStack.undo();
+    parts.host.commandStack.undo();
+    const listed = ((await api.invokeToolAsync('list_prefabs')).data as PrefabListData).prefabs;
+    expect(listed).toEqual([expect.objectContaining({ id: prefabId, name: 'Aisle Lamp', category: 'Prefabs' })]);
+    expect((await api.invokeToolAsync('update_prefab', { prefabId: 'missing', name: 'X' })).ok).toBe(false);
   });
 
   it('refuses an empty selection, a missing name and an unknown prefab', async () => {

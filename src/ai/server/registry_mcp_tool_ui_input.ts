@@ -1,9 +1,9 @@
 import { emptySchema, tool, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
 /**
- * Tools that press keys, type text and read and click the open menus like a
- * user, so shortcuts, the command search and right-click menus behave exactly
- * as they do for a person.
+ * Tools that press keys, type text, read and click the open menus and drag
+ * Entity Browser tiles like a user, so shortcuts, the command search,
+ * right-click menus and browser drops behave exactly as they do for a person.
  */
 export const MCP_UI_INPUT_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(
@@ -40,6 +40,29 @@ export const MCP_UI_INPUT_TOOL_DEFINITIONS: McpToolDefinition[] = [
         label: { type: 'string', description: 'Row label as get_open_menus lists it.' },
       },
       required: ['label'],
+    },
+  ),
+  tool(
+    'get_entity_browser_tiles',
+    'Read-only: the tiles the Entity Browser shows, in display order, each with `id` (such as "prefab.shelf_row" or "lights.point"), `label`, `category` and `selected`. Empty while the Entity Browser is closed; open it with set_main_window {floatingWindows: {entity_browser: true}}.',
+    emptySchema(),
+  ),
+  tool(
+    'entity_browser_drag',
+    'Drag an Entity Browser tile into a view like a user: press on the tile, move onto the view point where the world point `at` shows, and release. The kind is placed there the way a drop places it (a prefab rests on the surface under the point). Returns `selection` afterwards, which holds what was placed, and `dropPoint` (client x, y of the drop). The Entity Browser must be open and show the tile.',
+    {
+      type: 'object',
+      properties: {
+        tileId: { type: 'string', description: 'Tile id as get_entity_browser_tiles lists it.' },
+        view: { type: 'string', enum: ['perspective', 'top', 'front', 'side'], description: 'View to drop into.' },
+        at: {
+          type: 'object',
+          description: 'World point whose spot in the view is the drop point.',
+          properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
+          required: ['x', 'y', 'z'],
+        },
+      },
+      required: ['tileId', 'view', 'at'],
     },
   ),
 ];

@@ -13,7 +13,7 @@ When the editor opens, you will see four views:
 - **Front** at the bottom left looks at the X–Y plane.
 - **Side** at the bottom right looks at the Y–Z plane.
 
-The menu bar and the toolbar are at the top. The tools palette is on the left. The right dock shows the selection filter, the current texture, VisGroups, prefabs, and the Map section with layers and the outliner. The info panel below the views starts collapsed to a Console / Issues strip. The status bar along the bottom reports the active mode, snapping, selection type, and recent actions.
+The menu bar and the toolbar are at the top. The tools palette is on the left. The right dock shows the selection filter, the current texture, VisGroups, and the Map section with layers and the outliner. The info panel below the views starts collapsed to a Console / Issues strip. The status bar along the bottom reports the active mode, snapping, selection type, and recent actions.
 
 ## Add your first object
 

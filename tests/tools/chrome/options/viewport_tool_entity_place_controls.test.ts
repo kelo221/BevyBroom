@@ -46,6 +46,8 @@ function entityPlaceControlsTestEntryCreate(id: string): EntityBrowserCatalogEnt
     objectMatches: null,
     previewCreate: null,
     activate: vi.fn(),
+    placeAtAim: null,
+    contextEntriesCreate: null,
   };
 }
 

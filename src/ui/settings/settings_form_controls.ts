@@ -342,7 +342,7 @@ function styleSettingsButton(button: HTMLButtonElement): void {
  *
  * @param input Text input element.
  */
-function styleSettingsTextInput(input: HTMLInputElement): void {
+export function styleSettingsTextInput(input: HTMLInputElement): void {
   input.style.width = '100%';
   input.style.boxSizing = 'border-box';
   input.style.padding = '4px 6px';

@@ -1,4 +1,3 @@
-import type * as THREE from 'three';
 import type { EditorApiHost, EditorApiViewportView } from './editor_api_host.js';
 import { failResult, okResult } from './editor_api_result.js';
 import { vec3FromUnknown } from './editor_api_math.js';
@@ -8,22 +7,18 @@ import {
   type EditorApiViewportButton,
 } from './editor_api_viewport_pointer.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
-import { ViewportKind } from '@/viewports/core/viewport_kind.js';
-import { pointerClientPointOfWorld, type PointerClientPoint } from '@/utils/pointer_client_project.js';
+import type { PointerClientPoint } from '@/utils/pointer_client_project.js';
+import {
+  EDITOR_API_VIEWPORT_VIEW_NAMES,
+  editorApiViewportClientPointOf,
+  editorApiVisibleViewportFind,
+} from './editor_api_viewport_locate.js';
 
 /** Pointer moves a viewport_drag sends when steps is omitted. */
 export const EDITOR_API_VIEWPORT_DRAG_DEFAULT_STEPS = 8;
 
 /** Largest number of pointer moves a viewport_drag may send. */
 export const EDITOR_API_VIEWPORT_DRAG_MAX_STEPS = 100;
-
-/** View names the viewport input tools accept. */
-const EDITOR_API_VIEWPORT_VIEW_NAMES: readonly string[] = [
-  ViewportKind.PERSPECTIVE,
-  ViewportKind.TOP,
-  ViewportKind.FRONT,
-  ViewportKind.SIDE,
-];
 
 /** A viewport input target: the pane and its client points. */
 interface EditorApiViewportTarget {
@@ -86,8 +81,8 @@ export class EditorApiViewportInput {
       return failResult(`steps must be a whole number from 1 to ${EDITOR_API_VIEWPORT_DRAG_MAX_STEPS}`);
     }
     return this.withTarget(args, 'left', (target) => {
-      const start = this.clientPointOf(target.viewport, from);
-      const end = this.clientPointOf(target.viewport, to);
+      const start = editorApiViewportClientPointOf(target.viewport, from);
+      const end = editorApiViewportClientPointOf(target.viewport, to);
       target.pointer.hover(start);
       target.pointer.press(start);
       this.dragMovesSend(target.pointer, start, end, steps);
@@ -112,7 +107,7 @@ export class EditorApiViewportInput {
       return failResult('button must be left or right');
     }
     return this.withTarget(args, button, (target) => {
-      const point = this.clientPointOf(target.viewport, at);
+      const point = editorApiViewportClientPointOf(target.viewport, at);
       target.pointer.hover(point);
       target.pointer.press(point);
       target.pointer.release(point);
@@ -141,42 +136,11 @@ export class EditorApiViewportInput {
     if (!keys) {
       return failResult('keys must be an object with optional ctrl, shift and alt booleans');
     }
-    const viewport = this.visibleViewportFind(view);
+    const viewport = editorApiVisibleViewportFind(this.host, view);
     if (!viewport) {
       return failResult(`No visible ${view} view`);
     }
     return body({ viewport, pointer: new EditorApiViewportPointer(viewport.getContentElement(), keys, button) });
-  }
-
-  /**
-   * Finds the first interactive view of a kind whose content is on screen.
-   *
-   * @param view View kind name.
-   * @returns Viewport, or null when none is visible.
-   */
-  private visibleViewportFind(view: string): EditorApiViewportView | null {
-    const viewports = this.host.viewportsInteractiveRead?.() ?? [];
-    for (const viewport of viewports) {
-      if (viewport.getViewportKind() !== view) {
-        continue;
-      }
-      const rect = viewport.getContentElement().getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) {
-        return viewport;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Projects a world point onto a view's content element.
-   *
-   * @param viewport Target view.
-   * @param worldPoint World point.
-   * @returns Client point.
-   */
-  private clientPointOf(viewport: EditorApiViewportView, worldPoint: THREE.Vector3): PointerClientPoint {
-    return pointerClientPointOfWorld(worldPoint, viewport.getCamera(), viewport.getContentElement());
   }
 
   /**

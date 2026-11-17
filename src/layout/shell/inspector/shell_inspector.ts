@@ -4,14 +4,12 @@ import { ShellDock } from '@/layout/shell/dock/shell_dock.js';
 import type { ShellStateStore } from '@/layout/shell/state/shell_state_store.js';
 
 /** Places inside the inspector that editor panels are mounted into. */
-export type ShellInspectorSlot =
-  'hammer_object_bar' | 'hammer_visgroups' | 'hammer_prefabs' | 'map_layers' | 'map_outliner';
+export type ShellInspectorSlot = 'hammer_object_bar' | 'hammer_visgroups' | 'map_layers' | 'map_outliner';
 
 /** Slots of the pinned Hammer bar from top to bottom. */
 export const SHELL_INSPECTOR_HAMMER_BAR_SLOTS: readonly ShellInspectorSlot[] = [
   'hammer_object_bar',
   'hammer_visgroups',
-  'hammer_prefabs',
 ];
 
 /** Splitter key and starting size of the layers list above the outliner. */

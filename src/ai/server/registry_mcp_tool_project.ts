@@ -117,7 +117,7 @@ export const MCP_PROJECT_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ),
   tool(
     'list_prefabs',
-    "Every prefab of the Prefabs dock: { prefabs: [{ id, name, category, objectCount, brushCount, isProjectFile }] }. isProjectFile is true for prefabs kept as files in the open project's prefab_directory.",
+    "Every prefab, as the Entity Browser lists them under Prefabs: { prefabs: [{ id, name, category, objectCount, brushCount, isProjectFile }] }. isProjectFile is true for prefabs kept as files in the open project's prefab_directory.",
     emptySchema(),
   ),
   tool(
@@ -127,7 +127,7 @@ export const MCP_PROJECT_TOOL_DEFINITIONS: McpToolDefinition[] = [
       type: 'object',
       properties: {
         name: { type: 'string', description: 'Display name; the id derives from it.' },
-        category: { type: 'string', description: 'Prefabs dock category; "Prefabs" when omitted.' },
+        category: { type: 'string', description: 'Prefab category in the Entity Browser; "Prefabs" when omitted.' },
       },
       required: ['name'],
     },
@@ -146,6 +146,19 @@ export const MCP_PROJECT_TOOL_DEFINITIONS: McpToolDefinition[] = [
           properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
           required: ['x', 'y', 'z'],
         },
+      },
+      required: ['prefabId'],
+    },
+  ),
+  tool(
+    'update_prefab',
+    "Rename a prefab or move it to another category (undoable), as the Entity Browser's Rename and Change Category do; a project prefab's file is saved again. Returns the prefab.",
+    {
+      type: 'object',
+      properties: {
+        prefabId: { type: 'string', description: 'Prefab id as listed by list_prefabs; it stays the same.' },
+        name: { type: 'string', description: 'New display name; unchanged when omitted.' },
+        category: { type: 'string', description: 'New category; unchanged when omitted.' },
       },
       required: ['prefabId'],
     },

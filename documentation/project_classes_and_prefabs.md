@@ -68,18 +68,30 @@ Classes the file already declares are left as they are.
 
 ## Prefabs
 
-Use the Prefabs part of the right dock:
+Prefabs live in the **Entity Browser**, next to every other kind of object you
+place: each prefab is a tile with a 3D thumbnail, under **Prefabs** and its own
+category. The search finds prefabs by name or category, and the category filter
+shows only **Prefabs** (or any other category).
 
-- **Create Prefab** captures the selection, with geometry, brushes, textures,
-  game components and entity I/O, as a prefab named after **Prefab name...** in
-  the chosen category. With a `prefab_directory` it is saved as
-  `<prefab_directory>/<id>.json`, where the id comes from the name
-  (`Shelf Row` becomes `shelf_row.json`).
-- **Insert** places a copy where the prefab was captured. Move it from there.
-- **Delete** removes the chosen prefab and its file.
+- **Make a prefab:** select objects, then right-click a view and choose **Make
+  Prefab…** (also in the **Edit** menu, in command search, and `Ctrl+Alt+P`). Type
+  a name, optionally a category (the last one used is filled in), and press
+  `Enter`. The prefab keeps geometry, brushes, textures, game components and
+  entity I/O. With a `prefab_directory` it is saved as
+  `<prefab_directory>/<id>.json`, where the id comes from the name (`Shelf Row`
+  becomes `shelf_row.json`). Its tile appears in the Entity Browser, selected.
+- **Place a prefab:** drag its tile into a 2D or 3D view. The copy lands with
+  the bottom of its bounds on the surface under the cursor, centred on it and
+  snapped to the grid; in a 2D top view it rests on whatever is under the
+  cursor, in the other 2D views it keeps its height. Double-click the tile, or
+  choose it under **Add > Prefabs**, to place it at the centre of the active
+  view the same way.
+- **Right-click a tile** for **Rename…**, **Change Category…**, **Delete** and
+  **Reveal File** (project prefabs only, desktop app).
 
-Every one of these is a single undo step; undoing **Create Prefab** deletes the
-file again and undoing **Delete** writes it back.
+Every change is a single undo step; undoing **Make Prefab…** deletes the file
+again and undoing **Delete** writes it back. Renaming keeps the id and the file
+name.
 
 Placed prefabs are **copies**. Changing or deleting a prefab later does not change
 copies already placed in levels. Names that the prefab's own entity I/O fires at
@@ -87,8 +99,8 @@ get a fresh suffix in every copy, so two copies never trigger each other.
 
 Prefab files are plain JSON (`"format": "bevybroom.prefab"`). Prefab files added
 by other programs, or by pulling from version control, show up when the editor
-window gains focus. Renaming a prefab means renaming its file; the id follows the
-file name.
+window gains focus. The id follows the file name; renaming a prefab in the editor
+changes only its display name.
 
 ## MCP tools
 
@@ -101,4 +113,5 @@ file name.
 | `list_prefabs`                  | Every prefab with `id`, `name`, `category`, `objectCount`, `brushCount` and `isProjectFile`.                 |
 | `create_prefab`                 | Captures the selection as a prefab named `name` in `category`; saved to the project when it has a directory. |
 | `place_prefab`                  | Places a copy of `prefabId`, at its captured position or with the bottom centre of its bounds at `position`. |
+| `update_prefab`                 | Renames `prefabId` to `name` or moves it to `category`, keeping its id and file.                             |
 | `delete_prefab`                 | Deletes `prefabId` and its project file.                                                                     |

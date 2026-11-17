@@ -6,6 +6,7 @@ import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 import type { ClipboardPayload } from '@/clipboard/payload/clipboard_payload_types.js';
 import { CommandPrefabTemplateAdd } from '@/prefab/commands/command_prefab_template_add.js';
 import { CommandPrefabTemplateRemove } from '@/prefab/commands/command_prefab_template_remove.js';
+import { CommandPrefabTemplateUpdate } from '@/prefab/commands/command_prefab_template_update.js';
 import { getPrefabCatalogStore, type PrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
 import type { PrefabTemplate } from '@/prefab/prefab_types.js';
 
@@ -14,6 +15,7 @@ export const EDITOR_API_PROJECT_PREFAB_TOOL_NAMES: readonly string[] = Object.fr
   'list_prefabs',
   'create_prefab',
   'place_prefab',
+  'update_prefab',
   'delete_prefab',
 ]);
 
@@ -53,6 +55,8 @@ export class EditorApiProjectPrefabs {
         return this.prefabCreate(args);
       case 'place_prefab':
         return this.prefabPlace(args);
+      case 'update_prefab':
+        return this.prefabUpdate(args);
       case 'delete_prefab':
         return this.prefabDelete(args);
       default:
@@ -107,6 +111,36 @@ export class EditorApiProjectPrefabs {
     const offset = this.placementOffsetCompute(payload, args['position']);
     const pasted = this.clipboard.controllerRead().payloadPaste(payload, offset);
     return okResult(`Placed ${pasted.ids.length} object(s)`, { ids: pasted.ids }, { createdIds: pasted.ids });
+  }
+
+  /**
+   * Renames a prefab or changes its category as one undoable step.
+   *
+   * @param args Argument object with prefabId and optional name and category.
+   * @returns Result with the changed prefab.
+   */
+  private prefabUpdate(args: Record<string, unknown>): McpToolResult {
+    const prefabId = typeof args['prefabId'] === 'string' ? args['prefabId'] : '';
+    const template = this.store.templateFind(prefabId);
+    if (template === null) {
+      return failResult(`No prefab ${prefabId}; call list_prefabs`);
+    }
+    const name = EditorApiProjectPrefabs.textArgumentRead(args['name']) ?? template.name;
+    const category = EditorApiProjectPrefabs.textArgumentRead(args['category']) ?? template.category;
+    const changed = { ...template, name, category };
+    this.host.commandStack.push(new CommandPrefabTemplateUpdate(this.store, template, changed));
+    return okResult(`Updated prefab ${prefabId}`, this.prefabSummaryCreate(changed));
+  }
+
+  /**
+   * Reads a non-blank text argument.
+   *
+   * @param value Untrusted argument.
+   * @returns Trimmed text, or null when the argument is missing or blank.
+   */
+  private static textArgumentRead(value: unknown): string | null {
+    const text = typeof value === 'string' ? value.trim() : '';
+    return text === '' ? null : text;
   }
 
   /**

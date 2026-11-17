@@ -102,6 +102,7 @@ Shortcuts can be changed in **Settings > Keyboard**. The table below describes t
 | `Ctrl+X`        | Cut: copy the selection, then delete it                   |
 | `Ctrl+V`        | Paste under the mouse pointer, snapped to the grid        |
 | `Ctrl+Alt+V`    | Paste at the copied position                              |
+| `Ctrl+Alt+P`    | Make a prefab from the selection                          |
 | `Ctrl+D`        | Duplicate selected in place                               |
 | Drag selected   | Move the selection (`Alt` held: move vertically)          |
 | `Ctrl+drag`     | Duplicate and move the selection in a viewport            |

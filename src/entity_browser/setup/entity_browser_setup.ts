@@ -10,6 +10,8 @@ import { EntityBrowser } from '@/entity_browser/ui/entity_browser.js';
 import { EntityClassCatalogEntries } from '@/entity/class/catalog/entity_class_catalog_entries.js';
 import { EntityClassRegistry } from '@/entity/class/registry/entity_class_registry.js';
 import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js';
+import { getPrefabCatalogStore, type PrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
+import { prefabCatalogIdOf } from '@/prefab/ui/prefab_add_menu_section.js';
 
 /** What the layout hands the entity browser when mounting it. */
 export interface EntityBrowserSetupHost extends EntityBrowserPlacementHost {
@@ -56,11 +58,33 @@ export function entityBrowserSetup(host: EntityBrowserSetupHost): EntityBrowser 
       browser.refresh();
     }),
   );
+  browser.disposeCallbackAdd(entityBrowserSetupPrefabFollow(browser, getPrefabCatalogStore()));
   const worldChangeUnsubscribe = host.worldChangeSubscribe?.(() => browser.usageRefresh());
   if (worldChangeUnsubscribe) {
     browser.disposeCallbackAdd(worldChangeUnsubscribe);
   }
   return browser;
+}
+
+/**
+ * Rebuilds the browser whenever prefabs change and selects the tile of a prefab
+ * that was just added.
+ *
+ * @param browser Entity browser listing the prefabs.
+ * @param store Prefab catalog to follow.
+ * @returns Function that stops following the catalog.
+ */
+function entityBrowserSetupPrefabFollow(browser: EntityBrowser, store: PrefabCatalogStore): () => void {
+  let knownIds = new Set(store.templatesRead().map((template) => template.id));
+  return store.changeListenerAdd(() => {
+    const ids = store.templatesRead().map((template) => template.id);
+    const addedId = ids.find((id) => !knownIds.has(id)) ?? null;
+    knownIds = new Set(ids);
+    browser.refresh();
+    if (addedId !== null) {
+      browser.selectedEntrySet(prefabCatalogIdOf(addedId));
+    }
+  });
 }
 
 /**

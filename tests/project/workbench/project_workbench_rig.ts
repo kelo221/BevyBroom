@@ -30,6 +30,7 @@ import type {
   ProjectDataFileChangeResult,
   ProjectDataFileKind,
   ProjectDataFileRemoveRequest,
+  ProjectDataFileRevealRequest,
   ProjectDataFilesReadResult,
   ProjectDataFileWriteRequest,
 } from '@/project/data/project_data_file_types.js';
@@ -58,6 +59,8 @@ export class GameProcessControlFake extends GameProcessControl {
   readonly projectSprinkleFiles = new Map<string, SprinkleDefinitionFile[]>();
   /** Paths of every sprinkle definition file asked to open. */
   readonly openedSprinkleDefinitions: string[] = [];
+  /** Every project data file asked to be shown in the file manager. */
+  readonly revealedDataFiles: ProjectDataFileRevealRequest[] = [];
   /** Answer of every sprinkle definition open request. */
   nextSprinkleOpenResult: SprinkleDefinitionOpenResult = { ok: true };
   /** Level document texts by document path, per project file. */
@@ -217,6 +220,21 @@ export class GameProcessControlFake extends GameProcessControl {
   /** @inheritdoc */
   async projectDataFileRemove(request: ProjectDataFileRemoveRequest): Promise<ProjectDataFileChangeResult> {
     this.projectDataFiles.get(request.kind)?.delete(request.name);
+    return { ok: true };
+  }
+
+  /**
+   * Records which data file was asked to be shown, refusing files that do not
+   * exist.
+   *
+   * @param request Kind and file name.
+   * @returns Success, or a refusal for a missing file.
+   */
+  async projectDataFileReveal(request: ProjectDataFileRevealRequest): Promise<ProjectDataFileChangeResult> {
+    if (this.projectDataFiles.get(request.kind)?.has(request.name) !== true) {
+      return { ok: false, message: `${request.name} does not exist` };
+    }
+    this.revealedDataFiles.push(request);
     return { ok: true };
   }
 

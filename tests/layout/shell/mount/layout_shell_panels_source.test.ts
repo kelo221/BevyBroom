@@ -39,7 +39,6 @@ import { EditorToolId } from '@/types/editor_tool_id.js';
 const LAYOUT_SHELL_PANELS_TEST_FILLED_SLOTS: readonly ShellInspectorSlot[] = [
   'hammer_object_bar',
   'hammer_visgroups',
-  'hammer_prefabs',
   'map_layers',
 ];
 

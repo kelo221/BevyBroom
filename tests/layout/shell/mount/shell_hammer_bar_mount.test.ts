@@ -5,18 +5,13 @@ import type { ShellInspector, ShellInspectorSlot } from '@/layout/shell/inspecto
 import { shellTestDocksCreate, shellTestDocksDispose, type ShellTestDocks } from '../shell_test_support.js';
 import { ShellHammerBarMount } from '@/layout/shell/mount/shell_hammer_bar_mount.js';
 import { visGroupSharedServicesCreate } from '@/visgroup/visgroup_shared_services.js';
-import { PrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { setStateTexturePaintForTests, StateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import { Theme } from '@/theme.js';
 import { SHELL_DOCK_COMPACT_CONTROL_CLASS } from '@/layout/shell/dock/shell_dock_compact.js';
 
 /** Hammer bar slots the mount fills, top to bottom. */
-const SHELL_HAMMER_BAR_MOUNT_TEST_SLOTS: readonly ShellInspectorSlot[] = [
-  'hammer_object_bar',
-  'hammer_visgroups',
-  'hammer_prefabs',
-];
+const SHELL_HAMMER_BAR_MOUNT_TEST_SLOTS: readonly ShellInspectorSlot[] = ['hammer_object_bar', 'hammer_visgroups'];
 
 /** Inspector, mount and spy refresh hook a Hammer bar test works with. */
 interface ShellHammerBarMountTestRig {
@@ -49,7 +44,6 @@ function shellHammerBarMountTestRigCreate(): ShellHammerBarMountTestRig {
     worldObject: new THREE.Group(),
     selectionManager: new ManagerSelection(),
     visGroupServices: visGroupSharedServicesCreate(),
-    prefabCatalogStore: new PrefabCatalogStore(),
     commandStack,
     afterWorldMutation,
   });
@@ -102,14 +96,13 @@ afterEach(() => {
 });
 
 describe('ShellHammerBarMount', () => {
-  it('fills the Object Bar, VisGroups and prefab slots', () => {
+  it('fills the Object Bar and VisGroups slots', () => {
     const { inspector, mount } = shellHammerBarMountTestRigCreate();
     SHELL_HAMMER_BAR_MOUNT_TEST_SLOTS.forEach((slot) => {
       expect(inspector.slotRead(slot).childElementCount).toBeGreaterThan(0);
     });
     expect(inspector.slotRead('hammer_object_bar').contains(mount.objectBar.getElement())).toBe(true);
     expect(inspector.slotRead('hammer_visgroups').contains(mount.visGroupsPanel.getElement())).toBe(true);
-    expect(inspector.slotRead('hammer_prefabs').contains(mount.prefabPanel.elementRead())).toBe(true);
   });
 
   it('shows the Hammer++ section captions', () => {
@@ -117,15 +110,6 @@ describe('ShellHammerBarMount', () => {
     expect(slotTextRead(inspector, 'hammer_object_bar')).toContain('Select:');
     expect(slotTextRead(inspector, 'hammer_object_bar')).toContain('Current texture:');
     expect(slotTextRead(inspector, 'hammer_visgroups')).toContain('VisGroups:');
-    ['Move selected:', 'Categories:', 'Objects:'].forEach((caption) => {
-      expect(slotTextRead(inspector, 'hammer_prefabs')).toContain(caption);
-    });
-  });
-
-  it('puts Move selected first in the prefab section', () => {
-    const { mount } = shellHammerBarMountTestRigCreate();
-    const firstRow = mount.prefabPanel.elementRead().firstElementChild;
-    expect(firstRow?.textContent ?? '').toContain('Move selected:');
   });
 
   it('runs the Object Bar Browse action', () => {

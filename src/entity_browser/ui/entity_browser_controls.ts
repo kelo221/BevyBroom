@@ -20,6 +20,9 @@ const ENTITY_BROWSER_SORT_CHOICES: readonly { value: EntityBrowserSortMode; labe
   { value: 'category', label: 'Category' },
 ];
 
+/** Label of the category filter choice that shows every category. */
+const ENTITY_BROWSER_CATEGORY_ALL_LABEL = 'All';
+
 /** Choices of the view dropdown. */
 const ENTITY_BROWSER_VIEW_MODE_CHOICES: readonly { value: EntityBrowserViewMode; label: string }[] = [
   { value: 'icons', label: 'Icons' },
@@ -35,6 +38,7 @@ export class EntityBrowserControls {
   readonly element: HTMLElement;
   readonly viewModeSelect: HTMLSelectElement;
   readonly sortSelect: HTMLSelectElement;
+  readonly categorySelect: HTMLSelectElement;
   readonly groupToggle: HTMLButtonElement;
   readonly usedToggle: HTMLButtonElement;
   readonly searchInput: HTMLInputElement;
@@ -59,13 +63,62 @@ export class EntityBrowserControls {
     entityBrowserStyleControlsRow(this.element);
     this.viewModeSelect = this.viewModeSelectCreate();
     this.sortSelect = this.sortSelectCreate();
+    this.categorySelect = this.categorySelectCreate();
     this.groupToggle = createSettingsSecondaryButton('Group', () => this.groupToggled());
     this.usedToggle = createSettingsSecondaryButton('Used', () => this.usedToggled());
     this.groupToggle.title = 'Show tiles under category headers';
     this.usedToggle.title = 'Show only kinds used in this map';
     this.searchInput = this.searchInputCreate();
-    this.element.append(this.viewModeSelect, this.sortSelect, this.groupToggle, this.usedToggle, this.searchInput);
+    this.element.append(
+      this.viewModeSelect,
+      this.sortSelect,
+      this.categorySelect,
+      this.groupToggle,
+      this.usedToggle,
+      this.searchInput,
+    );
     this.optionsShow(options);
+  }
+
+  /**
+   * Replaces the category filter choices with the given top-level categories,
+   * keeping "All" first and the current choice selected.
+   *
+   * @param categories Top-level category names in display order.
+   */
+  categoriesShow(categories: readonly string[]): void {
+    const allOption = this.categoryOptionCreate('', ENTITY_BROWSER_CATEGORY_ALL_LABEL);
+    const categoryOptions = categories.map((name) => this.categoryOptionCreate(name, name));
+    this.categorySelect.replaceChildren(allOption, ...categoryOptions);
+    this.categorySelect.value = this.options.categoryFilter;
+  }
+
+  /**
+   * Creates one option of the category filter.
+   *
+   * @param value Category name, or empty for every category.
+   * @param label Visible text.
+   * @returns Option element.
+   */
+  private categoryOptionCreate(value: string, label: string): HTMLOptionElement {
+    const option = this.categorySelect.ownerDocument.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    return option;
+  }
+
+  /**
+   * Creates the category filter, listing only "All" until categories are shown.
+   *
+   * @returns Select element.
+   */
+  private categorySelectCreate(): HTMLSelectElement {
+    const choices = [{ value: '', label: ENTITY_BROWSER_CATEGORY_ALL_LABEL }];
+    const select = createSettingsSelect(choices, '', (value) => this.optionsChanged({ categoryFilter: value }));
+    select.title = 'Show one category, such as Prefabs or Game Entities, or all of them';
+    select.style.width = 'auto';
+    select.style.flex = '0 0 auto';
+    return select;
   }
 
   /**
@@ -77,6 +130,7 @@ export class EntityBrowserControls {
     this.options = options;
     this.viewModeSelect.value = options.viewMode;
     this.sortSelect.value = options.sortMode;
+    this.categorySelect.value = options.categoryFilter;
     entityBrowserStyleToggleActive(this.groupToggle, options.groupByCategory);
     entityBrowserStyleToggleActive(this.usedToggle, options.usedOnly);
     if (this.searchInput.value !== options.searchText) {
@@ -121,7 +175,7 @@ export class EntityBrowserControls {
    */
   private searchInputCreate(): HTMLInputElement {
     const report = (value: string): void => this.optionsChanged({ searchText: value });
-    const input = createSettingsTextInput(this.options.searchText, 'Search entities', report);
+    const input = createSettingsTextInput(this.options.searchText, 'Search by name or category', report);
     input.placeholder = 'Search';
     input.style.flex = '1 1 60px';
     input.style.minWidth = '40px';

@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ShellMenuEdit } from '@/layout/shell/menubar/menus/shell_menu_edit.js';
+import type { PrefabEditorActions } from '@/prefab/actions/prefab_editor_actions.js';
+import { prefabEditorActionsActive } from '@/prefab/actions/prefab_editor_actions_active.js';
 import { selectionQueriesList } from '@/selection/query/selection_query_registry.js';
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import type { HandlerSolidBrushTools } from '@/tools/csg/solid/handler_solid_brush_tools.js';
@@ -212,5 +214,36 @@ describe('ShellMenuEdit CSG shortcuts', () => {
     );
     expect(shellTestMenuLabelsRead(new ShellMenuEdit().csgEntriesBuild(context))).toEqual(submenuLabels);
     expect(submenuLabels).toEqual(['Union', 'Subtract', 'Intersect', 'Hollow', 'Convex Merge']);
+  });
+});
+
+/** Prefab rows of the Edit menu, which the object right-click menu shares. */
+describe('ShellMenuEdit prefab entries', () => {
+  it('lists Make Prefab, Tie to Entity and Move to World after Ungroup, enabled only with a selection', () => {
+    const { entries, windowActions } = shellMenuEditTestRigCreate();
+    const labels = shellTestMenuLabelsRead(entries);
+    const ungroupIndex = labels.indexOf('Ungroup');
+    expect(labels.slice(ungroupIndex + 1, ungroupIndex + 4)).toEqual([
+      'Make Prefab…',
+      'Tie to Entity',
+      'Move to World',
+    ]);
+    windowActions.clipboardSelectionHasObjects = false;
+    expect(shellTestMenuActionFind(entries, 'Make Prefab…').isEnabled?.()).toBe(false);
+    windowActions.clipboardSelectionHasObjects = true;
+    expect(shellTestMenuActionFind(entries, 'Make Prefab…').isEnabled?.()).toBe(true);
+    expect(shellTestMenuShortcutRead(shellTestMenuActionFind(entries, 'Make Prefab…'))).toBe(
+      shellTestShortcutLabelFormat('prefab_make'),
+    );
+  });
+
+  it('asks the active prefab actions to make a prefab from the selection', () => {
+    const { entries } = shellMenuEditTestRigCreate();
+    const makeFromSelection = vi.fn(async () => null);
+    const actions = { makeFromSelection } as unknown as PrefabEditorActions;
+    prefabEditorActionsActive.write(actions);
+    shellTestMenuActionFind(entries, 'Make Prefab…').onClick();
+    prefabEditorActionsActive.releaseIfStored(actions);
+    expect(makeFromSelection).toHaveBeenCalledOnce();
   });
 });

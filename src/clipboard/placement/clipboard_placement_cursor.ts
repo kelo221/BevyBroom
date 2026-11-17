@@ -21,6 +21,31 @@ export interface ClipboardPlacementViewportPoint {
   readonly clientY: number;
 }
 
+/** Where placed content is aimed: a view camera and a point on its screen. */
+export interface ClipboardPlacementAim {
+  /** Camera of the view. */
+  readonly camera: THREE.Camera;
+  /** Aimed point in normalized device coordinates of the view (-1 to 1). */
+  readonly ndc: THREE.Vector2;
+}
+
+/** Choices that differ between kinds of placement. */
+export interface ClipboardPlacementAimOptions {
+  /**
+   * When true, orthographic views looking straight down rest content on the
+   * surface or ground plane under the aim instead of keeping its depth.
+   */
+  readonly isRestingInDownwardViews: boolean;
+}
+
+/** Placement choices of a clipboard paste: orthographic views keep the depth. */
+export const CLIPBOARD_PLACEMENT_AIM_OPTIONS_PASTE: ClipboardPlacementAimOptions = Object.freeze({
+  isRestingInDownwardViews: false,
+});
+
+/** Smallest downward share of a view direction that counts as looking down. */
+const CLIPBOARD_PLACEMENT_DOWNWARD_VIEW_MIN = 0.9;
+
 /**
  * Computes the offset that moves pasted content to the pointer of a view.
  * Orthographic views keep the content's depth; perspective views rest the
@@ -38,8 +63,39 @@ export function clipboardPlacementCursorOffsetCompute(
   worldObject: THREE.Object3D,
   gridInterval: number,
 ): THREE.Vector3 {
-  const ray = clipboardPlacementCursorRay(viewportPoint);
-  if (viewportPoint.camera instanceof THREE.OrthographicCamera) {
+  const aim = clipboardPlacementAimFromViewportPoint(viewportPoint);
+  return clipboardPlacementAimOffsetCompute(
+    aim,
+    bounds,
+    worldObject,
+    gridInterval,
+    CLIPBOARD_PLACEMENT_AIM_OPTIONS_PASTE,
+  );
+}
+
+/**
+ * Computes the offset that moves content to an aimed point of a view. Content
+ * rests on the surface or the ground grid plane under the aim, except in
+ * orthographic views, which keep its depth unless the options rest it there in
+ * views looking straight down.
+ *
+ * @param aim View camera and aimed screen point.
+ * @param bounds World bounds of the content at its stored position.
+ * @param worldObject World root whose content meshes the ray may hit.
+ * @param gridInterval Grid step the offset snaps to; zero disables snapping.
+ * @param options Placement choices.
+ * @returns World-space offset.
+ */
+export function clipboardPlacementAimOffsetCompute(
+  aim: ClipboardPlacementAim,
+  bounds: THREE.Box3,
+  worldObject: THREE.Object3D,
+  gridInterval: number,
+  options: ClipboardPlacementAimOptions,
+): THREE.Vector3 {
+  const ray = clipboardPlacementAimRay(aim);
+  const isOrthographic = aim.camera instanceof THREE.OrthographicCamera;
+  if (isOrthographic && !(options.isRestingInDownwardViews && clipboardPlacementRayLooksDown(ray))) {
     return clipboardPlacementOffset2dCompute({
       bounds,
       cursorPoint: ray.origin,
@@ -52,31 +108,53 @@ export function clipboardPlacementCursorOffsetCompute(
     ray,
     surfaceHit: clipboardPlacementSurfaceHitFind(ray, worldObject),
     workingPlane: new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
-    workingPlaneMaxDistance: CLIPBOARD_PLACEMENT_WORKING_PLANE_MAX_DISTANCE,
+    workingPlaneMaxDistance: isOrthographic ? Infinity : CLIPBOARD_PLACEMENT_WORKING_PLANE_MAX_DISTANCE,
     fallbackDistance: DEFAULT_SPAWN_DISTANCE,
     gridInterval,
   });
 }
 
 /**
- * Builds the world ray through the pointer of a view.
+ * Converts a pointer position over a view into an aim at that point.
  *
  * @param viewportPoint View and pointer position.
- * @returns World ray starting at the camera (or its near plane for orthographic
- *   cameras).
+ * @returns Aim through the pointer.
  */
-function clipboardPlacementCursorRay(viewportPoint: ClipboardPlacementViewportPoint): THREE.Ray {
+export function clipboardPlacementAimFromViewportPoint(
+  viewportPoint: ClipboardPlacementViewportPoint,
+): ClipboardPlacementAim {
   const rect = viewportPoint.pickElement.getBoundingClientRect();
   const width = Math.max(rect.width, 1);
   const height = Math.max(rect.height, 1);
-  const pointer = new THREE.Vector2(
+  const ndc = new THREE.Vector2(
     ((viewportPoint.clientX - rect.left) / width) * 2 - 1,
     -((viewportPoint.clientY - rect.top) / height) * 2 + 1,
   );
-  viewportPoint.camera.updateMatrixWorld();
+  return { camera: viewportPoint.camera, ndc };
+}
+
+/**
+ * Builds the world ray of an aim.
+ *
+ * @param aim View camera and aimed screen point.
+ * @returns World ray starting at the camera (or its near plane for orthographic
+ *   cameras).
+ */
+function clipboardPlacementAimRay(aim: ClipboardPlacementAim): THREE.Ray {
+  aim.camera.updateMatrixWorld();
   const raycaster = new THREE.Raycaster();
-  raycaster.setFromCamera(pointer, viewportPoint.camera);
+  raycaster.setFromCamera(aim.ndc, aim.camera);
   return raycaster.ray.clone();
+}
+
+/**
+ * Returns whether a ray points straight down.
+ *
+ * @param ray World ray.
+ * @returns True when the ray's direction is mostly downward.
+ */
+function clipboardPlacementRayLooksDown(ray: THREE.Ray): boolean {
+  return ray.direction.y <= -CLIPBOARD_PLACEMENT_DOWNWARD_VIEW_MIN;
 }
 
 /**
