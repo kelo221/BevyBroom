@@ -335,6 +335,16 @@ export class OutlinerTree {
   }
 
   /**
+   * Returns the objects of every shown row in display order, including rows
+   * scrolled out of view.
+   *
+   * @returns Shown row objects.
+   */
+  visibleObjectsRead(): readonly THREE.Object3D[] {
+    return this.virtualList.logicalObjectsGet();
+  }
+
+  /**
    * Returns the number of logical content rows (not DOM pool size).
    *
    * @returns Logical row count for tests and layout helpers.

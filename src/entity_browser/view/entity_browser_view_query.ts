@@ -1,5 +1,6 @@
 import type { EntityBrowserCatalogEntry } from '@/entity_browser/catalog/entity_browser_catalog_entry.js';
 import type { EntityBrowserViewOptions } from '@/entity_browser/view/entity_browser_view_options.js';
+import { ENTITY_BROWSER_CATALOG_CATEGORY_SEPARATOR } from '@/entity_browser/catalog/entity_browser_catalog_builder.js';
 
 /** Tiles shown together, under a category header or as one flat list. */
 export interface EntityBrowserViewGroup {
@@ -33,7 +34,8 @@ export class EntityBrowserViewQuery {
   }
 
   /**
-   * Keeps the entries matching the search text and, when asked, the used ones.
+   * Keeps the entries in the chosen top-level category whose name or category
+   * matches the search text and, when asked, the used ones.
    *
    * @param entries Catalog entries.
    * @param options Display choices.
@@ -47,11 +49,56 @@ export class EntityBrowserViewQuery {
   ): EntityBrowserCatalogEntry[] {
     const search = options.searchText.trim().toLowerCase();
     return entries.filter((entry) => {
-      if (search !== '' && !entry.label.toLowerCase().includes(search)) {
+      if (!EntityBrowserViewQuery.entryInCategoryFilter(entry, options.categoryFilter)) {
+        return false;
+      }
+      if (search !== '' && !EntityBrowserViewQuery.entryMatchesSearch(entry, search)) {
         return false;
       }
       return !options.usedOnly || (usageCounts.get(entry.id) ?? 0) > 0;
     });
+  }
+
+  /**
+   * Returns the distinct top-level categories of entries in catalog order.
+   *
+   * @param entries Catalog entries.
+   * @returns Top-level category names.
+   */
+  static topLevelCategoriesList(entries: readonly EntityBrowserCatalogEntry[]): string[] {
+    return [...new Set(entries.map((entry) => EntityBrowserViewQuery.topLevelCategoryOf(entry.category)))];
+  }
+
+  /**
+   * Returns the first part of a category path.
+   *
+   * @param category Category path such as "Prefabs / Doors".
+   * @returns Top-level category name.
+   */
+  static topLevelCategoryOf(category: string): string {
+    return category.split(ENTITY_BROWSER_CATALOG_CATEGORY_SEPARATOR)[0]?.trim() ?? category;
+  }
+
+  /**
+   * Returns whether an entry lies in a top-level category.
+   *
+   * @param entry Catalog entry.
+   * @param categoryFilter Top-level category, or empty for every category.
+   * @returns True when the entry is shown under the filter.
+   */
+  private static entryInCategoryFilter(entry: EntityBrowserCatalogEntry, categoryFilter: string): boolean {
+    return categoryFilter === '' || EntityBrowserViewQuery.topLevelCategoryOf(entry.category) === categoryFilter;
+  }
+
+  /**
+   * Returns whether an entry's name or category contains the search text.
+   *
+   * @param entry Catalog entry.
+   * @param search Lower-case, trimmed search text.
+   * @returns True on a match.
+   */
+  private static entryMatchesSearch(entry: EntityBrowserCatalogEntry, search: string): boolean {
+    return entry.label.toLowerCase().includes(search) || entry.category.toLowerCase().includes(search);
   }
 
   /**

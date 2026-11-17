@@ -28,4 +28,20 @@ describe('DesktopShellOpen', () => {
       isVerbatim: false,
     });
   });
+
+  it('reveals a file selected in Explorer on Windows, with open -R on macOS and its folder elsewhere', () => {
+    const windowsPath = 'C:/Games/My Game/broom/prefabs/kiosk.json';
+    expect(DesktopShellOpen.revealCommandBuild('win32', windowsPath)).toEqual({
+      program: 'explorer.exe',
+      arguments: [`/select,"${windowsPath.replace(/\//g, '\\')}"`],
+      isVerbatim: true,
+    });
+    const path = '/home/someone/game/broom/prefabs/kiosk.json';
+    expect(DesktopShellOpen.revealCommandBuild('darwin', path).arguments).toEqual(['-R', path]);
+    expect(DesktopShellOpen.revealCommandBuild('linux', path)).toEqual({
+      program: 'xdg-open',
+      arguments: ['/home/someone/game/broom/prefabs'],
+      isVerbatim: false,
+    });
+  });
 });

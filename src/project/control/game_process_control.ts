@@ -2,6 +2,7 @@ import type {
   ProjectDataFileChangeResult,
   ProjectDataFileKind,
   ProjectDataFileRemoveRequest,
+  ProjectDataFileRevealRequest,
   ProjectDataFilesReadResult,
   ProjectDataFileWriteRequest,
 } from '@/project/data/project_data_file_types.js';
@@ -170,6 +171,14 @@ export abstract class GameProcessControl {
    * @returns Success, or why nothing was removed.
    */
   abstract projectDataFileRemove(request: ProjectDataFileRemoveRequest): Promise<ProjectDataFileChangeResult>;
+
+  /**
+   * Shows one file of the open project's data in the system file manager.
+   *
+   * @param request Kind and file name.
+   * @returns Success, or why the file could not be shown.
+   */
+  abstract projectDataFileReveal(request: ProjectDataFileRevealRequest): Promise<ProjectDataFileChangeResult>;
 }
 
 /**
@@ -329,6 +338,15 @@ export class GameProcessControlUnavailable extends GameProcessControl {
    * @returns Failure result.
    */
   async projectDataFileRemove(): Promise<ProjectDataFileChangeResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that showing project data files needs the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectDataFileReveal(): Promise<ProjectDataFileChangeResult> {
     return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
   }
 

@@ -37,6 +37,7 @@ const EDITOR_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, stri
   ['paste_original', 'Paste at Original Position'],
   ['group', 'Group Selected'],
   ['ungroup', 'Ungroup Selected'],
+  ['prefab_make', 'Make Prefab from Selection'],
   ['align_origin', 'Align to Origin'],
   ['solid_operation_toggle', 'Toggle Solid Additive / Subtractive'],
   ['fit_selection', 'Frame Selection'],

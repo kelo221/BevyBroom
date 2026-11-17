@@ -25,6 +25,7 @@ const KEYBOARD_SHORTCUT_ACTIONS = [
   'duplicate',
   'group',
   'ungroup',
+  'prefab_make',
   'align_origin',
   'solid_operation_toggle',
   'fit_selection',

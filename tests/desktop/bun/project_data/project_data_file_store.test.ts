@@ -94,6 +94,18 @@ describe('ProjectDataFileStore', () => {
     expect(store.readAll(classes)).toEqual([{ name: 'classes.json', text: '{"classes":[]}' }]);
   });
 
+  it('resolves the path of an existing data file to show, refusing missing files and foreign names', () => {
+    const location = locationRead(definitionCreate(projectDirectoryCreate()), 'prefabs');
+    const store = new ProjectDataFileStore();
+    expect(store.existingPathResolve(location, 'kiosk.json').ok).toBe(false);
+    store.write(location, 'kiosk.json', '{}');
+    expect(store.existingPathResolve(location, 'kiosk.json')).toEqual({
+      ok: true,
+      path: `${location.directory}/kiosk.json`,
+    });
+    expect(store.existingPathResolve(location, '../kiosk.json').ok).toBe(false);
+  });
+
   it.skipIf(process.platform === 'win32')('refuses to read a file that links outside its directory', () => {
     const root = projectDirectoryCreate();
     const location = locationRead(definitionCreate(root), 'prefabs');

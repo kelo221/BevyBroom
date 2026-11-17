@@ -3,6 +3,7 @@ import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js'
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
 import type { ShellDockCommands } from '@/layout/shell/actions/shell_dock_commands.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
+import { prefabEditorActionsActive } from '@/prefab/actions/prefab_editor_actions_active.js';
 import type { ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 
 /** Callbacks of window level shortcut actions keyed by their settings action. */
@@ -55,6 +56,7 @@ export function layoutWindowShortcutsWindowActionsCreate(
     visibility_isolate: () => windowActions.selectionVisibilityRead()?.isolateSelected(),
     visibility_show_all: () => windowActions.selectionVisibilityRead()?.showAll(),
     object_properties: () => windowActions.objectPropertiesOpen(),
+    prefab_make: () => void prefabEditorActionsActive.read()?.makeFromSelection(),
     tool_sprinkle: () => windowActions.toolSelect(EditorToolId.SPRINKLE),
     tool_vertex: () => windowActions.toolSelect(EditorToolId.VERTEX),
   };

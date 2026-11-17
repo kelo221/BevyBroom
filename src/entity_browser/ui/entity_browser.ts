@@ -17,6 +17,7 @@ import { EntityBrowserPreviewRendererWebgl } from '@/entity_browser/preview/enti
 import { EntityBrowserPreviewStudio } from '@/entity_browser/preview/entity_browser_preview_studio.js';
 import { EntityBrowserPreviewPane } from '@/entity_browser/ui/entity_browser_preview_pane.js';
 import { EntityBrowserViewQuery } from '@/entity_browser/view/entity_browser_view_query.js';
+import { MenuContext } from '@/ui/menu/menu_context.js';
 
 /** What the entity browser needs from the editor. */
 export interface EntityBrowserHost {
@@ -68,6 +69,7 @@ export class EntityBrowser {
   private catalog: EntityBrowserCatalogEntry[] = [];
   private usageCounts = new Map<string, number>();
   private dragSession: EntityBrowserDragSession | null = null;
+  private contextMenu: MenuContext | null = null;
 
   /**
    * Creates the browser and shows the current catalog.
@@ -87,6 +89,7 @@ export class EntityBrowser {
     this.grid = new EntityBrowserGrid(ownerDocument, {
       entryActivate: (entry) => entry.activate(),
       entryPress: (entry, event) => this.dragSessionStart(entry, event),
+      entryContextMenu: (entry, clientX, clientY) => this.contextMenuOpen(entry, clientX, clientY),
       imageUrlResolve: (entry) => (this.previewImagesShown() ? this.previewStudio.imageUrlResolve(entry) : null),
       selectionChanged: (entry) => this.previewPane.entryShow(entry),
     });
@@ -181,6 +184,7 @@ export class EntityBrowser {
   /** Ends any drag, runs cleanup callbacks and removes the browser element. */
   dispose(): void {
     this.dragSession?.cancel();
+    this.contextMenuClose();
     this.disposeCallbacks.splice(0).forEach((callback) => callback());
     this.previewPane.dispose();
     this.previewStudio.dispose();
@@ -194,12 +198,51 @@ export class EntityBrowser {
   private render(): void {
     const options = this.settingsStore.optionsRead();
     const groups = EntityBrowserViewQuery.groupsResolve(this.catalog, options, this.usageCounts);
+    this.controls.categoriesShow(this.categoryChoicesList(options.categoryFilter));
     this.previewPaneLayout(options.viewMode === 'single_3d');
     this.grid.render(groups, this.usageCounts);
     if (options.viewMode === 'single_3d' && this.grid.selectedEntryRead() === null) {
       this.grid.selectedEntrySet(this.grid.shownEntryIdsList()[0] ?? null);
     }
     this.previewPane.redraw();
+  }
+
+  /**
+   * Returns the top-level categories the filter offers, keeping the current
+   * choice even when no tile is in it any more.
+   *
+   * @param categoryFilter Current category filter.
+   * @returns Category names in catalog order.
+   */
+  private categoryChoicesList(categoryFilter: string): string[] {
+    const categories = EntityBrowserViewQuery.topLevelCategoriesList(this.catalog);
+    if (categoryFilter !== '' && !categories.includes(categoryFilter)) {
+      categories.push(categoryFilter);
+    }
+    return categories;
+  }
+
+  /**
+   * Opens the right-click menu of a tile whose kind has one.
+   *
+   * @param entry Right-clicked catalog entry.
+   * @param clientX Client X of the click.
+   * @param clientY Client Y of the click.
+   */
+  private contextMenuOpen(entry: EntityBrowserCatalogEntry, clientX: number, clientY: number): void {
+    this.contextMenuClose();
+    const entries = entry.contextEntriesCreate?.() ?? [];
+    if (entries.length === 0) {
+      return;
+    }
+    this.contextMenu = MenuContext.fromEntries(entries);
+    this.contextMenu.show(clientX, clientY);
+  }
+
+  /** Closes and disposes the open tile menu. */
+  private contextMenuClose(): void {
+    this.contextMenu?.dispose();
+    this.contextMenu = null;
   }
 
   /**

@@ -21,6 +21,7 @@ import type {
   ProjectDataFileChangeResult,
   ProjectDataFileKind,
   ProjectDataFileRemoveRequest,
+  ProjectDataFileRevealRequest,
   ProjectDataFilesReadResult,
   ProjectDataFileWriteRequest,
 } from '@/project/data/project_data_file_types.js';
@@ -66,6 +67,7 @@ export interface ElectrobunDesktopRpcSchema {
       projectDataFilesRead: { params: { kind: ProjectDataFileKind }; response: ProjectDataFilesReadResult };
       projectDataFileWrite: { params: ProjectDataFileWriteRequest; response: ProjectDataFileChangeResult };
       projectDataFileRemove: { params: ProjectDataFileRemoveRequest; response: ProjectDataFileChangeResult };
+      projectDataFileReveal: { params: ProjectDataFileRevealRequest; response: ProjectDataFileChangeResult };
       nativeMenuBarSet: { params: NativeMenuBarWire; response: void };
       textFileOpen: { params: FileDialogDesktopTextFileOpenParams; response: FileDialogDesktopTextFile | null };
       savePathPick: { params: FileDialogDesktopSavePickParams; response: string | null };
@@ -108,6 +110,7 @@ export interface ElectrobunDesktopBunRpcClient {
     projectDataFilesRead: (params: { kind: ProjectDataFileKind }) => Promise<ProjectDataFilesReadResult>;
     projectDataFileWrite: (params: ProjectDataFileWriteRequest) => Promise<ProjectDataFileChangeResult>;
     projectDataFileRemove: (params: ProjectDataFileRemoveRequest) => Promise<ProjectDataFileChangeResult>;
+    projectDataFileReveal: (params: ProjectDataFileRevealRequest) => Promise<ProjectDataFileChangeResult>;
     nativeMenuBarSet: (bar: NativeMenuBarWire) => Promise<void>;
     textFileOpen: (params: FileDialogDesktopTextFileOpenParams) => Promise<FileDialogDesktopTextFile | null>;
     savePathPick: (params: FileDialogDesktopSavePickParams) => Promise<string | null>;

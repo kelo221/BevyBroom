@@ -11,7 +11,6 @@ import { shellTestStorageCreate } from '../shell_test_support.js';
 const SHELL_INSPECTOR_TEST_SLOTS: readonly ShellInspectorSlot[] = [
   'hammer_object_bar',
   'hammer_visgroups',
-  'hammer_prefabs',
   'map_layers',
   'map_outliner',
 ];

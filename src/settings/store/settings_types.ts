@@ -173,6 +173,7 @@ export type KeyboardShortcutAction =
   | 'duplicate'
   | 'group'
   | 'ungroup'
+  | 'prefab_make'
   | 'align_origin'
   | 'solid_operation_toggle'
   | 'fit_selection'

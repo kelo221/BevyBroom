@@ -1,5 +1,5 @@
 import { clipboardPayloadTextRead } from '@/clipboard/payload/clipboard_payload_text.js';
-import type { PrefabTemplate } from '@/prefab/prefab_types.js';
+import { PREFAB_CATEGORY_DEFAULT, type PrefabTemplate } from '@/prefab/prefab_types.js';
 
 /** Format marker of a prefab file. */
 export const PREFAB_FILE_FORMAT = 'bevybroom.prefab';
@@ -46,7 +46,9 @@ export class PrefabFileCodec {
     const id = PrefabFileCodec.idFromFileName(fileName);
     const name = typeof file['name'] === 'string' && file['name'].trim() !== '' ? file['name'] : id;
     const category =
-      typeof file['category'] === 'string' && file['category'].trim() !== '' ? file['category'] : 'Prefabs';
+      typeof file['category'] === 'string' && file['category'].trim() !== ''
+        ? file['category']
+        : PREFAB_CATEGORY_DEFAULT;
     return { id, name, category, payload };
   }
 

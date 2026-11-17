@@ -1,6 +1,9 @@
 /** CSS class on each outliner row used for pointer hit testing. */
 export const OUTLINER_ROW_ELEMENT_CLASS = 'editor-outliner-row';
 
+/** Data attribute on each outliner row holding the uuid of the object it shows. */
+export const OUTLINER_ROW_OBJECT_UUID_ATTRIBUTE = 'data-outliner-object-uuid';
+
 /**
  * Returns the element stack under a viewport point. Prefers
  * {@link Document.elementsFromPoint} so drag ghosts do not hide rows; falls back

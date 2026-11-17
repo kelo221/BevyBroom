@@ -25,6 +25,7 @@ describe('EntityBrowserSettingsStore', () => {
       groupByCategory: false,
       usedOnly: true,
       searchText: 'door',
+      categoryFilter: 'Lights',
       viewMode: 'single_3d',
     } as const;
     first.optionsUpdate(changed);
@@ -35,13 +36,14 @@ describe('EntityBrowserSettingsStore', () => {
     const storage = new MemorySettingsStorage();
     storage.setItem(
       ENTITY_BROWSER_SETTINGS_STORAGE_KEY,
-      JSON.stringify({ sortMode: 'size', usedOnly: true, searchText: 3, viewMode: 'wireframe' }),
+      JSON.stringify({ sortMode: 'size', usedOnly: true, searchText: 3, categoryFilter: 7, viewMode: 'wireframe' }),
     );
     const options = new EntityBrowserSettingsStore(storage).optionsRead();
     expect(options.sortMode).toBe(ENTITY_BROWSER_VIEW_OPTIONS_DEFAULT.sortMode);
     expect(options.viewMode).toBe(ENTITY_BROWSER_VIEW_OPTIONS_DEFAULT.viewMode);
     expect(options.usedOnly).toBe(true);
     expect(options.searchText).toBe(ENTITY_BROWSER_VIEW_OPTIONS_DEFAULT.searchText);
+    expect(options.categoryFilter).toBe(ENTITY_BROWSER_VIEW_OPTIONS_DEFAULT.categoryFilter);
     storage.setItem(ENTITY_BROWSER_SETTINGS_STORAGE_KEY, '{not json');
     expect(new EntityBrowserSettingsStore(storage).optionsRead()).toEqual(ENTITY_BROWSER_VIEW_OPTIONS_DEFAULT);
   });

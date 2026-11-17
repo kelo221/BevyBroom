@@ -200,7 +200,16 @@ describe('EditorApi keyboard and open menu tools', () => {
     const required = Object.fromEntries(
       MCP_UI_INPUT_TOOL_DEFINITIONS.map((definition) => [definition.name, definition.inputSchema['required']]),
     );
-    expect(Object.keys(required)).toEqual(['keyboard_input', 'get_open_menus', 'choose_open_menu_item']);
+    expect(Object.keys(required)).toEqual([
+      'keyboard_input',
+      'get_open_menus',
+      'choose_open_menu_item',
+      'get_entity_browser_tiles',
+      'entity_browser_drag',
+      'outliner_click',
+    ]);
+    expect(required['outliner_click']).toEqual(['id']);
     expect(required['choose_open_menu_item']).toEqual(['label']);
+    expect(required['entity_browser_drag']).toEqual(['tileId', 'view', 'at']);
   });
 });

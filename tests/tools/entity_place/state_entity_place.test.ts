@@ -22,6 +22,8 @@ function makeEntry(id: string, label: string): EntityBrowserCatalogEntry {
     objectMatches: null,
     previewCreate: null,
     activate: vi.fn(),
+    placeAtAim: null,
+    contextEntriesCreate: null,
   };
 }
 

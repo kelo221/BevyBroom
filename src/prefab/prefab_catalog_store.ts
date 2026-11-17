@@ -2,7 +2,7 @@ import type * as THREE from 'three';
 import { ClipboardPayloadEncoder } from '@/clipboard/payload/clipboard_payload_encoder.js';
 import type { ClipboardPayload } from '@/clipboard/payload/clipboard_payload_types.js';
 import { prefabPayloadScope } from '@/prefab/payload/prefab_payload_scope.js';
-import type { PrefabTemplate } from '@/prefab/prefab_types.js';
+import { PREFAB_CATEGORY_DEFAULT, type PrefabTemplate } from '@/prefab/prefab_types.js';
 
 /** Listener notified when the Prefab catalog changes. */
 export type PrefabCatalogStoreListener = () => void;
@@ -22,9 +22,6 @@ export interface PrefabCatalogPersistence {
    */
   templateDelete(template: PrefabTemplate): void;
 }
-
-/** Category of prefabs created without one. */
-export const PREFAB_CATEGORY_DEFAULT = 'Prefabs';
 
 /**
  * Stores categorized `PrefabTemplate` definitions for Hammer++'s Prefab

@@ -21,6 +21,8 @@ import type { ShellDockCommands } from '@/layout/shell/actions/shell_dock_comman
 import type { Issue } from '@/info_panel/issues/issue.js';
 import { SprinkleDialogMount } from '@/tools/sprinkle/ui/mount/sprinkle_dialog_mount.js';
 import type { DialogSprinkleServices } from '@/tools/sprinkle/ui/dialog_sprinkle.js';
+import { PrefabEditorActions, type PrefabEditorActionsHost } from '@/prefab/actions/prefab_editor_actions.js';
+import { prefabEditorActionsActive } from '@/prefab/actions/prefab_editor_actions_active.js';
 
 /** Docks of the main window the panels are mounted into. */
 export interface LayoutShellPanelsDocks {
@@ -47,6 +49,8 @@ export interface LayoutShellPanelsOptions {
   hammerBar: Omit<ShellHammerBarMountOptions, 'inspector' | 'objectBarHandlers'>;
   /** Services of the Entity Sprinkle window. */
   sprinkleDialog: DialogSprinkleServices;
+  /** Services of the prefab actions the Entity Browser and the Edit menu run. */
+  prefabActions: PrefabEditorActionsHost;
 }
 
 /**
@@ -70,6 +74,7 @@ export class LayoutShellPanels {
   readonly hammerBar: ShellHammerBarMount;
   /** Entity Sprinkle window open while the Sprinkle tool is active. */
   readonly sprinkleDialogMount: SprinkleDialogMount;
+  readonly prefabActions: PrefabEditorActions;
   private readonly dockPanels: ShellDockPanelsMount;
 
   /**
@@ -79,6 +84,8 @@ export class LayoutShellPanels {
    */
   constructor(options: LayoutShellPanelsOptions) {
     this.faceInspectorParts = faceInspectorSetup(options.faceInspectorDependencies);
+    this.prefabActions = new PrefabEditorActions(options.prefabActions);
+    prefabEditorActionsActive.write(this.prefabActions);
     this.textureWindows = this.textureWindowsCreate(options);
     this.entityBrowser = entityBrowserSetup(options.entityBrowserHost);
     this.entityBrowserWindow = new PanelFloatingEntityBrowser(options.docks.toolbarContainer, this.entityBrowser);
@@ -133,6 +140,7 @@ export class LayoutShellPanels {
   /** Disposes every panel, floating window and face inspector controller. */
   dispose(): void {
     getStateEntityPlace().browseDelegateWrite(null);
+    prefabEditorActionsActive.releaseIfStored(this.prefabActions);
     this.sprinkleDialogMount.dispose();
     this.hammerBar.dispose();
     this.dockPanels.dispose();

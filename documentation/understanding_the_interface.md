@@ -9,7 +9,7 @@ it has:
 3. The **tools palette**, a vertical column of tool buttons on the left edge.
 4. The **view column** in the center: a view bar above four viewports.
 5. The **right dock** with the selection filter, the current texture, VisGroups,
-   prefabs, and the Map section with layers and the outliner.
+   and the Map section with layers and the outliner.
 6. The **info panel** docked below the viewports, with Console and Issues tabs.
 7. The **status bar** along the bottom edge.
 
@@ -224,17 +224,12 @@ user group named **Group N** that holds the selection, and **Mark** selects the
 visible members of the highlighted group. Creating a group and assigning the
 selection is one undo step.
 
-### Move selected and prefabs
-
-- **Move selected:** **toEntity** ties the selected brushes to an entity: a
-  single group keeps its place, several objects are wrapped in a new group, and
-  the result receives a game component. **toWorld** turns entities back into
-  plain world geometry by removing their game components and outputs.
-- **Categories:** and **Objects:** pick a saved prefab. Type a name into
-  **Prefab name...** and choose **Create Prefab** to save the selection as a
-  prefab, **Insert** to place a copy of the picked prefab, or **Delete** to
-  remove it. A project with a `prefab_directory` keeps its prefabs as files; see
-  [Project classes and prefabs](project_classes_and_prefabs.md).
+Prefabs are tiles of the [Entity Browser](#entity-browser). **Edit > Tie to
+Entity** ties the selected brushes to an entity: a single group keeps its place,
+several objects are wrapped in a new group, and the result receives a game
+component. **Edit > Move to World** turns entities back into plain world geometry
+by removing their game components and outputs. Both are also in the view
+right-click menu.
 
 ### Map section
 
@@ -383,7 +378,8 @@ Face Edit Sheet.
 ### Entity Browser
 
 The Entity Browser shows a thumbnail tile for every kind of object the **Add**
-menu can create, including the game's entity classes when a game is connected.
+menu can create, including the game's entity classes when a game is connected
+and every prefab (see [Project classes and prefabs](project_classes_and_prefabs.md)).
 Open it with the Entity Browser button on the toolbar, **Window > Entity
 Browser**, `Ctrl+Shift+B` (`⌘⇧B` on macOS), or **Browse** on the Entity Tool's
 view bar.
@@ -391,9 +387,13 @@ view bar.
 - Drag a tile onto a viewport to place that object where you drop it.
 - Click a tile to select it, then double-click it or press `Enter` to add the
   object the same way the Add menu does.
-- The dropdown sorts the tiles by **Name** or **Category**. **Group** shows the
-  tiles under category headers, **Used** shows only the kinds used in this map,
-  and the **Search** field filters the tiles by name.
+- The dropdown sorts the tiles by **Name** or **Category**. The category filter
+  shows one top-level category, such as **Prefabs** or **Game Entities**, or
+  **All**. **Group** shows the tiles under category headers, **Used** shows only
+  the kinds used in this map, and the **Search** field filters the tiles by name
+  or category.
+- Right-click a prefab tile to rename it, change its category, delete it or
+  reveal its file.
 
 A tile's number badge shows how many objects of that kind the map contains.
 

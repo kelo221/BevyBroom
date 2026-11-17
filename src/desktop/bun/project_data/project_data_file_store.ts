@@ -86,6 +86,27 @@ export class ProjectDataFileStore {
   }
 
   /**
+   * Returns the absolute path of an existing data file.
+   *
+   * @param location Location the file belongs to.
+   * @param name File name.
+   * @returns Absolute path, or why the file cannot be shown.
+   */
+  existingPathResolve(
+    location: ProjectDataLocation,
+    name: string,
+  ): { ok: true; path: string } | { ok: false; message: string } {
+    const refusal = ProjectDataLocationResolver.nameRefusalDescribe(location, name);
+    if (refusal !== null) {
+      return { ok: false, message: `Cannot show "${name}": ${refusal}.` };
+    }
+    const path = `${location.directory}/${name}`;
+    return existsSync(path)
+      ? { ok: true, path }
+      : { ok: false, message: `Cannot show "${name}": the file does not exist.` };
+  }
+
+  /**
    * Lists the data file names present in a location.
    *
    * @param location Location to list.

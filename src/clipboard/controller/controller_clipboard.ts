@@ -19,7 +19,10 @@ import { clipboardPayloadOffsetApply } from '@/clipboard/payload/clipboard_paylo
 import { clipboardPayloadTextRead, clipboardPayloadTextWrite } from '@/clipboard/payload/clipboard_payload_text.js';
 import type { ClipboardPayload } from '@/clipboard/payload/clipboard_payload_types.js';
 import {
+  clipboardPlacementAimOffsetCompute,
   clipboardPlacementCursorOffsetCompute,
+  type ClipboardPlacementAim,
+  type ClipboardPlacementAimOptions,
   type ClipboardPlacementViewportPoint,
 } from '@/clipboard/placement/clipboard_placement_cursor.js';
 
@@ -242,6 +245,26 @@ export class ControllerClipboard {
     this.host.refreshAfterWorldMutation();
     this.host.showStatusMessage(`Pasted ${roots.length} object(s)`);
     return { roots, ids: command.pastedIdsRead() };
+  }
+
+  /**
+   * Pastes a payload moved to an aimed point of a view, as one undoable step,
+   * then selects and reports the pasted objects.
+   *
+   * @param stored Payload at the position it was captured at; not changed.
+   * @param aim View camera and aimed screen point.
+   * @param options Placement choices.
+   * @returns Pasted objects.
+   */
+  payloadPasteAtAim(
+    stored: ClipboardPayload,
+    aim: ClipboardPlacementAim,
+    options: ClipboardPlacementAimOptions,
+  ): ClipboardPasteResult {
+    const bounds = clipboardBoundsFromPayload(stored.bounds);
+    const gridInterval = this.host.gridIntervalRead();
+    const offset = clipboardPlacementAimOffsetCompute(aim, bounds, this.host.worldObject, gridInterval, options);
+    return this.payloadPaste(stored, offset);
   }
 
   /**

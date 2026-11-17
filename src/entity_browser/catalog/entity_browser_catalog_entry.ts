@@ -1,4 +1,9 @@
-import type { AddMenuCatalogObjectMatcher, AddMenuCatalogPreviewFactory } from '@/layout/setup/add_menu_catalog.js';
+import type {
+  AddMenuCatalogAimPlacer,
+  AddMenuCatalogContextEntriesFactory,
+  AddMenuCatalogObjectMatcher,
+  AddMenuCatalogPreviewFactory,
+} from '@/layout/setup/add_menu_catalog.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 
 /** One placeable kind the entity browser lists as a tile. */
@@ -25,4 +30,11 @@ export interface EntityBrowserCatalogEntry {
   readonly previewCreate: AddMenuCatalogPreviewFactory | null;
   /** Adds the kind the way its Add menu entry does. */
   readonly activate: () => void;
+  /**
+   * Places the kind at an aimed point of a view, or null to activate along the
+   * view ray.
+   */
+  readonly placeAtAim: AddMenuCatalogAimPlacer | null;
+  /** Builds the tile's right-click menu, or null when the tile has none. */
+  readonly contextEntriesCreate: AddMenuCatalogContextEntriesFactory | null;
 }

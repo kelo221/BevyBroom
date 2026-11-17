@@ -40,5 +40,13 @@ export interface ProjectDataFileRemoveRequest {
   name: string;
 }
 
+/** Which project data file to show in the system file manager. */
+export interface ProjectDataFileRevealRequest {
+  /** Kind of data the file belongs to. */
+  kind: ProjectDataFileKind;
+  /** File name without directories. */
+  name: string;
+}
+
 /** Outcome of writing or removing a project data file. */
 export type ProjectDataFileChangeResult = { ok: true } | { ok: false; message: string };

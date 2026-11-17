@@ -6,6 +6,7 @@ import { RoomOwner } from '@/portal/model/room_owner.js';
 import { roomSettingsCreateDefault } from '@/portal/model/room_settings.js';
 import { gameEntityAddMenuSection } from '@/game_entity/ui/game_entity_add_menu_section.js';
 import { proceduralAddMenuSection } from '@/procedural/ui/procedural_add_menu_section.js';
+import { prefabAddMenuSection } from '@/prefab/ui/prefab_add_menu_section.js';
 import { modifierStackAddMenuSection } from '@/modifier/stack/ui/modifier_stack_add_menu_section.js';
 import type { ToolbarMenuEntry } from '@/ui/toolbar/toolbar.js';
 import type { AddMenuActions } from '@/layout/setup/add_menu_entries.js';
@@ -37,6 +38,7 @@ export function addMenuSectionsBuiltin(): readonly AddMenuSectionFactory[] {
     addMenuSectionPortals,
     gameEntityAddMenuSection,
     proceduralAddMenuSection,
+    prefabAddMenuSection,
   ];
 }
 

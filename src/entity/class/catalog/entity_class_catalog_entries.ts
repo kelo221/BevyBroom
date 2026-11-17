@@ -57,6 +57,8 @@ export class EntityClassCatalogEntries {
       objectMatches: (object) => pointClass.matches(object),
       previewCreate: () => pointClass.ownerCreate(),
       activate: () => actions.onAddEntityPlaced(() => pointClass.ownerCreate(), ENTITY_CLASS_CATALOG_PLACEMENT_RADIUS),
+      placeAtAim: null,
+      contextEntriesCreate: null,
     };
   }
 }

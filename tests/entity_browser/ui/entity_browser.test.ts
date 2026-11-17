@@ -187,12 +187,13 @@ describe('EntityBrowser', () => {
 
   it('groups tiles under category headers only while Group is on', () => {
     const { browser } = browserMount();
+    const gridText = (): string => browser.getElement().querySelector('[role="listbox"]')?.textContent ?? '';
     browser.optionsUpdate({ groupByCategory: false });
-    const headersWhenFlat = browser.getElement().textContent ?? '';
+    const headersWhenFlat = gridText();
     controlButton(browser, 'Group').click();
     expect(browser.optionsRead().groupByCategory).toBe(true);
     expect(controlButton(browser, 'Group').getAttribute('aria-pressed')).toBe('true');
-    expect(browser.getElement().textContent ?? '').toContain('Lights');
+    expect(gridText()).toContain('Lights');
     expect(headersWhenFlat).not.toContain('Lights');
   });
 
@@ -255,6 +256,30 @@ describe('EntityBrowser', () => {
     expect(document.querySelector('[data-entity-browser-drag-ghost]')).toBeNull();
     pointerDispatch(document.body, 'pointerup', 300, 200);
     expect(entityPlace).not.toHaveBeenCalled();
+  });
+
+  it('selects no page text while a tile is dragged and restores text selection afterwards', () => {
+    const { browser } = browserMount();
+    const pageText = document.createElement('p');
+    pageText.textContent = 'page text that must stay unselected';
+    document.body.appendChild(pageText);
+    const bodyUserSelectBefore = document.body.style.userSelect;
+    const tile = tileFind(browser, 'lights.spot');
+    const press = new PointerEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      clientX: 10,
+      clientY: 10,
+      button: 0,
+    });
+    tile.dispatchEvent(press);
+    expect(press.defaultPrevented).toBe(true);
+    document.getSelection()?.selectAllChildren(document.body);
+    pointerDispatch(document, 'pointermove', 60, 60);
+    expect(document.body.style.userSelect).toBe('none');
+    pointerDispatch(document.body, 'pointerup', 300, 200);
+    expect(document.getSelection()?.toString() ?? '').toBe('');
+    expect(document.body.style.userSelect).toBe(bodyUserSelectBefore);
   });
 
   it('places nothing for a press released before the drag threshold', () => {

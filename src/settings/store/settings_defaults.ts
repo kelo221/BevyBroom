@@ -269,7 +269,8 @@ function createDefaultTransformShortcuts(): Pick<
 
 /**
  * Default edit and file operation shortcuts. Ctrl+Alt+V pastes at the copied
- * position; Cut, Copy and Paste use the fixed system clipboard keys.
+ * position and Ctrl+Alt+P makes a prefab from the selection; Cut, Copy and
+ * Paste use the fixed system clipboard keys.
  *
  * @returns Partial keyboard shortcut settings.
  */
@@ -287,6 +288,7 @@ function createDefaultEditFileShortcuts(): Pick<
   | 'duplicate'
   | 'group'
   | 'ungroup'
+  | 'prefab_make'
   | 'paste_original'
 > {
   return {
@@ -302,6 +304,7 @@ function createDefaultEditFileShortcuts(): Pick<
     duplicate: createShortcut('KeyD', true),
     group: createShortcut('KeyG', false, true),
     ungroup: createShortcut('KeyU', false, true),
+    prefab_make: createShortcut('KeyP', true, false, true),
     paste_original: createShortcut('KeyV', true, false, true),
   };
 }

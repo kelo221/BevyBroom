@@ -14,3 +14,6 @@ export interface PrefabTemplate {
   /** Captured objects and brushes at the positions they were captured at. */
   payload: ClipboardPayload;
 }
+
+/** Category of prefabs created or read without one. */
+export const PREFAB_CATEGORY_DEFAULT = 'General';

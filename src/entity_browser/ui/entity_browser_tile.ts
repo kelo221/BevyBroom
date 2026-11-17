@@ -74,7 +74,8 @@ export class EntityBrowserTile {
   }
 
   /**
-   * Builds the hover text: name, category, extra help and usage count.
+   * Builds the hover text: name, category, extra help and, for kinds whose
+   * objects can be counted in the map, the usage count.
    *
    * @param usageCount Number of objects of this kind.
    * @returns Tooltip text.
@@ -84,7 +85,9 @@ export class EntityBrowserTile {
     if (this.entry.tooltip !== '') {
       lines.push(this.entry.tooltip);
     }
-    lines.push(`Used ${usageCount} time${usageCount === 1 ? '' : 's'} in this map`);
+    if (this.entry.objectMatches !== null) {
+      lines.push(`Used ${usageCount} time${usageCount === 1 ? '' : 's'} in this map`);
+    }
     return lines.join('\n');
   }
 }

@@ -2,6 +2,7 @@ import { iconSvgElementCreate } from '@/ui/icons/icon_svg.js';
 import type { EntityBrowserCatalogEntry } from '@/entity_browser/catalog/entity_browser_catalog_entry.js';
 import { ENTITY_BROWSER_TILE_ICON_PX, entityBrowserStyleThumbnail } from '@/entity_browser/ui/entity_browser_styles.js';
 import { entityBrowserStyleThumbnailImage } from '@/entity_browser/ui/entity_browser_styles_preview.js';
+import { EntityBrowserViewQuery } from '@/entity_browser/view/entity_browser_view_query.js';
 
 /** Data attribute set on thumbnails that show a rendered 3D image. */
 export const ENTITY_BROWSER_THUMBNAIL_IMAGE_ATTRIBUTE = 'data-entity-browser-thumbnail-image';
@@ -81,7 +82,7 @@ function entityBrowserThumbnailGlyphCreate(ownerDocument: Document, entry: Entit
  * @returns CSS color.
  */
 function entityBrowserThumbnailBackground(category: string): string {
-  const topLevel = category.split('/')[0]?.trim() ?? category;
+  const topLevel = EntityBrowserViewQuery.topLevelCategoryOf(category);
   let hash = 0;
   for (let index = 0; index < topLevel.length; index++) {
     hash = (hash * 31 + topLevel.charCodeAt(index)) % 360;

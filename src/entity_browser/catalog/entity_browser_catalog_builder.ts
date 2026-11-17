@@ -93,6 +93,8 @@ export class EntityBrowserCatalogBuilder {
       objectMatches: catalogInfo?.objectMatches ?? null,
       previewCreate: catalogInfo?.previewCreate ?? null,
       activate: () => EntityBrowserCatalogBuilder.actionActivate(action),
+      placeAtAim: catalogInfo?.placeAtAim ?? null,
+      contextEntriesCreate: catalogInfo?.contextEntriesCreate ?? null,
     };
   }
 
@@ -113,7 +115,8 @@ export class EntityBrowserCatalogBuilder {
   }
 
   /**
-   * Joins submenu labels into a category path.
+   * Joins submenu labels into a category path, writing a label repeated by the
+   * submenu right below it only once.
    *
    * @param categoryPath Submenu labels.
    * @returns Category path, or the general category at the top level.
@@ -122,7 +125,8 @@ export class EntityBrowserCatalogBuilder {
     if (categoryPath.length === 0) {
       return ENTITY_BROWSER_CATALOG_CATEGORY_GENERAL;
     }
-    return categoryPath.join(ENTITY_BROWSER_CATALOG_CATEGORY_SEPARATOR);
+    const labelsWithoutRepeats = categoryPath.filter((label, index) => label !== categoryPath[index - 1]);
+    return labelsWithoutRepeats.join(ENTITY_BROWSER_CATALOG_CATEGORY_SEPARATOR);
   }
 
   /**

@@ -1,4 +1,5 @@
 import type * as THREE from 'three';
+import { clipboardPlacementAimFromViewportPoint } from '@/clipboard/placement/clipboard_placement_cursor.js';
 import type { EntityBrowserCatalogEntry } from '@/entity_browser/catalog/entity_browser_catalog_entry.js';
 import { entityBrowserPlacementRayCameraCreate } from '@/entity_browser/placement/entity_browser_placement_ray_camera.js';
 
@@ -56,7 +57,9 @@ export class EntityBrowserPlacementAtClientPoint {
   }
 
   /**
-   * Adds an entry on the view ray through a client point.
+   * Adds an entry at a client point: kinds that place themselves at an aim get
+   * the aim through the point, the others run their Add action along the view
+   * ray through it.
    *
    * @param entry Catalog entry to add.
    * @param clientX Client X of the drop point.
@@ -67,6 +70,11 @@ export class EntityBrowserPlacementAtClientPoint {
     const viewport = this.host.viewportAtClientPointResolve(clientX, clientY);
     if (viewport === null) {
       return false;
+    }
+    if (entry.placeAtAim !== null) {
+      const viewportPoint = { camera: viewport.camera, pickElement: viewport.pickElement, clientX, clientY };
+      entry.placeAtAim(clipboardPlacementAimFromViewportPoint(viewportPoint));
+      return true;
     }
     const rayCamera = entityBrowserPlacementRayCameraCreate(viewport.camera, viewport.pickElement, clientX, clientY);
     this.host.spawnCameraOverrideRun(rayCamera, () => entry.activate());
