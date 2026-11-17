@@ -34,6 +34,10 @@ import { SelectionMode } from '@/types/selection_mode.js';
 import { HandlerSelectionVisibility } from '@/selection/visibility/handler_selection_visibility.js';
 import { LayoutClipboardSystem } from '@/layout/setup/layout_clipboard_setup.js';
 import { SystemSceneRecovery } from '@/scene_recovery/system_scene_recovery.js';
+import type { SceneRecoveryRestoreOutcome } from '@/scene_recovery/scene_recovery_restore_offer.js';
+import type { ProjectWorkspaceLastSession } from '@/project/workspace/project_workspace_last_session.js';
+import { gameProcessControlResolve } from '@/project/control/game_process_control_desktop.js';
+import { projectWorkspaceLastSessionStart } from '@/project/workspace/project_workspace_last_session_setup.js';
 import { DialogObjectProperties } from '@/ui/object_properties/dialog_object_properties.js';
 import { ObjectSelectDoubleClickProperties } from '@/tools/object_select/object_select_double_click_properties.js';
 import { ObjectSelectDoubleClickNativeListener } from '@/tools/object_select/object_select_double_click_native_listener.js';
@@ -56,6 +60,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
   private objectSelectDoubleClickNativeListener: ObjectSelectDoubleClickNativeListener | null = null;
   private objectContextMenu: ObjectSelectContextMenu | null = null;
   protected sceneRecovery: SystemSceneRecovery | null = null;
+  private projectWorkspaceLastSession: ProjectWorkspaceLastSession | null = null;
 
   /**
    * Returns the current editor parts the File menu actions use.
@@ -139,13 +144,36 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
       onSceneLoaded: () => this.onSceneLoaded(),
     });
     const sceneRecovery = this.sceneRecovery;
-    queueMicrotask(() => void sceneRecovery.restoreOffer());
+    const recoveryOutcome = new Promise<SceneRecoveryRestoreOutcome>((resolve) =>
+      queueMicrotask(() => resolve(sceneRecovery.restoreOffer())),
+    );
+    this.projectWorkspaceLastSessionStart(recoveryOutcome.then((outcome) => outcome === 'restored'));
   }
 
-  /** Stops protecting unsaved work. */
+  /**
+   * Reopens the last project and level and starts remembering new ones, in
+   * editors that can open projects.
+   *
+   * @param recoveryDecided Settles true once recovered work replaced the scene.
+   */
+  private projectWorkspaceLastSessionStart(recoveryDecided: Promise<boolean>): void {
+    this.projectWorkspaceLastSession?.dispose();
+    if (!gameProcessControlResolve().isAvailable) {
+      return;
+    }
+    this.projectWorkspaceLastSession = projectWorkspaceLastSessionStart(
+      this.gamePreviewLayoutEnsure().workbenchEnsure(),
+      this.projectLevelActionsRead(),
+      recoveryDecided,
+    );
+  }
+
+  /** Stops protecting unsaved work and stops remembering the workspace. */
   protected sceneRecoveryDispose(): void {
     this.sceneRecovery?.dispose();
     this.sceneRecovery = null;
+    this.projectWorkspaceLastSession?.dispose();
+    this.projectWorkspaceLastSession = null;
   }
 
   /**
