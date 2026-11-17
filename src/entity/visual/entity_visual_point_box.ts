@@ -47,9 +47,11 @@ export class EntityVisualPointBox {
    * @returns The box marker mesh.
    */
   static ensure(owner: THREE.Object3D, look: EntityPointBoxLook): THREE.Mesh {
+    const shape = look.shape ?? ENTITY_POINT_BOX_SHAPE_DEFAULT;
+    const marker = EntityVisualPointBox.shapeApply(owner, shape, look.name);
     const iconSize = ENTITY_POINT_BOX_SIZE * ENTITY_POINT_BOX_ICON_SHARE;
     EntityVisualBillboard.iconEnsure(owner, look.iconName, iconSize, look.beforeRender);
-    const marker = EntityVisualPointBox.shapeApply(owner, look.shape ?? ENTITY_POINT_BOX_SHAPE_DEFAULT, look.name);
+    EntityVisualPointBox.iconPlace(owner, shape);
     EntityVisualPointBox.tint(owner, look.colorHex, look.opacity);
     return marker;
   }
@@ -68,8 +70,18 @@ export class EntityVisualPointBox {
     const marker = EntityVisualBuilder.markerEnsure(owner, geometryPair.faces, name);
     shadingExemptFlag(marker);
     EntityVisualPointBox.edgesEnsure(marker, geometryPair.edges);
-    EntityVisualBillboard.iconFind(owner)?.position.set(...shape.offset);
+    EntityVisualPointBox.iconPlace(owner, shape);
     return marker;
+  }
+
+  /**
+   * Moves the owner's icon, when it has one, to the center of a box shape.
+   *
+   * @param owner Entity owner group.
+   * @param shape Size and placement of the box.
+   */
+  private static iconPlace(owner: THREE.Object3D, shape: EntityPointBoxShape): void {
+    EntityVisualBillboard.iconFind(owner)?.position.set(...shape.offset);
   }
 
   /**
