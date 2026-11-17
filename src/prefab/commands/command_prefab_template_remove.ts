@@ -1,6 +1,6 @@
 import type { UndoCommand } from '@/commands/command_undo.js';
-import type { PrefabCatalogStore } from '../prefab_catalog_store.js';
-import type { PrefabTemplate } from '../prefab_types.js';
+import type { PrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
+import type { PrefabTemplate } from '@/prefab/prefab_types.js';
 
 /**
  * Undoable removal of one prefab template from a prefab catalog. Undo adds the

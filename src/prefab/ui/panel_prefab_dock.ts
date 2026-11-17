@@ -10,11 +10,11 @@ import {
   shellDockCompactRowStyle,
 } from '@/layout/shell/dock/shell_dock_compact.js';
 import { InputWheelBindingSelect } from '@/ui/input/wheel/input_wheel_binding_select.js';
-import { getPrefabCatalogStore, type PrefabCatalogStore } from '../prefab_catalog_store.js';
-import { CommandPrefabTemplateAdd } from '../commands/command_prefab_template_add.js';
-import { CommandPrefabTemplateRemove } from '../commands/command_prefab_template_remove.js';
-import { CommandPrefabEntityTie } from '../commands/command_prefab_entity_tie.js';
-import { CommandPrefabEntityWorldMove } from '../commands/command_prefab_entity_world_move.js';
+import { getPrefabCatalogStore, type PrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
+import { CommandPrefabTemplateAdd } from '@/prefab/commands/command_prefab_template_add.js';
+import { CommandPrefabTemplateRemove } from '@/prefab/commands/command_prefab_template_remove.js';
+import { CommandPrefabEntityTie } from '@/prefab/commands/command_prefab_entity_tie.js';
+import { CommandPrefabEntityWorldMove } from '@/prefab/commands/command_prefab_entity_world_move.js';
 
 /** Width of the row captions such as `Move selected:` in pixels. */
 const PANEL_PREFAB_DOCK_CAPTION_WIDTH_PX = 84;

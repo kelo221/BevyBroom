@@ -40,7 +40,11 @@ function prefabPayloadInternalNamesCollect(entries: readonly ObjectEntry[]): Set
  */
 function prefabPayloadEntryScope(entry: ObjectEntry, internalNames: ReadonlySet<string>, suffix: string): void {
   entry.name = prefabPayloadNameScope(entry.name, internalNames, suffix);
-  entry.gameLogicOutputs = entry.gameLogicOutputs?.map((output) => ({
+  const outputs = entry.gameLogicOutputs;
+  if (outputs === undefined) {
+    return;
+  }
+  entry.gameLogicOutputs = outputs.map((output) => ({
     ...output,
     target: prefabPayloadNameScope(output.target, internalNames, suffix),
   }));

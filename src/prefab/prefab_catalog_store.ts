@@ -1,8 +1,8 @@
 import type * as THREE from 'three';
 import { ClipboardPayloadEncoder } from '@/clipboard/payload/clipboard_payload_encoder.js';
 import type { ClipboardPayload } from '@/clipboard/payload/clipboard_payload_types.js';
-import { prefabPayloadScope } from './payload/prefab_payload_scope.js';
-import type { PrefabTemplate } from './prefab_types.js';
+import { prefabPayloadScope } from '@/prefab/payload/prefab_payload_scope.js';
+import type { PrefabTemplate } from '@/prefab/prefab_types.js';
 
 /** Listener notified when the Prefab catalog changes. */
 export type PrefabCatalogStoreListener = () => void;

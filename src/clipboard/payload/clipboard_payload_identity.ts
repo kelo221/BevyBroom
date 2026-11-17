@@ -64,7 +64,11 @@ function clipboardEntryNameRefresh(entry: ObjectEntry, nameByOld: Map<string, st
  * @param nameByOld New names by old name.
  */
 function clipboardEntryLogicTargetsRename(entry: ObjectEntry, nameByOld: ReadonlyMap<string, string>): void {
-  entry.gameLogicOutputs = entry.gameLogicOutputs?.map((output) => ({
+  const outputs = entry.gameLogicOutputs;
+  if (outputs === undefined) {
+    return;
+  }
+  entry.gameLogicOutputs = outputs.map((output) => ({
     ...output,
     target: nameByOld.get(output.target) ?? output.target,
   }));
