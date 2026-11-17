@@ -13,6 +13,10 @@ import type { GameProcessHandle, GameProcessSpawner } from '@/desktop/bun/game_p
 import type { GameProcessProjectReader } from '@/desktop/bun/game_process/game_process_project_reader.js';
 import { GameProcessLog } from '@/desktop/bun/game_process/game_process_log.js';
 
+/** Why the game of a project without a preview section cannot be started. */
+export const GAME_PROCESS_NO_PREVIEW_REFUSAL =
+  'The project file has no "preview" section, so the editor cannot build or start its game. Levels, textures, classes and prefabs still work.';
+
 /** Open project with everything the host needs to run it. */
 interface GameProcessOpenProject {
   definition: ProjectDefinition;
@@ -145,6 +149,9 @@ export class GameProcessHost {
     if (!this.project) {
       return 'Open a project first.';
     }
+    if (!this.project.definition.launch) {
+      return GAME_PROCESS_NO_PREVIEW_REFUSAL;
+    }
     const blocking = this.project.summary.problems.find((problem) => problem.severity === 'error');
     if (blocking) {
       return `The project cannot start its game: ${blocking.message}`;
@@ -271,7 +278,8 @@ export class GameProcessHost {
       projectFile: definition.projectFile,
       projectIdentifier: definition.projectIdentifier,
       name: definition.name,
-      endpoint: definition.launch.endpoint,
+      endpoint: definition.launch?.endpoint ?? '',
+      canLaunch: definition.launch !== null,
       canBuild: definition.build !== null,
       problems: ProjectDefinitionValidator.validate(definition, this.reader),
     };

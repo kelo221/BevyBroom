@@ -87,9 +87,26 @@ export function previewLaunchProjectParse(projectJson: string): Record<string, u
  * @returns The preview section.
  */
 export function previewLaunchSectionRead(project: Record<string, unknown>): Record<string, unknown> {
-  const preview = project['preview'];
-  if (!previewLaunchIsRecord(preview)) {
+  const preview = previewLaunchOptionalSectionRead(project);
+  if (preview === null) {
     throw new PreviewLaunchCommandError('The project file has no "preview" section');
+  }
+  return preview;
+}
+
+/**
+ * Returns the preview section of a project when the project has one.
+ *
+ * @param project Parsed project object.
+ * @returns The preview section, or null when the project has none.
+ */
+export function previewLaunchOptionalSectionRead(project: Record<string, unknown>): Record<string, unknown> | null {
+  const preview = project['preview'];
+  if (preview === undefined) {
+    return null;
+  }
+  if (!previewLaunchIsRecord(preview)) {
+    throw new PreviewLaunchCommandError('project.preview must be an object');
   }
   return preview;
 }

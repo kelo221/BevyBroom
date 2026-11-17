@@ -2,14 +2,28 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import type { PreviewLaunchCommand } from '@/preview/launch/preview_launch_command.js';
 import { GameProcessSpawner, type GameProcessHandle } from '@/desktop/bun/game_process/game_process_spawner.js';
+import { GameProcessEnvironmentShellPath } from '@/desktop/bun/game_process/game_process_environment_shell_path.js';
 
 /**
  * Starts programs as operating system processes and ends them together with
  * every process they started, which `cargo run` needs.
  */
 export class GameProcessSpawnerNode extends GameProcessSpawner {
+  private readonly environment: GameProcessEnvironmentShellPath;
+
   /**
-   * Starts a command without a shell, so paths with spaces need no quoting.
+   * Creates the spawner.
+   *
+   * @param environment Builds the environment started programs get.
+   */
+  constructor(environment: GameProcessEnvironmentShellPath = new GameProcessEnvironmentShellPath()) {
+    super();
+    this.environment = environment;
+  }
+
+  /**
+   * Starts a command without a shell, so paths with spaces need no quoting,
+   * with the PATH of the user's login shell.
    *
    * @param command Program, arguments and working directory.
    * @param onOutputLine Receives every line the program prints.
@@ -18,6 +32,7 @@ export class GameProcessSpawnerNode extends GameProcessSpawner {
   spawn(command: PreviewLaunchCommand, onOutputLine: (line: string) => void): GameProcessHandle {
     const child = spawn(command.program, command.arguments, {
       cwd: command.workingDirectory,
+      env: this.environment.environmentRead(),
       stdio: ['ignore', 'pipe', 'pipe'],
       detached: process.platform !== 'win32',
       windowsHide: true,

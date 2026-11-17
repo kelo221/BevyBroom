@@ -38,8 +38,11 @@ export interface ProjectDefinition {
    * relative to the asset root with forward slashes.
    */
   sprinkleDirectories: string[];
-  /** Command that starts the game preview. */
-  launch: PreviewLaunchCommand;
+  /**
+   * Command that starts the game preview, or null when the project file has no
+   * preview section.
+   */
+  launch: PreviewLaunchCommand | null;
   /**
    * Command that builds the game, or null when the project cannot be built by
    * the editor.

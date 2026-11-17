@@ -4,7 +4,7 @@ import {
   previewLaunchDirectoryJoin,
   previewLaunchOptionalStringRead,
   previewLaunchProjectParse,
-  previewLaunchSectionRead,
+  previewLaunchOptionalSectionRead,
   previewLaunchStringRead,
 } from '@/preview/launch/preview_launch_command.js';
 import type { ProjectDefinition } from '@/project/model/project_definition.js';
@@ -33,8 +33,8 @@ export class ProjectDefinitionParser {
     const projectFileNormalized = projectFile.replace(/\\/g, '/');
     const projectDirectory = ProjectDefinitionParser.directoryOf(projectFileNormalized);
     const projectIdentifier = previewLaunchStringRead(project, 'project_id', PROJECT_SECTION_PATH);
-    const preview = previewLaunchSectionRead(project);
-    const launch = previewLaunchCommandFromSection(preview, projectDirectory, 'preview');
+    const preview = previewLaunchOptionalSectionRead(project);
+    const launch = preview === null ? null : previewLaunchCommandFromSection(preview, projectDirectory, 'preview');
     const assetRoot = ProjectDefinitionParser.assetRootRead(project, projectDirectory);
     return {
       projectFile: projectFileNormalized,
@@ -48,7 +48,10 @@ export class ProjectDefinitionParser {
       textureDirectories: ProjectDefinitionParser.assetDirectoriesRead(project, 'texture_directories'),
       sprinkleDirectories: ProjectDefinitionParser.assetDirectoriesRead(project, 'sprinkle_directories'),
       launch,
-      build: ProjectBuildCommandResolver.resolve(preview, launch, projectDirectory),
+      build:
+        preview === null || launch === null
+          ? null
+          : ProjectBuildCommandResolver.resolve(preview, launch, projectDirectory),
     };
   }
 

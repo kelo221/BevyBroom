@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { chmodSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import { GameProcessSpawnerNode } from '@/desktop/bun/game_process/game_process_spawner_node.js';
+import {
+  GAME_PROCESS_SHELL_PATH_MARKER,
+  GameProcessEnvironmentShellPath,
+} from '@/desktop/bun/game_process/game_process_environment_shell_path.js';
 
 /** Temporary directories created by the tests, removed afterwards. */
 const temporaryDirectories: string[] = [];
@@ -13,7 +17,7 @@ const temporaryDirectories: string[] = [];
  * @returns Absolute directory.
  */
 function directoryWithSpacesCreate(): string {
-  const directory = mkdtempSync(join(tmpdir(), 'broom spawner ü '));
+  const directory = realpathSync(mkdtempSync(join(tmpdir(), 'broom spawner ü ')));
   temporaryDirectories.push(directory);
   return directory;
 }
@@ -58,6 +62,29 @@ describe('GameProcessSpawnerNode', () => {
     await handle.terminate();
     expect(typeof (await handle.exited)).toBe('number');
   });
+
+  it.skipIf(process.platform === 'win32')(
+    'finds a program by name in a directory only the login shell PATH lists',
+    async () => {
+      const toolDirectory = directoryWithSpacesCreate();
+      const toolName = `broom-test-tool-${process.pid}`;
+      writeFileSync(join(toolDirectory, toolName), '#!/bin/sh\necho "tool ran"\n');
+      chmodSync(join(toolDirectory, toolName), 0o755);
+      const shellPath = [toolDirectory, process.env['PATH'] ?? ''].join(delimiter);
+      const environment = new GameProcessEnvironmentShellPath(
+        { PATH: '/usr/bin:/bin' },
+        process.platform,
+        () => `${GAME_PROCESS_SHELL_PATH_MARKER}${shellPath}`,
+      );
+      const lines: string[] = [];
+      const handle = new GameProcessSpawnerNode(environment).spawn(
+        { program: toolName, arguments: [], workingDirectory: toolDirectory, endpoint: '' },
+        (line) => lines.push(line),
+      );
+      expect(await handle.exited).toBe(0);
+      expect(lines).toContain('tool ran');
+    },
+  );
 
   it('reports a program that cannot be started as exit code -1 with a reason', async () => {
     const lines: string[] = [];

@@ -60,7 +60,11 @@ describe('ProjectDefinitionValidator', () => {
   it('does not look up programs found through PATH and warns about remote endpoints', () => {
     const root = '/games/remote';
     const definition = definitionCreate(root);
-    definition.launch = { ...definition.launch, program: 'cargo', endpoint: 'http://example.com:15702' };
+    const launch = definition.launch;
+    if (launch === null) {
+      throw new Error('the test project has a launch command');
+    }
+    definition.launch = { ...launch, program: 'cargo', endpoint: 'http://example.com:15702' };
     const problems = ProjectDefinitionValidator.validate(
       definition,
       probeCreate([root, `${root}/assets`, `${root}/source`], []),

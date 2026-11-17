@@ -25,6 +25,9 @@ export function projectWorkbenchActionIsAvailable(
   if (status === null || project === null || project.problems.some((problem) => problem.severity === 'error')) {
     return false;
   }
+  if (!project.canLaunch) {
+    return action === 'stop' && PROJECT_WORKBENCH_STOP_PHASES.includes(status.phase);
+  }
   if (action === 'stop') {
     return PROJECT_WORKBENCH_STOP_PHASES.includes(status.phase);
   }

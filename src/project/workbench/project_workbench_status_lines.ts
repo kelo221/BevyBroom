@@ -19,6 +19,10 @@ const PROJECT_WORKBENCH_PHASE_NAMES: Readonly<Record<GameProcessPhase, string>> 
   stopped: 'Stopped',
 };
 
+/** Game status shown for a project whose file names no preview program. */
+export const PROJECT_WORKBENCH_NO_PREVIEW_TEXT =
+  'Not started by the editor (the project file has no "preview" section)';
+
 /** Most compiler errors listed in the status. */
 const PROJECT_WORKBENCH_STATUS_ERROR_LIMIT = 3;
 
@@ -66,9 +70,13 @@ function projectWorkbenchStatusPhaseLinesBuild(
   projectName: string,
 ): ProjectWorkbenchStatusLine[] {
   const isFailed = status.phase === 'build_failed';
+  const gameText =
+    status.project?.canLaunch === false
+      ? PROJECT_WORKBENCH_NO_PREVIEW_TEXT
+      : PROJECT_WORKBENCH_PHASE_NAMES[status.phase];
   const lines: ProjectWorkbenchStatusLine[] = [
     { text: `Project: ${projectName}`, isError: false },
-    { text: `Game: ${PROJECT_WORKBENCH_PHASE_NAMES[status.phase]}`, isError: isFailed },
+    { text: `Game: ${gameText}`, isError: isFailed },
   ];
   return status.message === '' ? lines : [...lines, { text: status.message, isError: isFailed }];
 }
