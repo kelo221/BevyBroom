@@ -81,4 +81,82 @@ export const MCP_PROJECT_TOOL_DEFINITIONS: McpToolDefinition[] = [
       },
     },
   ),
+  tool(
+    'list_project_classes',
+    `The game entity classes declared in the open project's class file (broom.project.json "entity_classes"), shared by every level and shown without the game running. Returns { isConfigured, fileName, problem, classes, undeclaredLevelClasses } where undeclaredLevelClasses lists classes the open level carries in its own snapshot but the file lacks. A connected game's classes still win over the file. ${MCP_PROJECT_DESKTOP_NOTE}`,
+    emptySchema(),
+  ),
+  tool(
+    'set_project_class',
+    `Declare a game entity class in the project's class file, replacing the class with the same type_path. Every level of the project shows it at once. Not undoable; the file is written right away. ${MCP_PROJECT_DESKTOP_NOTE}`,
+    {
+      type: 'object',
+      properties: {
+        class: {
+          type: 'object',
+          description:
+            'Class in the bridge placeable format: { type_path, label, category, placement ("point" or "any"), marker_color [r,g,b] 0..1, fields: [{ path, label, kind, default, ... }] } as list_game_classes reports it.',
+        },
+      },
+      required: ['class'],
+    },
+  ),
+  tool(
+    'remove_project_class',
+    `Remove a class from the project's class file. Objects keep their component values; a level's own snapshot still describes the class. ${MCP_PROJECT_DESKTOP_NOTE}`,
+    {
+      type: 'object',
+      properties: { typePath: { type: 'string', description: 'Component type path of the class.' } },
+      required: ['typePath'],
+    },
+  ),
+  tool(
+    'move_level_classes_to_project',
+    `Copy every class the open level carries in its own snapshot but the project's class file lacks into the file (File > Move Level Classes to Project). Classes the file already declares are kept as they are. Returns { moved }. ${MCP_PROJECT_DESKTOP_NOTE}`,
+    emptySchema(),
+  ),
+  tool(
+    'list_prefabs',
+    "Every prefab of the Prefabs dock: { prefabs: [{ id, name, category, objectCount, brushCount, isProjectFile }] }. isProjectFile is true for prefabs kept as files in the open project's prefab_directory.",
+    emptySchema(),
+  ),
+  tool(
+    'create_prefab',
+    'Capture the selected objects and brushes, with their geometry, textures and game data, as a new prefab (undoable). While the open project names a prefab_directory the prefab is saved there as <id>.json; otherwise it lasts for the session. Returns its id.',
+    {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Display name; the id derives from it.' },
+        category: { type: 'string', description: 'Prefabs dock category; "Prefabs" when omitted.' },
+      },
+      required: ['name'],
+    },
+  ),
+  tool(
+    'place_prefab',
+    "Place a copy of a prefab (undoable). Placed objects are independent copies; changing the prefab later does not change them. Names the prefab's objects fire entity I/O at get a fresh suffix per copy. Returns the ids of the placed objects.",
+    {
+      type: 'object',
+      properties: {
+        prefabId: { type: 'string', description: 'Prefab id as listed by list_prefabs.' },
+        position: {
+          type: 'object',
+          description:
+            'World position for the bottom centre of the prefab bounds; omitted places it where it was captured.',
+          properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
+          required: ['x', 'y', 'z'],
+        },
+      },
+      required: ['prefabId'],
+    },
+  ),
+  tool(
+    'delete_prefab',
+    "Delete a prefab (undoable); a project prefab's file is deleted too and written again on undo.",
+    {
+      type: 'object',
+      properties: { prefabId: { type: 'string', description: 'Prefab id as listed by list_prefabs.' } },
+      required: ['prefabId'],
+    },
+  ),
 ];

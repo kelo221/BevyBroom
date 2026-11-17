@@ -1,5 +1,6 @@
 import type { GameEntityClassProvider } from '@/game_entity/class/game_entity_class_provider.js';
 import { GameEntityClassProviderBuiltin } from '@/game_entity/class/game_entity_class_provider_builtin.js';
+import { GameEntityClassProviderProject } from '@/game_entity/class/game_entity_class_provider_project.js';
 import { GameEntityClassProviderPreview } from '@/game_entity/class/game_entity_class_provider_preview.js';
 import { GameEntityClassProviderScene } from '@/game_entity/class/game_entity_class_provider_scene.js';
 
@@ -11,6 +12,7 @@ import { GameEntityClassProviderScene } from '@/game_entity/class/game_entity_cl
 export function gameEntityClassProvidersBuiltin(): readonly GameEntityClassProvider[] {
   return [
     GameEntityClassProviderPreview.shared,
+    GameEntityClassProviderProject.shared,
     GameEntityClassProviderScene.shared,
     GameEntityClassProviderBuiltin.shared,
   ];

@@ -15,6 +15,8 @@ export interface ProjectSummary {
   name: string;
   /** Bridge endpoint of the project's game; empty uses the editor default. */
   endpoint: string;
+  /** True when the project file names a program that starts the game. */
+  canLaunch: boolean;
   /** True when the editor knows how to build the game. */
   canBuild: boolean;
   /** Problems found when the project was opened. */

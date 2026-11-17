@@ -293,6 +293,8 @@ These tools need the desktop app; the browser editor answers that it cannot star
 | `game_restart`   | Stop and start again without building                                                                                               |
 | `game_stop`      | Stop the game this editor started; a game started any other way is never stopped                                                    |
 
+- `list_project_classes`, `set_project_class`, `remove_project_class` and `move_level_classes_to_project` read and edit the project's `entity_classes` file; `list_prefabs`, `create_prefab`, `place_prefab` and `delete_prefab` manage prefabs, kept as files in the project's `prefab_directory` when it names one. See `documentation/project_classes_and_prefabs.md`.
+- A project file without a `preview` section opens; `game_launch`, `game_rebuild` and `game_restart` then answer that the editor cannot start its game.
 - Builds use `preview.build` from the project file, or the `cargo build` matching a `cargo run` launch. Compiler errors appear in the Console and the Issues list with their file and line.
 - A document linked to one project refuses the game of another: the preview shows `incompatible` and nothing is published.
 

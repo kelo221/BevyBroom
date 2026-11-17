@@ -34,6 +34,8 @@ function definitionCreate(root: string): ProjectDefinition {
     levels: [],
     textureDirectories: [],
     sprinkleDirectories: [],
+    entityClassesFile: null,
+    prefabDirectory: null,
     launch: { program: 'bin/game.exe', arguments: [], workingDirectory: root, endpoint: 'http://127.0.0.1:15702' },
     build: { program: 'cargo', arguments: ['build'], workingDirectory: `${root}/source`, endpoint: '' },
   };
@@ -60,7 +62,11 @@ describe('ProjectDefinitionValidator', () => {
   it('does not look up programs found through PATH and warns about remote endpoints', () => {
     const root = '/games/remote';
     const definition = definitionCreate(root);
-    definition.launch = { ...definition.launch, program: 'cargo', endpoint: 'http://example.com:15702' };
+    const launch = definition.launch;
+    if (launch === null) {
+      throw new Error('the test project has a launch command');
+    }
+    definition.launch = { ...launch, program: 'cargo', endpoint: 'http://example.com:15702' };
     const problems = ProjectDefinitionValidator.validate(
       definition,
       probeCreate([root, `${root}/assets`, `${root}/source`], []),

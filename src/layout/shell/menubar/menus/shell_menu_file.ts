@@ -1,5 +1,9 @@
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
+import {
+  GAME_ENTITY_CLASS_PROJECT_MOVE_MENU_LABEL,
+  GameEntityClassProjectLevelClasses,
+} from '@/game_entity/class/project/game_entity_class_project_level_classes.js';
 
 /**
  * File menu: new, save, load, projects, project levels, Build Level, import,
@@ -68,7 +72,26 @@ export class ShellMenuFile extends ShellMenu {
       this.actionEntry(context, 'Save As New Level…', () => levelActionsRead().levelBrowserReveal(true), {
         isEnabled: isProjectOpen,
       }),
+      this.levelClassesMoveEntryBuild(context),
     ];
+  }
+
+  /**
+   * Builds the row that moves the open level's classes into the project's class
+   * file; enabled while the level carries classes the file lacks.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Menu entry.
+   */
+  private levelClassesMoveEntryBuild(context: ShellMenuContext): ToolbarMenuEntry {
+    return this.actionEntry(
+      context,
+      GAME_ENTITY_CLASS_PROJECT_MOVE_MENU_LABEL,
+      () => void GameEntityClassProjectLevelClasses.activeCreate()?.levelClassesMove(),
+      {
+        isEnabled: () => (GameEntityClassProjectLevelClasses.activeCreate()?.undeclaredTypePathsRead().length ?? 0) > 0,
+      },
+    );
   }
 
   /**

@@ -1,4 +1,5 @@
-import type * as THREE from 'three';
+import * as THREE from 'three';
+import { clipboardControllerActive } from '@/clipboard/controller/clipboard_controller_active.js';
 import type { CommandStack } from '@/commands/command_stack.js';
 import type { UndoCommand } from '@/commands/command_undo.js';
 import type { ManagerSelection } from '@/selection/object/manager_selection.js';
@@ -108,6 +109,8 @@ export class ShellHammerBarMount {
         selectedObjectsRead: () => options.selectionManager.getInspectorObjects(),
         worldRootRead: () => options.worldObject,
         commandRun: (command) => this.commandRun(options, command),
+        payloadPlace: (payload) =>
+          clipboardControllerActive.controllerRead()?.payloadPaste(payload, new THREE.Vector3()),
       },
       options.prefabCatalogStore,
     );

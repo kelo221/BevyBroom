@@ -24,6 +24,7 @@ export interface ProjectAssetFollowerWorkbench extends ProjectWorkbenchOpenKeySo
 export abstract class ProjectAssetFollower {
   private readonly workbench: ProjectAssetFollowerWorkbench;
   private listenerRemove: (() => void) | null = null;
+  private focusListenerRemove: (() => void) | null = null;
   private shownProjectKey: string | null = null;
   private loadGeneration = 0;
   private pendingLoad: Promise<void> = Promise.resolve();
@@ -50,6 +51,8 @@ export abstract class ProjectAssetFollower {
   dispose(): void {
     this.listenerRemove?.();
     this.listenerRemove = null;
+    this.focusListenerRemove?.();
+    this.focusListenerRemove = null;
     this.loadGeneration += 1;
     this.shownProjectKey = null;
     this.assetsClear();
@@ -60,6 +63,19 @@ export abstract class ProjectAssetFollower {
     this.listenerRemove?.();
     this.listenerRemove = this.workbench.changeListenerAdd(() => this.projectChangeHandle());
     this.projectChangeHandle();
+  }
+
+  /**
+   * Loads the open project's assets again whenever a target, such as the editor
+   * window, gains focus, so files changed by other programs show up.
+   *
+   * @param focusTarget Target whose "focus" events start a new load.
+   */
+  protected focusReloadFollow(focusTarget: EventTarget): void {
+    const handleFocus = (): void => this.loadAgain();
+    this.focusListenerRemove?.();
+    focusTarget.addEventListener('focus', handleFocus);
+    this.focusListenerRemove = () => focusTarget.removeEventListener('focus', handleFocus);
   }
 
   /**

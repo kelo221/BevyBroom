@@ -182,7 +182,7 @@ export class ControllerClipboard {
    *
    * @returns Selected roots.
    */
-  private selectionRootsRead(): THREE.Object3D[] {
+  selectionRootsRead(): THREE.Object3D[] {
     const selection = this.host.selectionManager;
     const inspectorObjects = selection.getInspectorObjects();
     const objects = inspectorObjects.length > 0 ? inspectorObjects : [...selection.getSelectedObjects()];
@@ -222,8 +222,20 @@ export class ControllerClipboard {
       this.host.showStatusMessage('The clipboard holds no BevyBroom objects');
       return null;
     }
+    return this.payloadPaste(stored, offsetCompute(stored));
+  }
+
+  /**
+   * Pastes a payload with fresh identities, moved by an offset, as one undoable
+   * step, then selects and reports the pasted objects.
+   *
+   * @param stored Payload at the position it was captured at; not changed.
+   * @param offset World offset added to every pasted position.
+   * @returns Pasted objects.
+   */
+  payloadPaste(stored: ClipboardPayload, offset: THREE.Vector3): ClipboardPasteResult {
     const payload = clipboardPayloadIdentitiesRefresh(stored);
-    clipboardPayloadOffsetApply(payload, offsetCompute(payload));
+    clipboardPayloadOffsetApply(payload, offset);
     const command = this.pasteCommandPush(payload);
     const roots = command.pastedRootsRead();
     this.host.selectionManager.setSelection(selectionMeshesFromHierarchyCollect(roots), roots);

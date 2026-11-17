@@ -26,6 +26,13 @@ import type {
   ProjectLevelWriteRequest,
   ProjectLevelWriteResult,
 } from '@/project/level/project_level_types.js';
+import type {
+  ProjectDataFileChangeResult,
+  ProjectDataFileKind,
+  ProjectDataFileRemoveRequest,
+  ProjectDataFilesReadResult,
+  ProjectDataFileWriteRequest,
+} from '@/project/data/project_data_file_types.js';
 import { projectLevelDocumentFromName, projectLevelIdFromDocument } from '@/project/model/project_level_entry.js';
 import { ProjectRecentStore } from '@/project/recent/project_recent_store.js';
 import { ProjectWorkbench, type ProjectWorkbenchLink } from '@/project/workbench/project_workbench.js';
@@ -57,6 +64,13 @@ export class GameProcessControlFake extends GameProcessControl {
   readonly projectLevelDocuments = new Map<string, Map<string, string>>();
   /** Modification time given to the next written level document. */
   nextLevelModifiedMilliseconds = 1000;
+  /**
+   * Project data file texts by kind and file name; a missing kind is not
+   * configured.
+   */
+  readonly projectDataFiles = new Map<ProjectDataFileKind, Map<string, string>>();
+  /** Only file name each kind kept in one file may write. */
+  readonly projectDataFixedFileNames = new Map<ProjectDataFileKind, string>();
 
   /** @inheritdoc */
   async projectChooseFile(): Promise<string | null> {
@@ -179,6 +193,33 @@ export class GameProcessControlFake extends GameProcessControl {
     return { ok: true, level: this.projectLevelSummaryCreate(target) };
   }
 
+  /** @inheritdoc */
+  async projectDataFilesRead(kind: ProjectDataFileKind): Promise<ProjectDataFilesReadResult> {
+    const files = this.projectDataFiles.get(kind);
+    if (files === undefined) {
+      return { ok: true, isConfigured: false, fixedFileName: null, files: [] };
+    }
+    const fixedFileName = this.projectDataFixedFileNames.get(kind) ?? null;
+    const sorted = [...files.entries()].sort(([first], [second]) => first.localeCompare(second));
+    return { ok: true, isConfigured: true, fixedFileName, files: sorted.map(([name, text]) => ({ name, text })) };
+  }
+
+  /** @inheritdoc */
+  async projectDataFileWrite(request: ProjectDataFileWriteRequest): Promise<ProjectDataFileChangeResult> {
+    const files = this.projectDataFiles.get(request.kind);
+    if (files === undefined) {
+      return { ok: false, message: `The project file names no location for ${request.kind}.` };
+    }
+    files.set(request.name, request.text);
+    return { ok: true };
+  }
+
+  /** @inheritdoc */
+  async projectDataFileRemove(request: ProjectDataFileRemoveRequest): Promise<ProjectDataFileChangeResult> {
+    this.projectDataFiles.get(request.kind)?.delete(request.name);
+    return { ok: true };
+  }
+
   /**
    * Returns the fake level documents of one project, creating the store.
    *
@@ -235,6 +276,7 @@ export function projectSummaryCreate(projectFile: string): ProjectSummary {
     projectIdentifier: `id-${folder}`,
     name: folder,
     endpoint: `http://127.0.0.1:1/${folder}`,
+    canLaunch: true,
     canBuild: true,
     problems: [],
   };

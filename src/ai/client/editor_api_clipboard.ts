@@ -123,7 +123,7 @@ export class EditorApiClipboard {
    *
    * @returns Clipboard controller.
    */
-  private controllerRead(): ControllerClipboard {
+  controllerRead(): ControllerClipboard {
     const active = clipboardControllerActive.controllerRead();
     if (active !== null) {
       return active;

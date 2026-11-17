@@ -6,6 +6,8 @@ import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js'
 import { GAME_PROCESS_DESKTOP_ONLY_MESSAGE } from '@/project/control/game_process_control.js';
 import { documentProjectLinkRead } from '@/project/document/document_project_link.js';
 import { EDITOR_API_PROJECT_LEVEL_TOOL_NAMES, EditorApiProjectLevels } from './editor_api_project_levels.js';
+import { EDITOR_API_PROJECT_CLASS_TOOL_NAMES, EditorApiProjectClasses } from './editor_api_project_classes.js';
+import { EDITOR_API_PROJECT_PREFAB_TOOL_NAMES, EditorApiProjectPrefabs } from './editor_api_project_prefabs.js';
 
 /** Game actions by the name of the tool that starts them. */
 const EDITOR_API_PROJECT_ACTION_TOOLS: Readonly<Record<string, GameProcessAction>> = {
@@ -19,6 +21,8 @@ const EDITOR_API_PROJECT_ACTION_TOOLS: Readonly<Record<string, GameProcessAction
 export class EditorApiProject {
   private readonly host: EditorApiHost;
   private readonly levels: EditorApiProjectLevels;
+  private readonly classes: EditorApiProjectClasses;
+  private readonly prefabs: EditorApiProjectPrefabs;
 
   /**
    * Creates the project tools.
@@ -28,6 +32,8 @@ export class EditorApiProject {
   constructor(host: EditorApiHost) {
     this.host = host;
     this.levels = new EditorApiProjectLevels(host);
+    this.classes = new EditorApiProjectClasses();
+    this.prefabs = new EditorApiProjectPrefabs(host);
   }
 
   /**
@@ -47,9 +53,14 @@ export class EditorApiProject {
     if (name === 'build_level') {
       return this.levelBuild(args);
     }
-    const levelResult = this.levels.levelToolDispatchAsync(name, args);
+    const levelResult =
+      this.levels.levelToolDispatchAsync(name, args) ?? this.classes.classToolDispatchAsync(name, args);
     if (levelResult !== null) {
       return levelResult;
+    }
+    const prefabResult = this.prefabs.prefabToolDispatch(name, args);
+    if (prefabResult !== null) {
+      return Promise.resolve(prefabResult);
     }
     const action = EDITOR_API_PROJECT_ACTION_TOOLS[name];
     return action === undefined ? null : this.gameActionRun(action);
@@ -69,6 +80,8 @@ export class EditorApiProject {
       name === 'project_status' ||
       name === 'build_level' ||
       EDITOR_API_PROJECT_LEVEL_TOOL_NAMES.includes(name) ||
+      EDITOR_API_PROJECT_CLASS_TOOL_NAMES.includes(name) ||
+      EDITOR_API_PROJECT_PREFAB_TOOL_NAMES.includes(name) ||
       EDITOR_API_PROJECT_ACTION_TOOLS[name] !== undefined;
     return isProjectTool ? failResult(`${name} waits for the desktop app; call it through invokeToolAsync`) : null;
   }

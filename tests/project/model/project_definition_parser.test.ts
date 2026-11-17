@@ -37,8 +37,45 @@ describe('ProjectDefinitionParser', () => {
     expect(definition.projectFile).toBe(`${directory}/broom.project.json`);
     expect(definition.assetRoot).toBe(`${directory}/assets`);
     expect(definition.levelDirectory).toBe(`${definition.assetRoot}/broom/levels`);
-    expect(definition.launch.workingDirectory).toBe(directory);
-    expect(definition.launch.endpoint).toBe('http://127.0.0.1:15702');
+    expect(definition.launch?.workingDirectory).toBe(directory);
+    expect(definition.launch?.endpoint).toBe('http://127.0.0.1:15702');
+  });
+
+  it('opens a project without a preview section, with no launch and no build command', () => {
+    const projectWithoutPreviewJson = projectJsonCreate({ preview: undefined });
+    const definition = ProjectDefinitionParser.parse(projectWithoutPreviewJson, '/game/broom.project.json');
+    expect(JSON.parse(projectWithoutPreviewJson)).not.toHaveProperty('preview');
+    expect(definition.projectIdentifier).toBe('game-a');
+    expect(definition.launch).toBeNull();
+    expect(definition.build).toBeNull();
+  });
+
+  it('resolves the class file and prefab directory against the project directory', () => {
+    const directory = '/games/Kärrchen';
+    const definition = ProjectDefinitionParser.parse(
+      projectJsonCreate({ entity_classes: 'broom/classes.json', prefab_directory: 'broom/prefabs/' }),
+      `${directory}/broom.project.json`,
+    );
+    expect(definition.entityClassesFile).toBe(`${directory}/broom/classes.json`);
+    expect(definition.prefabDirectory).toBe(`${directory}/broom/prefabs`);
+    const plain = ProjectDefinitionParser.parse(projectJsonCreate(), `${directory}/broom.project.json`);
+    expect(plain.entityClassesFile).toBeNull();
+    expect(plain.prefabDirectory).toBeNull();
+  });
+
+  it('refuses a class file outside the project or not ending in .json, and an empty prefab directory', () => {
+    const parseWith = (fields: Record<string, unknown>) => () =>
+      ProjectDefinitionParser.parse(projectJsonCreate(fields), '/game/broom.project.json');
+    expect(parseWith({ entity_classes: '../shared/classes.json' })).toThrow(/entity_classes/);
+    expect(parseWith({ entity_classes: 'broom/classes.txt' })).toThrow(/\.json/);
+    expect(parseWith({ prefab_directory: '  ' })).toThrow(/prefab_directory/);
+  });
+
+  it('refuses a preview section that is not an object', () => {
+    const parse = (): unknown =>
+      ProjectDefinitionParser.parse(projectJsonCreate({ preview: 'bun' }), '/game/broom.project.json');
+    expect(parse).toThrow(PreviewLaunchCommandError);
+    expect(parse).toThrow(/project\.preview/);
   });
 
   it('keeps paths with spaces and non-ASCII characters intact', () => {
@@ -48,14 +85,14 @@ describe('ProjectDefinitionParser', () => {
       `${directory}/broom.project.json`,
     );
     expect(definition.assetRoot).toBe(`${directory}/Assets Ünïcode`);
-    expect(definition.launch.workingDirectory).toBe(directory);
+    expect(definition.launch?.workingDirectory).toBe(directory);
   });
 
   it('derives a cargo build from a cargo run launch with short compiler messages', () => {
     const definition = ProjectDefinitionParser.parse(projectJsonCreate(), '/game/broom.project.json');
     expect(definition.build?.program).toBe('cargo');
     expect(definition.build?.arguments).toEqual(['build', '--release', '-p', 'game', '--message-format=short']);
-    expect(definition.build?.workingDirectory).toBe(definition.launch.workingDirectory);
+    expect(definition.build?.workingDirectory).toBe(definition.launch?.workingDirectory);
   });
 
   it('prefers an explicit build section and has no build for other programs', () => {

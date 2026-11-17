@@ -232,7 +232,9 @@ selection is one undo step.
   plain world geometry by removing their game components and outputs.
 - **Categories:** and **Objects:** pick a saved prefab. Type a name into
   **Prefab name...** and choose **Create Prefab** to save the selection as a
-  prefab, or choose **Insert** to place the picked prefab.
+  prefab, **Insert** to place a copy of the picked prefab, or **Delete** to
+  remove it. A project with a `prefab_directory` keeps its prefabs as files; see
+  [Project classes and prefabs](project_classes_and_prefabs.md).
 
 ### Map section
 

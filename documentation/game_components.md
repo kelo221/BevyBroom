@@ -108,7 +108,7 @@ Missing fields keep their Rust default, so an empty file is a valid asset with d
 
 ## In the editor
 
-Connect the game preview first (see [Game preview and lights](game_preview.md)). The editor asks the game for its classes and keeps a copy per project, so the components stay editable after the game is closed; a saved scene also keeps a copy of the classes it uses.
+Connect the game preview first (see [Game preview and lights](game_preview.md)). The editor asks the game for its classes and keeps a copy per project, so the components stay editable after the game is closed; a saved scene also keeps a copy of the classes it uses. A project can also declare its classes in a file, so every level has them without the game ever running; see [Project classes and prefabs](project_classes_and_prefabs.md).
 
 - **Add > Game Entities > Empty Game Entity** adds a point object (a small translucent box with a puzzle piece icon inside, which you click to select it) with no components. The submenus below it list the point classes by category; picking one adds a Game Entity that already carries that component, tinted with the class's marker color.
 - The **Class Info** tab of Object Properties (`Alt+Enter`) works on any selection. The **Class** combo converts the object in place. **Add** attaches a component, **×** removes it.

@@ -34,11 +34,13 @@ export class ProjectDefinitionValidator {
     if (!probe.isDirectory(definition.assetRoot)) {
       problems.push({ severity: 'error', message: `The asset root ${definition.assetRoot} does not exist.` });
     }
-    problems.push(...ProjectDefinitionValidator.commandProblems('launch', definition.launch, probe));
+    if (definition.launch) {
+      problems.push(...ProjectDefinitionValidator.commandProblems('launch', definition.launch, probe));
+      problems.push(...ProjectDefinitionValidator.endpointProblems(definition.launch.endpoint));
+    }
     if (definition.build) {
       problems.push(...ProjectDefinitionValidator.commandProblems('build', definition.build, probe));
     }
-    problems.push(...ProjectDefinitionValidator.endpointProblems(definition.launch.endpoint));
     problems.push(
       ...ProjectDefinitionValidator.assetDirectoryProblems(definition, definition.textureDirectories, 'texture', probe),
     );

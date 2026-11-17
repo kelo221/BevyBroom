@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GameProcessHost } from '@/desktop/bun/game_process/game_process_host.js';
+import { GAME_PROCESS_NO_PREVIEW_REFUSAL, GameProcessHost } from '@/desktop/bun/game_process/game_process_host.js';
 import type { GameProcessProjectReader } from '@/desktop/bun/game_process/game_process_project_reader.js';
 import { GameProcessSpawnerFake } from './game_process_spawner_fake.js';
 
@@ -13,14 +13,17 @@ const PROJECT_FILE = `${PROJECT_DIRECTORY}/broom.project.json`;
  * Builds a reader holding one project file whose folders all exist.
  *
  * @param projectIdentifier Project id written into the file.
+ * @param hasPreviewSection Whether the file names a program that starts the
+ *   game.
  * @returns Reader.
  */
-function readerCreate(projectIdentifier: string): GameProcessProjectReader {
+function readerCreate(projectIdentifier: string, hasPreviewSection = true): GameProcessProjectReader {
+  const preview = { program: 'cargo', arguments: ['run', '-p', 'game'], endpoint: 'http://127.0.0.1:15999' };
   const project = {
     project_id: projectIdentifier,
     asset_root: 'assets',
     level_directory: 'broom/levels',
-    preview: { program: 'cargo', arguments: ['run', '-p', 'game'], endpoint: 'http://127.0.0.1:15999' },
+    ...(hasPreviewSection ? { preview } : {}),
   };
   return {
     textRead: (path) => {
@@ -63,6 +66,19 @@ describe('GameProcessHost', () => {
     const opened = await host.projectOpen(`${PROJECT_DIRECTORY}/other.json`);
     expect(opened.ok).toBe(false);
     expect(host.actionStart('launch').message).toBe('Open a project first.');
+  });
+
+  it('opens a project without a preview section and refuses every action that starts its game', async () => {
+    const spawner = new GameProcessSpawnerFake();
+    const host = new GameProcessHost(spawner, readerCreate('levels-only', false));
+    const opened = await host.projectOpen(PROJECT_FILE);
+    expect(opened.ok).toBe(true);
+    expect(host.statusRead().project).toMatchObject({ canLaunch: false, canBuild: false, endpoint: '', problems: [] });
+    for (const action of ['launch', 'rebuild', 'restart'] as const) {
+      expect(host.actionStart(action).message).toBe(GAME_PROCESS_NO_PREVIEW_REFUSAL);
+    }
+    await host.idle();
+    expect(spawner.runs).toEqual([]);
   });
 
   it('builds before launching and then runs the game', async () => {

@@ -38,8 +38,21 @@ export interface ProjectDefinition {
    * relative to the asset root with forward slashes.
    */
   sprinkleDirectories: string[];
-  /** Command that starts the game preview. */
-  launch: PreviewLaunchCommand;
+  /**
+   * Absolute path of the file declaring the project's game entity classes,
+   * forward slashes; null when the project file names none.
+   */
+  entityClassesFile: string | null;
+  /**
+   * Absolute directory holding the project's prefab files, forward slashes;
+   * null when the project file names none.
+   */
+  prefabDirectory: string | null;
+  /**
+   * Command that starts the game preview, or null when the project file has no
+   * preview section.
+   */
+  launch: PreviewLaunchCommand | null;
   /**
    * Command that builds the game, or null when the project cannot be built by
    * the editor.

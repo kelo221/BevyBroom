@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { GameProcessAction, GameProcessPhase } from '@/project/process/game_process_types.js';
 import { projectWorkbenchActionIsAvailable } from '@/project/workbench/project_workbench_action_availability.js';
-import { projectWorkbenchStatusLinesBuild } from '@/project/workbench/project_workbench_status_lines.js';
+import {
+  PROJECT_WORKBENCH_NO_PREVIEW_TEXT,
+  projectWorkbenchStatusLinesBuild,
+} from '@/project/workbench/project_workbench_status_lines.js';
 import { gameStatusCreate, projectSummaryCreate } from './project_workbench_rig.js';
 
 /**
@@ -40,6 +43,18 @@ describe('projectWorkbenchActionIsAvailable', () => {
     const project = projectSummaryCreate('/games/c/broom.project.json');
     project.canBuild = false;
     expect(projectWorkbenchActionIsAvailable(gameStatusCreate(project, 'running'), 'rebuild')).toBe(false);
+  });
+
+  it('offers no launch, rebuild or restart when the project cannot start its game', () => {
+    const project = projectSummaryCreate('/games/e/broom.project.json');
+    project.canLaunch = false;
+    project.canBuild = false;
+    const offered = (['launch', 'rebuild', 'restart', 'stop'] as const).filter((action) =>
+      projectWorkbenchActionIsAvailable(gameStatusCreate(project, 'exited'), action),
+    );
+    expect(offered).toEqual([]);
+    const lines = projectWorkbenchStatusLinesBuild(gameStatusCreate(project, 'idle'), false);
+    expect(lines.map((line) => line.text)).toContain(`Game: ${PROJECT_WORKBENCH_NO_PREVIEW_TEXT}`);
   });
 
   it('lists build errors and warns about a document of another project', () => {
