@@ -1,3 +1,4 @@
+import { COLLISION_FILE_NAME } from '@/level_export/collision/collision_types.js';
 import { afterEach, describe, expect, it } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -56,7 +57,12 @@ function requestCreate(geometryText: string): LevelBuildPublishRequest {
     },
     materials: [],
   };
-  return { levelName: 'hall', glbBase64: Buffer.from(geometryText).toString('base64'), manifest };
+  return {
+    levelName: 'hall',
+    glbBase64: Buffer.from(geometryText).toString('base64'),
+    manifest,
+    collisionJson: `{"level_name":"${geometryText}"}\n`,
+  };
 }
 
 /**
@@ -114,6 +120,23 @@ describe('LevelPackageWriter', () => {
     expect(second.removedGeometryFiles).toEqual([first.geometryFile]);
     const geometryFiles = readdirSync(levelDirectory).filter((name) => levelBuildGeometryStampRead(name) !== null);
     expect(geometryFiles).toEqual([second.geometryFile]);
+  });
+
+  it('writes the collision document next to the manifest', () => {
+    const levelDirectory = levelDirectoryCreate();
+    publishExpectOk(new LevelPackageWriter(), levelDirectory, 'first');
+    expect(readFileSync(`${levelDirectory}/${COLLISION_FILE_NAME}`, 'utf8')).toBe(requestCreate('first').collisionJson);
+  });
+
+  it('keeps a requested geometry revision, rewriting the same file name', () => {
+    const levelDirectory = levelDirectoryCreate();
+    const writer = new LevelPackageWriter();
+    const revision = 4242;
+    const first = writer.publish(levelDirectory, { ...requestCreate('same'), geometryRevision: revision });
+    const second = writer.publish(levelDirectory, { ...requestCreate('same'), geometryRevision: revision });
+    expect(first.ok && second.ok && first.geometryFile === second.geometryFile).toBe(true);
+    const geometryFiles = readdirSync(levelDirectory).filter((name) => levelBuildGeometryStampRead(name) !== null);
+    expect(geometryFiles.map((name) => levelBuildGeometryStampRead(name))).toEqual([revision]);
   });
 
   it('keeps the previous package loadable when replacing the manifest fails', () => {

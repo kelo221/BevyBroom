@@ -5,6 +5,7 @@ import { MODIFIER_STACK_SOURCE_ID_KEY } from '@/modifier/stack/evaluate/modifier
 import { SolidModelRebuildModifierOutputs } from './solid_model_rebuild_modifier_outputs.js';
 import { ModifierBevelSurfaceOverlay } from '@/modifier/compile/modifier_bevel_surface_overlay.js';
 import { SolidCsgCompiler } from '@/solid/algorithm/compile/solid_csg_compiler.js';
+import type { SolidCsgInputs } from '@/solid/algorithm/compile/solid_compile_types.js';
 import type { SolidCompileOptions } from '@/solid/algorithm/compile/solid_compile_types.js';
 import { SolidSurfaceRegion } from '@/solid/algorithm/surface/surface_triangulator.js';
 import { SolidBrushMeshChunkBuilder } from '@/solid/mesh/solid_brush_mesh_chunk.js';
@@ -181,6 +182,15 @@ export class SolidModelRebuildPipeline {
     for (const brushId of brushIds) {
       this.dirtyBrushIds.add(brushId);
     }
+  }
+
+  /**
+   * Returns the brushes and the operation tree of the last compile.
+   *
+   * @returns Prepared brushes, tree and inverted world flag.
+   */
+  getLastCsgInputs(): SolidCsgInputs {
+    return this.compiler.getLastCsgInputs();
   }
 
   /**

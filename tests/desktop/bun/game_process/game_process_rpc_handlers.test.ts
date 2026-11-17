@@ -64,7 +64,7 @@ function requestCreate(levelName: string): LevelBuildPublishRequest {
     },
     materials: [],
   };
-  return { levelName, glbBase64: Buffer.from('glb').toString('base64'), manifest };
+  return { levelName, glbBase64: Buffer.from('glb').toString('base64'), manifest, collisionJson: '{}\n' };
 }
 
 /**

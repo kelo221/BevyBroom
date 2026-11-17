@@ -7,6 +7,7 @@ import {
   previewLaunchOptionalSectionRead,
   previewLaunchStringRead,
 } from '@/preview/launch/preview_launch_command.js';
+import { ProjectToolTexturesParser } from '@/project/model/project_tool_textures_parser.js';
 import type { ProjectDefinition } from '@/project/model/project_definition.js';
 import { ProjectBuildCommandResolver } from '@/project/build/project_build_command_resolver.js';
 import { ProjectLevelEntriesParser } from '@/project/model/project_level_entries_parser.js';
@@ -56,6 +57,7 @@ export class ProjectDefinitionParser {
         projectDirectory,
         ProjectDataFieldsParser.prefabDirectoryRead(project, ProjectDefinitionParser.isContainedRelativePath),
       ),
+      toolTextures: ProjectToolTexturesParser.read(project),
       launch,
       build:
         preview === null || launch === null

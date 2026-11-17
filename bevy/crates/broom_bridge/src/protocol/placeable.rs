@@ -80,6 +80,19 @@ pub enum PlaceablePlacement {
     Any,
 }
 
+/// How a game treats the collision of brush entities carrying a class.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PlaceableCollisionKind {
+    /// Blocks movement.
+    #[default]
+    Solid,
+    /// An area the game reads, such as a finish zone; nothing collides and it is not drawn.
+    Volume,
+    /// Drawn only.
+    None,
+}
+
 /// Parameter kind accepted by an entity I/O input or emitted by an output.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -151,6 +164,9 @@ pub struct PlaceableClass {
     /// Marker boxes by the text value of `marker_box_field`.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub marker_boxes: BTreeMap<String, PlaceableMarkerBox>,
+    /// The collision kind brush entities carrying this class take unless they override it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub collision: Option<PlaceableCollisionKind>,
     pub fields: Vec<PlaceableField>,
     /// Declared entity I/O inputs on this class.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

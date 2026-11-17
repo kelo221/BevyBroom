@@ -7,8 +7,8 @@ use super::*;
 use crate::placeables::class_list;
 use crate::placeables::{BroomProperties, PlaceableAssetTypes, PlaceableClasses};
 use crate::protocol::{
-    PlaceableClass, PlaceableClassList, PlaceableField, PlaceableFieldKind, PlaceableMarkerBox,
-    PlaceablePlacement,
+    PlaceableClass, PlaceableClassList, PlaceableCollisionKind, PlaceableField, PlaceableFieldKind,
+    PlaceableMarkerBox, PlaceablePlacement,
 };
 use crate::test_support::TemporaryDirectory;
 
@@ -253,4 +253,30 @@ fn class_list_fixture_parses() {
     let round_trip: PlaceableClassList =
         serde_json::from_value(serde_json::to_value(&list).expect("serializes")).expect("parses");
     assert_eq!(round_trip, list);
+}
+
+/// A brush entity class that marks an area, such as a finish zone.
+#[derive(Component, Reflect, Default)]
+#[reflect(Component, Default)]
+struct TestZone {
+    lap: u32,
+}
+
+/// A class registered with a collision kind reports it to the editor as snake case, and a
+/// class registered without one leaves the key out.
+#[test]
+fn collision_kind_is_described_with_its_options() {
+    let mut app = placeables_app();
+    app.register_placeable::<TestZone>(
+        PlaceableOptions::any().collision(PlaceableCollisionKind::Volume),
+    );
+    let directory = TemporaryDirectory::new("placeable_collision");
+    let list = classes_of(&app, directory.path());
+    let zone = class_of::<TestZone>(&list);
+    assert_eq!(zone.collision, Some(PlaceableCollisionKind::Volume));
+    let zone_json = serde_json::to_value(zone).expect("serializes");
+    assert_eq!(zone_json["collision"], json!("volume"));
+    let properties = serde_json::to_value(class_of::<BroomProperties>(&list)).expect("serializes");
+    assert!(properties.get("collision").is_none());
+    let _ = TestZone::default().lap;
 }

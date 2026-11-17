@@ -1,5 +1,6 @@
 import type { PreviewLaunchCommand } from '@/preview/launch/preview_launch_command.js';
 import type { ProjectLevelEntry } from '@/project/model/project_level_entry.js';
+import type { ProjectToolTextures } from '@/project/model/project_tool_textures_parser.js';
 
 /** File name of a game project file at the game's root. */
 export const PROJECT_FILE_NAME = 'broom.project.json';
@@ -48,6 +49,8 @@ export interface ProjectDefinition {
    * null when the project file names none.
    */
   prefabDirectory: string | null;
+  /** Textures the project marks for the level export, such as nodraw. */
+  toolTextures: ProjectToolTextures;
   /**
    * Command that starts the game preview, or null when the project file has no
    * preview section.

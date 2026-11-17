@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { solidModelCsgInputsRegister } from '@/solid/model/solid_model_csg_inputs.js';
 import { SolidBrush } from '@/solid/brush/solid_brush.js';
 import { SolidBrushInstance } from './solid_brush_instance.js';
 import { SolidBrushFactory } from '@/solid/brush/solid_brush_factory.js';
@@ -81,6 +82,7 @@ export class SolidModel {
       getEvaluationList: () => this.brushes.getEvaluationList(),
       syncBrushOrderFromScene: () => this.brushes.syncBrushOrderFromScene(),
     });
+    solidModelCsgInputsRegister(this.root, () => this.pipeline.getLastCsgInputs());
     this.resultMesh = this.presentation.createResultMesh();
     this.root.add(this.resultMesh);
   }

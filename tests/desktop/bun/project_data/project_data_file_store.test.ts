@@ -39,6 +39,7 @@ function definitionCreate(root: string): ProjectDefinition {
     levels: [],
     textureDirectories: [],
     sprinkleDirectories: [],
+    toolTextures: { nodraw: [] },
     entityClassesFile: `${root}/broom/classes.json`,
     prefabDirectory: `${root}/broom/prefabs`,
     launch: null,

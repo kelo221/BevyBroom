@@ -281,6 +281,7 @@ export class GameProcessHost {
       endpoint: definition.launch?.endpoint ?? '',
       canLaunch: definition.launch !== null,
       canBuild: definition.build !== null,
+      toolTextures: definition.toolTextures,
       problems: ProjectDefinitionValidator.validate(definition, this.reader),
     };
   }

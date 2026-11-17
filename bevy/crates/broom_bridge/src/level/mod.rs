@@ -4,6 +4,7 @@
 //! level on its own ([`LevelLoadRequest`]).
 
 mod bounds;
+pub mod collision;
 pub mod files;
 mod loading;
 mod manifest;

@@ -88,6 +88,16 @@ export interface PreviewPlaceableMarkerBox {
   offset: [number, number, number];
 }
 
+/** Every way a game treats the collision of a brush entity, the default first. */
+export const PREVIEW_PLACEABLE_COLLISION_KINDS = ['solid', 'volume', 'none'] as const;
+
+/**
+ * How a game treats the collision of brush entities of a class: `solid` blocks,
+ * `volume` is an area the game reads where nothing collides and that is not
+ * drawn, `none` is drawn only.
+ */
+export type PreviewPlaceableCollisionKind = (typeof PREVIEW_PLACEABLE_COLLISION_KINDS)[number];
+
 /** One placeable component type of the game. */
 export interface PreviewPlaceableClass {
   type_path: string;
@@ -101,6 +111,11 @@ export interface PreviewPlaceableClass {
   marker_box_field?: string;
   /** Marker boxes by the text value of `marker_box_field`. */
   marker_boxes?: Record<string, PreviewPlaceableMarkerBox>;
+  /**
+   * Collision kind brush entities carrying this class take unless they override
+   * it.
+   */
+  collision?: PreviewPlaceableCollisionKind;
   fields: PreviewPlaceableField[];
   inputs?: PreviewPlaceableIoPin[];
   outputs?: PreviewPlaceableIoPin[];

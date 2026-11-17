@@ -8,6 +8,13 @@ export interface LevelBuildPublishRequest {
   glbBase64: string;
   /** Manifest; the writer fills in the geometry file name and revision. */
   manifest: LevelBuildManifest;
+  /** Text of `collision.json`. */
+  collisionJson: string;
+  /**
+   * Revision stamped into the geometry file name; one past the newest file in
+   * the level directory when left out.
+   */
+  geometryRevision?: number;
 }
 
 /** Where a published level package was written. */

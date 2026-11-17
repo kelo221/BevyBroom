@@ -89,6 +89,8 @@ export interface ObjectEntry {
   materialColor?: number;
   /** Per-face texture projection parameters for UV re-bake. */
   faceTextureMaps?: SerializedFaceTextureMap[];
+  /** Collision kind the object takes instead of the one its classes declare. */
+  collisionKind?: string;
   /**
    * Game component overrides: component type path to field path to value
    * (version 6+).

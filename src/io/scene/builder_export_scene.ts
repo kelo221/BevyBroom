@@ -10,6 +10,7 @@ import { isDefaultSurfaceTexture } from '@/texture/library/factory_debug_texture
 import { entityOwnerIs, entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
 import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
 import { LightmapUvLayout } from '@/io/glb/lightmap/lightmap_uv_layout.js';
+import { ExportGeometryMaterialFilter } from '@/io/scene/export_geometry_material_filter.js';
 import { MATERIAL_IDENTITY_EXPORT_EXTRAS_KEY, materialIdentityRead } from '@/materials/identity/material_identity.js';
 import {
   getSharedContentMaterials,
@@ -55,6 +56,18 @@ export interface ExportSceneOptions {
   includeGameComponents?: boolean;
   /** Adds a non-overlapping second UV set (`uv1`) to every mesh for lightmaps. */
   includeLightmapUvs?: boolean;
+  /**
+   * Returns true for material identifiers whose faces are left out, such as
+   * tool textures.
+   */
+  isMaterialOmitted?: (materialIdentifier: string) => boolean;
+  /**
+   * Returns true for scene objects that are not drawn, such as volumes: they
+   * export as empty nodes that keep their transform, identity and extras.
+   */
+  isObjectOmitted?: (object: THREE.Object3D) => boolean;
+  /** Writes each solid model's collision pieces as `broom_collision` extras. */
+  includeCollision?: boolean;
 }
 
 /**
@@ -101,6 +114,7 @@ export function buildExportScene(worldGroup: THREE.Group, options: ExportSceneOp
  */
 function cloneObjectForExport(object: THREE.Object3D, options: ExportSceneOptions): THREE.Object3D | null {
   if (objectInOmittedLayerIs(object)) return null;
+  if (options.isObjectOmitted?.(object) === true) return cloneOmittedObjectForExport(object, options);
   if (entityOwnerIs(object)) {
     return cloneEntityOwnerForExport(object, options);
   }
@@ -143,6 +157,21 @@ export function shouldOmitFromExport(object: THREE.Object3D): boolean {
 }
 
 /**
+ * Exports an object that is not drawn as an empty node with its transform,
+ * identity and extras.
+ *
+ * @param object Live scene object.
+ * @param options Export behavior switches.
+ * @returns Empty export node.
+ */
+function cloneOmittedObjectForExport(object: THREE.Object3D, options: ExportSceneOptions): THREE.Object3D {
+  const node = new THREE.Object3D();
+  copyObjectTransformAndIdentity(object, node, options);
+  node.name = object.name;
+  return node;
+}
+
+/**
  * Clones an entity owner as a group holding the export children an object data
  * contributor builds for it.
  *
@@ -177,13 +206,32 @@ function cloneSolidModelForExport(solidRoot: THREE.Object3D, options: ExportScen
   copyObjectTransformAndIdentity(solidRoot, group, options);
   group.name = solidRoot.name || 'SolidModel';
   const resultGeometry = DisplacementExportBrushFilter.geometryRead(resultMesh, solidRoot);
-  if (resultGeometry === resultMesh.geometry || getTriangleCount(resultGeometry) > 0) {
-    group.add(cloneContentMeshForExport(resultMesh, options, resultGeometry));
-  }
-  displacementSurfaceMeshesUnder(solidRoot).forEach((surfaceMesh) => {
-    group.add(cloneContentMeshForExport(surfaceMesh, options));
-  });
+  const meshes = [
+    resultGeometry === resultMesh.geometry || getTriangleCount(resultGeometry) > 0
+      ? identityDerive(cloneContentMeshForExport(resultMesh, options, resultGeometry), solidRoot, 'result')
+      : null,
+    ...displacementSurfaceMeshesUnder(solidRoot).map((surfaceMesh) =>
+      identityDerive(cloneContentMeshForExport(surfaceMesh, options), solidRoot, surfaceMesh.name),
+    ),
+  ];
+  meshes.forEach((mesh) => (mesh ? group.add(mesh) : undefined));
   return group;
+}
+
+/**
+ * Gives an export mesh made by a solid model an identifier derived from the
+ * model's, because the meshes a model builds get new ids every time it loads.
+ *
+ * @param mesh Export mesh, or null.
+ * @param solidRoot Solid model root.
+ * @param part Name of the part within the model.
+ * @returns The same mesh.
+ */
+function identityDerive(mesh: THREE.Mesh | null, solidRoot: THREE.Object3D, part: string): THREE.Mesh | null {
+  if (mesh) {
+    mesh.userData[EXPORT_OBJECT_IDENTITY_EXTRAS_KEY] = `${solidRoot.uuid}.${part}`;
+  }
+  return mesh;
 }
 
 /**
@@ -233,17 +281,20 @@ function cloneGroupForExport(group: THREE.Group, options: ExportSceneOptions): T
  * @param options Export behavior switches.
  * @param sourceGeometry Geometry to export for the mesh; defaults to the mesh's
  *   own geometry.
- * @returns Mesh clone without helper children.
+ * @returns Mesh clone without helper children, or null when the options leave
+ *   out every face.
  */
 export function cloneContentMeshForExport(
   mesh: THREE.Mesh,
   options: ExportSceneOptions,
   sourceGeometry: THREE.BufferGeometry = mesh.geometry,
-): THREE.Mesh {
+): THREE.Mesh | null {
+  const keptGeometry = options.isMaterialOmitted
+    ? ExportGeometryMaterialFilter.filter(sourceGeometry, exportContentMaterialResolve(mesh), options.isMaterialOmitted)
+    : sourceGeometry;
+  if (keptGeometry === null) return null;
   const geometry =
-    options.includeLightmapUvs === true
-      ? LightmapUvLayout.geometryWithLightmapUvs(mesh, sourceGeometry)
-      : sourceGeometry;
+    options.includeLightmapUvs === true ? LightmapUvLayout.geometryWithLightmapUvs(mesh, keptGeometry) : keptGeometry;
   const clone = new THREE.Mesh(geometry, cloneMaterialsForExport(exportContentMaterialResolve(mesh), options));
   copyObjectTransformAndIdentity(mesh, clone, options);
   clone.userData[EXPORT_STATIC_MESH_EXTRAS_KEY] = true;

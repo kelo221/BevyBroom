@@ -74,6 +74,7 @@ Every path is relative and must stay inside the project; a path such as `../othe
 | `sprinkle_directories`      | Optional, relative to `asset_root`: folders whose `*.txt` sprinkle definition files (Valve KeyValues) the desktop editor's Sprinkle tool loads as types. The game does not read it.                                                            |
 | `entity_classes`            | Optional, relative to the project file: a `.json` file declaring the game's entity classes for every level, without the game running. See [Project classes and prefabs](project_classes_and_prefabs.md). The game does not read it.            |
 | `prefab_directory`          | Optional, relative to the project file: the folder holding one file per prefab. See [Project classes and prefabs](project_classes_and_prefabs.md). The game does not read it.                                                                  |
+| `tool_textures`             | Optional: `{ "nodraw": [texture ids] }`. Faces with a `nodraw` texture keep their collision but are left out of the exported render geometry. See [Exporting levels for a game](level_export.md).                                              |
 | `preview`                   | Optional. Without it the project still opens and levels, textures, classes and prefabs work; the editor just cannot build or start the game.                                                                                                   |
 | `preview.program`           | The program that starts the game, such as `cargo` or a built executable. A bare name is looked up in the PATH of your login shell, so `bun` or `cargo` installed for your user is found even when the desktop app was started from the Finder. |
 | `preview.arguments`         | Its arguments. Pass `--project` with the project file when your game reads it from the command line, as the example does.                                                                                                                      |
@@ -194,7 +195,7 @@ Once connected:
 
 ## 7. Load a shipped level
 
-**Run > Build Level** writes the open document to `<asset_root>/<level_directory>/<name>/`: a geometry GLB and a `level.broom.json` manifest with the lights, rooms, portals, transforms and components. A game with `BroomLevelPlugin` (or `BroomBridgePlugin`) loads it by name with a message:
+**Run > Build Level** writes the open document to `<asset_root>/<level_directory>/<name>/`: a geometry GLB, a `level.broom.json` manifest with the lights, rooms, portals, transforms and components, and a `collision.json` with the level's convex collision pieces and placements. `bun scripts/level_export.ts` writes the same files from the command line, without the editor, for scripts and CI. See [Exporting levels for a game](level_export.md). A game with `BroomLevelPlugin` (or `BroomBridgePlugin`) loads it by name with a message:
 
 ```rust
 fn load_first_level(mut loads: MessageWriter<LevelLoadRequest>) {

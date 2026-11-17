@@ -66,6 +66,9 @@ const PROCEDURAL_PEOPLE_MOVER_FIELDS: readonly GameEntityField[] = [
   },
 ];
 
+/** Derived values that are points: the low and the high end. */
+const PROCEDURAL_PEOPLE_MOVER_DERIVED_POINTS: readonly string[] = ['low_end', 'high_end'];
+
 /** Material slots of a people mover. */
 const PROCEDURAL_PEOPLE_MOVER_SLOTS: readonly ProceduralMaterialSlot[] = [
   { name: PROCEDURAL_PEOPLE_MOVER_SLOT_TREAD, label: 'Tread' },
@@ -169,6 +172,15 @@ export class ProceduralGeneratorPeopleMover extends ProceduralGenerator {
       low_end: ProceduralParametersRead.vector3Value(shape.low),
       high_end: ProceduralParametersRead.vector3Value(shape.high),
     };
+  }
+
+  /**
+   * Names the low and high ends as points.
+   *
+   * @returns Derived point names.
+   */
+  override derivedPointNames(): readonly string[] {
+    return PROCEDURAL_PEOPLE_MOVER_DERIVED_POINTS;
   }
 
   /**

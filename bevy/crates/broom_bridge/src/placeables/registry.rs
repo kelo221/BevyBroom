@@ -6,7 +6,9 @@ use std::collections::BTreeMap;
 use bevy::prelude::*;
 use bevy::reflect::{GetTypeRegistration, TypePath};
 
-use crate::protocol::{PlaceableIoPin, PlaceableMarkerBox, PlaceablePlacement};
+use crate::protocol::{
+    PlaceableCollisionKind, PlaceableIoPin, PlaceableMarkerBox, PlaceablePlacement,
+};
 
 /// The default sRGB color of editor markers.
 const DEFAULT_MARKER_COLOR: Srgba = Srgba::rgb(0.35, 0.65, 0.95);
@@ -26,6 +28,8 @@ pub struct PlaceableOptions {
     pub marker_box_field: Option<String>,
     /// Editor marker boxes by the text value of `marker_box_field`.
     pub marker_boxes: BTreeMap<String, PlaceableMarkerBox>,
+    /// The collision kind brush entities carrying this class take; solid when unset.
+    pub collision: Option<PlaceableCollisionKind>,
     /// Declared entity I/O inputs on this class.
     pub inputs: Vec<PlaceableIoPin>,
     /// Declared entity I/O outputs on this class.
@@ -43,6 +47,7 @@ impl PlaceableOptions {
             marker_box: None,
             marker_box_field: None,
             marker_boxes: BTreeMap::new(),
+            collision: None,
             inputs: Vec::new(),
             outputs: Vec::new(),
         }
@@ -54,6 +59,13 @@ impl PlaceableOptions {
             placement: PlaceablePlacement::Point,
             ..Self::any()
         }
+    }
+
+    /// Makes brush entities carrying the class take `kind` as their collision, such as
+    /// [`PlaceableCollisionKind::Volume`] for a finish zone.
+    pub fn collision(mut self, kind: PlaceableCollisionKind) -> Self {
+        self.collision = Some(kind);
+        self
     }
 
     /// Uses `category` as the Add menu category.

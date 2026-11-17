@@ -87,6 +87,8 @@ While the bridge shows a document that has an object with the same editor id, fr
 
 Light markers, Game Entity markers and the editor's room and portal outlines are never exported as meshes.
 
+To export a level for a game, with its collision as convex pieces and its placements, use **Run > Build Level** or the command-line export described in [Exporting levels for a game](level_export.md).
+
 ## Target application notes
 
 - **Godot:** use the right-handed Y-up profile and preserve the imported root transform.
