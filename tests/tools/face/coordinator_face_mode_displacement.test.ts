@@ -50,7 +50,7 @@ function coordinatorTestTabCreate(): PanelDisplacementTab {
   return new PanelDisplacementTab({
     actionsRead: displacementActionsSharedRead,
     changeListenerAdd: displacementActionsSharedChangeListenerAdd,
-    floatingHost: document.body,
+    toolOptionsHost: document.body,
     statusReport: () => undefined,
     afterChange: () => undefined,
   });

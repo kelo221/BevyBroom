@@ -6,11 +6,6 @@ import { DialogDisplacementPaintAlpha } from './dialog_displacement_paint_alpha.
 
 /** Optional placement and status services of the paint windows. */
 export interface DisplacementPaintWindowsOptions {
-  /**
-   * Returns the element the windows open beside, for example the Face Edit
-   * Sheet root.
-   */
-  readonly besideElementRead?: () => HTMLElement | null;
   /** Shows a message in the status bar. */
   readonly statusReport?: (message: string) => void;
 }
@@ -31,7 +26,7 @@ export class DisplacementPaintWindows {
    * Creates the paint windows and opens the one the current state asks for.
    *
    * @param host Parent element hosting floating panels.
-   * @param options Element the windows open beside and status reporting.
+   * @param options Status reporting.
    */
   constructor(
     host: HTMLElement,
@@ -39,7 +34,6 @@ export class DisplacementPaintWindows {
   ) {
     this.paintGeometryDialog = new DialogDisplacementPaintGeometry(host);
     this.paintAlphaDialog = new DialogDisplacementPaintAlpha(host);
-    this.besideResolverApply();
     this.unsubscribers = [
       getStateDisplacementSculpt().changeListenerAdd(() => this.visibilitySync()),
       getStateFaceEditSession().changeListenerAdd(() => this.visibilitySync()),
@@ -51,14 +45,6 @@ export class DisplacementPaintWindows {
   dispose(): void {
     this.unsubscribers.forEach((unsubscribe) => unsubscribe());
     this.dialogsRead().forEach((dialog) => dialog.dispose());
-  }
-
-  /** Makes both windows open beside the element the options name. */
-  private besideResolverApply(): void {
-    const besideElementRead = this.options.besideElementRead;
-    if (besideElementRead) {
-      this.dialogsRead().forEach((dialog) => dialog.setBesideResolver(besideElementRead));
-    }
   }
 
   /**

@@ -2,7 +2,7 @@ import { InputNumeric } from '@/ui/input/input_numeric.js';
 import { buttonCompactCreate } from '@/ui/button/button_compact.js';
 import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
 import { getStateDisplacementSculpt } from '@/displacement/state/state_displacement_sculpt.js';
-import { PanelFloatingToolWindow } from '@/ui/floating_panel/panel_floating_tool_window.js';
+import { PanelToolOptions } from '@/ui/dock/tool_options/panel_tool_options.js';
 import {
   PANEL_DISPLACEMENT_BUTTON_HEIGHT_PX,
   type PanelDisplacementActionRun,
@@ -14,7 +14,7 @@ import { formLayoutFieldLabelCreate, formLayoutRowCreate } from '@/ui/form/form_
  * distance Noise adds and the random seed, and Apply adding seeded noise to the
  * selected displaced faces as one undo step.
  */
-export class DialogDisplacementNoise extends PanelFloatingToolWindow {
+export class DialogDisplacementNoise extends PanelToolOptions {
   private readonly minInput = new InputNumeric({ ariaLabel: 'Noise min', width: '64px' });
   private readonly maxInput = new InputNumeric({ ariaLabel: 'Noise max', width: '64px' });
   private readonly seedInput = new InputNumeric({ ariaLabel: 'Noise seed', width: '56px' });
@@ -29,13 +29,7 @@ export class DialogDisplacementNoise extends PanelFloatingToolWindow {
     host: HTMLElement,
     private readonly actionRun: PanelDisplacementActionRun,
   ) {
-    super(host, {
-      titleText: 'Noise',
-      className: 'dialog-displacement-noise',
-      width: '260px',
-      floating: { centered: true, draggable: true, closeOnEscape: true },
-      layoutId: 'displacement_noise',
-    });
+    super(host, { titleText: 'Noise', className: 'dialog-displacement-noise' });
     this.body.append(this.fieldsRowBuild(), this.applyRowBuild());
     this.commitHandlersBind();
     this.listenersBind();

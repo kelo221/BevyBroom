@@ -1,5 +1,5 @@
 import { Theme } from '@/theme.js';
-import { PanelFloatingToolWindow } from '@/ui/floating_panel/panel_floating_tool_window.js';
+import { PanelToolOptions } from '@/ui/dock/tool_options/panel_tool_options.js';
 import { formLayoutFieldLabelCreate, formLayoutGridCreate, formLayoutRowCreate } from '@/ui/form/form_layout.js';
 import { getStateSprinkleTool } from '@/tools/sprinkle/state_sprinkle_tool.js';
 import { getStateSprinkleDefinitionLibrary } from '@/tools/sprinkle/definition/state_sprinkle_definition_library.js';
@@ -22,7 +22,7 @@ const DIALOG_SPRINKLE_GRID_COLUMNS = 'auto minmax(0, 1fr) auto';
  * Size and the orientation toggles of the Sprinkle tool. Closing it while the
  * Sprinkle tool is active returns the viewport tool to Select.
  */
-export class DialogSprinkle extends PanelFloatingToolWindow {
+export class DialogSprinkle extends PanelToolOptions {
   /** Type list, Refresh, Open Source and notice line. */
   readonly definitionControls: SprinkleControlsDefinition;
   /** Mode, Density and orientation toggles. */
@@ -41,13 +41,7 @@ export class DialogSprinkle extends PanelFloatingToolWindow {
     host: HTMLElement,
     private readonly services: DialogSprinkleServices,
   ) {
-    super(host, {
-      titleText: 'Entity Sprinkle',
-      className: 'dialog-sprinkle',
-      width: '380px',
-      floating: { centered: true, draggable: true, closeOnEscape: true },
-      layoutId: 'entity_sprinkle',
-    });
+    super(host, { titleText: 'Entity Sprinkle', className: 'dialog-sprinkle' });
     this.definitionControls = new SprinkleControlsDefinition(services);
     this.gridControls = new SprinkleControlsGrid(services);
     this.body.append(this.layoutGridBuild(), this.definitionControls.noticeLine);

@@ -9,6 +9,7 @@ import type { EntityBrowser } from '@/entity_browser/ui/entity_browser.js';
 import { levelBrowserSetup, type LevelBrowserSetupHost } from '@/level_browser/setup/level_browser_setup.js';
 import type { LevelBrowser } from '@/level_browser/ui/level_browser.js';
 import { BrowserWindowSetup } from '@/browser/setup/browser_window_setup.js';
+import { PANEL_TOOL_OPTIONS_SHOWN_EVENT } from '@/ui/dock/tool_options/panel_tool_options.js';
 import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js';
 import {
   ShellDockPanelsMount,
@@ -76,6 +77,8 @@ export class LayoutShellPanels {
   readonly sprinkleDialogMount: SprinkleDialogMount;
   readonly prefabActions: PrefabEditorActions;
   private readonly dockPanels: ShellDockPanelsMount;
+  private readonly toolOptionsHost: HTMLElement;
+  private readonly toolOptionsShownListener: () => void;
 
   /**
    * Creates and mounts every panel.
@@ -84,16 +87,14 @@ export class LayoutShellPanels {
    */
   constructor(options: LayoutShellPanelsOptions) {
     this.faceInspectorParts = faceInspectorSetup(options.faceInspectorDependencies);
+    this.toolOptionsHost = options.docks.inspector.slotRead('hammer_tool_options');
+    this.toolOptionsShownListener = () => options.docks.dockCommands.inspectorReveal();
+    this.toolOptionsHost.addEventListener(PANEL_TOOL_OPTIONS_SHOWN_EVENT, this.toolOptionsShownListener);
     this.prefabActions = new PrefabEditorActions(options.prefabActions);
     prefabEditorActionsActive.write(this.prefabActions);
     this.entityBrowser = entityBrowserSetup(options.entityBrowserHost);
     this.levelBrowser = levelBrowserSetup(options.levelBrowserHost);
-    this.browserWindow = new BrowserWindowSetup({
-      host: options.docks.toolbarContainer,
-      entityBrowser: this.entityBrowser,
-      faceInspector: this.faceInspectorParts.faceInspector,
-      levelBrowser: this.levelBrowser,
-    });
+    this.browserWindow = this.browserWindowCreate(options.docks.toolbarContainer);
     this.textureWindows = this.textureWindowsCreate(options);
     this.dockPanels = new ShellDockPanelsMount({
       ...options.dockPanels,
@@ -101,7 +102,7 @@ export class LayoutShellPanels {
       infoPanel: options.docks.infoPanel,
     });
     this.hammerBar = this.hammerBarCreate(options);
-    this.sprinkleDialogMount = new SprinkleDialogMount(options.docks.toolbarContainer, options.sprinkleDialog);
+    this.sprinkleDialogMount = new SprinkleDialogMount(this.toolOptionsHost, options.sprinkleDialog);
     this.floatingWindowsRegister(options.docks.dockCommands);
   }
 
@@ -141,6 +142,7 @@ export class LayoutShellPanels {
 
   /** Disposes every panel, floating window and face inspector controller. */
   dispose(): void {
+    this.toolOptionsHost.removeEventListener(PANEL_TOOL_OPTIONS_SHOWN_EVENT, this.toolOptionsShownListener);
     getStateEntityPlace().browseDelegateWrite(null);
     prefabEditorActionsActive.releaseIfStored(this.prefabActions);
     this.sprinkleDialogMount.dispose();
@@ -155,6 +157,21 @@ export class LayoutShellPanels {
   }
 
   /**
+   * Builds the Browser window over the entity, texture and level browsers.
+   *
+   * @param host Parent element of floating windows.
+   * @returns Browser window.
+   */
+  private browserWindowCreate(host: HTMLElement): BrowserWindowSetup {
+    return new BrowserWindowSetup({
+      host,
+      entityBrowser: this.entityBrowser,
+      faceInspector: this.faceInspectorParts.faceInspector,
+      levelBrowser: this.levelBrowser,
+    });
+  }
+
+  /**
    * Creates the floating texture windows over the face inspector.
    *
    * @param options Docks and editor services.
@@ -164,6 +181,7 @@ export class LayoutShellPanels {
     const faceDependencies = options.faceInspectorDependencies;
     return new LayoutTextureWindows({
       host: options.docks.toolbarContainer,
+      toolOptionsHost: this.toolOptionsHost,
       textureBrowser: this.browserWindow.texturesTab,
       faceInspectorParts: this.faceInspectorParts,
       commandStack: faceDependencies.commandStack,

@@ -20,7 +20,7 @@ export interface PanelDisplacementTabDeps {
    */
   readonly changeListenerAdd: (listener: () => void) => () => void;
   /** Parent element hosting the tab's floating windows. */
-  readonly floatingHost: HTMLElement;
+  readonly toolOptionsHost: HTMLElement;
   /** Reports an action outcome, for example on the status bar. */
   readonly statusReport: (message: string) => void;
   /** Refreshes the viewport after an action changed faces. */
@@ -49,7 +49,7 @@ export class PanelDisplacementTab {
     this.statusLine = this.statusLineCreate();
     const actionRun = (action: (actions: ControllerDisplacementActions) => DisplacementActionResult): void =>
       this.actionRun(action);
-    this.noiseDialog = new DialogDisplacementNoise(deps.floatingHost, actionRun);
+    this.noiseDialog = new DialogDisplacementNoise(deps.toolOptionsHost, actionRun);
     this.sections = [
       new PanelDisplacementToolsSection(actionRun, () => this.noiseDialog.show()),
       new PanelDisplacementAttributesSection(actionRun),

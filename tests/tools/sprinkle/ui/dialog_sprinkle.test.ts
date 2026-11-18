@@ -336,11 +336,6 @@ describe('DialogSprinkle', () => {
     root.querySelector<HTMLButtonElement>('button[title="Close"]')?.click();
     expect(dialog.isOpen()).toBe(false);
     expect(recorded.toolSelectExit).toHaveBeenCalledOnce();
-    dialog.show();
-    getStateSprinkleTool().toolActiveWrite(true);
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    expect(dialog.isOpen()).toBe(false);
-    expect(recorded.toolSelectExit).toHaveBeenCalledTimes(2);
   });
 
   it('keeps the viewport tool when closed while the Sprinkle tool is inactive or disposed', () => {

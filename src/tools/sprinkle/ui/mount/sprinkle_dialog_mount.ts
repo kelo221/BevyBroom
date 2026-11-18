@@ -14,7 +14,7 @@ export class SprinkleDialogMount {
   /**
    * Creates the window and opens it when the Sprinkle tool is already active.
    *
-   * @param host Parent element hosting floating panels.
+   * @param host Tool options place of the right dock.
    * @param services Grid interval, status reporting and tool exit.
    */
   constructor(host: HTMLElement, services: DialogSprinkleServices) {

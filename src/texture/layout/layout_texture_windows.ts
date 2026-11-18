@@ -26,6 +26,8 @@ import { DisplacementPaintWindows } from '@/displacement/ui/paint/displacement_p
 export interface LayoutTextureWindowsDeps {
   /** Parent element of floating windows. */
   readonly host: HTMLElement;
+  /** Tool options place of the right dock. */
+  readonly toolOptionsHost: HTMLElement;
   /** Textures tab of the Browser window, holding the face inspector. */
   readonly textureBrowser: BrowserTabWindow;
   /** Face inspector with the controllers that drive it. */
@@ -71,10 +73,9 @@ export class LayoutTextureWindows {
     this.deps = deps;
     this.textureBrowser = deps.textureBrowser;
     this.textureReplaceDialog = this.textureReplaceDialogCreate();
-    this.faceEditSheet = new DialogFaceEditSheet(deps.host, this.faceEditSheetHandlersBuild());
+    this.faceEditSheet = new DialogFaceEditSheet(deps.toolOptionsHost, this.faceEditSheetHandlersBuild());
     this.displacementTab = this.displacementTabMount();
-    this.displacementPaintWindows = new DisplacementPaintWindows(deps.host, {
-      besideElementRead: () => this.faceEditSheet.getRootElement(),
+    this.displacementPaintWindows = new DisplacementPaintWindows(deps.toolOptionsHost, {
       statusReport: (message) => deps.statusBar?.setLastAction(message),
     });
     this.faceAttributesViewsWire();
@@ -132,7 +133,7 @@ export class LayoutTextureWindows {
     const tab = new PanelDisplacementTab({
       actionsRead: () => displacementActionsSharedRead(),
       changeListenerAdd: (listener) => displacementActionsSharedChangeListenerAdd(listener),
-      floatingHost: this.deps.host,
+      toolOptionsHost: this.deps.toolOptionsHost,
       statusReport: (message) => this.deps.statusBar?.setLastAction(message),
       afterChange: () => this.deps.afterSurfaceChange(),
     });

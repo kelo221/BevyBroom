@@ -13,11 +13,6 @@ import { DialogFaceEditSheet } from '@/texture/ui/face_edit_sheet/dialog_face_ed
 import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
 import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js';
-import {
-  stubBoundingRect,
-  stubPanelRectFromStyle,
-  windowSizeSet,
-} from '../../../ui/floating_panel/panel_floating_test_support.js';
 import { FACE_ATTRIBUTES_ROW_SCALE } from '@/texture/ui/face_attributes/face_attributes_field_specs.js';
 import {
   faceEditSheetTestHandlersAsSheetHandlers,
@@ -139,20 +134,11 @@ describe('DialogFaceEditSheet', () => {
     expect(Number.parseFloat(sheetInput?.value ?? '')).toBeCloseTo(shownScale, 6);
   });
 
-  it('opens centered without a backdrop and keeps a moved position when reopened', () => {
-    const hostRect = { left: 40, top: 30, width: 1400, height: 900 };
-    const panelSize = { width: 380, height: 420 };
-    windowSizeSet(hostRect.left + hostRect.width + 100, hostRect.top + hostRect.height + 100);
-    stubBoundingRect(host, hostRect);
-    stubPanelRectFromStyle(sheet.getRootElement(), panelSize.width, panelSize.height);
+  it('shows inside its host while the session has the sheet open', () => {
     getStateFaceEditSession().sheetOpenWrite(true);
-    expect(sheet.getBackdropElement()).toBeNull();
-    const root = sheet.getRootElement();
-    const movedLeft = `${parseFloat(root.style.left) + 41}px`;
-    root.style.left = movedLeft;
+    expect(host.contains(sheet.getRootElement())).toBe(true);
     getStateFaceEditSession().sheetOpenWrite(false);
-    getStateFaceEditSession().sheetOpenWrite(true);
-    expect(root.style.left).toBe(movedLeft);
+    expect(host.contains(sheet.getRootElement())).toBe(false);
   });
 
   it('keeps the Displacement tab body available for its panel', () => {

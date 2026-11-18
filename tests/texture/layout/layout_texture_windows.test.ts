@@ -26,6 +26,7 @@ describe('LayoutTextureWindows', () => {
     ]);
     textureWindows = new LayoutTextureWindows({
       host,
+      toolOptionsHost: host,
       textureBrowser: new BrowserTabWindow(browser, 'textures'),
       faceInspectorParts: testParts.parts,
       commandStack: testParts.commandStack,
