@@ -75,4 +75,4 @@ The three points define both the plane and its orientation. For a clean result:
 
 ## Face selection for texturing
 
-Face selection is also the basis for per-face texture assignment and UV editing. Select the intended face regions first, then use the **Face Edit Sheet** (it opens with Face Select; **Textures** on the view bar reopens it) or the **Texture Browser**. See [Textures and UV mapping](textures_and_uvs.md).
+Face selection is also the basis for per-face texture assignment and UV editing. Select the intended face regions first, then use the **Face Edit Sheet** (it opens with Face Select; **Textures** on the view bar reopens it) or the **Textures** tab of the Browser. See [Textures and UV mapping](textures_and_uvs.md).

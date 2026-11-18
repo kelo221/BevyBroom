@@ -159,4 +159,22 @@ describe('EditorApiEntityBrowser', () => {
     ).toBe(false);
     expect(tools.entityBrowserToolDispatch('get_selection', {})).toBeNull();
   });
+
+  it('neither lists nor drags tiles while the Browser shows another tab', () => {
+    const { tools, prefabId } = toolsRigCreate();
+    mountedBrowsers.forEach((browser) => {
+      const hiddenTabPage = document.createElement('div');
+      hiddenTabPage.hidden = true;
+      browser.getElement().replaceWith(hiddenTabPage);
+      hiddenTabPage.appendChild(browser.getElement());
+    });
+    const listed = tools.entityBrowserToolDispatch('get_entity_browser_tiles', {});
+    expect((listed?.data as { tiles: unknown[] }).tiles).toEqual([]);
+    const dragged = tools.entityBrowserToolDispatch('entity_browser_drag', {
+      tileId: prefabCatalogIdOf(prefabId),
+      view: 'perspective',
+      at: { x: 0, y: 0, z: 0 },
+    });
+    expect(dragged?.ok).toBe(false);
+  });
 });

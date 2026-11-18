@@ -59,9 +59,9 @@ Switch to face mode to select individual faces on any mesh, then extrude them in
 
 ### Texturing & Face Edit Sheet
 
-Full texture workflow with per-face control in the floating Face Edit Sheet and Texture Browser:
+Full texture workflow with per-face control in the floating Face Edit Sheet and the Textures tab of the Browser:
 
-- **Texture Browser** — load textures from a local folder using the File System Access API, filter them by name, and click one to apply it
+- **Textures tab of the Browser** — load textures from a local folder using the File System Access API, filter them by name, and click one to apply it
 - **Per-face texture assignment** — assign different textures to each face of a solid
 - **Face attributes** — texture scale, shift, and rotation on the Face Edit Sheet Material tab
 - **Texture alignment** — Justify, Align World/Face, and Align to Floor, Wall, or Ceiling
@@ -257,7 +257,7 @@ All shortcuts can be rebound in Settings > Keyboard.
 - **Entity Browser** — thumbnails of every placeable kind; drag one onto a viewport to place it
 - **Info panel** — docked below the viewports with Console and Issues; starts collapsed
 - **Remembered layout** — dock visibility, sizes, and floating-window positions are restored between sessions
-- **Floating panels** — draggable Solid Model, Game Preview, Texture Browser, and other tool panels
+- **Floating panels** — draggable Solid Model, Game Preview, the Browser (Place, Textures, Levels), and other tool panels
 - **Status bar** — real-time feedback on tool state, snap settings, and shading mode
 - **Search Commands** — `Ctrl+Shift+P` finds and runs any menu command by name, with its menu and shortcut
 - **Context menus** — a right click (without dragging) in a map view lists the commands that apply to the selection; the outliner has its own

@@ -164,14 +164,16 @@ describe('layoutShellPanelsCreate', () => {
     expect(fixture.docks.infoPanel.slotRead('issues').childElementCount).toBeGreaterThan(0);
   });
 
-  it('opens the floating texture browser from Browse and activates the face inspector', () => {
+  it('opens the Browser on its Textures tab from Browse and activates the face inspector', () => {
     const faceInspector = fixture.panels.faceInspectorParts.faceInspector;
     const textureBrowser = fixture.panels.textureWindows.textureBrowser;
+    const browser = fixture.panels.browserWindow.browser;
     expect(textureBrowser.isOpen()).toBe(false);
     expect(faceInspector.isVisible()).toBe(false);
     fixture.docks.inspector.getElement().querySelector<HTMLElement>('.shell-inspector-texture-browse')?.click();
     expect(textureBrowser.isOpen()).toBe(true);
-    expect(textureBrowser.bodyRead().contains(faceInspector.getElement())).toBe(true);
+    expect(browser.activeTabIdRead()).toBe('textures');
+    expect(browser.bodyRead().contains(faceInspector.getElement())).toBe(true);
     expect(faceInspector.isVisible()).toBe(true);
     textureBrowser.hide();
     expect(faceInspector.isVisible()).toBe(false);
@@ -183,26 +185,27 @@ describe('layoutShellPanelsCreate', () => {
     expect(fixture.panels.faceInspectorParts.faceInspector.isVisible()).toBe(true);
   });
 
-  it('opens the floating entity browser from the Entity tool Browse request and the View menu command', () => {
-    const entityBrowserWindow = fixture.panels.entityBrowserWindow;
+  it('opens the Browser on its Place tab from the Entity tool Browse request and the Window menu command', () => {
+    const browser = fixture.panels.browserWindow.browser;
     getStateEntityPlace().browseRequest();
-    expect(entityBrowserWindow.isOpen()).toBe(true);
-    expect(entityBrowserWindow.bodyRead().contains(fixture.panels.entityBrowser.getElement())).toBe(true);
+    expect(browser.isTabOpen('place')).toBe(true);
+    expect(browser.bodyRead().contains(fixture.panels.entityBrowser.getElement())).toBe(true);
     fixture.docks.dockCommands.floatingWindowToggle('entity_browser');
     expect(fixture.docks.dockCommands.isFloatingWindowOpen('entity_browser')).toBe(false);
   });
 
-  it('opens the floating level browser from the View menu command and the name-focused reveal', async () => {
-    const levelBrowserWindow = fixture.panels.levelBrowserWindow;
+  it('opens the Browser on its Levels tab from the Window menu command and the name-focused reveal', async () => {
+    const browser = fixture.panels.browserWindow.browser;
+    const levelBrowser = fixture.panels.levelBrowser;
     await projectLevelRigProjectOpen(fixture.levelRig);
-    expect(levelBrowserWindow.isOpen()).toBe(false);
+    expect(browser.isOpen()).toBe(false);
     fixture.docks.dockCommands.floatingWindowToggle('level_browser');
     expect(fixture.docks.dockCommands.isFloatingWindowOpen('level_browser')).toBe(true);
-    expect(levelBrowserWindow.bodyRead().contains(levelBrowserWindow.levelBrowserRead().getElement())).toBe(true);
+    expect(browser.bodyRead().contains(levelBrowser.getElement())).toBe(true);
     fixture.docks.dockCommands.floatingWindowToggle('level_browser');
     fixture.panels.levelBrowserReveal(true);
-    expect(levelBrowserWindow.isOpen()).toBe(true);
-    expect(document.activeElement).toBe(levelBrowserWindow.levelBrowserRead().nameInputRead());
+    expect(browser.isTabOpen('levels')).toBe(true);
+    expect(document.activeElement).toBe(levelBrowser.nameInputRead());
   });
 
   it('reports map issues and selects and frames the object of a clicked issue', () => {
@@ -232,6 +235,6 @@ describe('layoutShellPanelsCreate', () => {
     });
     expect(fixture.docks.infoPanel.slotRead('issues').childElementCount).toBe(0);
     getStateEntityPlace().browseRequest();
-    expect(fixture.panels.entityBrowserWindow.isOpen()).toBe(false);
+    expect(fixture.panels.browserWindow.browser.isOpen()).toBe(false);
   });
 });

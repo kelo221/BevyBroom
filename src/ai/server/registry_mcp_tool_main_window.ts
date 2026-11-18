@@ -16,7 +16,7 @@ const MCP_MAIN_WINDOW_FLOATING_WINDOW_PROPERTIES = Object.fromEntries(
 export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(
     'get_main_window',
-    `The main window arrangement: inspectorVisible, infoPanelVisible, infoPanelCollapsed (folded to its one-line strip) and infoPanelTab (console or issues), toolbarVisible, the menu bar titles in order, menuBarInWindow (false once the menus moved into the native macOS menu bar), themeLook (classic or mac_glass), floatingWindows (${MCP_MAIN_WINDOW_FLOATING_WINDOW_LIST}) as true while shown, and toolWindows: every resizable, dockable tool window by layout id with its title, placement (left, right, bottom or floating), isOpen and rect ({left, top, width, height} in CSS pixels while open).`,
+    `The main window arrangement: inspectorVisible, infoPanelVisible, infoPanelCollapsed (folded to its one-line strip) and infoPanelTab (console or issues), toolbarVisible, the menu bar titles in order, menuBarInWindow (false once the menus moved into the native macOS menu bar), themeLook (classic or mac_glass), floatingWindows (${MCP_MAIN_WINDOW_FLOATING_WINDOW_LIST}: the Place, Textures and Levels tabs of the one Browser window, layout id browser) as true while the Browser is open on that tab, and toolWindows: every resizable, dockable tool window by layout id with its title, placement (left, right, bottom or floating), isOpen and rect ({left, top, width, height} in CSS pixels while open).`,
     emptySchema(),
   ),
   tool(
@@ -36,7 +36,7 @@ export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
         toolbarVisible: { type: 'boolean', description: 'Show or hide the icon toolbar.' },
         floatingWindows: {
           type: 'object',
-          description: `Show or hide floating windows by id (${MCP_MAIN_WINDOW_FLOATING_WINDOW_LIST}). True shows, false hides. Omitted ids stay as they are.`,
+          description: `Open or close the Browser window on a tab by id (${MCP_MAIN_WINDOW_FLOATING_WINDOW_LIST} for its Place, Textures and Levels tabs). True opens the Browser on that tab, false closes it while it shows that tab. Omitted ids stay as they are.`,
           properties: MCP_MAIN_WINDOW_FLOATING_WINDOW_PROPERTIES,
         },
         toolWindowPlacements: {

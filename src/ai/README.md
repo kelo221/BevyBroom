@@ -394,9 +394,9 @@ These tools need the desktop app; the browser editor answers that it cannot star
 
 ## Texture browser
 
-| Tool                      | What it does                                                                                                                                                                         |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `texture_browser_entries` | Every texture the Texture Browser lists as `entries: [{ id, displayName, source }]`, in browser order: built-in checker, `Game materials`, `Project textures`, then the local folder |
+| Tool                      | What it does                                                                                                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `texture_browser_entries` | Every texture the Textures tab of the Browser lists as `entries: [{ id, displayName, source }]`, in browser order: built-in checker, `Game materials`, `Project textures`, then the local folder |
 
 ## Entity Sprinkle
 

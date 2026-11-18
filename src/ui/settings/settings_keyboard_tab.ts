@@ -100,9 +100,9 @@ const CSG_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, string]
 
 /** Shortcuts of the Window menu that open the browser windows. */
 const BROWSER_WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, string]> = [
-  ['window_texture_browser', 'Texture Browser'],
-  ['window_entity_browser', 'Entity Browser'],
-  ['window_level_browser', 'Level Browser'],
+  ['window_texture_browser', 'Browser: Textures'],
+  ['window_entity_browser', 'Browser: Place'],
+  ['window_level_browser', 'Browser: Levels'],
 ];
 
 /**

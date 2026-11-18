@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LayoutTextureWindows } from '@/texture/layout/layout_texture_windows.js';
+import { PanelFloatingBrowser } from '@/browser/ui/panel_floating_browser.js';
+import { BrowserTabWindow } from '@/browser/ui/browser_tab_window.js';
 import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
 import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
 import {
@@ -12,13 +14,19 @@ describe('LayoutTextureWindows', () => {
   let testParts: FaceInspectorTestParts;
   let host: HTMLElement;
   let textureWindows: LayoutTextureWindows;
+  let browser: PanelFloatingBrowser;
 
   beforeEach(() => {
     testParts = faceInspectorTestPartsCreate();
     host = document.createElement('div');
     document.body.appendChild(host);
+    browser = new PanelFloatingBrowser(host, [
+      { tabId: 'place', element: document.createElement('div') },
+      { tabId: 'textures', element: testParts.parts.faceInspector.getElement() },
+    ]);
     textureWindows = new LayoutTextureWindows({
       host,
+      textureBrowser: new BrowserTabWindow(browser, 'textures'),
       faceInspectorParts: testParts.parts,
       commandStack: testParts.commandStack,
       worldObject: testParts.world,
@@ -30,6 +38,7 @@ describe('LayoutTextureWindows', () => {
 
   afterEach(() => {
     textureWindows.dispose();
+    browser.dispose();
     faceInspectorTestPartsDispose(testParts);
     document.body.replaceChildren();
   });
@@ -40,11 +49,19 @@ describe('LayoutTextureWindows', () => {
     expect(testParts.parts.faceInspector.isVisible()).toBe(false);
   });
 
-  it('activates the face inspector while the texture browser is open', () => {
+  it('activates the face inspector while the Browser shows its Textures tab', () => {
     textureWindows.textureBrowserShow();
     expect(textureWindows.textureBrowser.isOpen()).toBe(true);
     expect(testParts.parts.faceInspector.isVisible()).toBe(true);
     textureWindows.textureBrowser.hide();
+    expect(testParts.parts.faceInspector.isVisible()).toBe(false);
+  });
+
+  it('deactivates the face inspector when the open Browser switches to another tab', () => {
+    textureWindows.textureBrowserShow();
+    browser.tabReveal('place');
+    expect(browser.isOpen()).toBe(true);
+    expect(textureWindows.textureBrowser.isOpen()).toBe(false);
     expect(testParts.parts.faceInspector.isVisible()).toBe(false);
   });
 

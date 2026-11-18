@@ -4,7 +4,7 @@ import type { ManagerSelection } from '@/selection/object/manager_selection.js';
 import type { StatusBar } from '@/ui/status/status_bar.js';
 import { TextureReplaceRunner } from '@/texture/replace/texture_replace_runner.js';
 import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
-import { PanelFloatingTextureBrowser } from '@/texture/ui/texture_browser/panel_floating_texture_browser.js';
+import type { BrowserTabWindow } from '@/browser/ui/browser_tab_window.js';
 import {
   DialogTextureReplace,
   type DialogTextureReplaceMaterial,
@@ -26,6 +26,8 @@ import { DisplacementPaintWindows } from '@/displacement/ui/paint/displacement_p
 export interface LayoutTextureWindowsDeps {
   /** Parent element of floating windows. */
   readonly host: HTMLElement;
+  /** Textures tab of the Browser window, holding the face inspector. */
+  readonly textureBrowser: BrowserTabWindow;
   /** Face inspector with the controllers that drive it. */
   readonly faceInspectorParts: FaceInspectorSetupResult;
   /** Undo stack receiving material replacements. */
@@ -41,14 +43,14 @@ export interface LayoutTextureWindowsDeps {
 }
 
 /**
- * Floating texture windows of the main window: the texture browser holding the
- * face inspector, the Face Edit Sheet with its Displacement tab and paint
+ * Texture windows of the main window: the Textures tab of the Browser holding
+ * the face inspector, the Face Edit Sheet with its Displacement tab and paint
  * windows, and the Replace Textures window. The face inspector refreshes while
- * the texture browser or the sheet is open.
+ * the Textures tab or the sheet is open.
  */
 export class LayoutTextureWindows {
-  /** Floating texture browser holding the face inspector. */
-  readonly textureBrowser: PanelFloatingTextureBrowser;
+  /** Textures tab of the Browser window, holding the face inspector. */
+  readonly textureBrowser: BrowserTabWindow;
   /** Replace Textures window. */
   readonly textureReplaceDialog: DialogTextureReplace;
   /** Floating Hammer++ Face Edit Sheet. */
@@ -67,7 +69,7 @@ export class LayoutTextureWindows {
    */
   constructor(deps: LayoutTextureWindowsDeps) {
     this.deps = deps;
-    this.textureBrowser = new PanelFloatingTextureBrowser(deps.host, deps.faceInspectorParts.faceInspector);
+    this.textureBrowser = deps.textureBrowser;
     this.textureReplaceDialog = this.textureReplaceDialogCreate();
     this.faceEditSheet = new DialogFaceEditSheet(deps.host, this.faceEditSheetHandlersBuild());
     this.displacementTab = this.displacementTabMount();
@@ -83,7 +85,7 @@ export class LayoutTextureWindows {
     this.faceInspectorVisibilityRefresh();
   }
 
-  /** Opens the floating texture browser. */
+  /** Opens the Browser on its Textures tab. */
   textureBrowserShow(): void {
     this.textureBrowser.show();
   }
@@ -111,7 +113,6 @@ export class LayoutTextureWindows {
     this.displacementTab.dispose();
     this.faceEditSheet.dispose();
     this.textureReplaceDialog.dispose();
-    this.textureBrowser.dispose();
   }
 
   /** Lets the face inspector refresh only while a window showing it is open. */

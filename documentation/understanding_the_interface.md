@@ -14,8 +14,8 @@ it has:
 7. The **status bar** along the bottom edge.
 
 Detailed editing happens in floating windows that open above the workspace:
-the **Object Properties** dialog, the **Face Edit Sheet**, the **Texture
-Browser**, **Replace Textures**, and the **Entity Browser**.
+the **Object Properties** dialog, the **Face Edit Sheet**, the **Browser**
+(Place, Textures and Levels tabs), and **Replace Textures**.
 
 ## Menu bar
 
@@ -42,9 +42,9 @@ Browser**, **Replace Textures**, and the **Entity Browser**.
   Palette**, and **Editor Sounds**.
 - **Run** starts **Play** mode; launches, rebuilds, restarts, and stops the
   game; runs **Build Level**; and opens the **Game Preview…** panel.
-- **Window** opens every window and panel: the **Texture Browser**
-  (`Ctrl+Shift+T`), **Entity Browser** (`Ctrl+Shift+B`), and **Level Browser**
-  (`Ctrl+Shift+L`), the **Map Inspector** (`Ctrl+1`), the **Solid Model…**
+- **Window** opens every window and panel: the [Browser](#browser) on its
+  **Place** (`Ctrl+Shift+B`), **Textures** (`Ctrl+Shift+T`) or **Levels**
+  (`Ctrl+Shift+L`) tab, the **Map Inspector** (`Ctrl+1`), the **Solid Model…**
   panel, a **Detached Viewport…**, and the **AI Captures (Debug)…** panel. On
   macOS it also holds the system Minimize, Zoom, and Full Screen rows.
 - **Help** opens **Search Commands…** (`Ctrl+Shift+P`), this
@@ -120,7 +120,7 @@ From top to bottom:
 - **Object Select** (`O`) selects whole objects and moves, rotates, and scales
   them. `Tab` switches between Object and Edit Mode.
 - **Entity Tool** (`Shift+E`) places the active entity class, chosen on the
-  view bar or in the Entity Browser.
+  view bar or on the Place tab of the Browser.
 - **Block Tool** (`Shift+B`) draws a new convex brush in the active shape:
   Cuboid, Stairs, Arch, Cylinder, Cone, Spheroid (UV), or Spheroid (Icosahedron).
 - **Face Select** (`Shift+Tab`) selects faces for texturing and opens the Face
@@ -203,7 +203,7 @@ section. Hide or show the whole dock with **View > Show Inspector** or
   single brush that was hit.
 - **Current texture:** shows a thumbnail, the name, and the size of the texture
   that new brushes and **Apply Current Texture** use. **Browse** opens the
-  Texture Browser and **Replace** opens Replace Textures with the current
+  Browser on its Textures tab and **Replace** opens Replace Textures with the current
   texture filled in.
 
 ### VisGroups
@@ -224,7 +224,7 @@ user group named **Group N** that holds the selection, and **Mark** selects the
 visible members of the highlighted group. Creating a group and assigning the
 selection is one undo step.
 
-Prefabs are tiles of the [Entity Browser](#entity-browser). **Edit > Tie to
+Prefabs are tiles of the [Place tab](#place-tab) of the Browser. **Edit > Tie to
 Entity** ties the selected brushes to an entity: a single group keeps its place,
 several objects are wrapped in a new group, and the result receives a game
 component. **Edit > Move to World** turns entities back into plain world geometry
@@ -304,8 +304,7 @@ See [Game components](game_components.md) for game classes and entity I/O.
 
 Floating windows open above the workspace. Reposition one by dragging its title
 bar and close it with its `×` button. Closing a window does not delete scene
-data. The Face Edit Sheet, Texture Browser, Replace Textures, and Entity Browser
-open centered the first time, then reopen where you last left them during the
+data. The Face Edit Sheet, the Browser and Replace Textures open centered the first time, then reopen where you last left them during the
 session.
 
 ### Face Edit Sheet
@@ -359,13 +358,29 @@ stamps it on every face you click.
 
 See [Textures and UV mapping](textures_and_uvs.md).
 
-### Texture Browser
+### Browser
 
-The Texture Browser shows the face attributes of the current material above a
+The Browser is one window with three tabs: **Place** (everything you can add),
+**Textures** and **Levels**. Each tab has its own toolbar button, Window menu
+row and shortcut, and each one opens the Browser on that tab: **Window >
+Browser: Place** (`Ctrl+Shift+B`), **Browser: Textures** (`Ctrl+Shift+T`) and
+**Browser: Levels** (`Ctrl+Shift+L`); `⌘⇧` on macOS. Pressing the shortcut of
+the tab that is showing closes the Browser; pressing another one switches the
+tab. Like every tool window, the Browser can float or dock to the left, right
+or bottom edge by dragging its title bar.
+
+#### Textures tab
+
+The Textures tab shows the face attributes of the current material above a
 grid of every material. Type in its filter to match material names and paths;
 click a material to make it current. Open it with **Browse** in the right dock,
-**Browse…** in the Face Edit Sheet, the Texture Browser button on the toolbar,
-**Window > Texture Browser**, or `Ctrl+Shift+T`.
+**Browse…** in the Face Edit Sheet, the Textures button on the toolbar,
+**Window > Browser: Textures**, or `Ctrl+Shift+T`.
+
+#### Levels tab
+
+The Levels tab lists the levels of the open project. See
+[Project levels](project_levels.md#level-browser).
 
 ### Replace Textures
 
@@ -375,14 +390,13 @@ Replace Textures swaps one texture for another. Choose the texture to
 changed. Open it with **Replace** in the right dock or **Replace…** in the
 Face Edit Sheet.
 
-### Entity Browser
+#### Place tab
 
-The Entity Browser shows a thumbnail tile for every kind of object the **Add**
+The Place tab shows a thumbnail tile for every kind of object the **Add**
 menu can create, including the game's entity classes when a game is connected
 and every prefab (see [Project classes and prefabs](project_classes_and_prefabs.md)).
-Open it with the Entity Browser button on the toolbar, **Window > Entity
-Browser**, `Ctrl+Shift+B` (`⌘⇧B` on macOS), or **Browse** on the Entity Tool's
-view bar.
+Open it with the Place button on the toolbar, **Window > Browser: Place**,
+`Ctrl+Shift+B` (`⌘⇧B` on macOS), or **Browse** on the Entity Tool's view bar.
 
 - Drag a tile onto a viewport to place that object where you drop it.
 - Click a tile to select it, then double-click it or press `Enter` to add the

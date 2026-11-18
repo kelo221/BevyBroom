@@ -72,7 +72,7 @@ Classes the file already declares are left as they are.
 
 ## Prefabs
 
-Prefabs live in the **Entity Browser**, next to every other kind of object you
+Prefabs live on the **Place** tab of the Browser, next to every other kind of object you
 place: each prefab is a tile with a 3D thumbnail, under **Prefabs** and its own
 category. The search finds prefabs by name or category, and the category filter
 shows only **Prefabs** (or any other category).
@@ -83,7 +83,7 @@ shows only **Prefabs** (or any other category).
   `Enter`. The prefab keeps geometry, brushes, textures, game components and
   entity I/O. With a `prefab_directory` it is saved as
   `<prefab_directory>/<id>.json`, where the id comes from the name (`Shelf Row`
-  becomes `shelf_row.json`). Its tile appears in the Entity Browser, selected.
+  becomes `shelf_row.json`). Its tile appears on the Place tab, selected.
 - **Place a prefab:** drag its tile into a 2D or 3D view. The copy lands with
   the bottom of its bounds on the surface under the cursor, centred on it and
   snapped to the grid; in a 2D top view it rests on whatever is under the
