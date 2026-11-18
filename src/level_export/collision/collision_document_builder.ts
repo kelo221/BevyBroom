@@ -1,8 +1,10 @@
-import type * as THREE from 'three';
+import * as THREE from 'three';
 import { GameEntityClassRegistry } from '@/game_entity/class/game_entity_class_registry.js';
 import { GameEntityComponentResolver } from '@/game_entity/component/game_entity_component_resolver.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
+import type { CollisionModelResult } from '@/level_export/collision/collision_model_result.js';
 import { CollisionSolidModelCollector } from '@/level_export/collision/collision_solid_model_collector.js';
+import { CollisionMeshCollector } from '@/level_export/collision/mesh/collision_mesh_collector.js';
 import {
   COLLISION_FILE_VERSION,
   type CollisionDocument,
@@ -14,7 +16,7 @@ import { LevelExportObjectFilter } from '@/level_export/level_export_object_filt
 import { LevelExportPlacementsBuilder } from '@/level_export/placements/level_export_placements_builder.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 
-/** Collision of one solid model with its object's data. */
+/** Collision of one solid model or plain mesh with its object's data. */
 export interface CollisionObjectRecords {
   pieces: CollisionPieceRecord[];
   flagged: CollisionFlaggedRecord[];
@@ -22,8 +24,9 @@ export interface CollisionObjectRecords {
 
 /**
  * Builds the collision document of a level: the convex pieces and flagged parts
- * of every exported solid model, each with its object's name, collision kind
- * and game components, and the placements of the objects the game places.
+ * of every exported solid model and plain content mesh, each with its object's
+ * name, collision kind and game components, and the placements of the objects
+ * the game places.
  */
 export class CollisionDocumentBuilder {
   /**
@@ -35,8 +38,8 @@ export class CollisionDocumentBuilder {
    */
   static build(worldGroup: THREE.Object3D, levelName: string): CollisionDocument {
     worldGroup.updateMatrixWorld(true);
-    const records = CollisionDocumentBuilder.solidRootsOf(worldGroup).map((root) =>
-      CollisionDocumentBuilder.objectRecordsBuild(root),
+    const records = CollisionDocumentBuilder.collisionSourcesOf(worldGroup).map((source) =>
+      CollisionDocumentBuilder.objectRecordsBuild(source),
     );
     return {
       collision_version: COLLISION_FILE_VERSION,
@@ -48,20 +51,21 @@ export class CollisionDocumentBuilder {
   }
 
   /**
-   * Builds the collision of one solid model with its object's data.
+   * Builds the collision of one solid model or plain mesh with its object's
+   * data.
    *
-   * @param solidRoot Solid model root with a current world matrix.
+   * @param object Solid model root or plain content mesh with a current world
+   *   matrix.
    * @returns Pieces and flagged parts.
    */
-  static objectRecordsBuild(solidRoot: THREE.Object3D): CollisionObjectRecords {
-    const collected = CollisionSolidModelCollector.collect(solidRoot);
+  static objectRecordsBuild(object: THREE.Object3D): CollisionObjectRecords {
+    const collected = CollisionDocumentBuilder.objectCollisionCollect(object);
     const source = {
-      object_id: solidRoot.uuid,
-      object_name: solidRoot.name,
-      kind: CollisionKindStore.resolve(solidRoot),
-      components: GameEntityComponentResolver.componentsEffective(
-        GameEntityComponentStore.read(solidRoot),
-        (typePath) => GameEntityClassRegistry.classFind(typePath),
+      object_id: object.uuid,
+      object_name: object.name,
+      kind: CollisionKindStore.resolve(object),
+      components: GameEntityComponentResolver.componentsEffective(GameEntityComponentStore.read(object), (typePath) =>
+        GameEntityClassRegistry.classFind(typePath),
       ),
     };
     return {
@@ -71,18 +75,32 @@ export class CollisionDocumentBuilder {
   }
 
   /**
-   * Returns the exported solid model roots of a world in scene order.
+   * Collects the pieces and flagged parts of a solid model or a plain mesh.
+   *
+   * @param object Solid model root or plain content mesh.
+   * @returns Collision without the object's data.
+   */
+  private static objectCollisionCollect(object: THREE.Object3D): CollisionModelResult {
+    if (!SolidModel.isSolidModelObject(object) && object instanceof THREE.Mesh) {
+      return CollisionMeshCollector.collect(object);
+    }
+    return CollisionSolidModelCollector.collect(object);
+  }
+
+  /**
+   * Returns the exported solid model roots and plain content meshes of a world
+   * in scene order.
    *
    * @param worldGroup World root.
-   * @returns Solid model roots.
+   * @returns Objects whose collision is written.
    */
-  private static solidRootsOf(worldGroup: THREE.Object3D): THREE.Object3D[] {
-    const roots: THREE.Object3D[] = [];
+  private static collisionSourcesOf(worldGroup: THREE.Object3D): THREE.Object3D[] {
+    const sources: THREE.Object3D[] = [];
     worldGroup.traverse((object) => {
-      if (SolidModel.isSolidModelObject(object) && LevelExportObjectFilter.exportedIs(object, worldGroup)) {
-        roots.push(object);
+      if (LevelExportObjectFilter.collisionSourceIs(object) && LevelExportObjectFilter.exportedIs(object, worldGroup)) {
+        sources.push(object);
       }
     });
-    return roots;
+    return sources;
   }
 }

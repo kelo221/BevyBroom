@@ -35,12 +35,15 @@ export interface CollisionPlane {
 
 /** The object a piece or a flagged part came from. */
 export interface CollisionSource {
-  /** Editor id of the object (the solid model), stable across saves. */
+  /**
+   * Editor id of the object (the solid model or the plain mesh), stable across
+   * saves.
+   */
   object_id: string;
   object_name: string;
   /**
    * Id and name of the brush the piece was cut from; empty for an inverted
-   * world's bounds.
+   * world's bounds and for plain meshes.
    */
   brush_id: string;
   brush_name: string;
@@ -49,14 +52,17 @@ export interface CollisionSource {
   components: PreviewAuthoredComponents;
 }
 
-/** One convex piece of the final CSG result, in world space. */
+/**
+ * One convex piece of a solid model's final CSG result or of a convex plain
+ * mesh, in world space.
+ */
 export interface CollisionPieceRecord extends CollisionSource {
   planes: CollisionPlane[];
   vertices: CollisionVector3[];
 }
 
 /** Why a part is not given as convex pieces. */
-export type CollisionFlaggedReason = 'displacement' | 'non_convex_brush';
+export type CollisionFlaggedReason = 'displacement' | 'non_convex_brush' | 'non_convex_mesh';
 
 /**
  * A part of the level that is not convex, given as triangles so a game can

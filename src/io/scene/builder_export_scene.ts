@@ -1,21 +1,16 @@
 import * as THREE from 'three';
 import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
-import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
-import { DECORATIVE_EDGE_USERDATA_KEY, isSolidBrushEdge } from '@/utils/mesh_edge_sync.js';
-import { SELECTION_HIGHLIGHT_USERDATA_KEY } from '@/selection/object/selection_highlight.js';
 import { CONTENT_METALNESS, CONTENT_ROUGHNESS } from '@/materials/factory_content_material.js';
 import { isContentViewLitMaterial } from '@/materials/factory_content_view_lit_material.js';
 import { isDefaultSurfaceTexture } from '@/texture/library/factory_debug_texture.js';
-import { entityOwnerIs, entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
+import { entityOwnerIs } from '@/entity/model/entity_owner_keys.js';
+import { shouldOmitFromExport } from '@/io/scene/export_object_omission.js';
 import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
 import { LightmapUvLayout } from '@/io/glb/lightmap/lightmap_uv_layout.js';
 import { ExportGeometryMaterialFilter } from '@/io/scene/export_geometry_material_filter.js';
 import { MATERIAL_IDENTITY_EXPORT_EXTRAS_KEY, materialIdentityRead } from '@/materials/identity/material_identity.js';
-import {
-  getSharedContentMaterials,
-  meshUsesShadingOverrideMaterials,
-} from '@/viewports/shared/shared_content_material_store.js';
+import { exportContentMaterialResolve } from '@/io/scene/export_content_material_resolve.js';
 import { objectInOmittedLayerIs } from '@/layer/model/layer_membership.js';
 import { DisplacementExportBrushFilter } from '@/displacement/export/displacement_export_brush_filter.js';
 import { getTriangleCount } from '@/selection/pick/utils_triangle_geometry.js';
@@ -71,20 +66,6 @@ export interface ExportSceneOptions {
 }
 
 /**
- * Returns the content materials of a mesh, looking past temporary viewport
- * shading overrides such as wireframe materials.
- *
- * @param mesh Live content mesh.
- * @returns The materials the mesh shows in normal shading.
- */
-export function exportContentMaterialResolve(mesh: THREE.Mesh): THREE.Material | THREE.Material[] {
-  if (!meshUsesShadingOverrideMaterials(mesh)) {
-    return mesh.material;
-  }
-  return getSharedContentMaterials(mesh.uuid)?.materials ?? mesh.material;
-}
-
-/**
  * Builds a temporary scene graph for GLB/export that contains only game
  * content: regular meshes/groups and solid-model CSG result meshes. Excludes
  * brush hull helpers, selection outlines, decorative edges, and clip previews.
@@ -129,31 +110,6 @@ function cloneObjectForExport(object: THREE.Object3D, options: ExportSceneOption
     return cloneGroupForExport(object, options);
   }
   return null;
-}
-
-/**
- * Returns whether an object is editor-internal and must not appear in exports.
- *
- * @param object Candidate object.
- * @returns True when the object should be omitted.
- */
-export function shouldOmitFromExport(object: THREE.Object3D): boolean {
-  if (SolidBrushVisual.isBrushObject(object)) return true;
-  if (isSolidBrushEdge(object)) return true;
-  if (object.userData[DECORATIVE_EDGE_USERDATA_KEY] === true) return true;
-  if (object.userData[SELECTION_HIGHLIGHT_USERDATA_KEY] === true) return true;
-  if (object.userData['isSelectionHighlight'] === true) return true;
-  if (object.userData['isWireframeOverlay'] === true) return true;
-  if (object.userData['isFaceSelectionHighlight'] === true) return true;
-  if (object.userData['isClipPlanePreview'] === true) return true;
-  if (object.userData['isBoundsGuideLines'] === true) return true;
-  if (object.userData['isGizmoOccludedGhost'] === true) return true;
-  if (object.userData['isCadRuler'] === true) return true;
-  if (object.userData['isSolidBrushPreview'] === true) return true;
-  if (object.userData['isModifierVolume'] === true) return true;
-  if (object.userData['isModifierVolumeEdge'] === true) return true;
-  if (entityOwnerIs(object) || entityVisualPartIs(object)) return true;
-  return false;
 }
 
 /**

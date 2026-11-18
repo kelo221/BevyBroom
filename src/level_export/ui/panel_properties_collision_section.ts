@@ -3,6 +3,7 @@ import type { CommandStack } from '@/commands/command_stack.js';
 import { COLLISION_KINDS, type CollisionKind } from '@/level_export/collision/collision_types.js';
 import { CollisionKindStore } from '@/level_export/kind/collision_kind_store.js';
 import { CommandCollisionKindSet } from '@/level_export/kind/command_collision_kind_set.js';
+import { LevelExportObjectFilter } from '@/level_export/level_export_object_filter.js';
 import { findSolidModelRoot } from '@/solid/model/solid_group.js';
 import { InputSelect, type InputSelectChoice } from '@/ui/input/input_select.js';
 import type { PanelPropertiesSection, PanelPropertiesSectionChrome } from '@/ui/properties/panel_properties_section.js';
@@ -20,7 +21,8 @@ const PANEL_PROPERTIES_COLLISION_LABELS: Readonly<Record<CollisionKind, string>>
 
 /**
  * Inspector section that shows how the game collides with the selected brush
- * entities and lets them override the kind their game classes declare.
+ * entities and plain meshes and lets them override the kind their game classes
+ * declare.
  */
 export class PanelPropertiesCollisionSection implements PanelPropertiesSection {
   private readonly section: HTMLElement;
@@ -61,13 +63,13 @@ export class PanelPropertiesCollisionSection implements PanelPropertiesSection {
   }
 
   /**
-   * Shows the section when every selected object is a solid model or a brush of
-   * one, and fills it from their solid models.
+   * Shows the section when every selected object is a solid model, a brush of
+   * one or a plain content mesh, and fills it from those objects.
    *
    * @param objects Current inspector selection.
    */
   updateFromObjects(objects: readonly THREE.Object3D[]): void {
-    const roots = objects.map((object) => findSolidModelRoot(object));
+    const roots = objects.map((object) => PanelPropertiesCollisionSection.collisionObjectOf(object));
     const isShown = roots.length > 0 && roots.every((root) => root !== null);
     this.boundRoots = isShown ? [...new Set(roots.filter((root): root is THREE.Object3D => root !== null))] : [];
     this.section.style.display = isShown ? 'block' : 'none';
@@ -76,7 +78,18 @@ export class PanelPropertiesCollisionSection implements PanelPropertiesSection {
     }
   }
 
-  /** Fills the choices and shows the shared value of the bound solid models. */
+  /**
+   * Returns the object whose collision kind a selected object edits.
+   *
+   * @param object Selected object.
+   * @returns Its solid model, the object itself when it is a plain content
+   *   mesh, or null.
+   */
+  private static collisionObjectOf(object: THREE.Object3D): THREE.Object3D | null {
+    return findSolidModelRoot(object) ?? (LevelExportObjectFilter.contentMeshIs(object) ? object : null);
+  }
+
+  /** Fills the choices and shows the shared value of the bound objects. */
   private fieldWrite(): void {
     const first = this.boundRoots[0];
     const declared = (first ? CollisionKindStore.declaredRead(first) : null) ?? 'solid';
@@ -93,7 +106,7 @@ export class PanelPropertiesCollisionSection implements PanelPropertiesSection {
     );
   }
 
-  /** Applies the chosen kind to every bound solid model as one undo step. */
+  /** Applies the chosen kind to every bound object as one undo step. */
   private kindCommit(): void {
     const kind = CollisionKindStore.fromUnknown(this.select.getValue());
     const command = new CommandCollisionKindSet(this.boundRoots, kind);

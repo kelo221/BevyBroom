@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { CollisionModelPiece } from '@/level_export/collision/collision_solid_model_collector.js';
+import type { CollisionModelPiece } from '@/level_export/collision/collision_model_result.js';
 import { SolidBrushFactory } from '@/solid/brush/solid_brush_factory.js';
 import { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import { markAsSolidCsgGroup } from '@/solid/model/solid_group.js';

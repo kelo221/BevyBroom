@@ -13,10 +13,10 @@ import {
   CollisionPlaneTextureResolver,
 } from '@/level_export/collision/collision_plane_texture_resolver.js';
 import type {
-  CollisionFlaggedReason,
-  CollisionPlane,
-  CollisionVector3,
-} from '@/level_export/collision/collision_types.js';
+  CollisionModelFlagged,
+  CollisionModelPiece,
+  CollisionModelResult,
+} from '@/level_export/collision/collision_model_result.js';
 import type { PreparedBrush, SolidCsgInputs } from '@/solid/algorithm/compile/solid_compile_types.js';
 import { SolidBrushFactory } from '@/solid/brush/solid_brush_factory.js';
 import type { SolidBrush } from '@/solid/brush/solid_brush.js';
@@ -25,29 +25,6 @@ import { SolidModel } from '@/solid/model/solid_model.js';
 
 /** How far the solid of an inverted world reaches past every brush, in meters. */
 export const COLLISION_INVERTED_WORLD_MARGIN = 1;
-
-/** One convex piece of a solid model, before the object's own data is added. */
-export interface CollisionModelPiece {
-  brush_id: string;
-  brush_name: string;
-  planes: CollisionPlane[];
-  vertices: CollisionVector3[];
-}
-
-/** One part of a solid model that is not given as convex pieces. */
-export interface CollisionModelFlagged {
-  brush_id: string;
-  brush_name: string;
-  reason: CollisionFlaggedReason;
-  vertices: CollisionVector3[];
-  triangles: [number, number, number][];
-}
-
-/** Collision of one solid model. */
-export interface CollisionModelResult {
-  pieces: CollisionModelPiece[];
-  flagged: CollisionModelFlagged[];
-}
 
 /**
  * Collects the collision of one solid model from its last compile: the convex

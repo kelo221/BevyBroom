@@ -4,11 +4,11 @@ A game reads everything about a level from its exported **level package**: the g
 
 **Run > Build Level** in the desktop app and the command-line export write the same package into `<asset_root>/<level_directory>/<level>/`:
 
-| File               | Holds                                                                                                                                                                       |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `geometry_<n>.glb` | The render geometry, with lightmap UVs. Tool-texture faces and volumes are left out (see below). Each solid model's node carries its collision as `broom_collision` extras. |
-| `level.broom.json` | The manifest: lights, rooms, portals, transforms and game components, as the live preview sends them. A game with `BroomLevelPlugin` loads it by name.                      |
-| `collision.json`   | The convex collision pieces of every solid model, the parts that are not convex, and the placements of game entities and procedural objects. Format below.                  |
+| File               | Holds                                                                                                                                                                                        |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `geometry_<n>.glb` | The render geometry, with lightmap UVs. Tool-texture faces and volumes are left out (see below). Each solid model's and plain mesh's node carries its collision as `broom_collision` extras. |
+| `level.broom.json` | The manifest: lights, rooms, portals, transforms and game components, as the live preview sends them. A game with `BroomLevelPlugin` loads it by name.                                       |
+| `collision.json`   | The convex collision pieces of every solid model, the parts that are not convex, and the placements of game entities and procedural objects. Format below.                                   |
 
 ## Export from the command line
 
@@ -31,7 +31,7 @@ Run it from the editor's checkout (it needs the editor's sources and `bun instal
 
 ## Collision kinds
 
-Every solid model has one collision kind:
+Every solid model and every plain mesh (such as an Add > Box mesh) has one collision kind:
 
 | Kind     | Meaning                                                                                                      |
 | -------- | ------------------------------------------------------------------------------------------------------------ |
@@ -39,7 +39,7 @@ Every solid model has one collision kind:
 | `volume` | An area the game reads, such as a finish zone or a door place. Nothing collides with it and it is not drawn. |
 | `none`   | Drawn only.                                                                                                  |
 
-A game class declares the kind its brush entities take, with `collision` in the [project class file](project_classes_and_prefabs.md) or `PlaceableOptions::any().collision(PlaceableCollisionKind::Volume)` in the game. The **Collision** section of the properties panel shows the kind of the selected solid models and lets them override it. Volumes still export as empty nodes, so their transform, components and `broom_collision` extras stay in the GLB.
+A game class declares the kind its brush entities take, with `collision` in the [project class file](project_classes_and_prefabs.md) or `PlaceableOptions::any().collision(PlaceableCollisionKind::Volume)` in the game. The **Collision** section of the properties panel shows the kind of the selected solid models and plain meshes and lets them override it. Volumes still export as empty nodes, so their transform, components and `broom_collision` extras stay in the GLB.
 
 ## Tool textures
 
@@ -87,9 +87,11 @@ The format is a contract. The editor writes it, and the fixture `bevy/fixtures/c
   - intersecting brushes and compound groups are reduced;
   - an inverted world is bounded by its brushes plus one meter.
 
+  Every plain mesh (Add > Box walls, platforms, props) that is a closed convex solid is also **one piece**, with the same record shape. A mesh is convex when every vertex lies behind every triangle plane, within 0.1 mm. Its `brush_id` and `brush_name` are empty, and each plane's texture is the material of the triangles on it.
+
   Each piece has its outward planes (`normal · p = distance`), the texture of the face on each plane (empty for a cut with no face), its vertices, the object's name, its kind, and its game components with every class default resolved.
 
-- **flagged**: parts that are not convex pieces, as triangles: displaced surfaces (`displacement`) and brushes edited into a non-convex shape (`non_convex_brush`). A game can mesh them or refuse them by name.
+- **flagged**: parts that are not convex pieces, as triangles: displaced surfaces (`displacement`), brushes edited into a non-convex shape (`non_convex_brush`), and plain meshes that are not closed convex solids, such as a torus or a flat plane (`non_convex_mesh`). A game can mesh them or refuse them by name.
 - **placements**: every game entity, every procedural object and every other object carrying game components. Each one has its world position, rotation as a quaternion, scale and resolved components.
   - Procedural objects also carry their generator, parameters and derived values.
   - Derived values that are points, such as a people mover's `low_end` and `high_end`, are also given in world space, so a game never composes transforms.

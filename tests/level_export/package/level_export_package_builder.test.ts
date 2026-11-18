@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import type { ExportSceneOptions } from '@/io/scene/builder_export_scene.js';
+import { buildExportScene, type ExportSceneOptions } from '@/io/scene/builder_export_scene.js';
 import { COLLISION_FILE_VERSION, type CollisionDocument } from '@/level_export/collision/collision_types.js';
 import { CollisionKindStore } from '@/level_export/kind/collision_kind_store.js';
 import { LevelExportPackageBuilder } from '@/level_export/package/level_export_package_builder.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { collisionTestModelCreate } from '../collision/collision_test_models.js';
+import { collisionTestBoxMeshCreate } from '../collision/mesh/collision_mesh_test_boxes.js';
 
 /**
  * Creates a world with a solid block and a volume zone.
@@ -58,5 +59,25 @@ describe('LevelExportPackageBuilder', () => {
     expect(collision.collision_version).toBe(COLLISION_FILE_VERSION);
     expect(collision.level_name).toBe(built.manifest.level_name);
     expect(new Set(collision.pieces.map((piece) => piece.kind))).toEqual(new Set(['solid', 'volume']));
+  });
+
+  it('leaves a volume box mesh out of the render as an empty node and keeps a solid one drawn', () => {
+    const pose = { size: new THREE.Vector3(1, 1, 1), position: new THREE.Vector3(), rotation: new THREE.Euler() };
+    const zone = collisionTestBoxMeshCreate(pose);
+    const wall = collisionTestBoxMeshCreate(pose);
+    CollisionKindStore.overrideWrite(zone, 'volume');
+    const world = new THREE.Group();
+    world.add(zone, wall);
+    const options = LevelExportPackageBuilder.exportOptionsOf({
+      worldGroup: world,
+      levelName: 'hall',
+      projectIdentifier: 'p',
+      toolTextures: { nodraw: [] },
+    });
+    const exported = buildExportScene(world, { ...options, includeLightmapUvs: false });
+    const exportedZone = exported.children.find((child) => child.name === zone.name && !(child instanceof THREE.Mesh));
+    expect(exported.children).toHaveLength(2);
+    expect(exportedZone).toBeDefined();
+    expect(exported.children.filter((child) => child instanceof THREE.Mesh)).toHaveLength(1);
   });
 });

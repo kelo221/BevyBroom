@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as THREE from 'three';
-import { buildExportScene, shouldOmitFromExport } from '@/io/scene/builder_export_scene.js';
+import { buildExportScene } from '@/io/scene/builder_export_scene.js';
+import { shouldOmitFromExport } from '@/io/scene/export_object_omission.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';

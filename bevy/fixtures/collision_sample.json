@@ -743,10 +743,146 @@
           4
         ]
       ]
+    },
+    {
+      "object_id": "sample-crate",
+      "object_name": "Crate",
+      "kind": "solid",
+      "components": {
+        "sample_game::Pushable": {
+          "mass": 20
+        }
+      },
+      "brush_id": "",
+      "brush_name": "",
+      "planes": [
+        {
+          "normal": [
+            -0.707107,
+            0,
+            -0.707107
+          ],
+          "distance": 1.664214,
+          "texture": "textures/crate.png"
+        },
+        {
+          "normal": [
+            0.707107,
+            0,
+            0.707107
+          ],
+          "distance": -1.164214,
+          "texture": "textures/crate.png"
+        },
+        {
+          "normal": [
+            0,
+            -1,
+            0
+          ],
+          "distance": 0,
+          "texture": "textures/crate.png"
+        },
+        {
+          "normal": [
+            0,
+            1,
+            0
+          ],
+          "distance": 0.5,
+          "texture": "textures/crate.png"
+        },
+        {
+          "normal": [
+            -0.707107,
+            0,
+            0.707107
+          ],
+          "distance": 3.328427,
+          "texture": "textures/crate.png"
+        },
+        {
+          "normal": [
+            0.707107,
+            0,
+            -0.707107
+          ],
+          "distance": -2.328427,
+          "texture": "textures/crate.png"
+        }
+      ],
+      "vertices": [
+        [
+          -3.53033,
+          0,
+          1.176777
+        ],
+        [
+          -3.53033,
+          0.5,
+          1.176777
+        ],
+        [
+          -2.823223,
+          0.5,
+          0.46967
+        ],
+        [
+          -2.823223,
+          0,
+          0.46967
+        ],
+        [
+          -3.176777,
+          0,
+          1.53033
+        ],
+        [
+          -2.46967,
+          0,
+          0.823223
+        ],
+        [
+          -2.46967,
+          0.5,
+          0.823223
+        ],
+        [
+          -3.176777,
+          0.5,
+          1.53033
+        ]
+      ]
     }
   ],
   "flagged": [],
   "placements": [
+    {
+      "object_id": "sample-crate",
+      "name": "Crate",
+      "kind": "object",
+      "position": [
+        -3,
+        0.25,
+        1
+      ],
+      "rotation": [
+        0,
+        0.382683,
+        0,
+        0.92388
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": {
+        "sample_game::Pushable": {
+          "mass": 20
+        }
+      }
+    },
     {
       "object_id": "sample-spawn",
       "name": "Spawn",

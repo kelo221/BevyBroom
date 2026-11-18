@@ -7,8 +7,13 @@ import { COLLISION_FILE_VERSION } from '@/level_export/collision/collision_types
 import { CollisionKindStore } from '@/level_export/kind/collision_kind_store.js';
 import { LayerManager } from '@/layer/model/layer_manager.js';
 import { COLLISION_SAMPLE_LEVEL_NAME, collisionSampleWorldCreate } from './collision_sample_world.js';
+import { collisionTestBoxMeshCreate } from './mesh/collision_mesh_test_boxes.js';
+import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 
-/** The collision document gathers every solid model's pieces and the placements. */
+/**
+ * The collision document gathers the pieces of every solid model and plain
+ * content mesh, and the placements.
+ */
 describe('CollisionDocumentBuilder', () => {
   it('writes exactly the shared sample the bridge reads', () => {
     const sample = JSON.parse(readFileSync(join(process.cwd(), 'bevy/fixtures/collision_sample.json'), 'utf8'));
@@ -40,5 +45,27 @@ describe('CollisionDocumentBuilder', () => {
     const built = CollisionDocumentBuilder.build(world, COLLISION_SAMPLE_LEVEL_NAME);
     expect(built.pieces.some((piece) => piece.object_id === omitted.uuid)).toBe(false);
     expect(built.pieces.length).toBeGreaterThan(0);
+  });
+
+  it('gives a plain box mesh one piece with its id, name, kind and components', () => {
+    const world = new THREE.Group();
+    const mesh = collisionTestBoxMeshCreate({
+      size: new THREE.Vector3(1, 2, 1),
+      position: new THREE.Vector3(2, 1, 0),
+      rotation: new THREE.Euler(0, 0.4, 0),
+    });
+    mesh.name = 'Finish Zone';
+    GameEntityComponentStore.write(mesh, { 'sample_game::Finish': { lap: 1 } });
+    CollisionKindStore.overrideWrite(mesh, 'volume');
+    world.add(mesh);
+    const built = CollisionDocumentBuilder.build(world, COLLISION_SAMPLE_LEVEL_NAME);
+    expect(built.pieces).toHaveLength(1);
+    expect(built.pieces[0]).toMatchObject({
+      object_id: mesh.uuid,
+      object_name: 'Finish Zone',
+      kind: 'volume',
+      components: { 'sample_game::Finish': { lap: 1 } },
+    });
+    expect(built.flagged).toEqual([]);
   });
 });

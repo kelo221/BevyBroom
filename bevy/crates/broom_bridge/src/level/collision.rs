@@ -52,7 +52,7 @@ impl CollisionPiece {
     }
 }
 
-/// A part that is not convex (a displaced surface or a non-convex brush), as triangles.
+/// A part that is not convex (a displaced surface, a non-convex brush or a non-convex mesh), as triangles.
 #[derive(Deserialize, Clone, Debug, PartialEq)]
 pub struct CollisionFlagged {
     pub object_id: String,
@@ -61,7 +61,7 @@ pub struct CollisionFlagged {
     pub brush_name: String,
     pub kind: CollisionKind,
     pub components: CollisionComponents,
-    /// `displacement` or `non_convex_brush`.
+    /// `displacement`, `non_convex_brush` or `non_convex_mesh`.
     pub reason: String,
     pub vertices: Vec<[f32; 3]>,
     pub triangles: Vec<[u32; 3]>,

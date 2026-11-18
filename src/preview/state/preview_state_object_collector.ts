@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { shouldOmitFromExport } from '@/io/scene/builder_export_scene.js';
+import { shouldOmitFromExport } from '@/io/scene/export_object_omission.js';
 import { entityKindRead } from '@/entity/model/entity_owner_keys.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { CLIP_PREVIEW_USERDATA_KEY } from '@/tools/clip_plane/clip_plane_preview.js';

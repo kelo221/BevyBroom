@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { exportContentMaterialResolve, shouldOmitFromExport } from '@/io/scene/builder_export_scene.js';
+import { shouldOmitFromExport } from '@/io/scene/export_object_omission.js';
+import { exportContentMaterialResolve } from '@/io/scene/export_content_material_resolve.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { CLIP_PREVIEW_USERDATA_KEY } from '@/tools/clip_plane/clip_plane_preview.js';
 import { objectInOmittedLayerIs } from '@/layer/model/layer_membership.js';

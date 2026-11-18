@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
+import type { CollisionModelPiece } from '@/level_export/collision/collision_model_result.js';
 import {
   COLLISION_INVERTED_WORLD_MARGIN,
-  type CollisionModelPiece,
   CollisionSolidModelCollector,
 } from '@/level_export/collision/collision_solid_model_collector.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';

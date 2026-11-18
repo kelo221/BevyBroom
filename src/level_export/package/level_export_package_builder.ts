@@ -3,11 +3,11 @@ import { GlbExporter } from '@/io/glb/glb_exporter.js';
 import type { ExportSceneOptions } from '@/io/scene/builder_export_scene.js';
 import { CollisionDocumentBuilder } from '@/level_export/collision/collision_document_builder.js';
 import { CollisionKindStore } from '@/level_export/kind/collision_kind_store.js';
+import { LevelExportObjectFilter } from '@/level_export/level_export_object_filter.js';
 import type { LevelBuildManifest } from '@/level_build/manifest/level_build_manifest.js';
 import { LevelBuildManifestBuilder } from '@/level_build/manifest/level_build_manifest_builder.js';
 import { levelBuildGlbMaterialIdsRead } from '@/level_build/package/level_build_glb_material_reader.js';
 import type { ProjectToolTextures } from '@/project/model/project_tool_textures_parser.js';
-import { SolidModel } from '@/solid/model/solid_model.js';
 
 /** Exports a world as a GLB with export options. */
 export type LevelExportGlbExport = (worldGroup: THREE.Group, options: ExportSceneOptions) => Promise<ArrayBuffer>;
@@ -76,7 +76,7 @@ export class LevelExportPackageBuilder {
       includeCollision: true,
       isMaterialOmitted: (materialIdentifier) => nodraw.has(materialIdentifier),
       isObjectOmitted: (object) =>
-        SolidModel.isSolidModelObject(object) && CollisionKindStore.resolve(object) === 'volume',
+        LevelExportObjectFilter.collisionSourceIs(object) && CollisionKindStore.resolve(object) === 'volume',
     };
   }
 }
