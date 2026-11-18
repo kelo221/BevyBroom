@@ -227,7 +227,7 @@ export function shellTestDocksCreate(storage: Storage = shellTestStorageCreate()
   const infoPanel = new ShellInfoPanel(stateStore);
   frame.inspectorHostRead().appendChild(inspector.getElement());
   frame.infoPanelHostRead().appendChild(infoPanel.getElement());
-  const dockCommands = new ShellDockCommands(frame, infoPanel);
+  const dockCommands = new ShellDockCommands(frame, infoPanel, stateStore);
   return {
     storage,
     container,
