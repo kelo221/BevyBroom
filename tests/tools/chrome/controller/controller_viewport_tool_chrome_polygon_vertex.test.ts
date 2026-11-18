@@ -192,23 +192,23 @@ describe('ControllerViewportToolChrome Polygon and Vertex tools', () => {
     expect(fixture.switchToPolygonTool).toHaveBeenCalledTimes(1);
   });
 
-  it('clears the Sprinkle and Polygon flags on every path that leaves them', () => {
-    const leavingPaths: ReadonlyArray<readonly [string, (controller: ControllerViewportToolChrome) => void]> = [
-      ['Shift+Tab face mode', (controller) => controller.onExternalSelectionModeChanged(SelectionMode.FACE)],
-      ['external object mode', (controller) => controller.onExternalSelectionModeChanged(SelectionMode.OBJECT)],
-      ['Tab Edit Mode', (controller) => controller.toggleInteractionMode()],
-      ['Vertex tool', (controller) => controller.selectTool(EditorToolId.VERTEX)],
-    ];
-    for (const toolId of [EditorToolId.SPRINKLE, EditorToolId.POLYGON]) {
-      for (const [pathName, leave] of leavingPaths) {
-        const fixture = controllerFixtureCreate(true);
-        fixture.controller.selectTool(toolId);
-        expect(anyHammerToolFlagActive(), `${toolId} active before ${pathName}`).toBe(true);
-        leave(fixture.controller);
-        expect(anyHammerToolFlagActive(), `${toolId} flag after ${pathName}`).toBe(false);
-        fixture.controller.dispose();
-      }
-    }
+  const leavingPaths: ReadonlyArray<readonly [string, (controller: ControllerViewportToolChrome) => void]> = [
+    ['Shift+Tab face mode', (controller) => controller.onExternalSelectionModeChanged(SelectionMode.FACE)],
+    ['external object mode', (controller) => controller.onExternalSelectionModeChanged(SelectionMode.OBJECT)],
+    ['Tab Edit Mode', (controller) => controller.toggleInteractionMode()],
+    ['Vertex tool', (controller) => controller.selectTool(EditorToolId.VERTEX)],
+  ];
+  const flagLeavingCases = [EditorToolId.SPRINKLE, EditorToolId.POLYGON].flatMap((toolId) =>
+    leavingPaths.map(([pathName, leave]) => [toolId, pathName, leave] as const),
+  );
+
+  it.each(flagLeavingCases)('clears the %s flag when %s leaves it', (toolId, pathName, leave) => {
+    const fixture = controllerFixtureCreate(true);
+    fixture.controller.selectTool(toolId);
+    expect(anyHammerToolFlagActive(), `${toolId} active before ${pathName}`).toBe(true);
+    leave(fixture.controller);
+    expect(anyHammerToolFlagActive(), `${toolId} flag after ${pathName}`).toBe(false);
+    fixture.controller.dispose();
   });
 
   it('turns a tool flag back on when Edit Mode returns to Object Mode with that tool', () => {
