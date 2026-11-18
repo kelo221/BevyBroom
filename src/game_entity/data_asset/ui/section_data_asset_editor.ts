@@ -7,8 +7,6 @@ import { GameEntityDataAssetClient } from '@/game_entity/data_asset/game_entity_
 import { GameEntityDataAssetSession } from '@/game_entity/data_asset/game_entity_data_asset_session.js';
 import { GameEntityComponentBlock } from '@/game_entity/ui/game_entity_component_block.js';
 import { Theme } from '@/theme.js';
-import { PanelFloating } from '@/ui/floating_panel/panel_floating.js';
-import { applyFloatingPanelToolChrome } from '@/ui/floating_panel/panel_floating_tool_chrome.js';
 import { styleFloatingPanelChromeButton } from '@/ui/floating_panel/panel_floating_title_bar.js';
 import { InputText } from '@/ui/input/input_text.js';
 
@@ -19,11 +17,14 @@ const PANEL_DATA_ASSET_NOTE = "Edits are written to the game's file right away a
 const PANEL_DATA_ASSET_OFFLINE = 'Connect the game preview to edit data assets.';
 
 /**
- * Floating window that edits one data asset file of the running game with the
- * same field editors as game components, or creates a new file.
+ * Data Asset part of the right dock's Properties section: edits one data asset
+ * file of the running game with the same field editors as game components, or
+ * creates a new file. Hidden until a data asset field opens it.
  */
-export class PanelDataAssetEditor extends PanelFloating {
-  private static sharedPanel: PanelDataAssetEditor | null = null;
+export class SectionDataAssetEditor {
+  private static sharedPanel: SectionDataAssetEditor | null = null;
+  private static sharedHost: HTMLElement | null = null;
+  private readonly root: HTMLElement;
   private readonly headerLine: HTMLElement;
   private readonly createRow: HTMLElement;
   private readonly createPathInput: InputText;
@@ -36,9 +37,9 @@ export class PanelDataAssetEditor extends PanelFloating {
   private pending: Promise<void> = Promise.resolve();
 
   /**
-   * Creates the panel.
+   * Creates the editor, hidden, inside its host.
    *
-   * @param host Parent element of the panel.
+   * @param host Element the editor is shown in.
    * @param clientResolve Returns the client that reaches the game; the active
    *   preview link's client by default.
    */
@@ -46,7 +47,7 @@ export class PanelDataAssetEditor extends PanelFloating {
     host: HTMLElement,
     clientResolve: () => GameEntityDataAssetClient | null = () => GameEntityDataAssetClient.activeRead(),
   ) {
-    super(host, { corner: 'top-left', insetBelowViewportToolbar: true, layoutId: 'data_asset_editor' });
+    this.root = document.createElement('section');
     this.clientResolve = clientResolve;
     this.headerLine = this.lineCreate();
     this.createPathInput = new InputText('Data asset path');
@@ -55,16 +56,61 @@ export class PanelDataAssetEditor extends PanelFloating {
     this.blockHost = document.createElement('div');
     this.statusLine = this.lineCreate();
     this.rootPopulate();
+    this.root.style.display = 'none';
+    host.appendChild(this.root);
   }
 
   /**
-   * Returns the panel every asset field opens, creating it on first use.
+   * Returns the editor every asset field opens, creating it on first use in the
+   * shared host, or in the document body when none was set.
    *
-   * @returns Shared panel mounted on the document body.
+   * @returns Shared editor.
    */
-  static shared(): PanelDataAssetEditor {
-    PanelDataAssetEditor.sharedPanel ??= new PanelDataAssetEditor(document.body);
-    return PanelDataAssetEditor.sharedPanel;
+  static shared(): SectionDataAssetEditor {
+    SectionDataAssetEditor.sharedPanel ??= new SectionDataAssetEditor(
+      SectionDataAssetEditor.sharedHost ?? document.body,
+    );
+    return SectionDataAssetEditor.sharedPanel;
+  }
+
+  /**
+   * Sets the element the shared editor is created in, and drops a shared editor
+   * living elsewhere.
+   *
+   * @param host Element of the Properties section, or null.
+   */
+  static sharedHostSet(host: HTMLElement | null): void {
+    SectionDataAssetEditor.sharedHost = host;
+    SectionDataAssetEditor.sharedPanel?.dispose();
+  }
+
+  /**
+   * Returns the editor element.
+   *
+   * @returns Root element.
+   */
+  getRootElement(): HTMLElement {
+    return this.root;
+  }
+
+  /** Shows the editor and scrolls it into view. */
+  show(): void {
+    this.root.style.display = 'flex';
+    this.root.scrollIntoView?.({ block: 'nearest' });
+  }
+
+  /** Hides the editor. */
+  hide(): void {
+    this.root.style.display = 'none';
+  }
+
+  /**
+   * Tells whether the editor is shown.
+   *
+   * @returns True while shown.
+   */
+  isOpen(): boolean {
+    return this.root.style.display !== 'none';
   }
 
   /**
@@ -115,11 +161,11 @@ export class PanelDataAssetEditor extends PanelFloating {
   }
 
   /** Closes the shared panel reference when the shared panel is disposed. */
-  override dispose(): void {
-    if (PanelDataAssetEditor.sharedPanel === this) {
-      PanelDataAssetEditor.sharedPanel = null;
+  dispose(): void {
+    if (SectionDataAssetEditor.sharedPanel === this) {
+      SectionDataAssetEditor.sharedPanel = null;
     }
-    super.dispose();
+    this.root.remove();
   }
 
   /** Writes the new file named in the create row and opens it. */
@@ -154,7 +200,7 @@ export class PanelDataAssetEditor extends PanelFloating {
     this.statusShow('Loading…', false);
     this.pending = load(client).then(
       (session) => this.sessionShow(session),
-      (error: unknown) => this.statusShow(PanelDataAssetEditor.errorText(error), true),
+      (error: unknown) => this.statusShow(SectionDataAssetEditor.errorText(error), true),
     );
     return this.pending;
   }
@@ -190,7 +236,7 @@ export class PanelDataAssetEditor extends PanelFloating {
     this.statusShow('Saving…', false);
     this.pending = session.valuesEdit(edit).then(
       () => (this.session === session ? this.sessionShow(session) : undefined),
-      (error: unknown) => this.statusShow(PanelDataAssetEditor.errorText(error), true),
+      (error: unknown) => this.statusShow(SectionDataAssetEditor.errorText(error), true),
     );
   }
 
@@ -220,14 +266,38 @@ export class PanelDataAssetEditor extends PanelFloating {
 
   /** Fills the panel with its title bar, rows, fields, note and status. */
   private rootPopulate(): void {
-    applyFloatingPanelToolChrome(this.root, { width: '320px' });
+    this.root.classList.add('section-data-asset-editor');
     this.root.setAttribute('aria-label', 'Data Asset');
-    this.root.appendChild(this.createStandardTitleBar({ titleText: 'Data Asset' }).bar);
+    this.root.style.flexDirection = 'column';
+    this.root.style.borderTop = `1px solid ${Theme.separatorColor}`;
+    this.root.style.paddingBottom = '6px';
+    this.root.appendChild(this.titleRowCreate());
     this.blockHost.style.padding = '0 10px';
     const note = this.lineCreate();
     note.textContent = PANEL_DATA_ASSET_NOTE;
     note.style.opacity = '0.7';
     this.root.append(this.headerLine, this.createRow, this.blockHost, note, this.statusLine);
+  }
+
+  /**
+   * Builds the title row with the Close button.
+   *
+   * @returns Title row element.
+   */
+  private titleRowCreate(): HTMLElement {
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    row.style.justifyContent = 'space-between';
+    row.style.padding = '4px 6px 0';
+    const title = document.createElement('span');
+    title.textContent = 'Data Asset';
+    title.style.fontWeight = 'bold';
+    row.append(
+      title,
+      this.buttonCreate('Close', 'Close the data asset editor', () => this.hide()),
+    );
+    return row;
   }
 
   /**

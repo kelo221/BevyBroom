@@ -2,7 +2,7 @@ import type { EditorApiHost } from './editor_api_host.js';
 import { EditorApiLayers } from './editor_api_layers.js';
 import { EditorApiMainWindow } from './editor_api_main_window.js';
 import { EditorApiObjectClass } from './editor_api_object_class.js';
-import { EditorApiObjectPropertiesDialog } from './editor_api_object_properties_dialog.js';
+import { EditorApiPropertiesSection } from './editor_api_properties_section.js';
 import { EditorApiClipboard } from './editor_api_clipboard.js';
 import { EditorApiBrushTools } from './editor_api_brush_tools.js';
 import { EditorApiFaceUv } from './editor_api_face_uv.js';
@@ -36,7 +36,7 @@ export class EditorApiToolGroups {
   private readonly layers: EditorApiLayers;
   private readonly mainWindow: EditorApiMainWindow;
   private readonly objectClass: EditorApiObjectClass;
-  private readonly objectPropertiesDialog: EditorApiObjectPropertiesDialog;
+  private readonly propertiesSection: EditorApiPropertiesSection;
   private readonly clipboard: EditorApiClipboard;
   private readonly brushTools: EditorApiBrushTools;
   private readonly faceUv: EditorApiFaceUv;
@@ -67,7 +67,7 @@ export class EditorApiToolGroups {
     this.layers = new EditorApiLayers(host);
     this.mainWindow = new EditorApiMainWindow(host);
     this.objectClass = new EditorApiObjectClass(host);
-    this.objectPropertiesDialog = new EditorApiObjectPropertiesDialog(host);
+    this.propertiesSection = new EditorApiPropertiesSection(host);
     this.clipboard = new EditorApiClipboard(host);
     this.brushTools = new EditorApiBrushTools(host);
     this.faceUv = new EditorApiFaceUv(host);
@@ -100,7 +100,7 @@ export class EditorApiToolGroups {
       this.layers.layerToolDispatch(name, args) ??
       this.mainWindow.mainWindowToolDispatch(name, args) ??
       this.objectClass.objectClassToolDispatch(name, args) ??
-      this.objectPropertiesDialog.objectPropertiesDialogToolDispatch(name, args) ??
+      this.propertiesSection.propertiesSectionToolDispatch(name, args) ??
       this.clipboard.clipboardToolDispatch(name, args) ??
       this.brushTools.brushToolDispatch(name, args) ??
       this.faceUv.faceUvToolDispatch(name, args) ??

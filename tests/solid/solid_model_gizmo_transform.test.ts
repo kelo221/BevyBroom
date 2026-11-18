@@ -13,21 +13,6 @@ import { CommandTransformTranslate } from '@/transform/commands/command_transfor
 import { CommandTransformScale } from '@/transform/commands/command_transform_scale.js';
 import { GizmoAxis } from '@/types/transform_mode.js';
 
-/** Lightweight mock of the solid tools panel used by the controller. */
-class MockSolidPanel {
-  setModel(_model: SolidModel | null): void {
-    void _model;
-  }
-
-  getModel(): SolidModel | null {
-    return null;
-  }
-
-  refresh(): void {
-    return;
-  }
-}
-
 /**
  * Builds a solid model under a world group with one additive box brush.
  *
@@ -47,7 +32,7 @@ function createSolidWithBrush(): SolidModel {
  * @returns Controller under test.
  */
 function createController(world: THREE.Group): SolidModelController {
-  return new SolidModelController(world, new CommandStack(16), new ManagerSelection(), new MockSolidPanel() as never);
+  return new SolidModelController(world, new CommandStack(16), new ManagerSelection());
 }
 
 describe('Solid model gizmo transform targets', () => {

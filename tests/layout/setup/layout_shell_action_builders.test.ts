@@ -62,7 +62,6 @@ describe('createToolbarShellActions', () => {
       onUndo: () => undefined,
       onRedo: () => undefined,
       faceInspectorReveal: () => undefined,
-      onToggleSolidModelPanel: () => undefined,
       onToggleSettingsDialog: () => undefined,
       onOpenDocumentation,
       onOpenAboutDialog: () => undefined,

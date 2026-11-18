@@ -43,7 +43,6 @@ import {
   openLayoutDetachedViewport,
   openLayoutDocumentation,
   setLayoutMcpToolbarButtonActive,
-  toggleLayoutSolidModelPanel,
 } from '@/layout/setup/layout_toolbar_actions.js';
 import {
   createLayoutSettingsDialog,
@@ -78,7 +77,7 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     this.setupFaceModeCoordinator();
     this.setupShellPanels();
     this.setupToolsPaletteAndClip();
-    this.setupSolidModelPanel();
+    this.setupSolidModelController();
     this.setupPlayerSystem();
     this.setupAiBridge();
     this.setupSnapSettingsController();
@@ -97,7 +96,6 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
       return;
     }
 
-    this.registerToolEditorGuiSurface(this.solidModelPanel, 'solid_model_panel');
     this.registerToolEditorGuiSurface(this.aiCaptureDebugPanel, 'ai_capture_debug_panel');
     this.toolEditorSystem.installFocusPointerRouter(this.toolbarContainer);
   }
@@ -674,15 +672,13 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     this.statusBar?.setLastAction('Selection cleared');
   }
 
-  /** Creates the solid model floating panel and controller. */
-  protected setupSolidModelPanel(): void {
+  /** Creates the solid model controller. */
+  protected setupSolidModelController(): void {
     const setup = setupSolidModelLayout({
       worldObject: this.worldObject,
       commandStack: this.commandStack,
       selectionManager: this.selectionManager,
       propertiesPanel: this.propertiesPanel,
-      toolbarContainer: this.toolbarContainer,
-      solidPanelAnchor: this.viewports[3]!,
       viewport3D: this.viewport3D,
       gridSnap: this.gridSnap,
       textureLock: this.textureLock,
@@ -691,7 +687,6 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
       revealOutlinerObject: (object) => this.outlinerPanel.revealObject(object),
       showStatusMessage: (message) => this.showStatusMessage(message),
     });
-    this.solidModelPanel = setup.solidModelPanel;
     this.solidModelController = setup.solidModelController;
     this.solidModelController.setTransformModeProvider(() => this.transformHandler.getMode());
     this.solidModelController.setActiveCameraProvider(() => this.getActiveSpawnCamera());
@@ -755,7 +750,7 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
       issuesValidateNow: () => this.shellPanels?.issuesValidateNow() ?? [],
       mainWindowControlRead: () => new ShellMainWindowControl(this.shellElements),
       viewportsInteractiveRead: () => this.getAllInteractiveViewports(),
-      objectPropertiesDialogRead: () => this.objectPropertiesDialogEnsure(),
+      objectPropertiesSectionRead: () => this.objectPropertiesSectionEnsure(),
       activeToolRead: () => this.toolsPaletteController?.getActiveTool() ?? null,
     });
     this.setupAiCaptureDebugPanel();
@@ -850,11 +845,6 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     audioContextHost.unlock();
     const enabled = audioSettings.toggle();
     this.statusBar?.setLastAction(enabled ? 'Audio on' : 'Audio off');
-  }
-
-  /** Toggles the solid model floating panel. */
-  protected onToggleSolidModelPanel(): void {
-    toggleLayoutSolidModelPanel(this.solidModelController, this.solidModelPanel, this.statusBar);
   }
 
   /** Creates a solid model with a default box brush. */

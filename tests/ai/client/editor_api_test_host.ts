@@ -3,7 +3,6 @@ import type { EditorApiHost } from '@/ai/client/editor_api_host.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { SolidModelController } from '@/solid/controller/solid_model_controller.js';
-import { SolidModelPanel } from '@/solid/ui/panel/solid_model_panel.js';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
 import { ManagerSnap } from '@/transform/snap/manager_snap.js';
 
@@ -25,12 +24,11 @@ export function editorApiTestHostCreate(hooks: Partial<EditorApiHost> = {}): Edi
   const world = new THREE.Group();
   const commandStack = new CommandStack(64);
   const selectionManager = new ManagerSelection();
-  const panel = new SolidModelPanel(document.createElement('div'), { onAddBoxBrush: () => undefined });
   const host: EditorApiHost = {
     worldObject: world,
     commandStack,
     selectionManager,
-    solidModelController: new SolidModelController(world, commandStack, selectionManager, panel),
+    solidModelController: new SolidModelController(world, commandStack, selectionManager),
     gridSnap: new GridSnap(true, 0.25),
     snapManager: new ManagerSnap(0.25),
     getUserSnapEnabled: () => false,

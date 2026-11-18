@@ -3,8 +3,6 @@ import { DocumentationLink } from '@/ui/link/documentation_link.js';
 import type { StatusBar } from '@/ui/status/status_bar.js';
 import type { Toolbar } from '@/ui/toolbar/toolbar.js';
 import type { DetachedViewportWindow } from '@/viewports/detached/detached_viewport_window.js';
-import type { SolidModelController } from '@/solid/controller/solid_model_controller.js';
-import type { SolidModelPanel } from '@/solid/ui/panel/solid_model_panel.js';
 import { ControllerSnapSettings } from '@/tools/snap/controller_snap_settings.js';
 import type { GridSnap } from '@/transform/snap/grid_snap.js';
 import type { ManagerSnap } from '@/transform/snap/manager_snap.js';
@@ -41,24 +39,6 @@ export async function refreshLayoutMcpToolbarButton(toolbar: Toolbar | null): Pr
  */
 export function setLayoutMcpToolbarButtonActive(toolbar: Toolbar | null, running: boolean): void {
   toolbar?.setButtonActiveByLabel('MCP', running);
-}
-
-/**
- * Toggles the solid model floating panel and reports status when opened.
- *
- * @param solidModelController Solid model controller, if present.
- * @param solidModelPanel Solid model panel, if present.
- * @param statusBar Status bar, if present.
- */
-export function toggleLayoutSolidModelPanel(
-  solidModelController: SolidModelController | null,
-  solidModelPanel: SolidModelPanel | null,
-  statusBar: StatusBar | null,
-): void {
-  solidModelController?.togglePanel();
-  if (solidModelPanel?.isOpen()) {
-    statusBar?.setLastAction('Solid Model panel opened');
-  }
 }
 
 /**

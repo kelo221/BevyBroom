@@ -257,7 +257,7 @@ All shortcuts can be rebound in Settings > Keyboard.
 - **Entity Browser** — thumbnails of every placeable kind; drag one onto a viewport to place it
 - **Info panel** — docked below the viewports with Console and Issues; starts collapsed
 - **Remembered layout** — dock visibility, sizes, and floating-window positions are restored between sessions
-- **Floating panels** — draggable Solid Model, Game Preview, the Browser (Place, Textures, Levels), and other tool panels
+- **Floating panels** — the Browser (Place, Textures, Levels) and other tool panels
 - **Status bar** — real-time feedback on tool state, snap settings, and shading mode
 - **Search Commands** — `Ctrl+Shift+P` finds and runs any menu command by name, with its menu and shortcut
 - **Context menus** — a right click (without dragging) in a map view lists the commands that apply to the selection; the outliner has its own

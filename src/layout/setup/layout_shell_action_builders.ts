@@ -34,7 +34,6 @@ export interface LayoutShellActionSource {
   onUndo: () => void;
   onRedo: () => void;
   faceInspectorReveal: () => void;
-  onToggleSolidModelPanel: () => void;
   onToggleSettingsDialog: () => void;
   onOpenDocumentation: () => void;
   onOpenAboutDialog: () => void;
@@ -120,7 +119,6 @@ export function createToolbarShellActions(source: LayoutShellActionSource) {
     onUndo: () => source.onUndo(),
     onRedo: () => source.onRedo(),
     faceInspectorReveal: () => source.faceInspectorReveal(),
-    onToggleSolidModelPanel: () => source.onToggleSolidModelPanel(),
     onToggleSettingsDialog: () => source.onToggleSettingsDialog(),
     onOpenDocumentation: () => source.onOpenDocumentation(),
     onOpenAboutDialog: () => source.onOpenAboutDialog(),

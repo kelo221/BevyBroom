@@ -31,7 +31,7 @@ New objects are placed using the editor's current placement context. If an objec
 
 Click the cube in any viewport, or click its name in the hierarchy. Selected geometry is shown with the editor's red selection styling.
 
-Press `Alt+Enter`, choose **Edit > Object Properties**, or double-click the object to open **Object Properties**. The **Properties** tab displays:
+The **Properties** section of the right dock shows the selected cube (`Alt+Enter`, **Edit > Object Properties** or a double-click scroll to it). Its **Properties** tab displays:
 
 - **Position**, which controls location.
 - **Rotation**, shown in degrees.

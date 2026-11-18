@@ -1,5 +1,5 @@
 import type { GameEntityAssetType, GameEntityField } from '@/game_entity/class/game_entity_class_schema.js';
-import { PanelDataAssetEditor } from '@/game_entity/data_asset/ui/panel_data_asset_editor.js';
+import { SectionDataAssetEditor } from '@/game_entity/data_asset/ui/section_data_asset_editor.js';
 import { GameEntityFieldEditor } from '@/game_entity/ui/fields/game_entity_field_editor.js';
 import { GameEntityUiChrome } from '@/game_entity/ui/game_entity_ui_chrome.js';
 import type { PreviewFieldValue } from '@/preview/protocol/preview_protocol_placeable_types.js';
@@ -11,7 +11,7 @@ import type { PreviewFieldValue } from '@/preview/protocol/preview_protocol_plac
 export class GameEntityFieldEditorDataAsset extends GameEntityFieldEditor {
   private readonly assetType: GameEntityAssetType;
   private readonly pathEditor: GameEntityFieldEditor;
-  private readonly panelResolve: () => PanelDataAssetEditor;
+  private readonly panelResolve: () => SectionDataAssetEditor;
   private readonly editButton: HTMLButtonElement;
   private readonly element: HTMLElement;
   private sharedPath: string | null = null;
@@ -29,7 +29,7 @@ export class GameEntityFieldEditorDataAsset extends GameEntityFieldEditor {
     field: GameEntityField,
     assetType: GameEntityAssetType,
     pathEditor: GameEntityFieldEditor,
-    panelResolve: () => PanelDataAssetEditor = () => PanelDataAssetEditor.shared(),
+    panelResolve: () => SectionDataAssetEditor = () => SectionDataAssetEditor.shared(),
   ) {
     super(field);
     this.assetType = assetType;

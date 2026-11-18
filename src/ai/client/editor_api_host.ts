@@ -90,12 +90,12 @@ export interface EditorApiHost {
    */
   viewportsInteractiveRead?: () => readonly EditorApiViewportView[];
   /**
-   * Returns the Object Properties dialog, creating it on first use. Set by
-   * layout bootstrap; unit tests may omit it.
+   * Returns the Properties section of the right dock. Set by layout bootstrap;
+   * unit tests may omit it.
    *
-   * @returns Dialog control.
+   * @returns Section control.
    */
-  objectPropertiesDialogRead?: () => EditorApiObjectPropertiesDialogControl;
+  objectPropertiesSectionRead?: () => EditorApiPropertiesSectionControl;
   /**
    * Returns the id of the active tools palette tool (object, face, block and so
    * on) for get_face_edit_state. Set by layout bootstrap; unit tests may omit
@@ -106,12 +106,9 @@ export interface EditorApiHost {
   activeToolRead?: () => string | null;
 }
 
-/** Object Properties dialog members the dialog tools need. */
-export interface EditorApiObjectPropertiesDialogControl {
-  open(): boolean;
-  apply(): void;
-  cancel(): void;
-  isOpen(): boolean;
+/** Properties section members the section tools need. */
+export interface EditorApiPropertiesSectionControl {
+  reveal(): boolean;
   tabShow(tabId: string): boolean;
   tabActiveRead(): string | null;
   tabIdsRead(): string[];

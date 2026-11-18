@@ -20,7 +20,6 @@ import { CommandSolidModelCreate } from '@/solid/commands/model/command_solid_mo
 import { GridSnap } from '@/transform/snap/grid_snap.js';
 import { ManagerSnap } from '@/transform/snap/manager_snap.js';
 import { SolidModelController } from '@/solid/controller/solid_model_controller.js';
-import { SolidModelPanel } from '@/solid/ui/panel/solid_model_panel.js';
 
 /**
  * Builds a minimal EditorApiHost without scene/renderer.
@@ -31,9 +30,7 @@ import { SolidModelPanel } from '@/solid/ui/panel/solid_model_panel.js';
 function createTestHost(worldObject: THREE.Group): EditorApiHost {
   const stack = new CommandStack(64);
   const selection = new ManagerSelection();
-  const panelHost = document.createElement('div');
-  const panel = new SolidModelPanel(panelHost, { onAddBoxBrush: () => undefined });
-  const solidModelController = new SolidModelController(worldObject, stack, selection, panel);
+  const solidModelController = new SolidModelController(worldObject, stack, selection);
   return {
     worldObject,
     commandStack: stack,

@@ -49,7 +49,6 @@ export class ShellMenuWindow extends ShellMenu {
       ...SHELL_MENU_WINDOW_BROWSERS.map((browser) => this.browserEntryBuild(context, browser)),
       this.separatorEntry(),
       this.mapInspectorEntryBuild(context),
-      this.actionEntry(context, 'Solid Model…', () => actions.onToggleSolidModelPanel()),
       this.separatorEntry(),
       this.actionEntry(context, 'Detached Viewport…', () => actions.onOpenDetachedViewport()),
       this.separatorEntry(),

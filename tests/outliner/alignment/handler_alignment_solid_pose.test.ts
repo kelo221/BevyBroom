@@ -8,7 +8,6 @@ import { GridSnap } from '@/transform/snap/grid_snap.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { SolidModelController } from '@/solid/controller/solid_model_controller.js';
-import { SolidModelPanel } from '@/solid/ui/panel/solid_model_panel.js';
 import {
   refreshSceneVisualsAfterTransformCommit,
   type SceneTransformCommitVisualHost,
@@ -35,12 +34,7 @@ describe('HandlerAlignment solid pose commit', () => {
     const selection = new ManagerSelection();
     selection.selectObject(brushMesh);
     const handler = new HandlerAlignment(new ControllerAlignment(), stack, selection, new GridSnap(true, 1));
-    const solidController = new SolidModelController(
-      world,
-      stack,
-      selection,
-      new SolidModelPanel(document.createElement('div'), { onAddBoxBrush: () => undefined }),
-    );
+    const solidController = new SolidModelController(world, stack, selection);
     let finalizeCalls = 0;
     handler.setAfterTransformCommit((objects) => {
       const host = createTransformCommitHost(() => {

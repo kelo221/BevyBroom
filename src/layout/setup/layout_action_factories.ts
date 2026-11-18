@@ -53,7 +53,6 @@ export interface ToolbarActionHost {
   onUndo: () => void;
   onRedo: () => void;
   faceInspectorReveal: () => void;
-  onToggleSolidModelPanel: () => void;
   onToggleSettingsDialog: () => void;
   onOpenDocumentation: () => void;
   onOpenAboutDialog: () => void;
@@ -172,7 +171,6 @@ function buildPrimitiveToolbarActions(
   | 'onAddRoom'
   | 'onAddPortal'
   | 'onAddEntityPlaced'
-  | 'onToggleSolidModelPanel'
   | 'onToggleSettingsDialog'
   | 'onOpenDocumentation'
   | 'onOpenAboutDialog'
@@ -198,7 +196,6 @@ function buildPrimitiveToolbarActions(
     onAddPortal: () => host.getPrimitiveCreationHandler().createPortal(),
     onAddEntityPlaced: (factory, objectRadius) =>
       host.getPrimitiveCreationHandler().entityCreatePlaced(factory, objectRadius),
-    onToggleSolidModelPanel: () => host.onToggleSolidModelPanel(),
     onToggleSettingsDialog: () => host.onToggleSettingsDialog(),
     onOpenDocumentation: () => host.onOpenDocumentation(),
     onOpenAboutDialog: () => host.onOpenAboutDialog(),

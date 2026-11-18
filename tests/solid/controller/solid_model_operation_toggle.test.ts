@@ -7,34 +7,6 @@ import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { SolidModelController } from '@/solid/controller/solid_model_controller.js';
 import { markAsSolidCsgGroup } from '@/solid/model/solid_group.js';
 
-/** Lightweight panel stand-in for operation toggle tests. */
-class MockSolidPanel {
-  private model: SolidModel | null = null;
-
-  /**
-   * Stores the active solid model for the panel.
-   *
-   * @param model Solid model, or null.
-   */
-  setModel(model: SolidModel | null): void {
-    this.model = model;
-  }
-
-  /**
-   * Returns the stored solid model.
-   *
-   * @returns Active model, or null.
-   */
-  getModel(): SolidModel | null {
-    return this.model;
-  }
-
-  /** No-op refresh for tests. */
-  refresh(): void {
-    return;
-  }
-}
-
 describe('SolidModelController.toggleAdditiveSubtractiveOnSelection', () => {
   let world: THREE.Group;
   let stack: CommandStack;
@@ -45,7 +17,7 @@ describe('SolidModelController.toggleAdditiveSubtractiveOnSelection', () => {
     world = new THREE.Group();
     stack = new CommandStack(16);
     selection = new ManagerSelection();
-    controller = new SolidModelController(world, stack, selection, new MockSolidPanel() as never);
+    controller = new SolidModelController(world, stack, selection);
   });
 
   it('flips each selected brush independently in one undo step', () => {

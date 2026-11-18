@@ -38,7 +38,8 @@ import type { SceneRecoveryRestoreOutcome } from '@/scene_recovery/scene_recover
 import type { ProjectWorkspaceLastSession } from '@/project/workspace/project_workspace_last_session.js';
 import { gameProcessControlResolve } from '@/project/control/game_process_control_desktop.js';
 import { projectWorkspaceLastSessionStart } from '@/project/workspace/project_workspace_last_session_setup.js';
-import { DialogObjectProperties } from '@/ui/object_properties/dialog_object_properties.js';
+import { SectionObjectProperties } from '@/ui/object_properties/section/section_object_properties.js';
+import { SectionDataAssetEditor } from '@/game_entity/data_asset/ui/section_data_asset_editor.js';
 import { ObjectSelectDoubleClickProperties } from '@/tools/object_select/object_select_double_click_properties.js';
 import { ObjectSelectDoubleClickNativeListener } from '@/tools/object_select/object_select_double_click_native_listener.js';
 import { objectSelectDoubleClickToolReady } from '@/tools/object_select/object_select_double_click_tool_ready.js';
@@ -56,7 +57,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
   private projectLevelActions: LayoutViewportProjectLevelActions | null = null;
   private solidBrushTools: HandlerSolidBrushTools | null = null;
   private selectionVisibility: HandlerSelectionVisibility | null = null;
-  private objectPropertiesDialog: DialogObjectProperties | null = null;
+  private objectPropertiesSection: SectionObjectProperties | null = null;
   private objectSelectDoubleClickNativeListener: ObjectSelectDoubleClickNativeListener | null = null;
   private objectContextMenu: ObjectSelectContextMenu | null = null;
   protected sceneRecovery: SystemSceneRecovery | null = null;
@@ -241,9 +242,9 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
     );
   }
 
-  /** Opens the Object Properties dialog on the current selection. */
+  /** Shows the right dock and scrolls its Properties section into view. */
   protected objectPropertiesOpen(): void {
-    this.objectPropertiesDialogEnsure().open();
+    this.objectPropertiesSectionEnsure().reveal();
   }
 
   /**
@@ -346,13 +347,14 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
   }
 
   /**
-   * Returns the Object Properties dialog, creating it on first use.
+   * Returns the Properties section of the right dock, creating and mounting it
+   * on first use.
    *
-   * @returns Dialog bound to this layout.
+   * @returns Section bound to this layout.
    */
-  protected objectPropertiesDialogEnsure(): DialogObjectProperties {
-    if (!this.objectPropertiesDialog) {
-      this.objectPropertiesDialog = new DialogObjectProperties(this.toolbarContainer, {
+  protected objectPropertiesSectionEnsure(): SectionObjectProperties {
+    if (!this.objectPropertiesSection) {
+      this.objectPropertiesSection = new SectionObjectProperties({
         selectionManager: this.selectionManager,
         commandStack: this.commandStack,
         worldObject: this.worldObject,
@@ -360,16 +362,19 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
         afterTransformCommit: (objects) => this.refreshVisualsAfterTransformCommit(objects),
         propertiesPanelRead: () => this.propertiesPanel,
         selectionFrame: () => this.cameraFitCoordinator.onFitToSelection(),
+        dockReveal: () => this.shellElements.dockCommands.inspectorReveal(),
       });
-      this.objectPropertiesDialog.setDefaultAnchor(this.viewportArea);
+      this.shellElements.inspector.slotRead('hammer_properties').appendChild(this.objectPropertiesSection.getElement());
+      SectionDataAssetEditor.sharedHostSet(this.objectPropertiesSection.fieldEditorHostRead());
     }
-    return this.objectPropertiesDialog;
+    return this.objectPropertiesSection;
   }
 
-  /** Cancels and removes the Object Properties dialog when it exists. */
-  protected objectPropertiesDialogDispose(): void {
-    this.objectPropertiesDialog?.dispose();
-    this.objectPropertiesDialog = null;
+  /** Removes the Properties section when it exists. */
+  protected objectPropertiesSectionDispose(): void {
+    SectionDataAssetEditor.sharedHostSet(null);
+    this.objectPropertiesSection?.dispose();
+    this.objectPropertiesSection = null;
   }
 
   /**
@@ -461,6 +466,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
     this.textureBrowserController = faceInspectorParts.textureBrowserController;
     this.textureAssignmentController = faceInspectorParts.textureAssignmentController;
     this.textureAssignmentController.setAfterSolidTextureAssign(() => this.syncPrimitivesToViewports());
+    this.objectPropertiesSectionEnsure();
   }
 
   /**
