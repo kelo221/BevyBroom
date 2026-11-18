@@ -16,7 +16,7 @@ const MCP_MAIN_WINDOW_FLOATING_WINDOW_PROPERTIES = Object.fromEntries(
 export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(
     'get_main_window',
-    `The main window arrangement: inspectorVisible, infoPanelVisible, infoPanelCollapsed (folded to its one-line strip) and infoPanelTab (console or issues), toolbarVisible, the menu bar titles in order, menuBarInWindow (false once the menus moved into the native macOS menu bar), themeLook (classic or mac_glass), floatingWindows (${MCP_MAIN_WINDOW_FLOATING_WINDOW_LIST}: the Place, Textures and Levels tabs of the one Browser window, layout id browser) as true while the Browser is open on that tab, and toolWindows: every resizable, dockable tool window by layout id with its title, placement (left, right, bottom or floating), isOpen and rect ({left, top, width, height} in CSS pixels while open).`,
+    `The main window arrangement: inspectorVisible, infoPanelVisible, infoPanelCollapsed (folded to its one-line strip) and infoPanelTab (console, issues or preview, the Game Preview tab), toolbarVisible, the menu bar titles in order, menuBarInWindow (false once the menus moved into the native macOS menu bar), themeLook (classic or mac_glass), floatingWindows (${MCP_MAIN_WINDOW_FLOATING_WINDOW_LIST}: the Place, Textures and Levels tabs of the one Browser window, layout id browser) as true while the Browser is open on that tab, and toolWindows: every resizable, dockable tool window by layout id with its title, placement (left, right, bottom or floating), isOpen and rect ({left, top, width, height} in CSS pixels while open).`,
     emptySchema(),
   ),
   tool(
@@ -26,7 +26,11 @@ export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
       type: 'object',
       properties: {
         inspectorVisible: { type: 'boolean', description: 'Show or hide the inspector on the right.' },
-        infoPanelTab: { type: 'string', enum: ['console', 'issues'], description: 'Info panel tab to show.' },
+        infoPanelTab: {
+          type: 'string',
+          enum: ['console', 'issues', 'preview'],
+          description: 'Info panel tab to show; preview is the Game Preview tab.',
+        },
         infoPanelVisible: { type: 'boolean', description: 'Show or hide the info panel below the views.' },
         infoPanelCollapsed: {
           type: 'boolean',
@@ -80,7 +84,7 @@ export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ),
   tool(
     'get_shell_layout',
-    'Read-only screen rectangles ({x, y, width, height} in CSS pixels) of the main window areas: views (map views above the info panel), infoPanel (Console / Issues panel), inspector (right dock) and the tool window docks dockLeft, dockRight and dockBottom. Hidden areas are zero sized.',
+    'Read-only screen rectangles ({x, y, width, height} in CSS pixels) of the main window areas: views (map views above the info panel), infoPanel (Console / Issues / Game Preview panel), inspector (right dock) and the tool window docks dockLeft, dockRight and dockBottom. Hidden areas are zero sized.',
     emptySchema(),
   ),
   tool(

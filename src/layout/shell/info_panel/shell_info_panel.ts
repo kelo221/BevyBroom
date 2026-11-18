@@ -9,15 +9,16 @@ import {
 } from './shell_info_panel_styles.js';
 
 /** Ids of the info panel tabs. */
-export type ShellInfoPanelTabId = 'console' | 'issues';
+export type ShellInfoPanelTabId = 'console' | 'issues' | 'preview';
 
 /** Info panel tab ids in display order. */
-export const SHELL_INFO_PANEL_TAB_IDS: readonly ShellInfoPanelTabId[] = ['console', 'issues'];
+export const SHELL_INFO_PANEL_TAB_IDS: readonly ShellInfoPanelTabId[] = ['console', 'issues', 'preview'];
 
 /** Info panel tabs in display order. */
 export const SHELL_INFO_PANEL_TABS: readonly ShellDockTabDefinition[] = [
   { id: 'console', label: 'Console' },
   { id: 'issues', label: 'Issues' },
+  { id: 'preview', label: 'Game Preview' },
 ];
 
 /** What a click in the info panel strip asks for. */

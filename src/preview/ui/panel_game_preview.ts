@@ -1,6 +1,4 @@
 import { Theme } from '@/theme.js';
-import { PanelFloating } from '@/ui/floating_panel/panel_floating.js';
-import { applyFloatingPanelToolChrome } from '@/ui/floating_panel/panel_floating_tool_chrome.js';
 import type { PreviewLinkService } from '@/preview/link/preview_link_service.js';
 import { previewStatusLinesBuild } from '@/preview/ui/preview_status_lines.js';
 import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
@@ -12,11 +10,12 @@ import {
 } from '@/preview/ui/panel_game_preview_controls.js';
 
 /**
- * Floating panel that opens a game project and runs its game, connects the
- * editor to a running game preview, shows what the game received and applied,
- * and requests preview bakes.
+ * Game Preview page of the bottom strip: opens a game project and runs its
+ * game, connects the editor to a running game preview, shows what the game
+ * received and applied, and requests preview bakes.
  */
-export class PanelGamePreview extends PanelFloating {
+export class PanelGamePreview {
+  private readonly root: HTMLElement;
   private readonly service: PreviewLinkService;
   private readonly projectSection: PanelGamePreviewProjectSection;
   private readonly endpointInput: HTMLInputElement;
@@ -27,14 +26,14 @@ export class PanelGamePreview extends PanelFloating {
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
   /**
-   * Creates the panel.
+   * Creates the page and appends it to its host.
    *
-   * @param host Parent element of the panel.
+   * @param host Element the page is shown in.
    * @param service Preview link service shown and controlled by the panel.
    * @param workbench Project workbench shown and driven by the panel.
    */
   constructor(host: HTMLElement, service: PreviewLinkService, workbench: ProjectWorkbench) {
-    super(host, { corner: 'bottom-right', insetBelowViewportToolbar: false, layoutId: 'game_preview' });
+    this.root = host.ownerDocument.createElement('div');
     this.service = service;
     this.projectSection = new PanelGamePreviewProjectSection(workbench);
     this.endpointInput = document.createElement('input');
@@ -42,6 +41,7 @@ export class PanelGamePreview extends PanelFloating {
     this.bakeButton = document.createElement('button');
     this.statusList = document.createElement('div');
     this.rootPopulate();
+    host.appendChild(this.root);
     this.removeListeners = [
       service.changeListenerAdd(() => this.refresh()),
       workbench.changeListenerAdd(() => this.refresh()),
@@ -72,23 +72,43 @@ export class PanelGamePreview extends PanelFloating {
     this.projectSection.refresh();
   }
 
-  /** Removes listeners, timers and the panel element. */
-  override dispose(): void {
+  /**
+   * Returns the page element.
+   *
+   * @returns Root element of the page.
+   */
+  getElement(): HTMLElement {
+    return this.root;
+  }
+
+  /**
+   * Starts refreshing the game status lines while the page is shown and stops
+   * while it is hidden.
+   *
+   * @param isShown Whether the page is shown now.
+   */
+  shownSet(isShown: boolean): void {
+    this.refreshTimerStop();
+    if (isShown) {
+      this.refreshTimer = setInterval(() => this.refresh(), 500);
+      this.refresh();
+    }
+  }
+
+  /**
+   * Tells whether the status lines refresh on a timer.
+   *
+   * @returns True while the page counts as shown.
+   */
+  isShown(): boolean {
+    return this.refreshTimer !== null;
+  }
+
+  /** Removes listeners, timers and the page element. */
+  dispose(): void {
     this.removeListeners.forEach((removeListener) => removeListener());
     this.refreshTimerStop();
-    super.dispose();
-  }
-
-  /** Starts refreshing the game status lines while the panel is open. */
-  protected override onAfterShow(): void {
-    this.refreshTimerStop();
-    this.refreshTimer = setInterval(() => this.refresh(), 500);
-    this.refresh();
-  }
-
-  /** Stops refreshing while the panel is closed. */
-  protected override onAfterHide(): void {
-    this.refreshTimerStop();
+    this.root.remove();
   }
 
   /** Shows the remembered endpoint unless the user is editing the field. */
@@ -107,20 +127,35 @@ export class PanelGamePreview extends PanelFloating {
   }
 
   /**
-   * Fills the panel with its title bar, project section, endpoint row, actions
-   * and status.
+   * Fills the page with the controls column (project section, endpoint row and
+   * actions) beside the status lines, so it fits the short, wide bottom strip.
    */
   private rootPopulate(): void {
-    applyFloatingPanelToolChrome(this.root, { width: '340px' });
-    this.root.appendChild(this.createStandardTitleBar({ titleText: 'Game Preview' }).bar);
-    this.root.appendChild(this.projectSection.root);
-    this.root.appendChild(this.endpointRowCreate());
-    this.root.appendChild(this.actionRowCreate());
+    this.root.classList.add('panel-game-preview');
+    this.root.style.display = 'flex';
+    this.root.style.flexWrap = 'wrap';
+    this.root.style.alignItems = 'flex-start';
+    this.root.style.height = '100%';
+    this.root.style.overflow = 'auto';
+    this.root.append(this.controlsColumnCreate(), this.statusList);
     this.statusList.style.padding = '6px 10px 10px';
     this.statusList.style.display = 'flex';
     this.statusList.style.flexDirection = 'column';
     this.statusList.style.gap = '3px';
-    this.root.appendChild(this.statusList);
+    this.statusList.style.flex = '1 1 240px';
+  }
+
+  /**
+   * Builds the column holding the project section, endpoint row and actions.
+   *
+   * @returns Column element.
+   */
+  private controlsColumnCreate(): HTMLElement {
+    const column = this.root.ownerDocument.createElement('div');
+    column.style.flex = '0 0 340px';
+    column.style.maxWidth = '100%';
+    column.append(this.projectSection.root, this.endpointRowCreate(), this.actionRowCreate());
+    return column;
   }
 
   /**

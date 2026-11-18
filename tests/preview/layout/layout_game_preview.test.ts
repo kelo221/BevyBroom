@@ -20,18 +20,21 @@ function hostsCreate(sceneFileName: string | null): {
   hosts: LayoutGamePreviewHosts;
   applyEntries: ReturnType<typeof vi.fn>;
   statusMessages: string[];
+  panelHostReveal: ReturnType<typeof vi.fn>;
 } {
   const applyEntries = vi.fn();
+  const panelHostReveal = vi.fn();
   const statusMessages: string[] = [];
   const hosts: LayoutGamePreviewHosts = {
     worldGroup: new THREE.Group(),
     panelHost: document.body,
+    panelHostReveal,
     textureBrowserControllerRead: () => ({ applyEntries }) as unknown as ControllerTextureBrowser,
     sceneFileNameRead: () => sceneFileName,
     statusMessageShow: (message) => statusMessages.push(message),
     gameProfileRead: () => null,
   };
-  return { hosts, applyEntries, statusMessages };
+  return { hosts, applyEntries, statusMessages, panelHostReveal };
 }
 
 describe('layoutGamePreviewLevelNameFromFileName', () => {
@@ -76,11 +79,26 @@ describe('LayoutGamePreview', () => {
     expect(statusMessages[statusMessages.length - 1]).toBe('bad catalog');
   });
 
-  it('creates a single service and mounts its panel on the first toggle', () => {
-    const layout = new LayoutGamePreview(hostsCreate(null).hosts);
+  it('creates a single service, mounts its page in the strip host and reveals the strip tab', () => {
+    const { hosts, panelHostReveal } = hostsCreate(null);
+    const layout = new LayoutGamePreview(hosts);
     expect(layout.serviceEnsure()).toBe(layout.serviceEnsure());
     expect(document.body.querySelector('[aria-label="Game preview endpoint"]')).toBeNull();
-    layout.panelToggle();
-    expect(document.body.querySelector('[aria-label="Game preview endpoint"]')).not.toBeNull();
+    layout.panelReveal();
+    layout.panelReveal();
+    expect(document.body.querySelectorAll('[aria-label="Game preview endpoint"]')).toHaveLength(1);
+    expect(panelHostReveal).toHaveBeenCalledTimes(2);
+    layout.panelRead()?.dispose();
+  });
+
+  it('builds the page the first time it is shown and refreshes it only while shown', () => {
+    const layout = new LayoutGamePreview(hostsCreate(null).hosts);
+    layout.panelShownSet(false);
+    expect(layout.panelRead()).toBeNull();
+    layout.panelShownSet(true);
+    expect(layout.panelRead()?.isShown()).toBe(true);
+    layout.panelShownSet(false);
+    expect(layout.panelRead()?.isShown()).toBe(false);
+    layout.panelRead()?.dispose();
   });
 });

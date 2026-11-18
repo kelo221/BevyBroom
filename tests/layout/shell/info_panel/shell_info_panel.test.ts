@@ -38,7 +38,7 @@ describe('ShellInfoPanel', () => {
       (button) => button.dataset['tabId'],
     );
     expect(tabIds).toEqual(SHELL_INFO_PANEL_TABS.map((tab) => tab.id));
-    expect(SHELL_INFO_PANEL_TABS.map((tab) => tab.label)).toEqual(['Console', 'Issues']);
+    expect(SHELL_INFO_PANEL_TABS.map((tab) => tab.label)).toEqual(['Console', 'Issues', 'Game Preview']);
     expect(infoPanel.activeTabIdRead()).toBe(shellStateDefaultCreate().infoPanelTabId);
     expect(infoPanel.getElement().classList.contains('shell-info-panel')).toBe(true);
   });
