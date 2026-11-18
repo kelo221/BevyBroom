@@ -60,4 +60,29 @@ export class GameEntityComponentResolver {
     }
     return field.default;
   }
+
+  /**
+   * Returns components with every field of a known class filled in: the
+   * override where there is one, else the class default. Fields the class does
+   * not list and components of unknown classes keep their overrides.
+   *
+   * @param components Component overrides by type path.
+   * @param classFind Returns the class of a type path, or null when unknown.
+   * @returns Effective components in the same type path order.
+   */
+  static componentsEffective(
+    components: GameEntityComponents,
+    classFind: (typePath: string) => GameEntityClass | null,
+  ): GameEntityComponents {
+    const effective: GameEntityComponents = {};
+    for (const [typePath, overrides] of Object.entries(components)) {
+      const gameClass = classFind(typePath);
+      const fields = gameClass ? GameEntityComponentResolver.fieldsLeaf(gameClass.fields) : [];
+      const resolved = Object.fromEntries(
+        fields.map((field) => [field.path, GameEntityComponentResolver.valueEffective(components, typePath, field)]),
+      );
+      effective[typePath] = { ...overrides, ...resolved };
+    }
+    return effective;
+  }
 }

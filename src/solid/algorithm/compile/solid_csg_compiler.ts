@@ -4,7 +4,7 @@ import { BrushSpatialIndex } from '@/solid/algorithm/spatial/brush_spatial_index
 import { SolidBrushPreparer } from './solid_brush_preparer.js';
 import { SolidCompileCache } from './solid_compile_cache.js';
 import { SolidCompilePlanner } from './solid_compile_planner.js';
-import type { PreparedBrush, SolidCompileOptions, SolidCompileStats } from './solid_compile_types.js';
+import type { PreparedBrush, SolidCompileOptions, SolidCompileStats, SolidCsgInputs } from './solid_compile_types.js';
 import { SolidCompiledPolygon } from './solid_compiled_polygon.js';
 import { SolidCsgTree } from './solid_csg_tree.js';
 import { SolidFragmentFinalizer } from './solid_fragment_finalizer.js';
@@ -42,6 +42,7 @@ export class SolidCsgCompiler {
   };
   private readonly spatialIndex = new BrushSpatialIndex();
   private cachedCsgTree: SolidCsgTree | null = null;
+  private lastCsgInputs: SolidCsgInputs = { prepared: [], tree: null, invertedWorld: false };
   private cachedCsgTreeRootId = '';
   private cachedCsgTreeBrushIds: string[] = [];
   private cachedCsgTreeOperations: SolidOperation[] = [];
@@ -77,6 +78,15 @@ export class SolidCsgCompiler {
    */
   getLastUpdateBrushIds(): string[] {
     return this.lastUpdateBrushIds.slice();
+  }
+
+  /**
+   * Returns the brushes and the operation tree of the last compile.
+   *
+   * @returns Prepared brushes, tree and inverted world flag.
+   */
+  getLastCsgInputs(): SolidCsgInputs {
+    return this.lastCsgInputs;
   }
 
   /**
@@ -230,6 +240,7 @@ export class SolidCsgCompiler {
       this.preparer.getRefreshedBrushIds(),
     );
     this.installCsgTree(prepared, options, forceFull);
+    this.lastCsgInputs = { prepared, tree: this.cachedCsgTree, invertedWorld: options.invertedWorld === true };
     this.syncSpatialIndex(prepared, options, forceFull);
     this.planner.buildOverlapGraph(
       prepared,
@@ -604,6 +615,7 @@ export class SolidCsgCompiler {
 
   /** Records empty-compile stats and clears caches when no brushes are visible. */
   private recordEmptyCompile(): void {
+    this.lastCsgInputs = { prepared: [], tree: null, invertedWorld: false };
     this.cache.clear();
     this.router.clearRoutingTables();
     this.invalidateSpatialAndTreeCaches();

@@ -1,5 +1,7 @@
 import { ObjectDataContributorDisplacementCollision } from '@/displacement/export/object_data_contributor_displacement_collision.js';
 import { ObjectDataContributorGameComponents } from '@/game_entity/contributors/object_data_contributor_game_components.js';
+import { ObjectDataContributorCollisionExtras } from '@/level_export/collision/object_data_contributor_collision_extras.js';
+import { ObjectDataContributorCollisionKind } from '@/level_export/kind/object_data_contributor_collision_kind.js';
 import { ObjectDataContributorGameLogic } from '@/game_entity/contributors/object_data_contributor_game_logic.js';
 import { ObjectDataContributorLightNodes } from '@/light/export/object_data_contributor_light_nodes.js';
 import { ObjectDataContributorLayers } from '@/layer/persistence/object_data_contributor_layers.js';
@@ -23,6 +25,8 @@ export function objectDataContributorsBuiltinCreate(): readonly ObjectDataContri
     new ObjectDataContributorPortalCells(),
     new ObjectDataContributorLightNodes(),
     new ObjectDataContributorGameComponents(),
+    new ObjectDataContributorCollisionKind(),
+    new ObjectDataContributorCollisionExtras(),
     new ObjectDataContributorProcedural(),
     new ObjectDataContributorGameLogic(),
     new ObjectDataContributorPolygonOutline(),

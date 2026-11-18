@@ -52,8 +52,8 @@ pub use package::{
 pub(crate) use placeable::validate_components;
 pub use placeable::{
     AuthoredComponents, AuthoredLogicOutput, PlaceableAssetType, PlaceableClass,
-    PlaceableClassList, PlaceableField, PlaceableFieldKind, PlaceableIoParameterKind,
-    PlaceableIoPin, PlaceableMarkerBox, PlaceablePlacement,
+    PlaceableClassList, PlaceableCollisionKind, PlaceableField, PlaceableFieldKind,
+    PlaceableIoParameterKind, PlaceableIoPin, PlaceableMarkerBox, PlaceablePlacement,
 };
 pub use portal::{AuthoredPortal, AuthoredRoom};
 pub use revision::{RevisionGate, RevisionVerdict};

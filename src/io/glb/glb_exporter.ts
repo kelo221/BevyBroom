@@ -57,10 +57,12 @@ export class GlbExporter {
    * the file too would make the game spawn them twice.
    *
    * @param worldGroup The live editor world root to export.
+   * @param options Further switches of the level package, such as tool textures
+   *   and volumes left out.
    * @returns A promise resolving to the GLB ArrayBuffer.
    */
-  exportForLevelPackage(worldGroup: THREE.Group): Promise<ArrayBuffer> {
-    return this.export(worldGroup, null, { includeHiddenObjects: true, includeLightmapUvs: true });
+  exportForLevelPackage(worldGroup: THREE.Group, options: ExportSceneOptions = {}): Promise<ArrayBuffer> {
+    return this.export(worldGroup, null, { includeHiddenObjects: true, includeLightmapUvs: true, ...options });
   }
 
   /**

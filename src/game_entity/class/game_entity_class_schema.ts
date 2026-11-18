@@ -1,4 +1,5 @@
 import {
+  PREVIEW_PLACEABLE_COLLISION_KINDS,
   PREVIEW_PLACEABLE_FIELD_KINDS,
   PREVIEW_PLACEABLE_IO_PARAMETER_KINDS,
   type PreviewPlaceableAssetType,
@@ -82,7 +83,22 @@ export function gameEntityClassFromUnknown(value: unknown): GameEntityClass | nu
   };
   gameEntityClassPinsRead(value, gameClass);
   gameEntityClassMarkerBoxesRead(value, gameClass);
+  gameEntityClassCollisionRead(value, gameClass);
   return gameClass;
+}
+
+/**
+ * Copies the collision kind of an untrusted class when it names a known kind.
+ *
+ * @param value Untrusted class record.
+ * @param gameClass Class being built.
+ */
+function gameEntityClassCollisionRead(value: Record<string, unknown>, gameClass: GameEntityClass): void {
+  const collision = value['collision'];
+  const kind = PREVIEW_PLACEABLE_COLLISION_KINDS.find((candidate) => candidate === collision);
+  if (kind !== undefined) {
+    gameClass.collision = kind;
+  }
 }
 
 /**

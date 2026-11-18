@@ -296,6 +296,7 @@ export function projectSummaryCreate(projectFile: string): ProjectSummary {
     endpoint: `http://127.0.0.1:1/${folder}`,
     canLaunch: true,
     canBuild: true,
+    toolTextures: { nodraw: [] },
     problems: [],
   };
 }

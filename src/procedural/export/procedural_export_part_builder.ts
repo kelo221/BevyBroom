@@ -29,9 +29,9 @@ export class ProceduralExportPartBuilder {
     if (parts === null) {
       return null;
     }
-    return parts.map((part, partIndex) =>
-      ProceduralExportPartBuilder.meshCreate(owner, part, partIndex, settings, options),
-    );
+    return parts
+      .map((part, partIndex) => ProceduralExportPartBuilder.meshCreate(owner, part, partIndex, settings, options))
+      .filter((mesh): mesh is THREE.Mesh => mesh !== null);
   }
 
   /**
@@ -43,7 +43,8 @@ export class ProceduralExportPartBuilder {
    * @param partIndex Index of the part.
    * @param settings Valid settings holding the slot textures.
    * @param options Export behavior switches.
-   * @returns Export mesh in owner space.
+   * @returns Export mesh in owner space, or null when the options leave out
+   *   every face of the part.
    */
   private static meshCreate(
     owner: THREE.Object3D,
@@ -51,7 +52,7 @@ export class ProceduralExportPartBuilder {
     partIndex: number,
     settings: ProceduralSettings,
     options: ExportSceneOptions,
-  ): THREE.Mesh {
+  ): THREE.Mesh | null {
     const source = new THREE.Mesh(
       ProceduralGeometryBuilder.create([part]),
       ProceduralBuild.materialsCreate([part], settings),

@@ -44,6 +44,9 @@ pub mod prelude {
     pub use crate::authoring::{AuthoredLightEntity, AuthoredNode, BroomSystems};
     #[cfg(feature = "dynlight")]
     pub use crate::authoring::{ShippedLight, ShippedLightReplaced};
+    pub use crate::level::collision::{
+        CollisionDocument, CollisionFlagged, CollisionKind, CollisionPiece, CollisionPlacement,
+    };
     pub use crate::level::{LevelGeometryRoot, LevelLoadRequest};
     pub use crate::logic::{
         BroomLogicEnabled, BroomLogicOutputs, LogicFireOutput, LogicInputReceived, LogicPlugin,
@@ -59,6 +62,7 @@ pub mod prelude {
         PlaceableOptions, PropertyValue,
     };
     pub use crate::project::{PROJECT_FILE_NAME, ProjectPaths};
+    pub use crate::protocol::PlaceableCollisionKind;
     pub use crate::{BroomBridgePlugin, BroomLevelPlugin};
 }
 

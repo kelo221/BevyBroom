@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { SolidBrush } from '@/solid/brush/solid_brush.js';
 import { SolidBrushInstance } from '@/solid/model/solid_brush_instance.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
+import type { SolidCsgTree } from './solid_csg_tree.js';
 
 /** Options controlling full versus partial solid CSG compilation. */
 export interface SolidCompileOptions {
@@ -54,4 +55,14 @@ export interface PreparedBrush {
   overlappingPeerIndices: number[];
   /** CSG operation for this brush. */
   operation: SolidOperation;
+}
+
+/** The brushes and the operation tree a compile combined, in solid model space. */
+export interface SolidCsgInputs {
+  /** Prepared brushes in evaluation order. */
+  readonly prepared: readonly PreparedBrush[];
+  /** Operation tree over the prepared brushes, or null when nothing compiled. */
+  readonly tree: SolidCsgTree | null;
+  /** True when the compile treated space outside every brush as solid. */
+  readonly invertedWorld: boolean;
 }

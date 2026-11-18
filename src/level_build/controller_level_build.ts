@@ -4,8 +4,11 @@ import { IssueProviderRegistry } from '@/info_panel/issues/issue_provider_regist
 import type { GameProcessControl } from '@/project/control/game_process_control.js';
 import { bytesToBase64 } from '@/utils/utils_base64.js';
 import { levelBuildNameSanitize } from '@/level_build/manifest/level_build_manifest.js';
-import { LevelBuildManifestBuilder } from '@/level_build/manifest/level_build_manifest_builder.js';
-import { levelBuildGlbMaterialIdsRead } from '@/level_build/package/level_build_glb_material_reader.js';
+import {
+  type LevelExportGlbExport,
+  LevelExportPackageBuilder,
+} from '@/level_export/package/level_export_package_builder.js';
+import type { ProjectToolTextures } from '@/project/model/project_tool_textures_parser.js';
 import type {
   LevelBuildPublishRequest,
   LevelBuildPublishSuccess,
@@ -19,8 +22,11 @@ export interface ControllerLevelBuildDeps {
   gameProcessControlRead: () => GameProcessControl;
   /** Returns the default level name, derived from the scene file name. */
   levelNameRead: () => string;
-  /** Exports the world as the GLB the game loads. */
-  glbExport: (worldGroup: THREE.Group) => Promise<ArrayBuffer>;
+  /**
+   * Exports the world as the GLB the game loads, with the level package's
+   * export options.
+   */
+  glbExport: LevelExportGlbExport;
   /** Collects the problems of the world; the issue providers by default. */
   issuesCollect?: (worldGroup: THREE.Object3D) => Issue[];
 }
@@ -68,7 +74,8 @@ export class ControllerLevelBuild {
    */
   async build(levelName?: string): Promise<LevelBuildResult> {
     const control = this.deps.gameProcessControlRead();
-    const projectIdentifier = (await control.statusRead()).project?.projectIdentifier ?? '';
+    const project = (await control.statusRead()).project;
+    const projectIdentifier = project?.projectIdentifier ?? '';
     if (!control.isAvailable || projectIdentifier === '') {
       return this.failureCreate('Open a game project in the desktop app before building a level.');
     }
@@ -79,6 +86,7 @@ export class ControllerLevelBuild {
     const request = await this.requestBuild(
       levelBuildNameSanitize(levelName ?? this.deps.levelNameRead()),
       projectIdentifier,
+      project?.toolTextures ?? { nodraw: [] },
     );
     const published = await control.levelPackagePublish(request);
     if (!published.ok) {
@@ -99,23 +107,28 @@ export class ControllerLevelBuild {
   }
 
   /**
-   * Exports the geometry and builds the publish request.
+   * Builds the level package files and the publish request.
    *
    * @param levelName Sanitized level name.
    * @param projectIdentifier Id of the open project.
+   * @param toolTextures Textures the project marks for the export.
    * @returns Request whose geometry file the writer names.
    */
-  private async requestBuild(levelName: string, projectIdentifier: string): Promise<LevelBuildPublishRequest> {
-    const glb = new Uint8Array(await this.deps.glbExport(this.deps.worldGroup));
-    const manifest = LevelBuildManifestBuilder.build({
-      worldGroup: this.deps.worldGroup,
+  private async requestBuild(
+    levelName: string,
+    projectIdentifier: string,
+    toolTextures: ProjectToolTextures,
+  ): Promise<LevelBuildPublishRequest> {
+    const built = await LevelExportPackageBuilder.build(
+      { worldGroup: this.deps.worldGroup, levelName, projectIdentifier, toolTextures },
+      this.deps.glbExport,
+    );
+    return {
       levelName,
-      projectIdentifier,
-      geometryRevision: 0,
-      geometryFile: '',
-      materials: levelBuildGlbMaterialIdsRead(glb),
-    });
-    return { levelName, glbBase64: bytesToBase64(glb), manifest };
+      glbBase64: bytesToBase64(built.glb),
+      manifest: built.manifest,
+      collisionJson: built.collisionJson,
+    };
   }
 
   /**

@@ -29,6 +29,7 @@ These guides explain the editor from a user's point of view. You do not need to 
 - [Project levels and the Level Browser](project_levels.md)
 - [Project classes and prefabs](project_classes_and_prefabs.md) — game entity classes and prefabs shared by every level of a project.
 - [Integrating a game](integrating_a_game.md) — connect your own Bevy game to the editor, step by step.
+- [Exporting levels for a game](level_export.md) — the level package, `collision.json`, collision kinds and the command-line export.
 - [Game preview and lights](game_preview.md) — mirror the scene into your running Bevy game.
 - [Game components and data assets](game_components.md) — place your game's own components and edit shared data files.
 - [Settings and game profiles](settings_and_profiles.md)

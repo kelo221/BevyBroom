@@ -1,0 +1,777 @@
+{
+  "collision_version": 1,
+  "level_name": "collision_sample",
+  "pieces": [
+    {
+      "object_id": "sample-room",
+      "object_name": "Room",
+      "kind": "solid",
+      "components": {},
+      "brush_id": "brush-0",
+      "brush_name": "Brush 0",
+      "planes": [
+        {
+          "normal": [
+            0,
+            -1,
+            0
+          ],
+          "distance": 0,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            0,
+            1,
+            0
+          ],
+          "distance": 0.25,
+          "texture": "textures/plaster.png"
+        }
+      ],
+      "vertices": [
+        [
+          -2,
+          0,
+          -2
+        ],
+        [
+          2,
+          0,
+          -2
+        ],
+        [
+          2,
+          0,
+          2
+        ],
+        [
+          -2,
+          0,
+          2
+        ],
+        [
+          -2,
+          0.25,
+          -2
+        ],
+        [
+          -2,
+          0.25,
+          2
+        ],
+        [
+          2,
+          0.25,
+          -2
+        ],
+        [
+          2,
+          0.25,
+          2
+        ]
+      ]
+    },
+    {
+      "object_id": "sample-room",
+      "object_name": "Room",
+      "kind": "solid",
+      "components": {},
+      "brush_id": "brush-0",
+      "brush_name": "Brush 0",
+      "planes": [
+        {
+          "normal": [
+            0,
+            1,
+            0
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            0,
+            -1,
+            0
+          ],
+          "distance": -1.75,
+          "texture": "textures/plaster.png"
+        }
+      ],
+      "vertices": [
+        [
+          2,
+          2,
+          -2
+        ],
+        [
+          -2,
+          2,
+          -2
+        ],
+        [
+          -2,
+          2,
+          2
+        ],
+        [
+          2,
+          2,
+          2
+        ],
+        [
+          -2,
+          1.75,
+          2
+        ],
+        [
+          -2,
+          1.75,
+          -2
+        ],
+        [
+          2,
+          1.75,
+          -2
+        ],
+        [
+          2,
+          1.75,
+          2
+        ]
+      ]
+    },
+    {
+      "object_id": "sample-room",
+      "object_name": "Room",
+      "kind": "solid",
+      "components": {},
+      "brush_id": "brush-0",
+      "brush_name": "Brush 0",
+      "planes": [
+        {
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            0,
+            -1,
+            0
+          ],
+          "distance": -0.25,
+          "texture": ""
+        },
+        {
+          "normal": [
+            0,
+            1,
+            0
+          ],
+          "distance": 1.75,
+          "texture": ""
+        },
+        {
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "distance": -1.5,
+          "texture": "textures/plaster.png"
+        }
+      ],
+      "vertices": [
+        [
+          -2,
+          1.75,
+          2
+        ],
+        [
+          -2,
+          1.75,
+          -2
+        ],
+        [
+          -2,
+          0.25,
+          -2
+        ],
+        [
+          -2,
+          0.25,
+          2
+        ],
+        [
+          -1.5,
+          1.75,
+          -2
+        ],
+        [
+          -1.5,
+          0.25,
+          -2
+        ],
+        [
+          -1.5,
+          1.75,
+          2
+        ],
+        [
+          -1.5,
+          0.25,
+          2
+        ]
+      ]
+    },
+    {
+      "object_id": "sample-room",
+      "object_name": "Room",
+      "kind": "solid",
+      "components": {},
+      "brush_id": "brush-0",
+      "brush_name": "Brush 0",
+      "planes": [
+        {
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            0,
+            -1,
+            0
+          ],
+          "distance": -0.25,
+          "texture": ""
+        },
+        {
+          "normal": [
+            0,
+            1,
+            0
+          ],
+          "distance": 1.75,
+          "texture": ""
+        },
+        {
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "distance": 1.5,
+          "texture": ""
+        },
+        {
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "distance": -1.5,
+          "texture": "textures/plaster.png"
+        }
+      ],
+      "vertices": [
+        [
+          2,
+          1.75,
+          -2
+        ],
+        [
+          2,
+          0.25,
+          -2
+        ],
+        [
+          -1.5,
+          0.25,
+          -2
+        ],
+        [
+          -1.5,
+          1.75,
+          -2
+        ],
+        [
+          2,
+          0.25,
+          -1.5
+        ],
+        [
+          2,
+          1.75,
+          -1.5
+        ],
+        [
+          -1.5,
+          0.25,
+          -1.5
+        ],
+        [
+          -1.5,
+          1.75,
+          -1.5
+        ]
+      ]
+    },
+    {
+      "object_id": "sample-room",
+      "object_name": "Room",
+      "kind": "solid",
+      "components": {},
+      "brush_id": "brush-0",
+      "brush_name": "Brush 0",
+      "planes": [
+        {
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            0,
+            -1,
+            0
+          ],
+          "distance": -0.25,
+          "texture": ""
+        },
+        {
+          "normal": [
+            0,
+            1,
+            0
+          ],
+          "distance": 1.75,
+          "texture": ""
+        },
+        {
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "distance": 1.5,
+          "texture": ""
+        },
+        {
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "distance": -1.5,
+          "texture": "textures/plaster.png"
+        }
+      ],
+      "vertices": [
+        [
+          2,
+          0.25,
+          -1.5
+        ],
+        [
+          2,
+          1.75,
+          -1.5
+        ],
+        [
+          2,
+          1.75,
+          2
+        ],
+        [
+          2,
+          0.25,
+          2
+        ],
+        [
+          1.5,
+          1.75,
+          2
+        ],
+        [
+          1.5,
+          0.25,
+          2
+        ],
+        [
+          1.5,
+          0.25,
+          -1.5
+        ],
+        [
+          1.5,
+          1.75,
+          -1.5
+        ]
+      ]
+    },
+    {
+      "object_id": "sample-room",
+      "object_name": "Room",
+      "kind": "solid",
+      "components": {},
+      "brush_id": "brush-0",
+      "brush_name": "Brush 0",
+      "planes": [
+        {
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "distance": 2,
+          "texture": "textures/brick.png"
+        },
+        {
+          "normal": [
+            0,
+            -1,
+            0
+          ],
+          "distance": -0.25,
+          "texture": ""
+        },
+        {
+          "normal": [
+            0,
+            1,
+            0
+          ],
+          "distance": 1.75,
+          "texture": ""
+        },
+        {
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "distance": 1.5,
+          "texture": ""
+        },
+        {
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "distance": 1.5,
+          "texture": ""
+        },
+        {
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "distance": -1.5,
+          "texture": "textures/plaster.png"
+        }
+      ],
+      "vertices": [
+        [
+          -1.5,
+          1.75,
+          2
+        ],
+        [
+          -1.5,
+          0.25,
+          2
+        ],
+        [
+          1.5,
+          0.25,
+          2
+        ],
+        [
+          1.5,
+          1.75,
+          2
+        ],
+        [
+          -1.5,
+          0.25,
+          1.5
+        ],
+        [
+          1.5,
+          0.25,
+          1.5
+        ],
+        [
+          1.5,
+          1.75,
+          1.5
+        ],
+        [
+          -1.5,
+          1.75,
+          1.5
+        ]
+      ]
+    },
+    {
+      "object_id": "sample-zone",
+      "object_name": "Finish",
+      "kind": "volume",
+      "components": {},
+      "brush_id": "brush-0",
+      "brush_name": "Brush 0",
+      "planes": [
+        {
+          "normal": [
+            0,
+            -1,
+            0
+          ],
+          "distance": 0,
+          "texture": "__default_checker__"
+        },
+        {
+          "normal": [
+            0,
+            1,
+            0
+          ],
+          "distance": 1,
+          "texture": "__default_checker__"
+        },
+        {
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "distance": -3,
+          "texture": "__default_checker__"
+        },
+        {
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "distance": -3,
+          "texture": "__default_checker__"
+        },
+        {
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "distance": 4,
+          "texture": "__default_checker__"
+        },
+        {
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "distance": 4,
+          "texture": "__default_checker__"
+        }
+      ],
+      "vertices": [
+        [
+          3,
+          0,
+          4
+        ],
+        [
+          3,
+          0,
+          3
+        ],
+        [
+          4,
+          0,
+          3
+        ],
+        [
+          4,
+          0,
+          4
+        ],
+        [
+          3,
+          1,
+          4
+        ],
+        [
+          3,
+          1,
+          3
+        ],
+        [
+          4,
+          1,
+          3
+        ],
+        [
+          4,
+          1,
+          4
+        ]
+      ]
+    }
+  ],
+  "flagged": [],
+  "placements": [
+    {
+      "object_id": "sample-spawn",
+      "name": "Spawn",
+      "kind": "game_entity",
+      "position": [
+        0.5,
+        0.25,
+        -0.5
+      ],
+      "rotation": [
+        0,
+        0.707107,
+        0,
+        0.707107
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": {
+        "sample_game::Spawn": {
+          "team": "blue"
+        }
+      }
+    }
+  ]
+}

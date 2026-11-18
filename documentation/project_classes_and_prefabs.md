@@ -51,6 +51,10 @@ The class file uses the same format the game bridge reports its classes in:
 
 - Every level of the project shows these classes in **Add > Game Entities** and
   in Object Properties, with the game closed.
+- A class can declare `"collision": "solid"`, `"volume"` or `"none"`: the
+  collision kind solid models carrying it take in exported levels, such as
+  `"volume"` for a finish zone. See
+  [Exporting levels for a game](level_export.md).
 - Edit the file in any text editor. BevyBroom reads it again whenever the editor
   window gains focus, and when the project is opened. A file that is not valid
   JSON is reported, and the classes shown before stay.

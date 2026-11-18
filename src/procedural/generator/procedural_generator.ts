@@ -151,6 +151,17 @@ export abstract class ProceduralGenerator {
   }
 
   /**
+   * Returns the names of the derived values that are points in the object's own
+   * space, which exports also give in world space. None unless a generator
+   * names them.
+   *
+   * @returns Derived value names.
+   */
+  derivedPointNames(): readonly string[] {
+    return [];
+  }
+
+  /**
    * Describes why parameters cannot be built, for the Issues list. None unless
    * a generator refuses some parameters.
    *

@@ -1,4 +1,5 @@
 import { PanelPropertiesGameComponentsSection } from '@/game_entity/ui/panel_properties_game_components_section.js';
+import { PanelPropertiesCollisionSection } from '@/level_export/ui/panel_properties_collision_section.js';
 import type { PanelPropertiesSectionFactory } from '@/ui/properties/panel_properties_section.js';
 import { PanelPropertiesModifierStackSection } from '@/modifier/stack/ui/panel_properties_modifier_stack_section.js';
 import { PanelPropertiesLightSection } from '@/ui/properties/panel_properties_light_section.js';
@@ -20,5 +21,6 @@ export function panelPropertiesSectionFactoriesBuiltin(): readonly PanelProperti
     (chrome) => new PanelPropertiesPortalSection(chrome.createSectionContainer, chrome.createSectionHeader),
     (chrome) => new PanelPropertiesProceduralSection(chrome.createSectionContainer, chrome.createSectionHeader),
     (chrome) => new PanelPropertiesGameComponentsSection(chrome),
+    (chrome) => new PanelPropertiesCollisionSection(chrome),
   ];
 }

@@ -70,6 +70,7 @@ pub(crate) fn class_describe(
         marker_box: options.marker_box,
         marker_box_field: options.marker_box_field.clone(),
         marker_boxes: options.marker_boxes.clone(),
+        collision: options.collision,
         fields: type_fields_describe(registry, type_path, assets)?,
         inputs: options.inputs.clone(),
         outputs: options.outputs.clone(),

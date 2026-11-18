@@ -134,4 +134,11 @@ describe('game entity class schema', () => {
     expect(gameEntityClassListFromUnknown('classes')).toBeNull();
     expect(gameEntityClassListFromUnknown([testDoorClassCreate()])).toBeNull();
   });
+
+  it('reads the collision kind a class declares and drops unknown kinds', () => {
+    const base = { type_path: 'game::Zone', fields: [] };
+    expect(gameEntityClassFromUnknown({ ...base, collision: 'volume' })?.collision).toBe('volume');
+    expect(gameEntityClassFromUnknown({ ...base, collision: 'lava' })?.collision).toBeUndefined();
+    expect(gameEntityClassFromUnknown(base)).not.toHaveProperty('collision');
+  });
 });
