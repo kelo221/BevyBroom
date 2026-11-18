@@ -57,14 +57,13 @@ export interface ToolbarActionHost {
   onToggleSettingsDialog: () => void;
   onOpenDocumentation: () => void;
   onOpenAboutDialog: () => void;
-  onOpenMcpDialog: () => void;
+  onOpenMcpSettings: () => void;
   onRevealGamePreviewPanel: () => void;
   /** Returns the project workbench that opens game projects and runs their game. */
   gameProjectWorkbenchRead: () => ProjectWorkbench;
   /** Returns the actions on the open project's levels. */
   projectLevelActionsRead: () => ProjectLevelActions;
   onOpenDetachedViewport: () => void;
-  onToggleAiCaptureDebugPanel: () => void;
   onToggleAudio: () => void;
   onDeleteSelected: () => void;
   onGroupSelected: () => void;
@@ -177,12 +176,11 @@ function buildPrimitiveToolbarActions(
   | 'onToggleSettingsDialog'
   | 'onOpenDocumentation'
   | 'onOpenAboutDialog'
-  | 'onOpenMcpDialog'
+  | 'onOpenMcpSettings'
   | 'onRevealGamePreviewPanel'
   | 'gameProjectWorkbenchRead'
   | 'projectLevelActionsRead'
   | 'onOpenDetachedViewport'
-  | 'onToggleAiCaptureDebugPanel'
   | 'onToggleAudio'
   | 'isAudioEnabled'
 > {
@@ -204,12 +202,11 @@ function buildPrimitiveToolbarActions(
     onToggleSettingsDialog: () => host.onToggleSettingsDialog(),
     onOpenDocumentation: () => host.onOpenDocumentation(),
     onOpenAboutDialog: () => host.onOpenAboutDialog(),
-    onOpenMcpDialog: () => host.onOpenMcpDialog(),
+    onOpenMcpSettings: () => host.onOpenMcpSettings(),
     onRevealGamePreviewPanel: () => host.onRevealGamePreviewPanel(),
     gameProjectWorkbenchRead: () => host.gameProjectWorkbenchRead(),
     projectLevelActionsRead: () => host.projectLevelActionsRead(),
     onOpenDetachedViewport: () => host.onOpenDetachedViewport(),
-    onToggleAiCaptureDebugPanel: () => host.onToggleAiCaptureDebugPanel(),
     onToggleAudio: () => host.onToggleAudio(),
     isAudioEnabled: () => audioSettings.isEnabled(),
   };

@@ -53,8 +53,6 @@ export class ShellMenuWindow extends ShellMenu {
       this.separatorEntry(),
       this.actionEntry(context, 'Detached Viewport…', () => actions.onOpenDetachedViewport()),
       this.separatorEntry(),
-      this.actionEntry(context, 'AI Captures (Debug)…', () => actions.onToggleAiCaptureDebugPanel()),
-      this.separatorEntry(),
       this.actionEntry(context, SHELL_MENU_WINDOW_TILE_LABEL, () => context.dockCommands.floatingWindowsTile()),
       this.actionEntry(context, SHELL_MENU_WINDOW_RESET_LABEL, () => context.dockCommands.toolWindowLayoutReset()),
     ];

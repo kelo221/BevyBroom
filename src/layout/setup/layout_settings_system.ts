@@ -1,4 +1,5 @@
 import { DialogAbout } from '@/ui/about/dialog_about.js';
+import type { SettingsMcpTabServices } from '@/ui/settings/settings_mcp_tab.js';
 import { DialogSettings } from '@/ui/settings/dialog_settings.js';
 import { EditorSettingsStore } from '@/settings/store/editor_settings_store.js';
 import { SettingsApplicator } from '@/settings/store/settings_applicator.js';
@@ -163,10 +164,16 @@ export function bindFlyingCameraMoveSpeedWriteBack(
  *
  * @param container Editor root element that owns the modal overlay.
  * @param store Shared editor settings store.
+ * @param mcp Editor services of the MCP page.
  * @returns Settings dialog instance (hidden until shown).
  */
-export function createLayoutSettingsDialog(container: HTMLElement, store: EditorSettingsStore): DialogSettings {
+export function createLayoutSettingsDialog(
+  container: HTMLElement,
+  store: EditorSettingsStore,
+  mcp: SettingsMcpTabServices,
+): DialogSettings {
   return new DialogSettings(container, store, {
+    mcp,
     onResetAllSettings: () => {
       runEditorFactoryResetAndReload();
     },

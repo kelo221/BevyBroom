@@ -8,6 +8,7 @@ import { hexToRgb } from '@/utils/utils_color.js';
 import { formatKeyboardShortcut } from '@/settings/keyboard/keyboard_shortcut_format.js';
 import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
 import { cssColorNormalize } from '../ui_css_color_test_support.js';
+import { settingsMcpTestServicesCreate } from './settings_mcp_test_support.js';
 
 describe('SettingsDialog', () => {
   let host: HTMLElement;
@@ -18,7 +19,7 @@ describe('SettingsDialog', () => {
     host = document.createElement('div');
     document.body.appendChild(host);
     store = new EditorSettingsStore(new MemorySettingsStorage());
-    dialog = new DialogSettings(host, store);
+    dialog = new DialogSettings(host, store, { mcp: settingsMcpTestServicesCreate(null) });
   });
 
   afterEach(() => {
@@ -46,8 +47,19 @@ describe('SettingsDialog', () => {
     dialog.show();
     const panel = dialog.getPanelElement();
     const labels = Array.from(panel.querySelectorAll('[role="tab"]')).map((tab) => (tab.textContent || '').trim());
-    expect(labels).toEqual(['Games', 'View', 'Mouse', 'Keyboard', 'Update']);
+    expect(labels).toEqual(['Games', 'View', 'Mouse', 'Keyboard', 'MCP', 'Update']);
     expect(panel.querySelector('[data-settings-tab="themes"]')).toBeNull();
+  });
+
+  it('opens the MCP page with the server status and its Developer section', async () => {
+    dialog.show();
+    dialog.showTab('mcp');
+    await Promise.resolve();
+    expect(dialog.getActiveTabId()).toBe('mcp');
+    const content = dialog.getContentElement().textContent ?? '';
+    expect(content).toContain('MCP server');
+    expect(content).toContain('unavailable in the browser build');
+    expect(dialog.getContentElement().querySelector('[data-settings-action="ai-captures-open"]')).not.toBeNull();
   });
 
   it('should place a Reset... control on the right of the tab bar', () => {
@@ -63,6 +75,7 @@ describe('SettingsDialog', () => {
     let resetCalls = 0;
     dialog.dispose();
     dialog = new DialogSettings(host, store, {
+      mcp: settingsMcpTestServicesCreate(null),
       onResetAllSettings: () => {
         resetCalls += 1;
       },

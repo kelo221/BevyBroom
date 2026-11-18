@@ -86,6 +86,14 @@ If you create a custom profile:
 4. Export a small asymmetric test.
 5. Preserve the exported root transform during import.
 
+## MCP settings
+
+The **MCP** tab starts and stops the MCP server that lets AI tools edit the map
+in the desktop app, and shows and copies its URL. The **MCP** button on the
+toolbar and **Help > MCP Server Settings…** open this tab. Its **Developer**
+section opens the **AI Captures** window, which keeps the images AI tools took
+with `capture_view`. See the [AI tools reference](../src/ai/README.md).
+
 ## Update settings
 
 The Update tab behaves differently by environment:

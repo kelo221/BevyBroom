@@ -46,11 +46,11 @@ the **Object Properties** dialog, the **Face Edit Sheet**, the **Browser**
 - **Window** opens every window and panel: the [Browser](#browser) on its
   **Place** (`Ctrl+Shift+B`), **Textures** (`Ctrl+Shift+T`) or **Levels**
   (`Ctrl+Shift+L`) tab, the **Map Inspector** (`Ctrl+1`), the **Solid Model…**
-  panel, a **Detached Viewport…**, and the **AI Captures (Debug)…** panel. On
+  panel, and a **Detached Viewport…**. On
   macOS it also holds the system Minimize, Zoom, and Full Screen rows.
 - **Help** opens **Search Commands…** (`Ctrl+Shift+P`), this
-  **Documentation**, the **About BevyBroom…** dialog, and the **MCP Server…**
-  dialog.
+  **Documentation**, the **About BevyBroom…** dialog, and **MCP Server
+  Settings…**, which opens the **MCP** page of Settings.
 
 Menu rows show their current keyboard shortcut, and a check mark shows an
 option or panel that is currently on. A disabled menu item means the current
@@ -103,7 +103,7 @@ From left to right the toolbar holds:
 - **Global** and **Local** gizmo axes.
 - **Pos Lock** and **Stretch Lock** texture behavior controls.
 - The **MCP** server button on the far right, highlighted while the
-  server runs.
+  server runs. It opens the **MCP** page of Settings.
 
 Hover over an icon to display its name. A highlighted control is active.
 See the [Toolbar](toolbar.md) page for resizing and labels, and the
@@ -414,8 +414,8 @@ A tile's number badge shows how many objects of that kind the map contains.
 
 ### Other panels
 
-**Window > Solid Model…** and **Window > AI Captures (Debug)…** also open as
-floating panels. **Solid Model** shows the active model
+**Window > Solid Model…** also opens as a floating panel. The **AI Captures**
+debug window opens from **Settings > MCP**. **Solid Model** shows the active model
 and provides a quick **+ Box Brush** action.
 
 ## Info panel

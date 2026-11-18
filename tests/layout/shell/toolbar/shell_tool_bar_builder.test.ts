@@ -273,7 +273,7 @@ describe('ShellToolBarBuilder', () => {
     expect(shellToolBarBuilderTestChildIndex(toolbar, mcpButton)).toBeGreaterThan(spacerIndex);
     expect(mcpButton.dataset['active']).toBe('false');
     mcpButton.click();
-    expect(toolbarActions.onOpenMcpDialog).toHaveBeenCalledTimes(1);
+    expect(toolbarActions.onOpenMcpSettings).toHaveBeenCalledTimes(1);
   });
 
   it('opens and closes each browser window from its button, highlighted while open, with its shortcut in the hover text', () => {

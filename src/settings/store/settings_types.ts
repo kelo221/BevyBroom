@@ -3,7 +3,7 @@ import type { ImperialUnit, MetricUnit, UnitSystem } from '@/settings/units/unit
 import type { PlatformPointerWheelPreference } from '@/platform/pointer/platform_pointer_wheel_gesture_map.js';
 
 /** Settings dialog tab identifiers. */
-export type SettingsTabId = 'games' | 'view' | 'mouse' | 'keyboard' | 'update';
+export type SettingsTabId = 'games' | 'view' | 'mouse' | 'keyboard' | 'mcp' | 'update';
 
 /** Ordered settings tabs shown in the dialog. */
 export const SETTINGS_TAB_ORDER: readonly SettingsTabId[] = Object.freeze([
@@ -11,6 +11,7 @@ export const SETTINGS_TAB_ORDER: readonly SettingsTabId[] = Object.freeze([
   'view',
   'mouse',
   'keyboard',
+  'mcp',
   'update',
 ]);
 
@@ -20,6 +21,7 @@ export const SETTINGS_TAB_LABELS: Readonly<Record<SettingsTabId, string>> = Obje
   view: 'View',
   mouse: 'Mouse',
   keyboard: 'Keyboard',
+  mcp: 'MCP',
   update: 'Update',
 });
 

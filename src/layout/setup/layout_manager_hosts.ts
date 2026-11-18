@@ -37,14 +37,13 @@ export interface LayoutShellHostCallbacks {
   onToggleSettingsDialog(): void;
   onOpenDocumentation(): void;
   onOpenAboutDialog(): void;
-  onOpenMcpDialog(): void;
+  onOpenMcpSettings(): void;
   onRevealGamePreviewPanel(): void;
   /** Returns the project workbench that opens game projects and runs their game. */
   gameProjectWorkbenchRead(): ProjectWorkbench;
   /** Returns the actions on the open project's levels. */
   projectLevelActionsRead(): ProjectLevelActions;
   onOpenDetachedViewport(): void;
-  onToggleAiCaptureDebugPanel(): void;
   onToggleAudio(): void;
   onAddTerrain(): void;
   onAddSolidModel(): void;
@@ -146,12 +145,11 @@ export function createShellSourceHostFromLayout(
     onToggleSettingsDialog: () => actions.onToggleSettingsDialog(),
     onOpenDocumentation: () => actions.onOpenDocumentation(),
     onOpenAboutDialog: () => actions.onOpenAboutDialog(),
-    onOpenMcpDialog: () => actions.onOpenMcpDialog(),
+    onOpenMcpSettings: () => actions.onOpenMcpSettings(),
     onRevealGamePreviewPanel: () => actions.onRevealGamePreviewPanel(),
     gameProjectWorkbenchRead: () => actions.gameProjectWorkbenchRead(),
     projectLevelActionsRead: () => actions.projectLevelActionsRead(),
     onOpenDetachedViewport: () => actions.onOpenDetachedViewport(),
-    onToggleAiCaptureDebugPanel: () => actions.onToggleAiCaptureDebugPanel(),
     onToggleAudio: () => actions.onToggleAudio(),
     onAddTerrain: () => actions.onAddTerrain(),
     onAddSolidModel: () => actions.onAddSolidModel(),
