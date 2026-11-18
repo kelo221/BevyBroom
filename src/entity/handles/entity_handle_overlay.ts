@@ -4,6 +4,7 @@ import { entityHandleTargetOwned, entityHandleTargetsKey } from '@/entity/handle
 import { Theme } from '@/theme.js';
 import { worldSizeFromScreenPixels } from '@/transform/bounds/bounds_handle_screen_size.js';
 import { shadingExemptFlag } from '@/viewports/shading/shading_exempt.js';
+import { EntityHandleOverlayArrow } from '@/entity/handles/entity_handle_overlay_arrow.js';
 
 /** Radius of a handle ball on screen, in CSS pixels. */
 export const ENTITY_HANDLE_BALL_PIXELS = 6;
@@ -47,8 +48,8 @@ export class EntityHandleOverlay {
   }
 
   /**
-   * Shows one ball per handle target. Keeps the balls when the same handles are
-   * shown already.
+   * Shows one ball per handle target and one arrow per axis it lists. Keeps
+   * them when the same handles are shown already.
    *
    * @param targets Handle targets to show.
    */
@@ -60,6 +61,7 @@ export class EntityHandleOverlay {
     this.group.clear();
     for (const target of this.targetsShown) {
       this.group.add(this.ballCreate(target));
+      EntityHandleOverlayArrow.arrowsOf(target).forEach((arrow) => this.group.add(...arrow.meshes));
     }
   }
 

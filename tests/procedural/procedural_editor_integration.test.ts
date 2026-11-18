@@ -48,29 +48,37 @@ function worldWithBox(): { world: THREE.Group; owner: THREE.Group } {
  * duplicate.
  */
 describe('procedural box editor integration', () => {
-  it('drags a corner handle onto the grid as one undo step that rebuilds the mesh', () => {
+  it('drags the top face handle up onto the grid as one undo step that rebuilds the mesh', () => {
     const { owner } = worldWithBox();
     const stack = new CommandStack(16);
     const snap = new GridSnap(true, 0.25);
     const session = new EntityHandleDragSession(stack, snap);
-    const target = entityHandleTargetsOfOwner(owner).find(
-      (candidate) => candidate.handle.handleName === PROCEDURAL_GENERATOR_BOX_CORNER_B,
-    );
-    const start = cornerBWorld(owner);
-    const camera = entityHandleTestViewsCreate(start)[0]?.camera;
-    if (!target || !camera) throw new Error('missing handle or camera');
-    const sizeBefore = ProceduralVisualBuilder.meshFind(owner)?.geometry.boundingBox?.clone();
+    const target = entityHandleTargetsOfOwner(owner).find((candidate) => candidate.handle.handleName.endsWith('max_y'));
+    if (!target) throw new Error('missing top face handle');
+    const settingsBefore = ProceduralOwner.settingsRead(owner);
+    const start = target.handle.worldPositionFor({ owner, camera: new THREE.Camera() }, settingsBefore ?? {});
+    const camera = entityHandleTestViewsCreate(start)[1]?.camera;
+    if (!camera || settingsBefore === null) throw new Error('missing camera or settings');
+    const boxBefore = ProceduralVisualBuilder.meshFind(owner)?.geometry.boundingBox?.clone();
     session.begin(target, camera, entityHandleTestRayToward(camera, start));
-    session.move(entityHandleTestRayToward(camera, start.clone().add(new THREE.Vector3(1.37, 0, 0.61))));
+    session.move(entityHandleTestRayToward(camera, start.clone().add(new THREE.Vector3(0.9, 1.37, 0))));
     session.end();
-    const moved = cornerBWorld(owner);
-    expect(moved.x).toBeCloseTo(snap.snapValue(start.x + 1.37), 6);
-    expect(moved.z).toBeCloseTo(snap.snapValue(start.z + 0.61), 6);
-    expect(ProceduralVisualBuilder.meshFind(owner)?.geometry.boundingBox?.equals(sizeBefore ?? new THREE.Box3())).toBe(
+    const top = target.handle.worldPositionFor(
+      { owner, camera },
+      ProceduralOwner.settingsRead(owner) ?? settingsBefore,
+    );
+    expect(top.y).toBeCloseTo(snap.snapValue(start.y + 1.37), 6);
+    expect(top.x).toBeCloseTo(start.x, 6);
+    expect(cornerBWorld(owner).x).toBeCloseTo(
+      owner.localToWorld(ProceduralParametersRead.vector3(settingsBefore.parameters, PROCEDURAL_GENERATOR_BOX_CORNER_B))
+        .x,
+      6,
+    );
+    expect(ProceduralVisualBuilder.meshFind(owner)?.geometry.boundingBox?.equals(boxBefore ?? new THREE.Box3())).toBe(
       false,
     );
     stack.undo();
-    expect(cornerBWorld(owner).distanceTo(start)).toBeLessThan(1e-9);
+    expect(ProceduralOwner.settingsRead(owner)).toEqual(settingsBefore);
     expect(stack.canUndo()).toBe(false);
   });
 

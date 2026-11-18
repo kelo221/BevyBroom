@@ -25,12 +25,16 @@ describe('ProceduralDefinition', () => {
     expect(definition.scaleAbsorbs()).toBe(false);
   });
 
-  it('shows one handle per point field of the generator', () => {
+  it('shows one handle per point field, span and face the generator lists', () => {
     const settings = definition.settingsCreateDefault();
     const generator = ProceduralGeneratorRegistry.find(settings.generatorId);
-    expect(definition.handlesCreate(settings).map((handle) => handle.handleName)).toEqual(
-      generator?.handlePointPaths(),
-    );
+    const expectedCount =
+      (generator?.handlePointPaths().length ?? 0) +
+      (generator?.handleSpans().length ?? 0) +
+      (generator?.handleFaces().length ?? 0);
+    const handleNames = definition.handlesCreate(settings).map((handle) => handle.handleName);
+    expect(handleNames).toHaveLength(expectedCount);
+    expect(new Set(handleNames).size).toBe(expectedCount);
   });
 
   it('merges parameter patches over the current parameters', () => {

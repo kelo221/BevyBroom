@@ -94,6 +94,7 @@ export type McpToolName =
   | 'list_procedural_generators'
   | 'add_procedural'
   | 'set_procedural_settings'
+  | 'get_entity_handles'
   | 'preview_connect'
   | 'preview_status'
   | 'get_scene_document'

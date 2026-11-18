@@ -42,12 +42,16 @@ function createdObjectRead(world: THREE.Group, result: McpToolResult): THREE.Obj
 describe('EditorApiProcedural', () => {
   it('lists every generator with its fields, handles and defaults', () => {
     const result = rigCreate().api.invokeTool('list_procedural_generators', {});
-    const data = result.data as { generators: { id: string; handlePoints: string[]; defaultParameters: object }[] };
+    const data = result.data as {
+      generators: { id: string; handlePoints: string[]; handleFaces: string[]; defaultParameters: object }[];
+    };
     expect(data.generators.map((generator) => generator.id)).toEqual(
       ProceduralGeneratorRegistry.list().map((generator) => generator.generatorId),
     );
     const box = data.generators.find((generator) => generator.id === PROCEDURAL_GENERATOR_BOX_ID);
-    expect(box?.handlePoints).toContain(PROCEDURAL_GENERATOR_BOX_CORNER_B);
+    expect(box?.handlePoints).toEqual([]);
+    expect(box?.handleFaces).toHaveLength(6);
+    expect(box?.handleFaces).toContain('max_y');
     expect(box?.defaultParameters).toEqual(ProceduralSettingsRules.createDefault().parameters);
   });
 

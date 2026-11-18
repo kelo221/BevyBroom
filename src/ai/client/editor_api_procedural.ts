@@ -54,6 +54,7 @@ export class EditorApiProcedural {
       version: generator.version,
       fields: generator.fields(),
       handlePoints: generator.handlePointPaths(),
+      handleFaces: generator.handleFaces().map((face) => `${face.side}_${face.axis}`),
       materialSlots: generator.materialSlots(),
       defaultParameters: generator.parametersCreateDefault(),
     }));

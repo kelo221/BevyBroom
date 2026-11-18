@@ -77,6 +77,21 @@ export abstract class EntityHandle<TSettings extends object> {
   ): TSettings;
 
   /**
+   * Returns the world directions the handle shows a move arrow along; dragging
+   * an arrow moves the handle only along its direction. Handles show no arrows
+   * unless they list some.
+   *
+   * @param view Owner and camera of the pane.
+   * @param settings Current valid settings.
+   * @returns Unit world directions.
+   */
+  axesFor(view: EntityHandleView, settings: TSettings): readonly THREE.Vector3[] {
+    void view;
+    void settings;
+    return [];
+  }
+
+  /**
    * Returns the direction a camera looks in at a point: toward the point for
    * perspective cameras, the camera's forward axis otherwise.
    *

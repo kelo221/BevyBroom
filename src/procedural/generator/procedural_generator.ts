@@ -29,6 +29,45 @@ export interface ProceduralHandleSpanDefinition {
   readonly lineEndPath: string;
 }
 
+/** Owner-space axis a box face faces along. */
+export type ProceduralHandleFaceAxis = 'x' | 'y' | 'z';
+
+/**
+ * One face of the box spanned by two corner fields, shown as a handle in the
+ * middle of the face with an arrow along its outward normal; dragging it moves
+ * only that face.
+ */
+export interface ProceduralHandleFaceDefinition {
+  /** Field path of the first corner. */
+  readonly cornerAPath: string;
+  /** Field path of the opposite corner. */
+  readonly cornerBPath: string;
+  /** Axis the face faces along. */
+  readonly axis: ProceduralHandleFaceAxis;
+  /** Low or high side of the box on that axis. */
+  readonly side: 'min' | 'max';
+  /** Smallest distance kept to the opposite face, in meters. */
+  readonly minimumSize: number;
+}
+
+/**
+ * Returns the six face handles of the box spanned by two corner fields.
+ *
+ * @param cornerAPath Field path of the first corner.
+ * @param cornerBPath Field path of the opposite corner.
+ * @param minimumSize Smallest distance kept between opposite faces.
+ * @returns Face definitions, low and high side per axis.
+ */
+export function proceduralHandleBoxFacesOf(
+  cornerAPath: string,
+  cornerBPath: string,
+  minimumSize: number,
+): ProceduralHandleFaceDefinition[] {
+  return (['x', 'y', 'z'] as const).flatMap((axis) =>
+    (['min', 'max'] as const).map((side) => ({ cornerAPath, cornerBPath, axis, side, minimumSize })),
+  );
+}
+
 /**
  * Rules of one kind of procedural object: the fields it is edited through, the
  * point fields shown as handles, its material slots, and how parameters turn
@@ -86,6 +125,16 @@ export abstract class ProceduralGenerator {
    * @returns Span handle definitions.
    */
   handleSpans(): readonly ProceduralHandleSpanDefinition[] {
+    return [];
+  }
+
+  /**
+   * Returns the box faces shown as handles that move one face along its normal.
+   * None unless a generator names them.
+   *
+   * @returns Face handle definitions.
+   */
+  handleFaces(): readonly ProceduralHandleFaceDefinition[] {
     return [];
   }
 

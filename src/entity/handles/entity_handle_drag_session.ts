@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import type { CommandStack } from '@/commands/command_stack.js';
 import { CommandEntitySettingsSet } from '@/entity/commands/command_entity_settings_set.js';
-import type { EntityHandle, EntityHandleSnap, EntityHandleView } from '@/entity/handles/entity_handle.js';
+import { EntityHandle, type EntityHandleSnap, type EntityHandleView } from '@/entity/handles/entity_handle.js';
 import type { EntityOwner } from '@/entity/model/entity_owner.js';
+import { entityHandleAxisDragPlane, entityHandleAxisPointOf } from '@/entity/handles/entity_handle_axis.js';
 
 /** One handle of one entity owner. */
 export interface EntityHandleTarget {
@@ -14,6 +15,14 @@ export interface EntityHandleTarget {
   handle: EntityHandle<object>;
 }
 
+/** Line an arrow drag keeps the handle on. */
+interface EntityHandleAxisLine {
+  /** Handle position when the drag began, in world space. */
+  readonly origin: THREE.Vector3;
+  /** Unit world direction of the grabbed arrow. */
+  readonly axis: THREE.Vector3;
+}
+
 /** State of the drag in progress. */
 interface EntityHandleDragState {
   readonly target: EntityHandleTarget;
@@ -21,6 +30,7 @@ interface EntityHandleDragState {
   readonly settingsAtStart: object;
   readonly plane: THREE.Plane;
   readonly grabOffset: THREE.Vector3;
+  readonly axisLine: EntityHandleAxisLine | null;
   hasMoved: boolean;
 }
 
@@ -56,28 +66,56 @@ export class EntityHandleDragSession {
   /**
    * Starts dragging a handle where a pointer ray meets its drag plane. The
    * handle keeps its offset from the pointer, so grabbing it off center does
-   * not make it jump.
+   * not make it jump. Dragging one of its arrows keeps the handle on the line
+   * through its start along that arrow.
    *
    * @param target Handle and owner to drag.
    * @param camera Camera of the pane the drag happens in.
    * @param ray Pointer ray in world space.
+   * @param axis Unit world direction of the grabbed arrow, or null for the
+   *   ball.
    * @returns True when the drag started.
    */
-  begin(target: EntityHandleTarget, camera: THREE.Camera, ray: THREE.Ray): boolean {
+  begin(target: EntityHandleTarget, camera: THREE.Camera, ray: THREE.Ray, axis: THREE.Vector3 | null = null): boolean {
     const settingsAtStart = target.entityOwner.settingsRead(target.owner);
     if (settingsAtStart === null) {
       return false;
     }
     target.owner.updateWorldMatrix(true, false);
     const view = { owner: target.owner, camera };
-    const plane = target.handle.dragPlaneFor(view, settingsAtStart);
+    const origin = target.handle.worldPositionFor(view, settingsAtStart);
+    const axisLine = axis === null ? null : { origin, axis: axis.clone().normalize() };
+    const plane = this.dragPlaneResolve(target, view, settingsAtStart, axisLine);
     const pointer = ray.intersectPlane(plane, new THREE.Vector3());
     if (!pointer) {
       return false;
     }
-    const grabOffset = target.handle.worldPositionFor(view, settingsAtStart).sub(pointer);
-    this.drag = { target, view, settingsAtStart, plane, grabOffset, hasMoved: false };
+    const grabOffset = origin.clone().sub(pointer);
+    this.drag = { target, view, settingsAtStart, plane, grabOffset, axisLine, hasMoved: false };
     return true;
+  }
+
+  /**
+   * Returns the plane a drag follows: one holding the arrow line for arrow
+   * drags, the handle's own drag plane otherwise.
+   *
+   * @param target Dragged handle and owner.
+   * @param view Owner and camera.
+   * @param settings Settings when the drag began.
+   * @param axisLine Line of the grabbed arrow, or null.
+   * @returns Drag plane.
+   */
+  private dragPlaneResolve(
+    target: EntityHandleTarget,
+    view: EntityHandleView,
+    settings: object,
+    axisLine: EntityHandleAxisLine | null,
+  ): THREE.Plane {
+    if (axisLine === null) {
+      return target.handle.dragPlaneFor(view, settings);
+    }
+    const viewDirection = EntityHandle.viewDirectionAt(view.camera, axisLine.origin);
+    return entityHandleAxisDragPlane(axisLine.origin, axisLine.axis, viewDirection);
   }
 
   /**
@@ -93,7 +131,10 @@ export class EntityHandleDragSession {
     if (!drag || !pointer) {
       return false;
     }
-    const handleWorld = pointer.add(drag.grabOffset);
+    const freeWorld = pointer.add(drag.grabOffset);
+    const handleWorld = drag.axisLine
+      ? entityHandleAxisPointOf(drag.axisLine.origin, drag.axisLine.axis, freeWorld)
+      : freeWorld;
     const { target, view, settingsAtStart } = drag;
     target.entityOwner.settingsWrite(
       target.owner,

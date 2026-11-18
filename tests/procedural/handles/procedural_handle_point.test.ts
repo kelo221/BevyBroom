@@ -6,7 +6,12 @@ import { ProceduralParametersRead } from '@/procedural/generator/procedural_para
 import { ProceduralHandlePoint } from '@/procedural/handles/procedural_handle_point.js';
 import { ProceduralOwner } from '@/procedural/model/procedural_owner.js';
 import type { ProceduralSettings } from '@/procedural/model/procedural_settings.js';
-import { entityHandleTestViewsCreate } from '../../entity/handles/entity_handle_test_views.js';
+import {
+  entityHandleTestRayToward,
+  entityHandleTestViewsCreate,
+} from '../../entity/handles/entity_handle_test_views.js';
+import { CommandStack } from '@/commands/command_stack.js';
+import { EntityHandleDragSession } from '@/entity/handles/entity_handle_drag_session.js';
 
 /** Grid step of the snapping used by these tests, in meters. */
 const GRID_STEP = 0.25;
@@ -99,5 +104,29 @@ describe('ProceduralHandlePoint', () => {
       expect(dragged.parameters[path]).toEqual(settings.parameters[path]);
     }
     expect(dragged.materials).toEqual(settings.materials);
+  });
+
+  it('shows world X, Y and Z arrows and an arrow drag moves the point only along its axis', () => {
+    const { owner, settings } = boxCreate();
+    const camera = new THREE.Camera();
+    const axes = handle.axesFor({ owner, camera }, settings);
+    expect(axes.map((axis) => axis.toArray())).toEqual([
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+    ]);
+    const start = handle.worldPositionFor({ owner, camera }, settings);
+    const perspective = entityHandleTestViewsCreate(start).find((view) => view.name === 'perspective')?.camera;
+    if (!perspective) throw new Error('missing perspective view');
+    ProceduralOwner.settingsWrite(owner, settings);
+    const target = { owner, entityOwner: ProceduralOwner, handle };
+    const session = new EntityHandleDragSession(new CommandStack(8), ENTITY_HANDLE_SNAP_NONE);
+    session.begin(target, perspective, entityHandleTestRayToward(perspective, start), axes[0] ?? null);
+    session.move(entityHandleTestRayToward(perspective, start.clone().add(new THREE.Vector3(1.5, 2, -3))));
+    session.end();
+    const moved = handle.worldPositionFor({ owner, camera }, ProceduralOwner.settingsRead(owner) ?? settings);
+    expect(moved.x).not.toBeCloseTo(start.x, 3);
+    expect(moved.y).toBeCloseTo(start.y, 9);
+    expect(moved.z).toBeCloseTo(start.z, 9);
   });
 });
