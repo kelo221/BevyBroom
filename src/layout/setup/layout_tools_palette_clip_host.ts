@@ -70,8 +70,8 @@ export interface LayoutToolsPaletteClipHost {
    * @returns True while component editing is live.
    */
   isEditModeActive(): boolean;
-  /** Clears permanent transform widgets when entering Edit Mode. */
-  applyEditModeDefaultNoTransformWidget(): void;
+  /** Shows the move arrows by default when entering Edit Mode. */
+  applyEditModeDefaultTransformWidget(): void;
   /** Shows or hides transform gizmos. */
   updateGizmoVisibility(): void;
   /** Updates the gizmo pivot to the selection center. */

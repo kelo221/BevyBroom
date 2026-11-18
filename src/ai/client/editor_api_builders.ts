@@ -22,6 +22,7 @@ import { assignSnapExact } from './editor_api_optional.js';
 import type { EditorApiSolidWrites } from './editor_api_solid_writes.js';
 import type { AddBoxBrushArgs, AddBoxBrushBatchEntry, AddBoxBrushesArgs } from './editor_api_types.js';
 import { SolidBrushFactory } from '@/solid/brush/solid_brush_factory.js';
+import { GRID_INTERVAL_MINIMUM } from '@/types/snap_presets.js';
 import type { McpToolResult, McpVec3 } from '@/ai/shared/mcp_protocol_types.js';
 
 /** High-level geometry builders for walls, rooms, and openings. */
@@ -426,7 +427,7 @@ export class EditorApiBuilders {
     axis: 'x' | 'z',
     args: AddOpeningArgs,
   ): string[] {
-    const frame = Math.min(0.12, Math.min(width, height) * 0.15);
+    const frame = openingFrameThicknessResolve(width, height);
     const pieces = buildFramePieces(prefix, center, width, height, depth, axis, frame, args.kind);
     const ids: string[] = [];
     for (const piece of pieces) {
@@ -473,7 +474,7 @@ export class EditorApiBuilders {
     args: AddOpeningArgs,
   ): string | null {
     const alongX = axis === 'z';
-    const size = alongX ? { x: frame * 0.75, y: height, z: depth } : { x: depth, y: height, z: frame * 0.75 };
+    const size = alongX ? { x: frame, y: height, z: depth } : { x: depth, y: height, z: frame };
     const mullionArgs: AddBoxBrushArgs = {
       modelId,
       size,
@@ -557,6 +558,22 @@ function resolveOpeningCenterY(args: AddOpeningArgs, height: number): McpVec3 {
 function orientedSize(width: number, height: number, depth: number, axis: 'x' | 'z'): McpVec3 {
   if (axis === 'x') return { x: depth, y: height, z: width };
   return { x: width, y: height, z: depth };
+}
+
+/** Thickest opening frame strip in meters. */
+const OPENING_FRAME_THICKNESS_MAXIMUM = 0.125;
+
+/**
+ * Returns the frame strip thickness of an opening: 15% of its smaller side, at
+ * most OPENING_FRAME_THICKNESS_MAXIMUM, rounded down to the minimum grid.
+ *
+ * @param width Opening width.
+ * @param height Opening height.
+ * @returns Grid-aligned strip thickness, at least one minimum grid step.
+ */
+function openingFrameThicknessResolve(width: number, height: number): number {
+  const wanted = Math.min(OPENING_FRAME_THICKNESS_MAXIMUM, Math.min(width, height) * 0.15);
+  return Math.max(GRID_INTERVAL_MINIMUM, Math.floor(wanted / GRID_INTERVAL_MINIMUM) * GRID_INTERVAL_MINIMUM);
 }
 
 /** One frame strip definition. */

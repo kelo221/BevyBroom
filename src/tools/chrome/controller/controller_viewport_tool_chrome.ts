@@ -1,4 +1,5 @@
 import { EditorToolId } from '@/types/editor_tool_id.js';
+import { ViewportEditModeBadgeState } from '@/ui/viewport_chrome/edit_mode_badge/viewport_edit_mode_badge_state.js';
 import { SelectionMode } from '@/types/selection_mode.js';
 import { TransformMode } from '@/types/transform_mode.js';
 import { EditorInteractionMode, getEditorInteractionModeLabel } from '@/types/editor_interaction_mode.js';
@@ -837,6 +838,7 @@ export class ControllerViewportToolChrome {
   /** Syncs the tool flags and broadcasts Object Mode / Edit Mode to all hosts. */
   private broadcastInteractionMode(): void {
     this.hammerToolFlagsSync();
+    ViewportEditModeBadgeState.interactionModeSet(this.activeInteractionMode);
     this.hosts.forEach((host) => {
       host.setActiveInteractionMode(this.activeInteractionMode);
     });
@@ -844,6 +846,7 @@ export class ControllerViewportToolChrome {
 
   /** Broadcasts Edit Mode component mode to all hosts. */
   private broadcastComponentMode(): void {
+    ViewportEditModeBadgeState.componentModeSet(this.activeComponentMode);
     this.hosts.forEach((host) => {
       host.setActiveComponentMode(this.activeComponentMode);
     });

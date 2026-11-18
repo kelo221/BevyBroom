@@ -1,4 +1,5 @@
 import { ShadingMode } from '@/types/shading_mode.js';
+import { ViewportEditModeBadge } from './edit_mode_badge/viewport_edit_mode_badge.js';
 import { PanelMenu } from '@/ui/menu/panel_menu.js';
 import { MenuOutsidePointerClose } from '@/ui/menu/menu_outside_pointer_close.js';
 import {
@@ -35,6 +36,7 @@ export class ViewportToolbar {
   private readonly ownerDocument: Document;
   private readonly ownerWindow: Window;
   private readonly cornerCluster: HTMLElement;
+  private readonly editModeBadge: ViewportEditModeBadge;
   private readonly label: ViewportLabel;
   private readonly outsideCloser = new MenuOutsidePointerClose();
   private readonly callbacks: ViewportToolbarCallbacks = {};
@@ -60,6 +62,7 @@ export class ViewportToolbar {
     this.currentMode = initialMode;
     this.cornerCluster = this.cornerClusterCreate(parentElement);
     this.label = new ViewportLabel(this.cornerCluster, '', () => this.viewMenuToggle());
+    this.editModeBadge = new ViewportEditModeBadge(this.cornerCluster);
     this.labelTextRefresh(viewportAxisCaptionForTitle(titleText));
   }
 
@@ -264,6 +267,7 @@ export class ViewportToolbar {
     this.viewMenuClose();
     this.viewMenuPanel?.dispose();
     this.viewMenuPanel = null;
+    this.editModeBadge.dispose();
     this.cornerCluster.remove();
   }
 

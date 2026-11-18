@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { gridIntervalClampToMinimum } from '@/types/snap_presets.js';
 import { buildDefaultPlaneFrame, type EditorPlaneFrame } from '@/navigation/orientation/editor_orientation_basis.js';
 
 /** Default rotation snap step in degrees when snapping is enabled. */
@@ -250,12 +251,13 @@ export class GridSnap {
   }
 
   /**
-   * Sets a new translation snap interval.
+   * Sets a new translation snap interval, raised to the minimum grid when
+   * finer.
    *
    * @param interval The new grid interval value.
    */
   setInterval(interval: number): void {
-    this.snapInterval = interval;
+    this.snapInterval = gridIntervalClampToMinimum(interval);
   }
 
   /**

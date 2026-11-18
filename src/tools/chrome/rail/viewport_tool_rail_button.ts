@@ -30,7 +30,8 @@ export function createViewportToolRailButton(
 }
 
 /**
- * Applies active/idle chrome to a rail button.
+ * Applies active/idle chrome to a rail button and marks it with data-active so
+ * themed stylesheets keep the active highlight.
  *
  * @param button Button element.
  * @param active Whether the tool is selected.
@@ -39,6 +40,7 @@ export function styleViewportToolRailButton(button: HTMLButtonElement, active: b
   button.style.border = `1px solid ${active ? Theme.toggleActiveBorder : Theme.inputBorderColor}`;
   button.style.background = active ? Theme.buttonPressedBackground : hexToRgb(Theme.buttonBackground);
   button.style.opacity = '1';
+  button.dataset['active'] = String(active);
 }
 
 /**

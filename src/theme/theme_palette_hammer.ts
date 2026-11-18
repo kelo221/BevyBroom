@@ -56,6 +56,8 @@ export const ThemePaletteHammer = Object.freeze({
   lightDirectional: 0xffffff,
   viewportLabelTextColor: '#ffffff',
   viewportLabelBackgroundColor: 'rgba(0, 0, 0, 0.55)',
+  viewportEditBadgeBackgroundColor: '#0078d7',
+  viewportEditBadgeTextColor: '#ffffff',
   widgetXAxisColor: 0xff3333,
   widgetYAxisColor: 0x33ff33,
   widgetZAxisColor: 0x3333ff,

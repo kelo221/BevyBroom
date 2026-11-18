@@ -30,6 +30,7 @@ export const ICON_SET_MATERIAL_DESIGN_PATHS: Readonly<Record<IconName, string>> 
   'shape-outline':
     'M11 13.5v8H3v-8zm-2 2H5v4h4zM12 2l5.5 9h-11zm0 3.86L10.08 9h3.84zM17.5 13c2.5 0 4.5 2 4.5 4.5S20 22 17.5 22S13 20 13 17.5s2-4.5 4.5-4.5m0 2a2.5 2.5 0 0 0-2.5 2.5a2.5 2.5 0 0 0 2.5 2.5a2.5 2.5 0 0 0 2.5-2.5a2.5 2.5 0 0 0-2.5-2.5',
   'shape-polyhedron': 'M12 1.5 21.3 6.9v10.2L12 22.5 2.7 17.1V6.9L12 1.5Zm0 2.4L4.9 8 12 12.1 19.1 8 12 3.9Z',
+  'shape-ramp': 'M3 21L21 3V21Z',
   'shape-stairs': 'M3 21V16.5H7.5V12H12V7.5H16.5V3H21V21Z',
   shimmer:
     'M10.6 9.6L9 15L7.4 9.6L2 8l5.4-1.6L9 1l1.6 5.4L16 8zm6.4 4.6l4-2.2l-2.2 4l2.2 4l-4-2.2l-4 2.2l2.2-4l-2.2-4zM10 16l-1.7 3l1.7 3l-3-1.7L4 22l1.7-3L4 16l3 1.7z',

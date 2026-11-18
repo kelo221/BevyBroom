@@ -184,23 +184,23 @@ describe('EditorApi builders and csg helpers', () => {
   it('places a door opening on a room wall midplane with correct CSG order', () => {
     const { api, world, stack } = createApi();
     const model = pushModel(world, stack, 'DoorModel');
-    const wallT = 0.3;
+    const wallT = 0.25;
     api.invokeTool('add_room_shell', {
       modelId: model.root.uuid,
       size: { x: 10, y: 3, z: 8 },
       position: { x: 0, y: 1.5, z: 0 },
       wallThickness: wallT,
-      floorThickness: 0.2,
-      ceilingThickness: 0.2,
+      floorThickness: 0.25,
+      ceilingThickness: 0.25,
       name: 'hall',
       snap: false,
       carveInterior: false,
     });
     const front = model.getBrushes().find((brush) => brush.name === 'hall_wall_front')!;
     front.pullTransformFromMesh();
-    const doorWidth = 1.2;
-    const doorHeight = 2.1;
-    const sillHeight = 0.2;
+    const doorWidth = 1.25;
+    const doorHeight = 2;
+    const sillHeight = 0.25;
     const result = api.invokeTool('add_opening', {
       modelId: model.root.uuid,
       kind: 'door',
@@ -262,8 +262,8 @@ describe('EditorApi builders and csg helpers', () => {
       modelId: model.root.uuid,
       kind: 'window',
       targetBrushId: wall.id,
-      position: { x: 1.2, y: 0, z: 0 },
-      size: { width: 0.8, height: 0.8 },
+      position: { x: 1.25, y: 0, z: 0 },
+      size: { width: 0.75, height: 0.75 },
       sillHeight: 1,
       name: 'w',
       snap: false,

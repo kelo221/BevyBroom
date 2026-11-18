@@ -18,6 +18,7 @@ import {
   computeComponentTransformPivot,
   expandComponentSelectionToTransformVertices,
 } from '@/edit/transform/component_transform_selection.js';
+import { componentDragFaceNormalWorld } from '@/edit/transform/drag/component_drag_face_normal.js';
 import {
   publishLayoutTransformLiveVisuals,
   shouldPublishLiveVisualsAfterModalKey,
@@ -549,6 +550,10 @@ export function tryBeginComponentSingleUseDrag(
     deps.setStatusMessage(text);
   });
   syncSingleUseSnapFromShift(deps);
+  deps.componentTransformHandler.setCommitCleanup(coordinator.dragWeldRead());
+  deps.componentTransformHandler.setFaceNormalHint(
+    componentDragFaceNormalWorld(session.getComponentSelection().getSelected(), session.getDomain()),
+  );
   return deps.componentTransformHandler.beginSingleUseDrag(
     mode,
     vertices,

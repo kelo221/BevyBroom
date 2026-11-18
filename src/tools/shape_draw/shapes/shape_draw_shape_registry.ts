@@ -2,6 +2,7 @@ import { RegistryExtensible } from '@/utils/registry/registry_extensible.js';
 import { ShapeDrawShape } from './shape_draw_shape.js';
 import { ShapeDrawShapeCuboid } from './shape_draw_shape_cuboid.js';
 import { ShapeDrawShapeStairs } from './shape_draw_shape_stairs.js';
+import { ShapeDrawShapeRamp } from './shape_draw_shape_ramp.js';
 import { ShapeDrawShapeArch } from './shape_draw_shape_arch.js';
 import { ShapeDrawShapeCylinder } from './shape_draw_shape_cylinder.js';
 import { ShapeDrawShapeCone } from './shape_draw_shape_cone.js';
@@ -12,6 +13,7 @@ import { ShapeDrawShapeSpheroidIcosahedron } from './shape_draw_shape_spheroid_i
 export const SHAPE_DRAW_SHAPE_REGISTRY = new RegistryExtensible<ShapeDrawShape>(() => [
   new ShapeDrawShapeCuboid(),
   new ShapeDrawShapeStairs(),
+  new ShapeDrawShapeRamp(),
   new ShapeDrawShapeArch(),
   new ShapeDrawShapeCylinder(),
   new ShapeDrawShapeCone(),

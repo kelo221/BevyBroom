@@ -17,6 +17,7 @@ import {
   computeComponentTransformPivot,
   expandComponentSelectionToTransformVertices,
 } from './component_transform_selection.js';
+import { componentDragFaceNormalWorld } from './drag/component_drag_face_normal.js';
 import { HandlerComponentTransform } from './handler_component_transform.js';
 
 /** Dependencies for permanent component gizmo interaction. */
@@ -200,6 +201,10 @@ export class BridgeComponentTransformInteraction {
       return false;
     }
     this.wireHandlerCallbacks(coordinator);
+    this.deps.componentTransformHandler.setCommitCleanup(coordinator.dragWeldRead());
+    this.deps.componentTransformHandler.setFaceNormalHint(
+      componentDragFaceNormalWorld(session.getComponentSelection().getSelected(), session.getDomain()),
+    );
     const started = this.deps.componentTransformHandler.beginGizmoHandleDrag(
       this.deps.transformGizmo.getMode(),
       axis,

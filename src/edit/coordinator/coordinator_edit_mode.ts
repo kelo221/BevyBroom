@@ -46,6 +46,7 @@ import type { TopologyVertexMergeMode } from '@/edit/topology/topology_vertex_me
 import { pickEditEdgeParameterAtClient, type EditEdgeParameterHit } from '@/edit/pick/edit_edge_parameter_pick.js';
 import { projectLoopCutParameterOnLockedEdge } from '@/edit/tool/edit_loop_cut_slide.js';
 import type { TopologyWorkingEdge } from '@/edit/topology/topology_working_edge_key.js';
+import { TopologyDragWeld } from '@/edit/topology/topology_drag_weld.js';
 import { OverlayVertexCoincidentWarning } from '@/edit/overlay/overlay_vertex_coincident_warning.js';
 
 /** Minimal viewport surface used for Edit Mode picking. */
@@ -68,6 +69,7 @@ export class CoordinatorEditMode {
   private readonly deps: CoordinatorEditModeDependencies;
   private readonly session: EditSession;
   private readonly topologyHandler: HandlerComponentTopology;
+  private readonly dragWeld: TopologyDragWeld;
   private cageOverlay: ComponentEditCageOverlay | null;
   private coincidentWarning: OverlayVertexCoincidentWarning | null;
   private brushCages: BrushEditCage[];
@@ -80,18 +82,30 @@ export class CoordinatorEditMode {
   constructor(deps: CoordinatorEditModeDependencies) {
     this.deps = deps;
     this.session = new EditSession();
-    this.topologyHandler = new HandlerComponentTopology({
+    const topologyDependencies = {
       getSession: () => this.session,
       getCommandStack: () => this.deps.getCommandStack(),
       refreshPresentation: () => this.refreshDomainGeometryPresentation(),
-      showStatusMessage: (message) => this.deps.showStatusMessage(message),
-    });
+      showStatusMessage: (message: string) => this.deps.showStatusMessage(message),
+    };
+    this.topologyHandler = new HandlerComponentTopology(topologyDependencies);
+    this.dragWeld = new TopologyDragWeld(topologyDependencies);
     this.cageOverlay = null;
     this.coincidentWarning = null;
     this.brushCages = [];
     this.session.getComponentSelection().setChangeCallback((selected) => {
       this.refreshOverlay(selected);
     });
+  }
+
+  /**
+   * Returns the weld that merges vertices a component drag dropped onto each
+   * other.
+   *
+   * @returns Drag weld.
+   */
+  dragWeldRead(): TopologyDragWeld {
+    return this.dragWeld;
   }
 
   /**

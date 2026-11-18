@@ -276,6 +276,13 @@ All colours come from `src/theme.ts`; never hard-code colour literals.
 
 We keep meshes convex as that is easier to work with in level design.
 
+Hard rule for any AI that builds or edits a level (through MCP or by writing
+level files): keep every brush and mesh on the grid. The grid never goes below
+0.03125 m, and bounds must start and end on it. Build level geometry from
+brushes, not meshes; make slopes with the ramp shape or clips between grid
+points. The MCP server enforces this and the Issues list reports violations
+as "Off-grid geometry".
+
 ## Reference
 
 The reference folder is not part of the project that needs to be edited, it is

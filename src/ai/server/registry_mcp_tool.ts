@@ -31,11 +31,13 @@ const boundsSchema = {
 const snapProps = {
   snap: {
     type: 'boolean',
-    description: 'When false, skip grid/rotation snap. Default true when editor snap is on.',
+    description:
+      'When false, skip the editor grid/rotation snap. Default true when editor snap is on. Geometry must still land on the 0.03125 grid or the call is undone.',
   },
   exact: {
     type: 'boolean',
-    description: 'When true, skip snap (same as snap:false). Use for precise placement like -17.125.',
+    description:
+      'When true, skip snap (same as snap:false). Use for precise placement like -17.125; values must still land on the 0.03125 grid.',
   },
 };
 
@@ -320,7 +322,7 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ),
   tool(
     'create_shape_brush',
-    'Create the brushes of a draw-tool shape (cuboid|stairs|arch|cylinder|cone|spheroid_uv|spheroid_ico) inside world min/max bounds as one undo step. Optional params per shape (e.g. stairs: stepHeight, direction; cylinder: sides, axis, hollow, wallThickness). Multi-piece shapes are grouped so parameter changes can regenerate them.',
+    'Create the brushes of a draw-tool shape (cuboid|stairs|ramp|arch|cylinder|cone|spheroid_uv|spheroid_ico) inside world min/max bounds as one undo step. Use ramp for slopes: one convex wedge rising toward direction (+x|-x|+z|-z) to the full height, lowHeight raises the low end. Optional params per shape (e.g. stairs: stepHeight, direction; ramp: direction, lowHeight; cylinder: sides, axis, hollow, wallThickness). Multi-piece shapes are grouped so parameter changes can regenerate them.',
     {
       type: 'object',
       properties: {
@@ -533,7 +535,7 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   }),
   tool(
     'set_brush_transform',
-    'Set brush local position / rotationDegrees / scale (any subset). Snaps when snap is on. Pass snap:false or exact:true to bypass snap (e.g. keep -17.125). Returns applied transform with rotationDegrees.',
+    'Set brush local position / rotationDegrees / scale (any subset). Snaps when snap is on. Pass snap:false or exact:true to bypass the editor snap (e.g. keep -17.125); corners must stay on the 0.03125 grid. Returns applied transform with rotationDegrees.',
     {
       type: 'object',
       properties: {

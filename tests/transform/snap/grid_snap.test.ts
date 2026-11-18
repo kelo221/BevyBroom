@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as THREE from 'three';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
+import { GRID_INTERVAL_MINIMUM } from '@/types/snap_presets.js';
 
 describe('GridSnap.snapValue', () => {
   let snap: GridSnap;
@@ -134,5 +135,15 @@ describe('GridSnap rotation and scale snapping', () => {
   it('should leave scale factors unchanged when snap is disabled', () => {
     const snap = new GridSnap(false, 1.0);
     expect(snap.snapScaleFactor(1.37)).toBeCloseTo(1.37);
+  });
+});
+
+/** Proves the working grid never goes finer than the minimum grid interval. */
+describe('GridSnap minimum grid interval', () => {
+  it('raises a finer interval to the minimum grid', () => {
+    const snap = new GridSnap(true, 1);
+    snap.setInterval(GRID_INTERVAL_MINIMUM / 8);
+    expect(snap.getInterval()).toBe(GRID_INTERVAL_MINIMUM);
+    expect(snap.snapValue(GRID_INTERVAL_MINIMUM * 0.4)).toBe(0);
   });
 });

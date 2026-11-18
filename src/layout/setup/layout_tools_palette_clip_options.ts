@@ -318,7 +318,7 @@ function layoutToolsPaletteEditModePresentationRefresh(host: LayoutToolsPaletteC
  * @param host Layout callbacks used by tool chrome and clip wiring.
  */
 function layoutToolsPaletteEditModePresentationSuppress(host: LayoutToolsPaletteClipHost): void {
-  host.applyEditModeDefaultNoTransformWidget();
+  host.applyEditModeDefaultTransformWidget();
   host.editModeCoordinator?.suppressObjectModeWireframes();
   host.transformInteractionBridge?.clearBoundsHover();
   host.transformHandler?.clearBoundsHover();

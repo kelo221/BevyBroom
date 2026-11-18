@@ -40,8 +40,8 @@ describe('ViewportToolShapeDropdown', () => {
     expect(panel?.isOpen()).toBe(true);
     const menu = panel?.getElement();
     const rows = Array.from(menu?.querySelectorAll('button') ?? []);
-    expect(rows.length).toBe(7);
-    expect(menu?.querySelectorAll('.editor-icon').length).toBe(7);
+    expect(rows.length).toBe(shapeDrawShapesList().length);
+    expect(menu?.querySelectorAll('.editor-icon').length).toBe(shapeDrawShapesList().length);
     const archRow = rows.find((row) => (row.textContent ?? '').includes('Arch')) as HTMLButtonElement;
     archRow.click();
     expect(chosen).toEqual(['arch']);
