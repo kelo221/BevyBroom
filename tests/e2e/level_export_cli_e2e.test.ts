@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as THREE from 'three';
+import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import { GameEntityOwner } from '@/game_entity/owner/game_entity_owner.js';
 import { SceneSerializer } from '@/io/scene/scene_serializer.js';
 import { COLLISION_FILE_NAME, type CollisionDocument } from '@/level_export/collision/collision_types.js';
@@ -14,6 +15,10 @@ import {
   collisionTestPieceContains,
   collisionTestSamples,
 } from '../level_export/collision/collision_test_models.js';
+import {
+  collisionTestBoxCornersWorld,
+  collisionTestBoxMeshCreate,
+} from '../level_export/collision/mesh/collision_mesh_test_boxes.js';
 import { PreviewE2eGameProcess, previewE2eProjectCopy, previewE2eProjectRemove } from './preview_e2e_game_process.js';
 import { previewE2eSleep } from './preview_e2e_rig.js';
 import { e2eWindowsShownRead, previewE2eEnvironmentRead } from './preview_e2e_environment.js';
@@ -24,8 +29,9 @@ import { previewE2eEntityRowsQuery } from './preview_e2e_game_query.js';
  * temporary copy of the sample project is exported with `bun
  * scripts/level_export.ts`, twice with the same bytes, `--check` passes, the
  * collision pieces are the room's walls with nothing inside it, a volume is in
- * the collision but not drawn, a turned spawn keeps its rotation, and the game
- * loads the exported level with `--level` and shows the room. Skipped unless
+ * the collision but not drawn, an Add > Box crate with a game component is one
+ * piece of its kind, a turned spawn keeps its rotation, and the game loads the
+ * exported level with `--level` and shows the room. Skipped unless
  * BROOM_E2E_PREVIEW_EXE and BROOM_E2E_PROJECT_DIR are set; its game listens
  * thirty ports above BROOM_E2E_PORT.
  */
@@ -40,13 +46,18 @@ const OUTER = new THREE.Box3(new THREE.Vector3(-4, 0, -3), new THREE.Vector3(4, 
 const ROOM = new THREE.Box3(new THREE.Vector3(-3.5, 0.25, -2.5), new THREE.Vector3(3.5, 2.75, 2.5));
 const ZONE = new THREE.Box3(new THREE.Vector3(1, 0.25, 1), new THREE.Vector3(2, 1.25, 2));
 
+/** The Add > Box crate outside the room, and the game component it carries. */
+const CRATE_SIZE = new THREE.Vector3(1, 0.5, 0.75);
+const CRATE_POSITION = new THREE.Vector3(7, 0.25, 0);
+const CRATE_COMPONENT = 'e2e_game::Pushable';
+
 /**
- * Builds the level: a room carved out of a block, a volume zone and a turned
- * spawn point.
+ * Builds the level: a room carved out of a block, a volume zone, a turned Add >
+ * Box crate with a game component and a turned spawn point.
  *
- * @returns World and spawn.
+ * @returns World, spawn and crate.
  */
-function levelWorldCreate(): { world: THREE.Group; spawn: THREE.Group } {
+function levelWorldCreate(): { world: THREE.Group; spawn: THREE.Group; crate: THREE.Mesh } {
   const world = new THREE.Group();
   const room = collisionTestModelCreate([
     { box: OUTER, operation: SolidOperation.Additive },
@@ -57,9 +68,15 @@ function levelWorldCreate(): { world: THREE.Group; spawn: THREE.Group } {
   const spawn = GameEntityOwner.createDefault('Spawn');
   spawn.position.set(-2, 0.25, 0);
   spawn.rotation.set(0, Math.PI / 3, 0);
-  world.add(room.root, zone.root, spawn);
+  const crate = collisionTestBoxMeshCreate({
+    size: CRATE_SIZE,
+    position: CRATE_POSITION,
+    rotation: new THREE.Euler(0, Math.PI / 6, 0),
+  });
+  GameEntityComponentStore.write(crate, { [CRATE_COMPONENT]: { mass: 5 } });
+  world.add(room.root, zone.root, spawn, crate);
   world.updateMatrixWorld(true);
-  return { world, spawn };
+  return { world, spawn, crate };
 }
 
 /**
@@ -103,11 +120,13 @@ describe.skipIf(!environment.isConfigured)('command-line level export end to end
   let projectDirectory = '';
   let levelDirectory = '';
   let spawn: THREE.Group;
+  let crate: THREE.Mesh;
 
   beforeAll(() => {
     projectDirectory = previewE2eProjectCopy(environment.sourceProjectDirectory);
     const level = levelWorldCreate();
     spawn = level.spawn;
+    crate = level.crate;
     mkdirSync(join(projectDirectory, 'broom/documents'), { recursive: true });
     writeFileSync(
       join(projectDirectory, 'broom/documents', `${LEVEL_ID}.json`),
@@ -161,6 +180,28 @@ describe.skipIf(!environment.isConfigured)('command-line level export end to end
       const placement = collision.placements.find((candidate) => candidate.object_id === spawn.uuid);
       const rotation = new THREE.Quaternion(...(placement?.rotation ?? [0, 0, 0, 1])).normalize();
       expect(rotation.angleTo(spawn.quaternion)).toBeLessThan(1e-5);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'writes the Add > Box crate as one solid piece holding exactly its box, with its component',
+    () => {
+      const collision = JSON.parse(
+        readFileSync(join(levelDirectory, COLLISION_FILE_NAME), 'utf8'),
+      ) as CollisionDocument;
+      const pieces = collision.pieces.filter((piece) => piece.object_id === crate.uuid);
+      expect(pieces).toHaveLength(1);
+      const piece = pieces[0];
+      if (!piece) throw new Error('missing crate piece');
+      expect(piece.kind).toBe('solid');
+      expect(piece.components[CRATE_COMPONENT]).toMatchObject({ mass: 5 });
+      const corners = collisionTestBoxCornersWorld(crate, CRATE_SIZE);
+      corners.forEach((corner) => expect(collisionTestPieceContains(piece, corner)).toBe(true));
+      corners.forEach((corner) => {
+        const beyond = corner.clone().sub(CRATE_POSITION).multiplyScalar(1.05).add(CRATE_POSITION);
+        expect(collisionTestPieceContains(piece, beyond)).toBe(false);
+      });
     },
     STEP_TIMEOUT_MILLISECONDS,
   );

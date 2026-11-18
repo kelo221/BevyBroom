@@ -6,6 +6,7 @@ import { PanelPropertiesCollisionSection } from '@/level_export/ui/panel_propert
 import { PanelPropertiesSectionRegistry } from '@/ui/properties/panel_properties_section_registry.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { collisionTestModelCreate } from '../collision/collision_test_models.js';
+import { collisionTestBoxMeshCreate } from '../collision/mesh/collision_mesh_test_boxes.js';
 
 const chrome = {
   createSectionContainer: (): HTMLElement => document.createElement('div'),
@@ -26,11 +27,14 @@ function kindPick(section: PanelPropertiesCollisionSection, value: string): void
   select.dispatchEvent(new Event('change'));
 }
 
-/** The inspector shows and overrides the collision kind of solid models. */
+/**
+ * The inspector shows and overrides the collision kind of solid models and
+ * plain meshes.
+ */
 describe('PanelPropertiesCollisionSection', () => {
   const box = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1));
 
-  it('is a properties section shown for solid models and their brushes only', () => {
+  it('is a properties section shown for solid models, their brushes and plain meshes only', () => {
     expect(
       PanelPropertiesSectionRegistry.sectionsCreate(chrome).some(
         (section) => section instanceof PanelPropertiesCollisionSection,
@@ -43,6 +47,18 @@ describe('PanelPropertiesCollisionSection', () => {
     const brushMesh = model.findBrush('brush-0')?.mesh ?? model.root;
     section.updateFromObjects([brushMesh]);
     expect(section.getElement().style.display).toBe('block');
+    const pose = { size: new THREE.Vector3(1, 1, 1), position: new THREE.Vector3(), rotation: new THREE.Euler() };
+    section.updateFromObjects([collisionTestBoxMeshCreate(pose)]);
+    expect(section.getElement().style.display).toBe('block');
+  });
+
+  it('overrides the kind of a selected plain mesh', () => {
+    const pose = { size: new THREE.Vector3(1, 1, 1), position: new THREE.Vector3(), rotation: new THREE.Euler() };
+    const mesh = collisionTestBoxMeshCreate(pose);
+    const section = new PanelPropertiesCollisionSection(chrome);
+    section.updateFromObjects([mesh]);
+    kindPick(section, 'volume');
+    expect(CollisionKindStore.resolve(mesh)).toBe('volume');
   });
 
   it('overrides the kind of the selected solid models as one undo step and clears it again', () => {

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { exportContentMaterialResolve } from '@/io/scene/builder_export_scene.js';
+import { exportContentMaterialResolve } from '@/io/scene/export_content_material_resolve.js';
 import { materialIdentityRead } from '@/materials/identity/material_identity.js';
 import type { TextureMapCache } from '@/texture/library/texture_map_cache.js';
 

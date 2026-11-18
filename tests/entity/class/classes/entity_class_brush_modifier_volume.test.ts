@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { ENTITY_CLASS_MODIFIER_VOLUME_ID } from '@/entity/class/classes/entity_class_brush_modifier_volume.js';
 import { EntityClassRegistry } from '@/entity/class/registry/entity_class_registry.js';
 import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
-import { shouldOmitFromExport } from '@/io/scene/builder_export_scene.js';
+import { shouldOmitFromExport } from '@/io/scene/export_object_omission.js';
 import { TEST_SPINNER_TYPE_PATH, testClassesInstall } from '../../../game_entity/game_entity_test_classes.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 
