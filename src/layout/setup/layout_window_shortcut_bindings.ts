@@ -85,8 +85,8 @@ export function layoutWindowShortcutsDockCreate(
 }
 
 /**
- * Builds the callbacks of the command search and the Edit > CSG brush operation
- * shortcuts.
+ * Builds the callbacks of the command search, the Edit > CSG brush operation
+ * and the Run > Play Level in Game shortcuts.
  *
  * @param menuContext Actions the main window menus run.
  * @param commandSearchOpen Opens the command search.
@@ -105,5 +105,6 @@ export function layoutWindowShortcutsCommandsCreate(
     csg_intersect: () => actions.onCsgIntersect(),
     csg_hollow: () => brushToolsRead()?.hollow(),
     csg_convex_merge: () => brushToolsRead()?.convexMerge(),
+    game_play_level: () => void actions.gameProjectWorkbenchRead().levelPlay(),
   };
 }

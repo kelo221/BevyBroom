@@ -75,6 +75,7 @@ const WINDOW_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, stri
   ['view_cycle', 'Cycle View Under Pointer'],
   ['view_maximize', 'Maximize / Restore View'],
   ['play_start', 'Play'],
+  ['game_play_level', 'Play Level in Game'],
   ['inspector_map', 'Show Map Inspector'],
   ['info_panel_toggle', 'Toggle Info Panel'],
   ['info_panel_collapse_toggle', 'Collapse / Expand Info Panel'],

@@ -177,6 +177,7 @@ function createDefaultWindowShortcuts(): Pick<
   | 'view_cycle'
   | 'view_maximize'
   | 'play_start'
+  | 'game_play_level'
   | 'inspector_map'
   | 'info_panel_toggle'
   | 'info_panel_collapse_toggle'
@@ -193,6 +194,7 @@ function createDefaultWindowShortcuts(): Pick<
     view_cycle: createShortcut('Space'),
     view_maximize: createShortcut('Space', true),
     play_start: createShortcut('F5'),
+    game_play_level: createShortcut('F9'),
     inspector_map: createShortcut('Digit1', true),
     info_panel_toggle: createShortcut('Digit4', true),
     info_panel_collapse_toggle: createShortcut('Backquote', true),

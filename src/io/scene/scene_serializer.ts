@@ -34,14 +34,15 @@ export class SceneSerializer {
   }
 
   /**
-   * Serializes all children of the given group into SceneJSON.
+   * Serializes all children of the given group into SceneJSON. The children of
+   * the group are top-level entries without a parent, so a reader needs no
+   * knowledge of the group itself.
    *
    * @param worldGroup The root group containing the scene objects.
    * @returns A SceneJSON object representing the full scene state.
    */
   serialize(worldGroup: THREE.Group): SceneJSON {
-    const entries: ObjectEntry[] = [];
-    this.collectEntries(worldGroup, entries);
+    const entries = this.serializeRoots(worldGroup.children);
     const scene: SceneJSON = {
       version: SCHEMA_VERSION,
       documentId: documentIdentityEnsure(worldGroup),

@@ -77,13 +77,31 @@ Every path is relative and must stay inside the project; a path such as `../othe
 | `tool_textures`             | Optional: `{ "nodraw": [texture ids] }`. Faces with a `nodraw` texture keep their collision but are left out of the exported render geometry. See [Exporting levels for a game](level_export.md).                                              |
 | `preview`                   | Optional. Without it the project still opens and levels, textures, classes and prefabs work; the editor just cannot build or start the game.                                                                                                   |
 | `preview.program`           | The program that starts the game, such as `cargo` or a built executable. A bare name is looked up in the PATH of your login shell, so `bun` or `cargo` installed for your user is found even when the desktop app was started from the Finder. |
-| `preview.arguments`         | Its arguments. Pass `--project` with the project file when your game reads it from the command line, as the example does.                                                                                                                      |
+| `preview.arguments`         | Its arguments. Pass `--project` with the project file when your game reads it from the command line, as the example does. `{level_id}`, `{level_document}` and `{level_export_directory}` start the game in the open level (see below).        |
 | `preview.working_directory` | Relative to the project file, `.` by default: where the program starts.                                                                                                                                                                        |
 | `preview.endpoint`          | The game's bridge address, `http://127.0.0.1:15702` by default. It must match the bridge's port.                                                                                                                                               |
 | `preview.build`             | Optional: `program`, `arguments` and `working_directory` of the command that builds the game without starting it. Without it the desktop editor builds a `cargo run` launch with the matching `cargo build`.                                   |
 | `coordinate_profile`        | `bevy_meters` (Y up, right-handed, one unit is one meter), the default. Neither the editor nor the game reads it yet; the editor and Bevy already share these axes, so nothing is converted.                                                   |
 
 For your own game, point `preview` at your game instead of `broom_preview`, for example `"arguments": ["run", "--release", "--", "--project", "broom.project.json"]`.
+
+### Start the game in the open level
+
+`preview.arguments` may name the level open in the editor. When the game starts, the editor replaces:
+
+| Placeholder                | Becomes                                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------------- |
+| `{level_id}`               | The open level's id, the name its package is published under, such as `store`.              |
+| `{level_document}`         | The absolute path of the open level's document, such as `…/broom/documents/store.json`.     |
+| `{level_export_directory}` | The absolute folder its package is built into, `<asset_root>/<level_directory>/<level_id>`. |
+
+A placeholder can be a whole argument or part of one (`--level={level_id}`). For `broom_preview`: `"arguments": ["--project", "broom.project.json", "--level", "{level_id}"]`.
+
+When the arguments use a placeholder, **Launch**, **Rebuild** and **Restart** (in the Run menu, the Game Preview panel and the MCP `game_launch`, `game_rebuild` and `game_restart` tools) first save the open level into its document. When the arguments name `{level_id}` or `{level_export_directory}`, they also build the level like **Run > Build Level**; a game that names only `{level_document}` reads the saved document, so nothing is built. If the save or the build fails, the game is not started and the panel says why. With no project level open, the start is refused with a message; open or save the scene as a project level first. The Game Preview panel shows which level the game starts in.
+
+**Run > Play Level in Game** (F9, also the **Play Level** button of the Game Preview panel and the MCP `game_play_level` tool) is the one-key way to try the level: it saves the open level and starts the game in it, or, when the game already runs, builds and starts it again so it shows the level as it is now (it restarts without building when the project names no build).
+
+A placeholder the editor does not know, such as `{level_name}`, is a project error, so a typo cannot start the game with a literal `{…}` argument. Arguments without placeholders start the game exactly as written. `bun run preview:game` refuses a project whose arguments use a placeholder, because only the editor knows the open level.
 
 ## 3. Describe the materials
 

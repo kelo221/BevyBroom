@@ -47,6 +47,7 @@ describe('EditorApiProject', () => {
       'game_rebuild',
       'game_restart',
       'game_stop',
+      'game_play_level',
       'build_level',
     ];
     expect(names).toEqual(expect.arrayContaining(projectTools));
@@ -63,6 +64,18 @@ describe('EditorApiProject', () => {
     expect(rig.workbenchRig.control.actions).toEqual(['launch', 'stop']);
     const status = await rig.api.invokeToolAsync('project_status');
     expect(status.data).toMatchObject({ canManageGames: true, project: { name: 'mcp game' } });
+  });
+
+  it('plays the open level: a start when no game runs, a rebuild when one runs', async () => {
+    const rig = projectApiRigCreate();
+    await rig.api.invokeToolAsync('project_open', { path: '/games/mcp game/broom.project.json' });
+    expect((await rig.api.invokeToolAsync('game_play_level')).ok).toBe(true);
+    const control = rig.workbenchRig.control;
+    const running = await control.statusRead();
+    control.nextStatus = { ...running, phase: 'running', generation: running.generation + 1 };
+    await rig.workbenchRig.workbench.statusRefresh();
+    expect((await rig.api.invokeToolAsync('game_play_level')).ok).toBe(true);
+    expect(control.actions).toEqual(['launch', 'rebuild']);
   });
 
   it('fails clearly without a path or when the project does not open', async () => {

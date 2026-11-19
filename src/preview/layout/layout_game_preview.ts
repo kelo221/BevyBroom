@@ -39,6 +39,8 @@ export interface LayoutGamePreviewHosts {
   statusMessageShow: (message: string) => void;
   /** Returns the active game profile exports convert through, or null. */
   gameProfileRead: () => GameProfile | null;
+  /** Writes the scene into the open project level; resolves to why not, or null. */
+  openLevelSave: () => Promise<string | null>;
 }
 
 /**
@@ -124,6 +126,8 @@ export class LayoutGamePreview {
         worldGroup: this.hosts.worldGroup,
         recentStore: new ProjectRecentStore(),
         levelBuilder: this.levelBuilderCreate(),
+        openLevelRead: () => this.projectLevelService?.openLevelRead() ?? null,
+        openLevelSave: () => this.hosts.openLevelSave(),
       });
       this.textureProjectSourceLoader = this.textureProjectSourceLoaderCreate(this.workbench);
       sprinkleDefinitionLibraryProjectSetup(this.workbench, gameProcessControlResolve());

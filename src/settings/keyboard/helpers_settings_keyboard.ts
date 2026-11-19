@@ -48,6 +48,7 @@ const KEYBOARD_SHORTCUT_ACTIONS = [
   'view_cycle',
   'view_maximize',
   'play_start',
+  'game_play_level',
   'inspector_map',
   'info_panel_toggle',
   'info_panel_collapse_toggle',

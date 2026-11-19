@@ -33,6 +33,7 @@ function hostsCreate(sceneFileName: string | null): {
     sceneFileNameRead: () => sceneFileName,
     statusMessageShow: (message) => statusMessages.push(message),
     gameProfileRead: () => null,
+    openLevelSave: async () => null,
   };
   return { hosts, applyEntries, statusMessages, panelHostReveal };
 }

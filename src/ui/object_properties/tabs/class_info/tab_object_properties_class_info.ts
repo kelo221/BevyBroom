@@ -18,6 +18,9 @@ import { ObjectPropertiesClassInfoSectionValue } from './object_properties_class
 /** Width of the right column of the Class Info tab. */
 const CLASS_INFO_RIGHT_COLUMN_WIDTH = '230px';
 
+/** Narrowest width of the left column before the right column wraps below it. */
+const CLASS_INFO_LEFT_COLUMN_MINIMUM_WIDTH = '260px';
+
 /**
  * Class Info tab of the Object Properties dialog, laid out like Hammer's: the
  * Class combo and the keyvalue table on the left; the SmartEdit and Help
@@ -110,7 +113,9 @@ export class TabObjectPropertiesClassInfo implements ObjectPropertiesTabInstance
   }
 
   /**
-   * Builds the wide left column and the fixed right column in the container.
+   * Builds the wide left column and the right column in the container. When the
+   * container is too narrow for both side by side, the right column wraps below
+   * the left one and takes the full width.
    *
    * @param container Tab page element.
    * @returns Left and right column elements.
@@ -118,15 +123,13 @@ export class TabObjectPropertiesClassInfo implements ObjectPropertiesTabInstance
   private static columnsCreate(container: HTMLElement): [HTMLElement, HTMLElement] {
     const columns = document.createElement('div');
     columns.className = 'object-properties-class-info-columns';
-    columns.style.display = 'flex';
-    columns.style.flex = '1 1 auto';
-    columns.style.minHeight = '0';
-    columns.style.gap = '12px';
-    columns.style.padding = '8px 10px';
+    columns.style.cssText = 'display:flex;flex-wrap:wrap;flex:1 1 auto;min-height:0;gap:12px;padding:8px 10px;';
     const left = document.createElement('div');
-    left.style.cssText = 'display:flex;flex-direction:column;flex:1 1 auto;min-width:0;';
+    left.className = 'object-properties-class-info-column-left';
+    left.style.cssText = `display:flex;flex-direction:column;flex:999 1 ${CLASS_INFO_LEFT_COLUMN_MINIMUM_WIDTH};min-width:0;`;
     const right = document.createElement('div');
-    right.style.cssText = `display:flex;flex-direction:column;flex:0 0 ${CLASS_INFO_RIGHT_COLUMN_WIDTH};min-width:0;`;
+    right.className = 'object-properties-class-info-column-right';
+    right.style.cssText = `display:flex;flex-direction:column;flex:1 1 ${CLASS_INFO_RIGHT_COLUMN_WIDTH};min-width:0;`;
     columns.append(left, right);
     container.appendChild(columns);
     return [left, right];

@@ -1,6 +1,13 @@
 import type * as THREE from 'three';
 import type { GameProcessControl } from '@/project/control/game_process_control.js';
-import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
+import type {
+  GameProcessAction,
+  GameProcessLevelTarget,
+  GameProcessStatus,
+  ProjectOpenResult,
+} from '@/project/process/game_process_types.js';
+import type { ProjectLevelOpen } from '@/project/level/project_level_open.js';
+import { projectWorkbenchLaunchLevelTextBuild } from '@/project/workbench/project_workbench_launch_level_text.js';
 import type { ProjectRecentStore } from '@/project/recent/project_recent_store.js';
 import { documentProjectLinkRead, documentProjectLinkWrite } from '@/project/document/document_project_link.js';
 import { ProjectIssueBoard } from '@/project/issues/project_issue_board.js';
@@ -35,6 +42,13 @@ export interface ProjectWorkbenchHosts {
   consoleReporter?: ProjectWorkbenchConsoleReporter;
   /** Builds level packages into the open project; Build Level fails without it. */
   levelBuilder?: ControllerLevelBuild;
+  /** Returns the project level the scene belongs to, or null; none by default. */
+  openLevelRead?: () => ProjectLevelOpen | null;
+  /**
+   * Writes the scene into the open project level; resolves to why nothing was
+   * written, or null. Levels are not saved before a start without it.
+   */
+  openLevelSave?: () => Promise<string | null>;
 }
 
 /**
@@ -115,17 +129,136 @@ export class ProjectWorkbench {
 
   /**
    * Starts an action on the managed game and connects the link after a start.
+   * When the game starts in the open level, the level is saved first, and built
+   * when the game reads its package; a failed save or build stops the start.
    *
    * @param action Action to start.
-   * @returns Status right after the action was scheduled.
+   * @returns Status right after the action was scheduled, or the status with
+   *   the reason the level did not build.
    */
   async actionRun(action: GameProcessAction): Promise<GameProcessStatus> {
-    const status = await this.hosts.control.actionStart(action);
+    const level = this.launchLevelTargetRead(action);
+    const prepareRefusal = level === null ? null : await this.launchLevelPrepare(level);
+    if (prepareRefusal !== null) {
+      return this.statusMessageAccept(prepareRefusal);
+    }
+    const status = await this.hosts.control.actionStart(action, level);
     this.statusAccept(status);
     if (action !== 'stop' && !this.hosts.link.isLinkActive()) {
       this.hosts.link.connect();
     }
     return status;
+  }
+
+  /**
+   * Plays the open level in the game at once: starts the game, or builds and
+   * starts it again when it already runs, so it shows the scene as it is now.
+   *
+   * @returns Status right after the action was scheduled.
+   */
+  async levelPlay(): Promise<GameProcessStatus> {
+    return this.actionRun(this.levelPlayActionRead());
+  }
+
+  /**
+   * Returns the action that plays the open level: a start when no game runs,
+   * otherwise a rebuild, or a restart when the game cannot be built.
+   *
+   * @returns Action to run.
+   */
+  private levelPlayActionRead(): GameProcessAction {
+    const phase = this.status?.phase ?? 'idle';
+    const isGameActive = phase === 'running' || phase === 'starting' || phase === 'building';
+    if (!isGameActive) {
+      return 'launch';
+    }
+    return this.status?.project?.canBuild === true ? 'rebuild' : 'restart';
+  }
+
+  /**
+   * Returns the project level the game starts in, when the open project's game
+   * starts in the open level.
+   *
+   * @returns Open level of the open project, or null when the game takes no
+   *   level or no level of the open project is open.
+   */
+  launchLevelRead(): ProjectLevelOpen | null {
+    const project = this.status?.project ?? null;
+    if (project === null || !project.isLevelLaunch) {
+      return null;
+    }
+    const openLevel = this.hosts.openLevelRead?.() ?? null;
+    return openLevel !== null && openLevel.projectFile === project.projectFile ? openLevel : null;
+  }
+
+  /**
+   * Describes which level the game starts in.
+   *
+   * @returns Text for the user, or null when the game takes no level.
+   */
+  launchLevelTextRead(): string | null {
+    return projectWorkbenchLaunchLevelTextBuild(this.status, this.launchLevelRead());
+  }
+
+  /**
+   * Returns the level an action starts the game in.
+   *
+   * @param action Action to start.
+   * @returns Level target, or null for a stop or a game that takes no level.
+   */
+  private launchLevelTargetRead(action: GameProcessAction): GameProcessLevelTarget | null {
+    const openLevel = action === 'stop' ? null : this.launchLevelRead();
+    return openLevel === null ? null : { levelId: openLevel.id, levelDocument: openLevel.document };
+  }
+
+  /**
+   * Saves the level the game is about to start in, and builds it when the game
+   * reads its package.
+   *
+   * @param level Level the game starts in.
+   * @returns Why the start stopped, or null when the level is ready.
+   */
+  private async launchLevelPrepare(level: GameProcessLevelTarget): Promise<string | null> {
+    const saveRefusal = (await this.hosts.openLevelSave?.()) ?? null;
+    if (saveRefusal !== null) {
+      return `The game was not started: level ${level.levelId} was not saved. ${saveRefusal}`;
+    }
+    if (this.status?.project?.isLevelExportLaunch !== true) {
+      return null;
+    }
+    const result = await this.levelBuild(level.levelId);
+    return result.ok ? null : `The game was not started: level ${level.levelId} did not build. ${result.message}`;
+  }
+
+  /**
+   * Keeps the newest status with another message and reports the change.
+   *
+   * @param message What happened, for the user.
+   * @returns Status holding the message.
+   */
+  private statusMessageAccept(message: string): GameProcessStatus {
+    const status = { ...(this.status ?? this.statusEmptyCreate()), message };
+    this.status = status;
+    this.changeNotify();
+    return status;
+  }
+
+  /**
+   * Creates the status of an editor without an open project.
+   *
+   * @returns Idle status without a project.
+   */
+  private statusEmptyCreate(): GameProcessStatus {
+    return {
+      project: null,
+      phase: 'idle',
+      processId: null,
+      exitCode: null,
+      diagnostics: [],
+      logTail: [],
+      message: '',
+      generation: 0,
+    };
   }
 
   /**

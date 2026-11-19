@@ -17,6 +17,9 @@ const EDITOR_API_PROJECT_ACTION_TOOLS: Readonly<Record<string, GameProcessAction
   game_stop: 'stop',
 };
 
+/** Tool that plays the open level in the game at once. */
+const EDITOR_API_PROJECT_LEVEL_PLAY_TOOL = 'game_play_level';
+
 /** Opens game projects and drives the game the editor manages. */
 export class EditorApiProject {
   private readonly host: EditorApiHost;
@@ -53,6 +56,9 @@ export class EditorApiProject {
     if (name === 'build_level') {
       return this.levelBuild(args);
     }
+    if (name === EDITOR_API_PROJECT_LEVEL_PLAY_TOOL) {
+      return this.levelPlayRun();
+    }
     const levelResult =
       this.levels.levelToolDispatchAsync(name, args) ?? this.classes.classToolDispatchAsync(name, args);
     if (levelResult !== null) {
@@ -79,6 +85,7 @@ export class EditorApiProject {
       name === 'project_open' ||
       name === 'project_status' ||
       name === 'build_level' ||
+      name === EDITOR_API_PROJECT_LEVEL_PLAY_TOOL ||
       EDITOR_API_PROJECT_LEVEL_TOOL_NAMES.includes(name) ||
       EDITOR_API_PROJECT_CLASS_TOOL_NAMES.includes(name) ||
       EDITOR_API_PROJECT_PREFAB_TOOL_NAMES.includes(name) ||
@@ -156,6 +163,20 @@ export class EditorApiProject {
   }
 
   /**
+   * Plays the open level in the game at once.
+   *
+   * @returns Result with the status right after the action was scheduled.
+   */
+  private async levelPlayRun(): Promise<McpToolResult> {
+    const workbench = this.workbenchAvailableRead();
+    if (workbench === null) {
+      return failResult(GAME_PROCESS_DESKTOP_ONLY_MESSAGE);
+    }
+    const status = await workbench.levelPlay();
+    return okResult(status.message, this.statusDataBuild(workbench, status));
+  }
+
+  /**
    * Returns the workbench when this editor can manage games.
    *
    * @returns Workbench, or null in an editor without process control.
@@ -170,7 +191,8 @@ export class EditorApiProject {
    *
    * @param workbench Project workbench.
    * @param status Status to return.
-   * @returns Status with the document and expected project ids.
+   * @returns Status with the document and expected project ids and the id of
+   *   the level the game starts in (null when it takes none).
    */
   private statusDataBuild(workbench: ProjectWorkbench, status: GameProcessStatus): Record<string, unknown> {
     return {
@@ -178,6 +200,7 @@ export class EditorApiProject {
       canManageGames: workbench.isAvailable(),
       documentProjectId: documentProjectLinkRead(this.host.worldObject),
       expectedProjectId: workbench.expectedProjectIdentifierRead(),
+      launchLevelId: workbench.launchLevelRead()?.id ?? null,
     };
   }
 }

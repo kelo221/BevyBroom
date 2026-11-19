@@ -4,7 +4,12 @@ import type {
 } from '@/level_build/publish/level_build_publish_types.js';
 import type { StandaloneHostUpdateCheck } from '@/updater/update_types.js';
 import type { TextureProjectListResult, TextureProjectReadResult } from '@/texture/project/texture_project_types.js';
-import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
+import type {
+  GameProcessAction,
+  GameProcessLevelTarget,
+  GameProcessStatus,
+  ProjectOpenResult,
+} from '@/project/process/game_process_types.js';
 import type {
   ProjectLevelCreateRequest,
   ProjectLevelListResult,
@@ -52,7 +57,10 @@ export interface ElectrobunDesktopRpcSchema {
       getMcpStatus: { params: undefined; response: McpHostStatus };
       projectChooseFile: { params: undefined; response: string | null };
       projectOpen: { params: { projectFile: string }; response: ProjectOpenResult };
-      gameProcessAction: { params: { action: GameProcessAction }; response: GameProcessStatus };
+      gameProcessAction: {
+        params: { action: GameProcessAction; level?: GameProcessLevelTarget | null };
+        response: GameProcessStatus;
+      };
       gameProcessStatus: { params: undefined; response: GameProcessStatus };
       levelPackagePublish: { params: LevelBuildPublishRequest; response: LevelBuildPublishResult };
       projectTextureList: { params: undefined; response: TextureProjectListResult };
@@ -95,7 +103,10 @@ export interface ElectrobunDesktopBunRpcClient {
     getMcpStatus: () => Promise<McpHostStatus>;
     projectChooseFile: () => Promise<string | null>;
     projectOpen: (params: { projectFile: string }) => Promise<ProjectOpenResult>;
-    gameProcessAction: (params: { action: GameProcessAction }) => Promise<GameProcessStatus>;
+    gameProcessAction: (params: {
+      action: GameProcessAction;
+      level?: GameProcessLevelTarget | null;
+    }) => Promise<GameProcessStatus>;
     gameProcessStatus: () => Promise<GameProcessStatus>;
     levelPackagePublish: (params: LevelBuildPublishRequest) => Promise<LevelBuildPublishResult>;
     projectTextureList: () => Promise<TextureProjectListResult>;

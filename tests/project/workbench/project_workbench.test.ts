@@ -4,6 +4,44 @@ import { documentProjectLinkRead, documentProjectLinkWrite } from '@/project/doc
 import { ProjectIssueBoard } from '@/project/issues/project_issue_board.js';
 import { IssueProviderProjectBuild } from '@/project/issues/issue_provider_project_build.js';
 import { gameStatusCreate, workbenchRigCreate } from './project_workbench_rig.js';
+import type { ProjectLevelOpen } from '@/project/level/project_level_open.js';
+import { PROJECT_WORKBENCH_LAUNCH_LEVEL_MISSING_TEXT } from '@/project/workbench/project_workbench_launch_level_text.js';
+
+/**
+ * Opens a project whose game starts in the open level, with a scene that
+ * belongs to one of its levels or to none.
+ *
+ * @param levelId Id of the open level, or null for a scene of no level.
+ * @param openLevelSave Saves the open level; levels are not saved without it.
+ * @param isLevelExportLaunch Whether the game reads the level's package.
+ * @returns Rig with the project open.
+ */
+async function levelLaunchRigCreate(
+  levelId: string | null,
+  openLevelSave?: () => Promise<string | null>,
+  isLevelExportLaunch = true,
+) {
+  const projectFile = '/games/zeta/broom.project.json';
+  const openLevel: ProjectLevelOpen | null =
+    levelId === null
+      ? null
+      : {
+          projectFile,
+          id: levelId,
+          name: `Level ${levelId}`,
+          document: `${levelId}.json`,
+          knownModifiedMilliseconds: 1,
+        };
+  const rig = workbenchRigCreate(undefined, () => openLevel, openLevelSave);
+  workbenches.push(rig.workbench);
+  await rig.workbench.projectOpen(projectFile);
+  const status = rig.workbench.statusRead();
+  if (status?.project) {
+    status.project.isLevelLaunch = true;
+    status.project.isLevelExportLaunch = isLevelExportLaunch;
+  }
+  return rig;
+}
 
 const workbenches: ProjectWorkbench[] = [];
 
@@ -100,5 +138,97 @@ describe('ProjectWorkbench', () => {
     const issues = new IssueProviderProjectBuild().collect();
     expect(issues.map((issue) => issue.description)).toEqual(['src/main.rs:7:3: cannot find value `speed`']);
     expect(issues[0]?.severity).toBe('error');
+  });
+
+  it('builds the open level before the game starts and starts the game in it', async () => {
+    const rig = await levelLaunchRigCreate('store');
+    expect(rig.workbench.launchLevelTextRead()).toContain('(store)');
+    await rig.workbench.actionRun('launch');
+    expect(rig.control.publishedLevels.map((request) => request.levelName)).toEqual(['store']);
+    expect(rig.control.actionLevels).toEqual([{ levelId: 'store', levelDocument: 'store.json' }]);
+    await rig.workbench.actionRun('stop');
+    expect(rig.control.actionLevels.at(-1)).toBeNull();
+    expect(rig.control.publishedLevels).toHaveLength(1);
+  });
+
+  it('does not start the game when the open level does not build', async () => {
+    const rig = await levelLaunchRigCreate('lobby');
+    rig.control.nextPublishResult = { ok: false, message: 'Disk full.' };
+    const status = await rig.workbench.actionRun('restart');
+    expect(rig.control.actions).toEqual([]);
+    expect(status.message).toContain('lobby');
+    expect(status.message).toContain('Disk full.');
+  });
+
+  it('passes no level when none is open, so the game refuses to start', async () => {
+    const rig = await levelLaunchRigCreate(null);
+    expect(rig.workbench.launchLevelTextRead()).toBe(PROJECT_WORKBENCH_LAUNCH_LEVEL_MISSING_TEXT);
+    await rig.workbench.actionRun('launch');
+    expect(rig.control.actionLevels).toEqual([null]);
+    expect(rig.control.publishedLevels).toEqual([]);
+  });
+
+  it('builds nothing and names no level for a game that takes no level', async () => {
+    const rig = workbenchRigCreate(undefined, () => ({
+      projectFile: '/games/eta/broom.project.json',
+      id: 'store',
+      name: 'Store',
+      document: 'store.json',
+      knownModifiedMilliseconds: 1,
+    }));
+    workbenches.push(rig.workbench);
+    await rig.workbench.projectOpen('/games/eta/broom.project.json');
+    await rig.workbench.actionRun('launch');
+    expect(rig.control.publishedLevels).toEqual([]);
+    expect(rig.control.actionLevels).toEqual([null]);
+    expect(rig.workbench.launchLevelTextRead()).toBeNull();
+  });
+
+  it('saves the open level before it builds it and starts nothing when the save is refused', async () => {
+    const steps: string[] = [];
+    let saveRefusal: string | null = null;
+    const rig = await levelLaunchRigCreate('store', async () => {
+      steps.push('save');
+      return saveRefusal;
+    });
+    await rig.workbench.actionRun('launch');
+    expect(steps).toEqual(['save']);
+    expect(rig.control.publishedLevels).toHaveLength(1);
+    expect(rig.control.actions).toEqual(['launch']);
+    saveRefusal = 'The document changed on disk.';
+    const status = await rig.workbench.actionRun('restart');
+    expect(status.message).toContain(saveRefusal);
+    expect(rig.control.publishedLevels).toHaveLength(1);
+    expect(rig.control.actions).toEqual(['launch']);
+  });
+
+  it('plays the level with a start, then a rebuild while the game runs, or a restart when it cannot be built', async () => {
+    const rig = await levelLaunchRigCreate('store');
+    await rig.workbench.levelPlay();
+    const statusRunning = (phase: 'running' | 'idle', canBuild: boolean) => {
+      const status = rig.workbench.statusRead();
+      if (!status?.project) throw new Error('expected an open project');
+      rig.control.nextStatus = { ...status, phase, project: { ...status.project, canBuild } };
+      return rig.workbench.statusRefresh();
+    };
+    await statusRunning('running', true);
+    await rig.workbench.levelPlay();
+    await statusRunning('running', false);
+    await rig.workbench.levelPlay();
+    expect(rig.control.actions).toEqual(['launch', 'rebuild', 'restart']);
+    expect(rig.control.actionLevels.every((level) => level?.levelId === 'store')).toBe(true);
+  });
+
+  it('saves but does not build a level whose game reads only the saved document', async () => {
+    const steps: string[] = [];
+    const save = async () => {
+      steps.push('save');
+      return null;
+    };
+    const rig = await levelLaunchRigCreate('lobby', save, false);
+    await rig.workbench.actionRun('launch');
+    expect(steps).toEqual(['save']);
+    expect(rig.control.publishedLevels).toEqual([]);
+    expect(rig.control.actionLevels).toEqual([{ levelId: 'lobby', levelDocument: 'lobby.json' }]);
   });
 });

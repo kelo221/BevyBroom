@@ -828,6 +828,10 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
       sceneFileNameRead: () => this.sceneIOHandler.sceneDocumentFileNameRead(),
       statusMessageShow: (message) => this.showStatusMessage(message),
       gameProfileRead: () => this.settingsStore?.getActiveGameProfile() ?? null,
+      openLevelSave: async () => {
+        const saved = await this.projectLevelActionsRead().levelSave(true);
+        return saved.ok ? null : saved.message;
+      },
     });
     return this.gamePreviewLayout;
   }

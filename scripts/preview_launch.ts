@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { previewLaunchCommandFromProject } from '../src/preview/launch/preview_launch_command.js';
+import { GameProcessLaunchPlaceholders } from '../src/project/process/launch_level/game_process_launch_placeholders.js';
 
 /**
  * Starts the game preview described by a broom.project.json and waits for it to
@@ -14,6 +15,10 @@ async function previewLaunchMain(): Promise<void> {
   }
   const projectFile = resolve(projectArgument);
   const command = previewLaunchCommandFromProject(readFileSync(projectFile, 'utf8'), dirname(projectFile));
+  if (GameProcessLaunchPlaceholders.isLevelNeeded(command)) {
+    console.error('The preview arguments name the open level ({level_id}); start this game from the editor instead.');
+    process.exit(2);
+  }
   console.log(
     `Starting game preview in ${command.workingDirectory}: ${command.program} ${command.arguments.join(' ')}`,
   );

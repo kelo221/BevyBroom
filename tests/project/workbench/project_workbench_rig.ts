@@ -3,6 +3,7 @@ import { ConsoleLog } from '@/info_panel/console/console_log.js';
 import { GameProcessControl } from '@/project/control/game_process_control.js';
 import type {
   GameProcessAction,
+  GameProcessLevelTarget,
   GameProcessStatus,
   ProjectOpenResult,
   ProjectSummary,
@@ -39,11 +40,14 @@ import { ProjectRecentStore } from '@/project/recent/project_recent_store.js';
 import { ProjectWorkbench, type ProjectWorkbenchLink } from '@/project/workbench/project_workbench.js';
 import { ProjectWorkbenchConsoleReporter } from '@/project/workbench/project_workbench_console_reporter.js';
 import { ControllerLevelBuild } from '@/level_build/controller_level_build.js';
+import type { ProjectLevelOpen } from '@/project/level/project_level_open.js';
 
 /** Process control that opens any file as a project named after it. */
 export class GameProcessControlFake extends GameProcessControl {
   readonly isAvailable = true;
   readonly actions: GameProcessAction[] = [];
+  /** Level passed with every action, in order. */
+  readonly actionLevels: (GameProcessLevelTarget | null)[] = [];
   chosenFile: string | null = null;
   nextStatus: GameProcessStatus | null = null;
   readonly publishedLevels: LevelBuildPublishRequest[] = [];
@@ -90,8 +94,9 @@ export class GameProcessControlFake extends GameProcessControl {
   }
 
   /** @inheritdoc */
-  async actionStart(action: GameProcessAction): Promise<GameProcessStatus> {
+  async actionStart(action: GameProcessAction, level: GameProcessLevelTarget | null): Promise<GameProcessStatus> {
     this.actions.push(action);
+    this.actionLevels.push(level);
     return this.statusRead();
   }
 
@@ -296,6 +301,8 @@ export function projectSummaryCreate(projectFile: string): ProjectSummary {
     endpoint: `http://127.0.0.1:1/${folder}`,
     canLaunch: true,
     canBuild: true,
+    isLevelLaunch: false,
+    isLevelExportLaunch: false,
     toolTextures: { nodraw: [] },
     problems: [],
   };
@@ -348,9 +355,16 @@ export class ProjectWorkbenchLinkFake implements ProjectWorkbenchLink {
  * Creates a workbench with fakes and a private console log.
  *
  * @param worldGroup World root holding the document's project link.
+ * @param openLevelRead Returns the project level the scene belongs to; none by
+ *   default.
+ * @param openLevelSave Saves the open level; levels are not saved without it.
  * @returns Workbench and its collaborators.
  */
-export function workbenchRigCreate(worldGroup: THREE.Group = new THREE.Group()) {
+export function workbenchRigCreate(
+  worldGroup: THREE.Group = new THREE.Group(),
+  openLevelRead: () => ProjectLevelOpen | null = () => null,
+  openLevelSave?: () => Promise<string | null>,
+) {
   const control = new GameProcessControlFake();
   const link = new ProjectWorkbenchLinkFake();
   const recentStore = new ProjectRecentStore(null);
@@ -363,6 +377,15 @@ export function workbenchRigCreate(worldGroup: THREE.Group = new THREE.Group()) 
     glbExport: async () => new ArrayBuffer(0),
     issuesCollect: () => [],
   });
-  const workbench = new ProjectWorkbench({ control, link, worldGroup, recentStore, consoleReporter, levelBuilder });
+  const workbench = new ProjectWorkbench({
+    control,
+    link,
+    worldGroup,
+    recentStore,
+    consoleReporter,
+    levelBuilder,
+    openLevelRead,
+    ...(openLevelSave ? { openLevelSave } : {}),
+  });
   return { control, link, worldGroup, recentStore, consoleLog, workbench };
 }

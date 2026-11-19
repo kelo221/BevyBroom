@@ -54,13 +54,13 @@ describe('SceneJSON round-trip validation', () => {
     expect(typeof entry.materialColor).toBe('number');
   });
 
-  it('should produce ObjectEntry with group UUID as parentId for direct children', () => {
+  it('should produce ObjectEntry without a parent for direct children of the serialized group', () => {
     const group = new THREE.Group();
     const mesh = createMeshWithGeometry('box');
     group.add(mesh);
     const sceneData = serializer.serialize(group);
     const entry = sceneData.objects[0]!;
-    expect(entry.parentId).toBe(group.uuid);
+    expect(entry.parentId).toBeNull();
   });
 
   it('should produce ObjectEntry with group type and no geometry fields', () => {

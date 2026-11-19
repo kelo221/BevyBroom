@@ -8,6 +8,8 @@ export interface GameProcessFakeRun {
   isTerminated: boolean;
   /** Ends the program on its own with an exit code. */
   exit(code: number): void;
+  /** Prints one output line as the program. */
+  print(line: string): void;
 }
 
 /**
@@ -34,6 +36,7 @@ export class GameProcessSpawnerFake extends GameProcessSpawner {
       resolveExit = resolve;
     });
     const run = this.runCreate(command, exited, resolveExit);
+    run.print = onOutputLine;
     this.runs.push(run);
     if (command.arguments[0] === 'build') {
       this.buildOutput.forEach(onOutputLine);
@@ -67,6 +70,7 @@ export class GameProcessSpawnerFake extends GameProcessSpawner {
     const run: GameProcessFakeRun = {
       command,
       isTerminated: false,
+      print: () => {},
       exit: (code) => {
         run.isTerminated = true;
         resolveExit(code);

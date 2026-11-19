@@ -1,5 +1,9 @@
 import type { PreviewLaunchCommand } from '@/preview/launch/preview_launch_command.js';
 import type { ProjectDefinition, ProjectProblem } from '@/project/model/project_definition.js';
+import {
+  GAME_PROCESS_LAUNCH_PLACEHOLDER_NAMES,
+  GameProcessLaunchPlaceholders,
+} from '@/project/process/launch_level/game_process_launch_placeholders.js';
 
 /** File system questions the validator asks. */
 export interface ProjectFileSystemProbe {
@@ -37,6 +41,7 @@ export class ProjectDefinitionValidator {
     if (definition.launch) {
       problems.push(...ProjectDefinitionValidator.commandProblems('launch', definition.launch, probe));
       problems.push(...ProjectDefinitionValidator.endpointProblems(definition.launch.endpoint));
+      problems.push(...ProjectDefinitionValidator.launchPlaceholderProblems(definition.launch));
     }
     if (definition.build) {
       problems.push(...ProjectDefinitionValidator.commandProblems('build', definition.build, probe));
@@ -54,6 +59,21 @@ export class ProjectDefinitionValidator {
     );
     problems.push(...ProjectDefinitionValidator.levelDocumentProblems(definition, probe));
     return problems;
+  }
+
+  /**
+   * Explains every placeholder in the game's arguments the editor cannot fill
+   * in.
+   *
+   * @param launch Command that starts the game.
+   * @returns One error per unknown placeholder.
+   */
+  private static launchPlaceholderProblems(launch: PreviewLaunchCommand): ProjectProblem[] {
+    const knownNames = GAME_PROCESS_LAUNCH_PLACEHOLDER_NAMES.map((name) => `{${name}}`).join(', ');
+    return GameProcessLaunchPlaceholders.unknownNamesRead(launch.arguments).map((name) => ({
+      severity: 'error' as const,
+      message: `The preview arguments name the unknown placeholder {${name}}; the editor fills in ${knownNames}.`,
+    }));
   }
 
   /**

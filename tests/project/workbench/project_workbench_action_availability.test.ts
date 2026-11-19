@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { GameProcessAction, GameProcessPhase } from '@/project/process/game_process_types.js';
-import { projectWorkbenchActionIsAvailable } from '@/project/workbench/project_workbench_action_availability.js';
+import {
+  projectWorkbenchActionIsAvailable,
+  projectWorkbenchLevelPlayIsAvailable,
+} from '@/project/workbench/project_workbench_action_availability.js';
 import {
   PROJECT_WORKBENCH_NO_PREVIEW_TEXT,
   projectWorkbenchStatusLinesBuild,
@@ -64,5 +67,21 @@ describe('projectWorkbenchActionIsAvailable', () => {
     expect(lines.map((line) => line.text)).toContain('src/lib.rs:2:9: expected `;`');
     expect(lines.at(-1)?.isError).toBe(true);
     expect(projectWorkbenchStatusLinesBuild(null, false)[0]?.text).toContain('No project open');
+  });
+
+  it('offers Play Level whenever the game can be started or started again, and never mid-stop', () => {
+    const project = projectSummaryCreate('/games/f/broom.project.json');
+    expect(projectWorkbenchLevelPlayIsAvailable(gameStatusCreate(project, 'idle'))).toBe(true);
+    expect(projectWorkbenchLevelPlayIsAvailable(gameStatusCreate(project, 'running'))).toBe(true);
+    expect(projectWorkbenchLevelPlayIsAvailable(gameStatusCreate(project, 'stopping'))).toBe(false);
+    project.canLaunch = false;
+    expect(projectWorkbenchLevelPlayIsAvailable(gameStatusCreate(project, 'idle'))).toBe(false);
+    expect(projectWorkbenchLevelPlayIsAvailable(null)).toBe(false);
+  });
+
+  it('names the level the game starts in among the status lines', () => {
+    const status = gameStatusCreate(projectSummaryCreate('/games/g/broom.project.json'), 'idle');
+    const lines = projectWorkbenchStatusLinesBuild(status, false, 'Starts in: Store (store)');
+    expect(lines.map((line) => line.text)).toContain('Starts in: Store (store)');
   });
 });
