@@ -325,11 +325,11 @@ describe('ShellMenuView sounds', () => {
 });
 
 describe('ShellMenuHelp', () => {
-  it('opens the MCP server dialog and keeps window and sound rows out of Help', () => {
+  it('opens the MCP page of Settings and keeps window and sound rows out of Help', () => {
     const { context, toolbarActions } = shellMenuBarTestRigCreate();
     const entries = shellMenuBarTestEntriesBuild(context, 'Help');
-    shellTestMenuActionFind(entries, 'MCP Server…').onClick();
-    expect(toolbarActions.onOpenMcpDialog).toHaveBeenCalledTimes(1);
+    shellTestMenuActionFind(entries, 'MCP Server Settings…').onClick();
+    expect(toolbarActions.onOpenMcpSettings).toHaveBeenCalledTimes(1);
     expect(shellTestMenuLabelsRead(entries)).not.toContain('AI Captures (Debug)…');
     expect(shellTestMenuLabelsRead(entries)).not.toContain('Editor Sounds');
   });

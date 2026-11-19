@@ -72,14 +72,13 @@ export interface EditorToolbarActions {
   onToggleSettingsDialog: () => void;
   onOpenDocumentation: () => void;
   onOpenAboutDialog: () => void;
-  onOpenMcpDialog: () => void;
+  onOpenMcpSettings: () => void;
   onRevealGamePreviewPanel: () => void;
   /** Returns the project workbench that opens game projects and runs their game. */
   gameProjectWorkbenchRead: () => ProjectWorkbench;
   /** Returns the actions on the open project's levels. */
   projectLevelActionsRead: () => ProjectLevelActions;
   onOpenDetachedViewport: () => void;
-  onToggleAiCaptureDebugPanel: () => void;
   onToggleAudio: () => void;
   onDeleteSelected: () => void;
   onDuplicateSelected: () => void;

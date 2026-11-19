@@ -7,7 +7,7 @@ This is **not** available in the GitHub Pages / browser build.
 ## Start the server
 
 1. Run the **desktop** app (`bun run desktop:dev` or a packaged Electrobun build).
-2. Click the **MCP** icon on the **main toolbar** (rightmost control).
+2. Click the **MCP** icon on the **main toolbar** (rightmost control), which opens the **MCP** page of Settings.
 3. Click **Start server**.
 4. Copy the **URL** (for example `http://127.0.0.1:18765/mcp`).
 
@@ -202,7 +202,7 @@ max_output_bytes = 200000
 1. Text JSON: `ok`, `message`, camera position/lookAt, size, framed brush ids, compression flags
 2. Image content: `image/jpeg` (the picture itself)
 
-**Local debug UI:** every successful `capture_view` is also stored in the floating **AI Captures** window (toolbar button next to **Detached Viewport**). Open it to inspect thumbnails, camera summary, shading, and size. Use **Clear** to drop the history (max 48 images).
+**Local debug UI:** every successful `capture_view` is also stored in the floating **AI Captures** window (**Settings > MCP > AI Captures…**). Open it to inspect thumbnails, camera summary, shading, and size. Use **Clear** to drop the history (max 48 images).
 
 **Example — look at a wall by name (preferred):**
 
@@ -430,4 +430,4 @@ A modifier volume is an editor-only box with an ordered modifier stack. The soli
 - **Bun process** (`src/ai/server/`): hand-rolled Streamable HTTP + JSON-RPC
 - **Webview** (`src/ai/client/`): `EditorApi` facade over existing solid commands
 - Bridge: Electrobun RPC (`startMcpServer` / `invokeEditorTool`)
-- UI: main toolbar **MCP** button → simple dialog with Start / URL / Copy
+- UI: main toolbar **MCP** button → **MCP** page of Settings with Start / URL / Copy and the AI Captures debug window

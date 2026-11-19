@@ -1,5 +1,4 @@
 import { getMcpDesktopBridge } from '@/ai/client/bridge_mcp_desktop.js';
-import { showMcpDialog } from '@/ai/client/dialog_mcp.js';
 import { DocumentationLink } from '@/ui/link/documentation_link.js';
 import type { StatusBar } from '@/ui/status/status_bar.js';
 import type { Toolbar } from '@/ui/toolbar/toolbar.js';
@@ -13,29 +12,6 @@ import type { TextureLockSettings } from '@/texture/lock/texture_lock_settings.j
 import type { HandlerKeyboardShortcut } from '@/input/handler_keyboard_shortcut.js';
 import type * as THREE from 'three';
 import type { ViewportEditor } from '@/viewports/core/viewport_editor.js';
-
-/**
- * Opens the MCP connection dialog from the main toolbar.
- *
- * @param container Editor shell container.
- * @param toolbar Main toolbar, if present.
- * @param statusBar Status bar, if present.
- * @param showStatusMessage Status message callback.
- */
-export function openLayoutMcpDialog(
-  container: HTMLElement,
-  toolbar: Toolbar | null,
-  statusBar: StatusBar | null,
-  showStatusMessage: (message: string) => void,
-): void {
-  void showMcpDialog({
-    host: container,
-    bridge: getMcpDesktopBridge(),
-    showStatus: showStatusMessage,
-    onRunningChanged: (running) => setLayoutMcpToolbarButtonActive(toolbar, running),
-  });
-  statusBar?.setLastAction('MCP dialog opened');
-}
 
 /**
  * Queries desktop MCP host status and glows the toolbar MCP button when

@@ -25,7 +25,7 @@ From left to right:
 - **Pos Lock** and **Stretch Lock** keep textures in place while brushes move or
   stretch.
 - The **MCP** server button on the far right, highlighted while the
-  server runs.
+  server runs. It opens the **MCP** page of Settings.
 
 ## Tools palette
 

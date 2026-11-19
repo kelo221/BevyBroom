@@ -18,9 +18,12 @@ import { SettingsKeyboardTab } from './settings_keyboard_tab.js';
 import { SettingsMouseTab } from './settings_mouse_tab.js';
 import { SettingsUpdaterTab } from './settings_updater_tab.js';
 import { SettingsViewTab } from './settings_view_tab.js';
+import { SettingsMcpTab, type SettingsMcpTabServices } from './settings_mcp_tab.js';
 
-/** Optional hooks for settings dialog actions that need the host app. */
+/** Hooks for settings dialog actions that need the host app. */
 export interface SettingsDialogOptions {
+  /** Editor services of the MCP page. */
+  mcp: SettingsMcpTabServices;
   /**
    * Invoked after the user confirms Reset. Should clear storage and restore the
    * editor to factory defaults (typically a full page reload).
@@ -29,7 +32,7 @@ export interface SettingsDialogOptions {
 }
 
 /**
- * Modal settings window with Games, View, Mouse, Keyboard, and Update tabs.
+ * Modal settings window with Games, View, Mouse, Keyboard, MCP and Update tabs.
  * Windowing comes from {@link PanelFloating}.
  */
 export class DialogSettings extends PanelFloating {
@@ -40,6 +43,7 @@ export class DialogSettings extends PanelFloating {
   private readonly keyboardTab: SettingsKeyboardTab;
   private readonly mouseTab: SettingsMouseTab;
   private readonly updaterTab: SettingsUpdaterTab;
+  private readonly mcpTab: SettingsMcpTab;
   private readonly onResetAllSettings: (() => void | Promise<void>) | null;
   private readonly unsubscribe: () => void;
   private activeTabId: SettingsTabId;
@@ -53,7 +57,7 @@ export class DialogSettings extends PanelFloating {
    * @param store Shared editor settings store.
    * @param options Optional host hooks (reset).
    */
-  constructor(host: HTMLElement, store: EditorSettingsStore, options: SettingsDialogOptions = {}) {
+  constructor(host: HTMLElement, store: EditorSettingsStore, options: SettingsDialogOptions) {
     super(host, {
       corner: 'top-left',
       modal: true,
@@ -76,6 +80,7 @@ export class DialogSettings extends PanelFloating {
     this.keyboardTab = new SettingsKeyboardTab(store);
     this.mouseTab = new SettingsMouseTab(store);
     this.updaterTab = new SettingsUpdaterTab(store);
+    this.mcpTab = new SettingsMcpTab(options.mcp);
     this.buildDialog();
     this.unsubscribe = store.subscribe(() => this.handleStoreChanged());
     this.showTab('games');
@@ -126,6 +131,9 @@ export class DialogSettings extends PanelFloating {
     this.activeTabId = tabId;
     if (tabId === 'update') {
       this.updaterTab.activate();
+    }
+    if (tabId === 'mcp') {
+      void this.mcpTab.activate();
     }
   }
 
@@ -288,6 +296,9 @@ export class DialogSettings extends PanelFloating {
     }
     if (tabId === 'update') {
       return this.updaterTab.getElement();
+    }
+    if (tabId === 'mcp') {
+      return this.mcpTab.getElement();
     }
     return this.gamesTab.getElement();
   }

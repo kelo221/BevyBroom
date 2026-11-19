@@ -23,7 +23,7 @@ export class ShellMenuHelp extends ShellMenu {
         nativeApplicationSlot: 'about',
       }),
       this.separatorEntry(),
-      this.actionEntry(context, 'MCP Server…', () => actions.onOpenMcpDialog()),
+      this.actionEntry(context, 'MCP Server Settings…', () => actions.onOpenMcpSettings()),
     ];
   }
 

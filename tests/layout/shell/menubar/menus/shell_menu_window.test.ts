@@ -100,14 +100,13 @@ describe('ShellMenuWindow', () => {
     expect(shellTestMenuShortcutRead(row)).toBe(shellTestShortcutLabelFormat('inspector_map'));
   });
 
-  it('opens the Solid Model panel, a detached viewport and the AI capture panel', () => {
+  it('opens the Solid Model panel and a detached viewport and keeps debug windows out', () => {
     const { entries, toolbarActions } = shellMenuWindowTestRigCreate();
     shellTestMenuActionFind(entries, 'Solid Model…').onClick();
     shellTestMenuActionFind(entries, 'Detached Viewport…').onClick();
-    shellTestMenuActionFind(entries, 'AI Captures (Debug)…').onClick();
     expect(toolbarActions.onToggleSolidModelPanel).toHaveBeenCalledTimes(1);
     expect(toolbarActions.onOpenDetachedViewport).toHaveBeenCalledTimes(1);
-    expect(toolbarActions.onToggleAiCaptureDebugPanel).toHaveBeenCalledTimes(1);
+    expect(shellTestMenuLabelsRead(entries).filter((label) => label.includes('AI Captures'))).toEqual([]);
   });
 
   it('tiles the open floating tool windows and resets the window layout', () => {

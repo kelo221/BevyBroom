@@ -218,7 +218,7 @@ export class ShellToolBarBuilder {
    * @param actions Scene toolbar actions.
    */
   private mcpButtonAdd(toolbar: Toolbar, actions: EditorToolbarActions): void {
-    toolbar.addIconButton('MCP', IconHammerCatalog.toolbarSvg('run_mcp'), () => actions.onOpenMcpDialog()).title =
+    toolbar.addIconButton('MCP', IconHammerCatalog.toolbarSvg('run_mcp'), () => actions.onOpenMcpSettings()).title =
       'MCP server (highlighted when running)';
     toolbar.setButtonActiveByLabel('MCP', false);
   }

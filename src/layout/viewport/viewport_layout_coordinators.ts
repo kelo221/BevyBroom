@@ -42,7 +42,7 @@ import {
   createLayoutSnapSettingsController,
   openLayoutDetachedViewport,
   openLayoutDocumentation,
-  openLayoutMcpDialog,
+  setLayoutMcpToolbarButtonActive,
   toggleLayoutSolidModelPanel,
 } from '@/layout/setup/layout_toolbar_actions.js';
 import {
@@ -51,6 +51,7 @@ import {
   openLayoutAboutDialog,
   type LayoutSettingsCreateDeps,
 } from '@/layout/setup/layout_settings_system.js';
+import { getMcpDesktopBridge } from '@/ai/client/bridge_mcp_desktop.js';
 import { LayoutGamePreview } from '@/preview/layout/layout_game_preview.js';
 import { LayoutGamePreviewStripBinding } from '@/preview/layout/layout_game_preview_strip_binding.js';
 import type { ProjectLevelActions } from '@/project/level/project_level_actions.js';
@@ -801,16 +802,13 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     return viewport ? viewport.getContainer() : null;
   }
 
-  /** Toggles the floating AI Captures debug panel. */
-  protected onToggleAiCaptureDebugPanel(): void {
-    if (!this.aiCaptureDebugPanel) {
-      this.setupAiCaptureDebugPanel();
-    }
-    this.aiCaptureDebugPanel?.toggle();
-    if (this.aiCaptureDebugPanel?.isOpen()) {
-      this.aiCaptureDebugPanel.refresh();
-      this.statusBar?.setLastAction('AI Captures panel opened');
-    }
+  /** Closes Settings and shows the floating AI Captures debug panel. */
+  protected aiCaptureDebugPanelOpen(): void {
+    this.settingsDialog?.hide();
+    this.setupAiCaptureDebugPanel();
+    this.aiCaptureDebugPanel?.show();
+    this.aiCaptureDebugPanel?.refresh();
+    this.statusBar?.setLastAction('AI Captures panel opened');
   }
 
   /**
@@ -839,9 +837,12 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     return this.gamePreviewLayout;
   }
 
-  /** Opens the MCP connection dialog from the main toolbar. */
-  protected onOpenMcpDialog(): void {
-    openLayoutMcpDialog(this.container, this.toolbar, this.statusBar, (message) => this.showStatusMessage(message));
+  /** Opens Settings on its MCP page. */
+  protected onOpenMcpSettings(): void {
+    this.ensureSettingsDialog();
+    this.settingsDialog?.show();
+    this.settingsDialog?.showTab('mcp');
+    this.statusBar?.setLastAction('MCP settings opened');
   }
 
   /** Toggles editor audio feedback and reports the new state. */
@@ -953,7 +954,12 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     if (!store) {
       return;
     }
-    this.settingsDialog = createLayoutSettingsDialog(this.container, store);
+    this.settingsDialog = createLayoutSettingsDialog(this.container, store, {
+      bridgeRead: () => getMcpDesktopBridge(),
+      statusShow: (message) => this.showStatusMessage(message),
+      runningChanged: (isRunning) => setLayoutMcpToolbarButtonActive(this.toolbar, isRunning),
+      aiCapturesOpen: () => this.aiCaptureDebugPanelOpen(),
+    });
     this.registerToolEditorGuiSurface(this.settingsDialog, 'settings_dialog');
   }
 
