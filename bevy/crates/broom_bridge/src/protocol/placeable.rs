@@ -135,13 +135,17 @@ fn default_times_to_fire() -> i32 {
 
 /// The box the editor draws as the marker of a game entity carrying a class, in metres in the
 /// entity's own space.
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct PlaceableMarkerBox {
     /// Edge lengths along x, y and z.
     pub size: [f32; 3],
     /// Where the box's centre sits relative to the entity's origin.
     #[serde(default)]
     pub offset: [f32; 3],
+    /// A binary glTF model, relative to the project's asset root, that the editor draws at the
+    /// entity's origin inside the box.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
 }
 
 /// A component type the game lets the editor place.

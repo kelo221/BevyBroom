@@ -20,6 +20,7 @@ import {
   type DataAssetReadArgs,
   type DataAssetWriteArgs,
   type GameComponentsSetArgs,
+  type GameEntityModelReadArgs,
   type GameEntityAddArgs,
 } from './editor_api_game_entities.js';
 import { EditorApiPreview, type PreviewConnectArgs } from './editor_api_preview.js';
@@ -344,6 +345,8 @@ export class EditorApi {
         return this.gameEntities.gameEntityAdd(args as GameEntityAddArgs);
       case 'set_game_components':
         return this.gameEntities.gameComponentsSet(args as unknown as GameComponentsSetArgs);
+      case 'read_game_entity_model':
+        return this.gameEntities.gameEntityModelRead(args as unknown as GameEntityModelReadArgs);
       case 'read_data_asset':
       case 'write_data_asset':
         return { ok: false, message: `${name} waits for the game; call it through invokeToolAsync` };

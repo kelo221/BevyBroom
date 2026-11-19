@@ -24,6 +24,7 @@ import { GameEntityDataAssetClient } from '@/game_entity/data_asset/game_entity_
 import { GameEntityOwner } from '@/game_entity/owner/game_entity_owner.js';
 import { editorApiTransformApply, type EditorApiTransformArgs } from './editor_api_transform.js';
 import { CommandPrimitiveCreate } from '@/tools/creation/commands/command_primitive_create.js';
+import { editorApiGameEntityModelReport } from './editor_api_game_entity_model.js';
 
 /** Arguments of the add_game_entity tool. */
 export interface GameEntityAddArgs extends EditorApiTransformArgs {
@@ -42,6 +43,11 @@ export interface GameComponentsSetArgs {
 export interface LogicOutputsSetArgs {
   id: string;
   outputs: unknown;
+}
+
+/** Arguments of the read_game_entity_model tool. */
+export interface GameEntityModelReadArgs {
+  id: string;
 }
 
 /** Arguments of the read_logic_outputs tool. */
@@ -145,6 +151,22 @@ export class EditorApiGameEntities {
       this.host.refreshAfterWorldMutation();
     }
     return okResult(`Updated game components of ${object.name}`, { id: object.uuid, components: patched.components });
+  }
+
+  /**
+   * Describes the model a game entity's marker draws.
+   *
+   * @param args Game entity id.
+   * @returns Result with the model path, whether it is drawn and its size.
+   */
+  gameEntityModelRead(args: GameEntityModelReadArgs): McpToolResult {
+    const object = this.objectFind(args.id);
+    if (!object || !GameEntityOwner.isOwner(object)) {
+      return failResult(`No game entity with id ${args.id}`);
+    }
+    const report = editorApiGameEntityModelReport(object);
+    const state = report.model === null ? 'no model' : report.isDrawn ? 'drawn' : 'not drawn yet';
+    return okResult(`Model of ${object.name}: ${report.model ?? 'none'} (${state})`, report);
   }
 
   /**

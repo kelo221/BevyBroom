@@ -68,6 +68,7 @@ app.register_data_asset::<DoorStats>("door.ron")
 ```
 
 - `register_placeable::<T>(options)` makes a component placeable. `PlaceableOptions::point()` offers it on new Game Entities; `PlaceableOptions::any()` also offers it on brushes, meshes, lights, rooms and portals. `category`, `label` and `marker_color` control how the editor lists and draws it.
+- `marker_box(size, offset)` draws the marker as a box; `marker_box_field("kind")` with `marker_box_for("Iron", size, offset)` picks the box by a field's value, and the editor offers one Add menu entry per boxed value. `marker_model_for("Iron", "models/iron_door.glb")` makes the editor draw that model (a `.glb` path relative to the project's asset root) at the entity's origin while the field holds that value.
 - Field attributes: `FieldRange::new(min, max)`, `FieldStep(step)`, `FieldLabel("text")` and `FieldHidden` (the editor does not show the field).
 - `register_placeable_asset::<A>(&["ext"])` lets `Handle<A>` fields pick files with those extensions.
 - `register_data_asset::<A>("ext")` does the same and also makes the files editable from the editor. It installs a loader for `A`.
@@ -110,7 +111,7 @@ Missing fields keep their Rust default, so an empty file is a valid asset with d
 
 Connect the game preview first (see [Game preview and lights](game_preview.md)). The editor asks the game for its classes and keeps a copy per project, so the components stay editable after the game is closed; a saved scene also keeps a copy of the classes it uses. A project can also declare its classes in a file, so every level has them without the game ever running; see [Project classes and prefabs](project_classes_and_prefabs.md).
 
-- **Add > Game Entities > Empty Game Entity** adds a point object (a small translucent box with a puzzle piece icon inside, which you click to select it) with no components. The submenus below it list the point classes by category; picking one adds a Game Entity that already carries that component, tinted with the class's marker color.
+- **Add > Game Entities > Empty Game Entity** adds a point object (a small translucent box with a puzzle piece icon inside, which you click to select it) with no components. The submenus below it list the point classes by category; picking one adds a Game Entity that already carries that component, tinted with the class's marker color. A class that picks its marker box by a field value is a submenu with one entry per value, which adds the entity with that value set and draws the value's model when its box names one.
 - The **Class Info** tab of Object Properties (`Alt+Enter`) works on any selection. The **Class** combo converts the object in place. **Add** attaches a component, **×** removes it.
 - Fields start at the game's defaults. A changed field is highlighted and gets a **↺** button that resets it to the default. When several objects with different values are selected, the field is shown blank, and an edit sets all of them.
 - All edits, including adding and removing components, are part of undo and redo and go to the running game live.

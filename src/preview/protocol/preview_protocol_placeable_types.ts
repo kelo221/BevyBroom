@@ -81,11 +81,14 @@ export interface PreviewPlaceableField {
 /**
  * Box the editor draws as the marker of a game entity carrying a class, in
  * meters in the entity's own space: its edge lengths and where its center sits
- * relative to the entity's origin.
+ * relative to the entity's origin. A box may name a binary glTF model, a path
+ * relative to the project's asset root, that the editor draws at the entity's
+ * origin inside the box.
  */
 export interface PreviewPlaceableMarkerBox {
   size: [number, number, number];
   offset: [number, number, number];
+  model?: string;
 }
 
 /** Every way a game treats the collision of a brush entity, the default first. */

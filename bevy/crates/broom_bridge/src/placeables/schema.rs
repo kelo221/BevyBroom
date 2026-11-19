@@ -67,7 +67,7 @@ pub(crate) fn class_describe(
         category: options.category.clone(),
         placement: options.placement,
         marker_color: options.marker_color.to_f32_array_no_alpha(),
-        marker_box: options.marker_box,
+        marker_box: options.marker_box.clone(),
         marker_box_field: options.marker_box_field.clone(),
         marker_boxes: options.marker_boxes.clone(),
         collision: options.collision,

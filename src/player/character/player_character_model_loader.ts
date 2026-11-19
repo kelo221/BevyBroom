@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GlbSceneParser } from '@/io/glb/glb_scene_parser.js';
 import { playerCharacterModelUrl } from './player_character_model_url.js';
 import { playerCharacterPrepareModelScene } from './player_character_model_prepare.js';
 
@@ -48,7 +48,7 @@ export function playerCharacterEnsureModelLoaded(modelUrl?: string): Promise<THR
  * @returns Promise resolving when the template is ready.
  */
 export async function playerCharacterLoadModelFromArrayBuffer(buffer: ArrayBuffer | ArrayBufferView): Promise<void> {
-  const scene = await parseGlbArrayBuffer(copyToRealmArrayBuffer(buffer));
+  const scene = await GlbSceneParser.parse(buffer);
   preparedTemplate = playerCharacterPrepareModelScene(scene);
   loadPromise = Promise.resolve(preparedTemplate);
 }
@@ -80,45 +80,6 @@ async function loadModelFromUrl(url: string): Promise<THREE.Group> {
     throw new Error(`Failed to load character model: ${response.status}`);
   }
   const buffer = await response.arrayBuffer();
-  const scene = await parseGlbArrayBuffer(copyToRealmArrayBuffer(buffer));
+  const scene = await GlbSceneParser.parse(buffer);
   return playerCharacterPrepareModelScene(scene);
-}
-
-/**
- * Parses a GLB ArrayBuffer into a Three.js scene graph.
- *
- * @param buffer Binary glTF buffer in the current JS realm.
- * @returns Parsed scene root.
- */
-function parseGlbArrayBuffer(buffer: ArrayBuffer): Promise<THREE.Group> {
-  return new Promise((resolve, reject) => {
-    const loader = new GLTFLoader();
-    loader.parse(
-      buffer,
-      '',
-      (gltf) => {
-        resolve(gltf.scene);
-      },
-      (error) => {
-        reject(error);
-      },
-    );
-  });
-}
-
-/**
- * Copies bytes into a new ArrayBuffer in the current realm for GLTFLoader
- * checks.
- *
- * @param source Source buffer or typed array view.
- * @returns Fresh ArrayBuffer containing the same bytes.
- */
-function copyToRealmArrayBuffer(source: ArrayBuffer | ArrayBufferView): ArrayBuffer {
-  const bytes =
-    source instanceof ArrayBuffer
-      ? new Uint8Array(source)
-      : new Uint8Array(source.buffer, source.byteOffset, source.byteLength);
-  const copy = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(copy).set(bytes);
-  return copy;
 }

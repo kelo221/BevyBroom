@@ -29,6 +29,15 @@ export const MCP_GAME_ENTITY_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   ),
   tool(
+    'read_game_entity_model',
+    "The model a game entity's marker box names (a .glb path relative to the asset root) and whether the editor draws it: isDrawn, failure (why it could not be loaded) and the drawn size in meters in the entity's own space. Starts loading the model when it was not loaded yet.",
+    {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Game entity id (uuid).' } },
+      required: ['id'],
+    },
+  ),
+  tool(
     'set_game_components',
     'Set, add or remove game components of any object: brushes, solids, groups, lights, rooms, portals or game entities (undoable). Listed components are attached when missing; fields equal to the default drop their override.',
     {

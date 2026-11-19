@@ -108,6 +108,16 @@ impl PlaceableOptions {
         self
     }
 
+    /// Draws the binary glTF model at `model`, a path relative to the project's asset root,
+    /// inside the editor marker box picked by the field value `value`. A value without a box
+    /// given with [`Self::marker_box_for`] is left without a model.
+    pub fn marker_model_for(mut self, value: &str, model: impl Into<String>) -> Self {
+        if let Some(marker_box) = self.marker_boxes.get_mut(value) {
+            marker_box.model = Some(model.into());
+        }
+        self
+    }
+
     /// Declares an entity I/O input pin on this class.
     pub fn with_input(mut self, pin: PlaceableIoPin) -> Self {
         self.inputs.push(pin);
@@ -126,6 +136,7 @@ fn marker_box_of(size: Vec3, offset: Vec3) -> PlaceableMarkerBox {
     PlaceableMarkerBox {
         size: size.to_array(),
         offset: offset.to_array(),
+        model: None,
     }
 }
 

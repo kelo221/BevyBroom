@@ -54,7 +54,7 @@ export class GameEntityVisualMarkerBox {
    * @returns Value text, or null when the class names no field, the field is
    *   unknown or its value is not text, a number or a boolean.
    */
-  private static fieldValueTextOf(gameClass: GameEntityClass, components: GameEntityComponents): string | null {
+  static fieldValueTextOf(gameClass: GameEntityClass, components: GameEntityComponents): string | null {
     const fieldPath = gameClass.marker_box_field;
     const field = fieldPath === undefined ? null : GameEntityComponentResolver.fieldFind(gameClass, fieldPath);
     if (field === null) {

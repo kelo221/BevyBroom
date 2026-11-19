@@ -1,3 +1,4 @@
+import type { ProjectFileReadResult } from '@/project/files/project_file_read_result.js';
 import type {
   LevelBuildPublishRequest,
   LevelBuildPublishResult,
@@ -65,6 +66,7 @@ export interface ElectrobunDesktopRpcSchema {
       levelPackagePublish: { params: LevelBuildPublishRequest; response: LevelBuildPublishResult };
       projectTextureList: { params: undefined; response: TextureProjectListResult };
       projectTextureRead: { params: { path: string }; response: TextureProjectReadResult };
+      projectModelRead: { params: { path: string }; response: ProjectFileReadResult };
       projectSprinkleDefinitionFilesRead: { params: undefined; response: SprinkleDefinitionFilesReadResult };
       projectSprinkleDefinitionOpen: { params: { path: string }; response: SprinkleDefinitionOpenResult };
       projectLevelList: { params: undefined; response: ProjectLevelListResult };
@@ -111,6 +113,7 @@ export interface ElectrobunDesktopBunRpcClient {
     levelPackagePublish: (params: LevelBuildPublishRequest) => Promise<LevelBuildPublishResult>;
     projectTextureList: () => Promise<TextureProjectListResult>;
     projectTextureRead: (params: { path: string }) => Promise<TextureProjectReadResult>;
+    projectModelRead: (params: { path: string }) => Promise<ProjectFileReadResult>;
     projectSprinkleDefinitionFilesRead: () => Promise<SprinkleDefinitionFilesReadResult>;
     projectSprinkleDefinitionOpen: (params: { path: string }) => Promise<SprinkleDefinitionOpenResult>;
     projectLevelList: () => Promise<ProjectLevelListResult>;

@@ -79,7 +79,8 @@ fn marker_boxes_are_described_with_their_options() {
         door.marker_box,
         Some(PlaceableMarkerBox {
             size: [1.0, 2.0, 0.2],
-            offset: [0.0, 1.0, 0.0]
+            offset: [0.0, 1.0, 0.0],
+            model: None
         })
     );
     assert_eq!(door.marker_box_field.as_deref(), Some("kind"));
@@ -89,6 +90,11 @@ fn marker_boxes_are_described_with_their_options() {
         .expect("the iron box is described");
     assert_eq!(iron.size, [3.0, 2.5, 0.4]);
     assert_eq!(iron.offset, [1.5, 1.25, 0.0]);
+    assert_eq!(iron.model.as_deref(), Some("models/iron_door.glb"));
+    assert!(
+        !door.marker_boxes.contains_key("Glass"),
+        "a model for a value without a box adds no box"
+    );
     let weight = class_of::<TestWeight>(&list);
     assert_eq!(weight.marker_box, None);
     assert!(weight.marker_boxes.is_empty());

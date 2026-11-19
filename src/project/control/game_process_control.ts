@@ -1,3 +1,4 @@
+import type { ProjectFileReadResult } from '@/project/files/project_file_read_result.js';
 import type {
   ProjectDataFileChangeResult,
   ProjectDataFileKind,
@@ -96,6 +97,14 @@ export abstract class GameProcessControl {
    * @returns The bytes as base64, or why the file is not returned.
    */
   abstract projectTextureRead(path: string): Promise<TextureProjectReadResult>;
+
+  /**
+   * Reads one binary glTF model below the open project's asset root.
+   *
+   * @param path Model path relative to the asset root.
+   * @returns The bytes as base64, or why the file is not returned.
+   */
+  abstract projectModelRead(path: string): Promise<ProjectFileReadResult>;
 
   /**
    * Reads every sprinkle definition file of the open project's sprinkle
@@ -254,6 +263,15 @@ export class GameProcessControlUnavailable extends GameProcessControl {
    * @returns Failure result.
    */
   async projectTextureRead(): Promise<TextureProjectReadResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
+   * Explains that project models need the desktop app.
+   *
+   * @returns Failure result.
+   */
+  async projectModelRead(): Promise<ProjectFileReadResult> {
     return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
   }
 
