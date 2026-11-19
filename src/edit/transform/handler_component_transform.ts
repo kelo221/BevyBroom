@@ -19,6 +19,8 @@ import {
   restoreComponentTransformVertices,
 } from './component_transform_apply.js';
 import { CommandComponentPositions } from './command_component_positions.js';
+import type { ComponentTransformCommitCleanup } from './component_transform_commit_cleanup.js';
+import { ComponentDragTranslation, type ComponentDragTranslationLocks } from './drag/component_drag_translation.js';
 import {
   applyComponentModalNumericValue,
   componentModalLockedScaleFactors,
@@ -47,10 +49,14 @@ export class HandlerComponentTransform implements TransformModalApplyHost {
   private dragPickElement: HTMLElement | null;
   private startClientX: number;
   private startClientY: number;
-  private lastPointerWorldDelta: THREE.Vector3;
   private lastPointerRotationAngle: number;
   private lastPointerScaleFactor: number;
   private afterCommit: (() => void) | null;
+  private readonly translation: ComponentDragTranslation;
+  private faceNormalHint: THREE.Vector3 | null;
+  private commitCleanup: ComponentTransformCommitCleanup | null;
+  private lastClientX: number;
+  private lastClientY: number;
   private afterLive: (() => void) | null;
   private statusCallback: ((text: string) => void) | null;
 
@@ -79,12 +85,16 @@ export class HandlerComponentTransform implements TransformModalApplyHost {
     this.dragPickElement = null;
     this.startClientX = 0;
     this.startClientY = 0;
-    this.lastPointerWorldDelta = new THREE.Vector3();
     this.lastPointerRotationAngle = 0;
     this.lastPointerScaleFactor = 1;
     this.afterCommit = null;
     this.afterLive = null;
     this.statusCallback = null;
+    this.translation = new ComponentDragTranslation(gridSnap);
+    this.faceNormalHint = null;
+    this.commitCleanup = null;
+    this.lastClientX = 0;
+    this.lastClientY = 0;
   }
 
   /**
@@ -94,6 +104,27 @@ export class HandlerComponentTransform implements TransformModalApplyHost {
    */
   setAfterCommitCallback(callback: (() => void) | null): void {
     this.afterCommit = callback;
+  }
+
+  /**
+   * Sets the work that runs around every drag, such as welding vertices the
+   * drag dropped onto each other.
+   *
+   * @param cleanup Cleanup, or null for none.
+   */
+  setCommitCleanup(cleanup: ComponentTransformCommitCleanup | null): void {
+    this.commitCleanup = cleanup;
+  }
+
+  /**
+   * Sets the shared world normal of the faces the next drag moves, so a free
+   * drag slides them along it. Cleared when the drag ends.
+   *
+   * @param normal Unit world normal, or null when the selection is not faces
+   *   only.
+   */
+  setFaceNormalHint(normal: THREE.Vector3 | null): void {
+    this.faceNormalHint = normal ? normal.clone() : null;
   }
 
   /**
@@ -342,7 +373,8 @@ export class HandlerComponentTransform implements TransformModalApplyHost {
     if (!this.dragActive) {
       return;
     }
-    if (this.commandStack && this.vertices.length > 0) {
+    const recordedByCleanup = this.commitCleanup?.dragCommit(this.draggedTargetIds()) ?? false;
+    if (!recordedByCleanup && this.commandStack && this.vertices.length > 0) {
       this.commandStack.recordExecuted(new CommandComponentPositions(this.vertices, this.afterCommit));
     }
     this.clearDragSession();
@@ -404,7 +436,10 @@ export class HandlerComponentTransform implements TransformModalApplyHost {
     this.dragPickElement = pickElement;
     this.startClientX = clientX;
     this.startClientY = clientY;
-    this.lastPointerWorldDelta.set(0, 0, 0);
+    this.lastClientX = clientX;
+    this.lastClientY = clientY;
+    this.translation.begin(pivot, this.faceNormalHint);
+    this.commitCleanup?.dragBegin(this.draggedTargetIds());
     this.lastPointerRotationAngle = 0;
     this.lastPointerScaleFactor = 1;
     this.captureInitialMouseSample(clientX, clientY);
@@ -431,6 +466,15 @@ export class HandlerComponentTransform implements TransformModalApplyHost {
     this.initialDistanceAlongAxis = hit.distanceTo(this.pivot);
   }
 
+  /**
+   * Lists the ids of the meshes and brushes the drag moves.
+   *
+   * @returns Unique target ids.
+   */
+  private draggedTargetIds(): string[] {
+    return Array.from(new Set(this.vertices.map((vertex) => vertex.targetId)));
+  }
+
   /** Clears drag bookkeeping after commit or cancel. */
   private clearDragSession(): void {
     this.modalController.endDrag();
@@ -441,14 +485,15 @@ export class HandlerComponentTransform implements TransformModalApplyHost {
     this.dragCamera = null;
     this.dragPickElement = null;
     this.activeAxis = GizmoAxis.VIEW;
-    this.lastPointerWorldDelta.set(0, 0, 0);
+    this.faceNormalHint = null;
     this.lastPointerRotationAngle = 0;
     this.lastPointerScaleFactor = 1;
     this.statusCallback?.('');
   }
 
   /**
-   * Applies translation from pointer sample with modal/handle axis constraint.
+   * Applies translation from a pointer sample: the pointer moves on the drag
+   * surface, the lock constrains it and the anchor vertex snaps to the grid.
    *
    * @param clientX Pointer X.
    * @param clientY Pointer Y.
@@ -456,28 +501,48 @@ export class HandlerComponentTransform implements TransformModalApplyHost {
   private applyTranslationPointer(clientX: number, clientY: number): void {
     const camera = this.dragCamera;
     const pickElement = this.dragPickElement;
-    if (!camera || !pickElement || !this.initialMouseWorld) {
+    if (!camera || !pickElement) {
       return;
     }
-    const current = projectClientToPivotPlane(camera, pickElement, clientX, clientY, this.pivot);
-    this.lastPointerWorldDelta.copy(current).sub(this.initialMouseWorld);
-    this.applyConstrainedComponentTranslation(this.lastPointerWorldDelta);
-  }
-
-  /** Re-applies the last pointer translation with the current modal axis lock. */
-  private reapplyLastPointerTranslation(): void {
-    this.applyConstrainedComponentTranslation(this.lastPointerWorldDelta);
+    this.lastClientX = clientX;
+    this.lastClientY = clientY;
+    const pointer = {
+      camera,
+      pickElement,
+      startClientX: this.startClientX,
+      startClientY: this.startClientY,
+      clientX,
+      clientY,
+    };
+    const delta = this.translation.deltaResolve(pointer, this.translationLocksRead(), this.vertices, (raw) =>
+      this.constrainComponentTranslation(raw),
+    );
+    if (!delta) {
+      return;
+    }
+    applyComponentTranslationDelta(this.vertices, delta);
   }
 
   /**
-   * Constrains a translation delta and writes it onto the component vertices.
-   *
-   * @param delta Unsnapped world delta. Not modified.
+   * Re-applies the last pointer position so a changed lock picks its own drag
+   * surface.
    */
-  private applyConstrainedComponentTranslation(delta: THREE.Vector3): void {
-    const constrained = this.constrainComponentTranslation(delta);
-    this.snapComponentTranslation(constrained);
-    applyComponentTranslationDelta(this.vertices, constrained);
+  private reapplyLastPointerTranslation(): void {
+    this.applyTranslationPointer(this.lastClientX, this.lastClientY);
+  }
+
+  /**
+   * Reads the axis and plane locks of the current pointer sample.
+   *
+   * @returns Active locks.
+   */
+  private translationLocksRead(): ComponentDragTranslationLocks {
+    return {
+      modalAxis: this.modalController.getAxis(),
+      modalOrientation: this.copyKeyboardAxisOrientation(),
+      handleAxis: this.activeAxis,
+      handleOrientation: this.orientation,
+    };
   }
 
   /**
@@ -506,17 +571,6 @@ export class HandlerComponentTransform implements TransformModalApplyHost {
       return this.orientation;
     }
     return this.copyKeyboardAxisOrientation();
-  }
-
-  /**
-   * Snaps a translation delta in place when snapping is enabled.
-   *
-   * @param delta World delta modified in place.
-   */
-  private snapComponentTranslation(delta: THREE.Vector3): void {
-    if (this.gridSnap.isEnabled()) {
-      this.gridSnap.snapVector3(delta);
-    }
   }
 
   /**

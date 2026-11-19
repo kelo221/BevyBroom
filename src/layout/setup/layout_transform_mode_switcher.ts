@@ -62,14 +62,14 @@ export class LayoutTransformModeSwitcher {
   }
 
   /**
-   * Applies a transform mode. In Edit Mode, choosing the active mode again
-   * turns the transform widgets off.
+   * Applies a transform mode. In Edit Mode the widgets stay on: choosing the
+   * active mode again keeps it.
    *
-   * @param mode Transform mode to apply or toggle.
+   * @param mode Transform mode to apply.
    */
   transformModeApply(mode: TransformMode): void {
     if (this.host.isEditModeActive()) {
-      this.editModeTransformModeToggle(mode);
+      this.editModeTransformModeSet(mode);
       return;
     }
     const toolEditorSystem = this.host.toolEditorSystemRead();
@@ -95,17 +95,13 @@ export class LayoutTransformModeSwitcher {
   }
 
   /**
-   * Applies or toggles the transform widgets while Edit Mode is active.
+   * Applies a transform widget while Edit Mode is active. Choosing the active
+   * mode again keeps it, so the gizmo never switches off by a repeated key.
    *
    * @param mode Requested mode; Bounds is ignored.
    */
-  private editModeTransformModeToggle(mode: TransformMode): void {
+  private editModeTransformModeSet(mode: TransformMode): void {
     if (isBoundsWidgetMode(mode)) {
-      return;
-    }
-    if (this.host.transformGizmo.getMode() === mode) {
-      this.editModeTransformModeOnly(TransformMode.BOUNDS);
-      this.host.showStatusMessage('Transform widgets off');
       return;
     }
     this.editModeTransformModeOnly(mode);

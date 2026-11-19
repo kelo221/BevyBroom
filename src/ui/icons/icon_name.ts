@@ -16,6 +16,7 @@ export const ICON_NAMES = [
   'shape-cone',
   'shape-outline',
   'shape-polyhedron',
+  'shape-ramp',
   'shape-stairs',
   'shimmer',
   'sphere',

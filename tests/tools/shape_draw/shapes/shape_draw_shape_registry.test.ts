@@ -9,7 +9,7 @@ import {
 
 /** Proves the shape catalogue lists every built-in shape and stays extensible. */
 describe('shape_draw_shape_registry', () => {
-  const expectedIds = ['cuboid', 'stairs', 'arch', 'cylinder', 'cone', 'spheroid_uv', 'spheroid_ico'];
+  const expectedIds = ['cuboid', 'stairs', 'ramp', 'arch', 'cylinder', 'cone', 'spheroid_uv', 'spheroid_ico'];
 
   it('lists every built-in shape in catalogue order', () => {
     expect(shapeDrawShapesList().map((shape) => shape.id)).toEqual(expectedIds);

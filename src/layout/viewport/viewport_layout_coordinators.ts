@@ -433,7 +433,7 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     | 'onTransformMode'
     | 'faceInspectorReveal'
     | 'isEditModeActive'
-    | 'applyEditModeDefaultNoTransformWidget'
+    | 'applyEditModeDefaultTransformWidget'
   > {
     return {
       showStatusMessage: (message) => this.showStatusMessage(message),
@@ -444,7 +444,7 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
       onTransformMode: (mode) => this.onTransformMode(mode),
       faceInspectorReveal: () => this.faceInspectorReveal(),
       isEditModeActive: () => this.isEditModeActive(),
-      applyEditModeDefaultNoTransformWidget: () => this.applyEditModeDefaultNoTransformWidget(),
+      applyEditModeDefaultTransformWidget: () => this.applyEditModeDefaultTransformWidget(),
     };
   }
 
@@ -601,12 +601,12 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
   }
 
   /**
-   * Clears permanent transform widgets when entering Edit Mode (Bounds
-   * sentinel, no T/R/S toolbar highlight). G/R/S single-use tools still work.
+   * Shows the move arrows when entering Edit Mode, so selected components get a
+   * gizmo without pressing W. Pressing W again still turns the widgets off.
    */
-  protected applyEditModeDefaultNoTransformWidget(): void {
-    this.transformGizmo.setMode(TransformMode.BOUNDS);
-    this.toolsPaletteController?.setActiveTransformMode(TransformMode.BOUNDS);
+  protected applyEditModeDefaultTransformWidget(): void {
+    this.transformGizmo.setMode(TransformMode.TRANSLATE);
+    this.toolsPaletteController?.setActiveTransformMode(TransformMode.TRANSLATE);
   }
 
   /**

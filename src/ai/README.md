@@ -45,6 +45,16 @@ grok mcp add --transport http bevybroom http://127.0.0.1:18765/mcp
 
 Keep the editor open with MCP started while Grok uses the tools.
 
+## Grid rule (hard rule)
+
+The server sends these rules to every client as the MCP `initialize` instructions, and the editor enforces them:
+
+- The world bounds of every brush and editable mesh must start and end on the **0.03125 m grid** (or be centered on a grid line, for round shapes). A tool call that leaves **new** off-grid geometry is **undone** and fails with the offending corners. Geometry that was already off the grid does not block other edits.
+- Build level geometry from **brushes**. A call that creates editable mesh objects succeeds with a warning to use brushes.
+- Make slopes with `create_shape_brush` `shapeId: "ramp"` (`direction`, `lowHeight`), not with odd rotations.
+- The Issues list (`issues_list`) reports every off-grid brush and mesh as **Off-grid geometry**.
+- The grid size never goes below 0.03125.
+
 ## Coordinate system
 
 - Three.js **right-handed**, **Y-up**
@@ -230,7 +240,7 @@ max_output_bytes = 200000
 - **Names (groups):** `rename_group` / `create_csg_group` `name`; locate with `get_scene_hierarchy` (not `find_brushes`).
 - **Shapes:** `find_brushes` shape filter accepts `thin`/`pole`, `flat`/`panel`/`flag`, `tall`, `long`, `box`.
 - **Place on pole:** `align_brush` with `mode: "top"`, `gap: 0` (optional `center: true`).
-- **Exact coords:** `set_brush_transform` / `add_box_brush` with `snap: false` or `exact: true` so `-17.125` is not rounded to `-17`.
+- **Exact coords:** `set_brush_transform` / `add_box_brush` with `snap: false` or `exact: true` so `-17.125` is not rounded to `-17`. Values must still keep the geometry on the 0.03125 grid.
 - **Assemblies:** `duplicate_brushes` with many `brushIds`, or `groupIds` for whole compounds; use `data.groupIds` after group clone. `mirror_brushes` is brush ids only.
 - **Groups:** prefer `create_csg_group` + `set_group_operation` over flattening; inspect with `get_scene_hierarchy` before reparenting.
 - **Nest under group:** `add_box_brush` with `parentGroupId`, or `reparent_solid_nodes` after create.

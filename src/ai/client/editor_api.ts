@@ -27,6 +27,7 @@ import { EditorApiSceneDocument, type SceneDocumentLoadArgs } from './editor_api
 import { EditorApiInfoPanel, type ConsoleReadArgs } from './editor_api_info_panel.js';
 import { EditorApiProject } from './editor_api_project.js';
 import { EditorApiToolGroups } from './editor_api_tool_groups.js';
+import { EditorApiGridGuard } from './editor_api_grid_guard.js';
 import type {
   AddBoxBrushArgs,
   AddBoxBrushesArgs,
@@ -88,6 +89,7 @@ export class EditorApi {
   private readonly infoPanel: EditorApiInfoPanel;
   private readonly project: EditorApiProject;
   private readonly toolGroups: EditorApiToolGroups;
+  private readonly gridGuard: EditorApiGridGuard;
 
   /**
    * Creates an editor API bound to live editor systems.
@@ -113,10 +115,12 @@ export class EditorApi {
     this.infoPanel = new EditorApiInfoPanel(host);
     this.toolGroups = new EditorApiToolGroups(host, () => this.reads.getSelection());
     this.project = new EditorApiProject(host);
+    this.gridGuard = new EditorApiGridGuard(host);
   }
 
   /**
-   * Dispatches a tool by name with a plain argument object.
+   * Dispatches a tool by name with a plain argument object under the grid rule:
+   * calls that leave new geometry off the minimum grid are undone.
    *
    * @param name MCP tool name.
    * @param args Tool arguments.
@@ -124,7 +128,7 @@ export class EditorApi {
    */
   invokeTool(name: string, args: Record<string, unknown> = {}): McpToolResult {
     try {
-      return this.dispatch(name, args);
+      return this.gridGuard.guard(() => this.dispatch(name, args));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return { ok: false, message: `Tool failed: ${message}` };
@@ -133,7 +137,7 @@ export class EditorApi {
 
   /**
    * Dispatches a tool by name, including the tools that wait for the running
-   * game.
+   * game, under the grid rule.
    *
    * @param name MCP tool name.
    * @param args Tool arguments.
@@ -141,7 +145,7 @@ export class EditorApi {
    */
   async invokeToolAsync(name: string, args: Record<string, unknown> = {}): Promise<McpToolResult> {
     try {
-      return await (this.dispatchAsync(name, args) ?? this.dispatch(name, args));
+      return await this.gridGuard.guardAsync(async () => this.dispatchAsync(name, args) ?? this.dispatch(name, args));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return { ok: false, message: `Tool failed: ${message}` };

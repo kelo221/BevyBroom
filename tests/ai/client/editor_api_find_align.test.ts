@@ -41,12 +41,12 @@ function createPoleFlagFixture(): {
   };
   const model = new SolidModel('FindModel');
   const pole = model.addBoxBrush(1, SolidOperation.Additive);
-  pole.scale.set(0.4, 8, 0.4);
+  pole.scale.set(0.5, 8, 0.5);
   pole.position.set(0, 4, 0);
   pole.pushTransformToMesh();
   model.renameBrush(pole.id, 'start_a_pole');
   const flag = model.addBoxBrush(1, SolidOperation.Additive);
-  flag.scale.set(2, 0.15, 1.2);
+  flag.scale.set(2, 0.25, 1.25);
   flag.position.set(5, 10, 0);
   flag.pushTransformToMesh();
   model.renameBrush(flag.id, 'start_a_flag');

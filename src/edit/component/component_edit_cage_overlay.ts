@@ -9,6 +9,8 @@ import {
 } from './component_edit_selection_draw.js';
 import { collectMeshWorldVertices } from './component_edit_cage_mesh_index.js';
 import { ComponentEditLineMaterials } from './component_edit_line_materials.js';
+import { buildComponentHandleDrawBuffers } from './component_edit_handle_points.js';
+import { EditorComponentMode } from '@/types/editor_component_mode.js';
 
 export type { ComponentCageMeshSource };
 
@@ -20,6 +22,9 @@ const FACE_OCCLUDED_OPACITY = 0.16;
 
 /** Screen-pixel size for cage vertex dots (in front of wires, black/white). */
 export const EDIT_CAGE_VERTEX_POINT_SIZE = 4;
+
+/** Screen-pixel size for edge-midpoint and face-center handles. */
+export const EDIT_CAGE_HANDLE_POINT_SIZE = 8;
 
 /** Draw order for cage wires (below selection edges and vertex dots). */
 const CAGE_EDGE_RENDER_ORDER = 1000;
@@ -42,6 +47,7 @@ export class ComponentEditCageOverlay {
   private readonly scene: THREE.Scene;
   private readonly group: THREE.Group;
   private readonly cagePoints: THREE.Points;
+  private readonly handlePoints: THREE.Points;
   private readonly cageEdges: THREE.LineSegments;
   private readonly fullSelectedEdges: THREE.LineSegments;
   private readonly halfSelectedEdges: THREE.LineSegments;
@@ -89,27 +95,34 @@ export class ComponentEditCageOverlay {
     );
     this.selectedFaceFront = this.createFaceMesh(this.faceFillGeometry, FACE_FRONT_OPACITY, THREE.LessEqualDepth, 998);
     this.cagePoints = this.createVertexPoints(EDIT_CAGE_VERTEX_POINT_SIZE, CAGE_VERTEX_RENDER_ORDER);
+    this.handlePoints = this.createVertexPoints(EDIT_CAGE_HANDLE_POINT_SIZE, CAGE_VERTEX_RENDER_ORDER);
     this.group.add(this.cageEdges);
     this.group.add(this.selectedFaceOccluded);
     this.group.add(this.selectedFaceFront);
     this.group.add(this.fullSelectedEdges);
     this.group.add(this.halfSelectedEdges);
     this.group.add(this.cagePoints);
+    this.group.add(this.handlePoints);
     this.scene.add(this.group);
   }
 
   /**
-   * Rebuilds cage and selection overlays.
+   * Rebuilds cage and selection overlays. Vertex mode shows the vertex dots;
+   * Edge and Face mode show a handle at every edge middle or face center
+   * instead, so the active mode is visible on the geometry.
    *
    * @param meshSources Content mesh sources.
    * @param brushCages Brush wing-edge cages.
    * @param selected Selected components.
+   * @param mode Active component mode.
    */
   update(
     meshSources: readonly ComponentCageMeshSource[],
     brushCages: readonly BrushEditCage[],
     selected: readonly ComponentSelectionEntry[],
+    mode: EditorComponentMode = EditorComponentMode.VERTEX,
   ): void {
+    this.handlesUpdate(meshSources, brushCages, selected, mode);
     const liveStamp = buildCageLiveStamp(meshSources, brushCages, selected);
     if (this.rewriteLiveCage(liveStamp, meshSources, brushCages)) {
       return;
@@ -124,15 +137,56 @@ export class ComponentEditCageOverlay {
     this.replaceFaceGeometry(selection.faceCoords);
   }
 
+  /**
+   * Rebuilds the edge or face handles and shows the vertex dots only in Vertex
+   * mode.
+   *
+   * @param meshSources Content mesh sources.
+   * @param brushCages Brush wing-edge cages.
+   * @param selected Selected components.
+   * @param mode Active component mode.
+   */
+  private handlesUpdate(
+    meshSources: readonly ComponentCageMeshSource[],
+    brushCages: readonly BrushEditCage[],
+    selected: readonly ComponentSelectionEntry[],
+    mode: EditorComponentMode,
+  ): void {
+    const handles = buildComponentHandleDrawBuffers(meshSources, brushCages, selected, mode);
+    this.replaceColoredPoints(this.handlePoints.geometry, handles.coords, handles.colors);
+    this.cagePoints.visible = mode === EditorComponentMode.VERTEX;
+    this.handlePoints.visible = mode !== EditorComponentMode.VERTEX;
+  }
+
+  /**
+   * Returns the handle point cloud of Edge and Face mode.
+   *
+   * @returns Handle points.
+   */
+  getHandlePoints(): THREE.Points {
+    return this.handlePoints;
+  }
+
+  /**
+   * Returns the vertex dot cloud of Vertex mode.
+   *
+   * @returns Vertex points.
+   */
+  getVertexPoints(): THREE.Points {
+    return this.cagePoints;
+  }
+
   /** Removes overlays and disposes owned GPU resources (not shared materials). */
   dispose(): void {
     this.scene.remove(this.group);
     this.cagePoints.geometry.dispose();
+    this.handlePoints.geometry.dispose();
     this.cageEdges.geometry.dispose();
     this.fullSelectedEdges.geometry.dispose();
     this.halfSelectedEdges.geometry.dispose();
     this.faceFillGeometry.dispose();
     (this.cagePoints.material as THREE.Material).dispose();
+    (this.handlePoints.material as THREE.Material).dispose();
     (this.selectedFaceFront.material as THREE.Material).dispose();
     (this.selectedFaceOccluded.material as THREE.Material).dispose();
   }

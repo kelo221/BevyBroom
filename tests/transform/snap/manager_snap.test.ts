@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ManagerSnap } from '@/transform/snap/manager_snap.js';
-import { SNAP_PRESETS } from '@/types/snap_presets.js';
+import { GRID_INTERVAL_MINIMUM, SNAP_PRESETS } from '@/types/snap_presets.js';
 
 describe('SnapManager default interval', () => {
   it('should initialize with the provided default interval', () => {
@@ -127,5 +127,29 @@ describe('SnapManager getPresetIndex', () => {
   it('should return 0 for the first preset', () => {
     const manager = new ManagerSnap(0.03125);
     expect(manager.getPresetIndex()).toBe(0);
+  });
+});
+
+/** Proves the grid never goes finer than the minimum grid interval. */
+describe('SnapManager minimum grid interval', () => {
+  it('raises a finer requested interval to the minimum grid', () => {
+    const manager = new ManagerSnap(1.0);
+    manager.setInterval(GRID_INTERVAL_MINIMUM / 4);
+    expect(manager.getInterval()).toBe(GRID_INTERVAL_MINIMUM);
+  });
+
+  it('raises a finer default interval to the minimum grid', () => {
+    expect(new ManagerSnap(GRID_INTERVAL_MINIMUM / 2).getInterval()).toBe(GRID_INTERVAL_MINIMUM);
+  });
+
+  it('ignores intervals that are not positive numbers', () => {
+    const manager = new ManagerSnap(1.0);
+    manager.setInterval(Number.NaN);
+    manager.setInterval(-1);
+    expect(manager.getInterval()).toBe(1.0);
+  });
+
+  it('starts the preset list at the minimum grid', () => {
+    expect(Math.min(...SNAP_PRESETS)).toBe(GRID_INTERVAL_MINIMUM);
   });
 });

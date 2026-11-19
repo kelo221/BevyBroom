@@ -1,4 +1,4 @@
-import { SNAP_PRESETS, cycleSnapInterval } from '@/types/snap_presets.js';
+import { SNAP_PRESETS, cycleSnapInterval, gridIntervalClampToMinimum } from '@/types/snap_presets.js';
 
 /**
  * Callback invoked when the snap interval changes.
@@ -17,7 +17,7 @@ export class ManagerSnap {
    * @param defaultInterval The initial snap interval value.
    */
   constructor(defaultInterval: number) {
-    this.currentInterval = defaultInterval;
+    this.currentInterval = gridIntervalClampToMinimum(defaultInterval);
     this.callbacks = [];
   }
 
@@ -49,15 +49,15 @@ export class ManagerSnap {
   }
 
   /**
-   * Sets the snap interval to a specific value. Validates that the value is
-   * positive and non-zero.
+   * Sets the snap interval to a specific value. Ignores values that are not
+   * positive numbers and raises values finer than the minimum grid to it.
    *
    * @param value The new snap interval value.
    */
   setInterval(value: number): void {
-    if (value <= 0) return;
+    if (!(value > 0)) return;
     const previousInterval = this.currentInterval;
-    this.currentInterval = value;
+    this.currentInterval = gridIntervalClampToMinimum(value);
     if (this.currentInterval !== previousInterval) {
       this.fireCallbacks();
     }

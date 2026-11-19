@@ -5,6 +5,7 @@ import { IssueProviderGameComponentUnknown } from '@/info_panel/issues/providers
 import { IssueProviderGameComponentOnBrush } from '@/info_panel/issues/providers/issue_provider_game_component_on_brush.js';
 import { IssueProviderFaceUvScale } from '@/info_panel/issues/providers/issue_provider_face_uv_scale.js';
 import { IssueProviderProjectBuild } from '@/project/issues/issue_provider_project_build.js';
+import { IssueProviderGridConformance } from '@/grid_conformance/issues/issue_provider_grid_conformance.js';
 import { IssueProviderDisplacementDropped } from '@/displacement/issues/issue_provider_displacement_dropped.js';
 import { IssueProviderProcedural } from '@/procedural/issues/issue_provider_procedural.js';
 
@@ -17,6 +18,7 @@ export function issueProvidersBuiltin(): readonly IssueProvider[] {
   return [
     new IssueProviderSolidBrushInvalid(),
     new IssueProviderSolidModelWarnings(),
+    new IssueProviderGridConformance(),
     new IssueProviderGameComponentUnknown(),
     new IssueProviderGameComponentOnBrush(),
     new IssueProviderFaceUvScale(),
