@@ -14,7 +14,7 @@ import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js'
 import { ObjectSelectDoubleClickNativeListener } from '@/tools/object_select/object_select_double_click_native_listener.js';
 import { ObjectSelectDoubleClickProperties } from '@/tools/object_select/object_select_double_click_properties.js';
 import { objectSelectDoubleClickToolReady } from '@/tools/object_select/object_select_double_click_tool_ready.js';
-import { DialogObjectProperties } from '@/ui/object_properties/dialog_object_properties.js';
+import { SectionObjectProperties } from '@/ui/object_properties/section/section_object_properties.js';
 import { ViewportKind } from '@/viewports/core/viewport_kind.js';
 import { editorTestServicesCreate } from '../../editor/editor_test_services.js';
 import { testClassesInstall } from '../../game_entity/game_entity_test_classes.js';
@@ -26,14 +26,14 @@ import {
 } from '../object_drag/object_drag_test_viewport.js';
 import type { PointerClientPoint } from '@/utils/pointer_client_project.js';
 
-/** Scene, editor and dialog one double-click test works with. */
+/** Scene, editor and Properties section one double-click test works with. */
 interface DoubleClickTestRig {
   readonly editor: EditorWindow;
   readonly bridge: EditorInputBridge;
   readonly nativeListener: ObjectSelectDoubleClickNativeListener;
   readonly testViewport: ObjectDragTestViewport;
   readonly selectionManager: ManagerSelection;
-  readonly dialog: DialogObjectProperties;
+  readonly section: SectionObjectProperties;
   readonly objectPropertiesOpen: ReturnType<typeof vi.fn>;
   readonly brushMesh: THREE.Mesh;
   readonly door: THREE.Group;
@@ -99,14 +99,14 @@ function testClickSelectionApply(
 }
 
 /**
- * Creates the Object Properties dialog over a selection.
+ * Creates the Properties section over a selection.
  *
  * @param selectionManager Object selection.
  * @param worldObject Scene root.
- * @returns Hidden dialog.
+ * @returns Section.
  */
-function testDialogCreate(selectionManager: ManagerSelection, worldObject: THREE.Group): DialogObjectProperties {
-  return new DialogObjectProperties(document.body, {
+function testSectionCreate(selectionManager: ManagerSelection, worldObject: THREE.Group): SectionObjectProperties {
+  return new SectionObjectProperties({
     selectionManager,
     commandStack: new CommandStack(64),
     worldObject,
@@ -114,6 +114,7 @@ function testDialogCreate(selectionManager: ManagerSelection, worldObject: THREE
     afterTransformCommit: () => {},
     propertiesPanelRead: () => null,
     selectionFrame: () => {},
+    dockReveal: () => {},
   });
 }
 
@@ -205,13 +206,13 @@ function testServicesCreate(
 
 /**
  * Creates the double-click handling the way the layout does: it picks through
- * the test viewport, opens the dialog and asks the active tool whether it is
- * idle.
+ * the test viewport, reveals the Properties section and asks the active tool
+ * whether it is idle.
  *
  * @param editor Object tool editor.
  * @param testViewport Test viewport.
  * @param selectionManager Object selection.
- * @param objectPropertiesOpen Opens the dialog.
+ * @param objectPropertiesOpen Reveals the Properties section.
  * @returns Double-click handling.
  */
 function testDoubleClickCreate(
@@ -231,7 +232,7 @@ function testDoubleClickCreate(
 /**
  * Creates a top view over the scene's selectable meshes, the object tool editor
  * routed through the real input bridge, the browser double-click listener and
- * the Object Properties dialog the double-click opens.
+ * the Properties section the double-click reveals.
  *
  * @param overrides Service members a test replaces.
  * @param viewportKind 2D view the rig looks through.
@@ -244,8 +245,8 @@ function doubleClickRigCreate(
   const scene = testSceneCreate();
   const testViewport = objectDragTestViewportCreate(viewportKind, selectableMeshesCollect(scene.worldObject));
   const selectionManager = new ManagerSelection();
-  const dialog = testDialogCreate(selectionManager, scene.worldObject);
-  const objectPropertiesOpen = vi.fn(() => dialog.open());
+  const section = testSectionCreate(selectionManager, scene.worldObject);
+  const objectPropertiesOpen = vi.fn(() => section.reveal());
   const editor = new EditorWindow();
   const doubleClick = testDoubleClickCreate(editor, testViewport, selectionManager, objectPropertiesOpen);
   const beginObjectDrag = vi.fn(() => null);
@@ -269,7 +270,7 @@ function doubleClickRigCreate(
     nativeListener,
     testViewport,
     selectionManager,
-    dialog,
+    section,
     objectPropertiesOpen,
     beginObjectDrag,
     faceSelectPointerDown,
@@ -398,12 +399,12 @@ function testPointOverEmptySpace(rig: DoubleClickTestRig): PointerClientPoint {
 
 /**
  * Double-clicking an object with the object tool opens Object Properties on it:
- * the dialog targets the hit entity, a multi-selection containing the hit
- * object stays whole, empty space and Shift double-clicks open nothing, the
+ * the Properties section shows the hit entity, a multi-selection containing the
+ * hit object stays whole, empty space and Shift double-clicks open nothing, the
  * face and Entity tools keep their own clicks, and the presses never start an
- * object drag. The browser's double-click event opens the dialog when the tool
- * saw only one click or the presses went to gizmo handles, and never opens it a
- * second time after the tool's clicks already did.
+ * object drag. The browser's double-click event reveals the section when the
+ * tool saw only one click or the presses went to gizmo handles, and never opens
+ * it a second time after the tool's clicks already did.
  */
 describe('ObjectSelectDoubleClickProperties through the object tool', () => {
   let uninstall: () => void = () => {};
@@ -415,7 +416,7 @@ describe('ObjectSelectDoubleClickProperties through the object tool', () => {
   afterEach(() => {
     doubleClickTestRig?.bridge.uninstall();
     doubleClickTestRig?.nativeListener.dispose();
-    doubleClickTestRig?.dialog.dispose();
+    doubleClickTestRig?.section.dispose();
     doubleClickTestRig = null;
     getStateEntityPlace().toolActiveWrite(false);
     uninstall();
@@ -428,9 +429,9 @@ describe('ObjectSelectDoubleClickProperties through the object tool', () => {
     const doorPoint = testPointOver(rig, rig.door);
     expect(testPickStackRead(rig.testViewport, doorPoint.clientX, doorPoint.clientY)).toContain(rig.doorMarker);
     testDoubleClick(rig, doorPoint);
-    expect(rig.dialog.isOpen()).toBe(true);
+    expect(rig.objectPropertiesOpen).toHaveBeenCalled();
     expect(rig.objectPropertiesOpen).toHaveBeenCalledTimes(1);
-    expect(rig.dialog.editedObjectsRead()).toEqual([rig.door]);
+    expect(rig.section.editedObjectsRead()).toEqual([rig.door]);
     expect(rig.selectionManager.getAllSelectedObjectsAsArray()).toEqual([rig.doorMarker]);
   });
 
@@ -441,7 +442,7 @@ describe('ObjectSelectDoubleClickProperties through the object tool', () => {
     expect(rig.selectionManager.getAllSelectedObjectsAsArray()).toEqual([rig.lightMarker]);
     testDoubleClick(rig, lightPoint);
     expect(rig.objectPropertiesOpen).toHaveBeenCalledTimes(1);
-    expect(rig.dialog.editedObjectsRead()).toEqual([rig.light]);
+    expect(rig.section.editedObjectsRead()).toEqual([rig.light]);
     expect(rig.selectionManager.getAllSelectedObjectsAsArray()).toEqual([rig.lightMarker]);
   });
 
@@ -449,7 +450,7 @@ describe('ObjectSelectDoubleClickProperties through the object tool', () => {
     const rig = doubleClickRigCreate();
     testDoubleClickSinglePress(rig, testPointOver(rig, rig.lightMarker));
     expect(rig.objectPropertiesOpen).toHaveBeenCalledTimes(1);
-    expect(rig.dialog.editedObjectsRead()).toEqual([rig.light]);
+    expect(rig.section.editedObjectsRead()).toEqual([rig.light]);
     expect(rig.selectionManager.getAllSelectedObjectsAsArray()).toEqual([rig.lightMarker]);
   });
 
@@ -465,7 +466,7 @@ describe('ObjectSelectDoubleClickProperties through the object tool', () => {
     testDoubleClick(rig, testPointOver(rig, rig.lightMarker));
     expect(beginGizmoDrag).toHaveBeenCalledTimes(2);
     expect(rig.objectPropertiesOpen).toHaveBeenCalledTimes(1);
-    expect(rig.dialog.editedObjectsRead()).toEqual([rig.light]);
+    expect(rig.section.editedObjectsRead()).toEqual([rig.light]);
   });
 
   it('selects the marker of a light clicked in the front view, so the selection keeps no scale', () => {
@@ -481,7 +482,7 @@ describe('ObjectSelectDoubleClickProperties through the object tool', () => {
     rig.selectionManager.selectObject(rig.brushMesh);
     testDoubleClick(rig, testPointOver(rig, rig.door));
     expect(rig.selectionManager.getAllSelectedObjectsAsArray()).toEqual([rig.doorMarker]);
-    expect(rig.dialog.editedObjectsRead()).toEqual([rig.door]);
+    expect(rig.section.editedObjectsRead()).toEqual([rig.door]);
   });
 
   it('opens Object Properties on the whole multi-selection holding the double-clicked object', () => {
@@ -489,26 +490,26 @@ describe('ObjectSelectDoubleClickProperties through the object tool', () => {
     rig.selectionManager.setSelection([rig.brushMesh, rig.doorMarker]);
     const selectionBefore = rig.selectionManager.getInspectorObjects();
     testDoubleClick(rig, testPointOver(rig, rig.door));
-    expect(rig.dialog.isOpen()).toBe(true);
+    expect(rig.objectPropertiesOpen).toHaveBeenCalled();
     expect(new Set(rig.selectionManager.getAllSelectedObjectsAsArray())).toEqual(
       new Set([rig.brushMesh, rig.doorMarker]),
     );
-    expect(new Set(rig.dialog.editedObjectsRead())).toEqual(new Set(selectionBefore));
-    expect(rig.dialog.editedObjectsRead()).toHaveLength(2);
+    expect(new Set(rig.section.editedObjectsRead())).toEqual(new Set(selectionBefore));
+    expect(rig.section.editedObjectsRead()).toHaveLength(2);
   });
 
   it('opens nothing on a double-click over empty space', () => {
     const rig = doubleClickRigCreate();
     rig.selectionManager.selectObject(rig.brushMesh);
     testDoubleClick(rig, testPointOverEmptySpace(rig));
-    expect(rig.dialog.isOpen()).toBe(false);
+    expect(rig.objectPropertiesOpen).not.toHaveBeenCalled();
     expect(rig.selectionManager.getSelectedObjectCount()).toBe(0);
   });
 
   it('keeps Shift double-clicks as plain additive clicks', () => {
     const rig = doubleClickRigCreate();
     testDoubleClick(rig, testPointOver(rig, rig.door), { shiftKey: true });
-    expect(rig.dialog.isOpen()).toBe(false);
+    expect(rig.objectPropertiesOpen).not.toHaveBeenCalled();
     expect(rig.selectionManager.getAllSelectedObjectsAsArray()).toEqual([rig.doorMarker]);
   });
 
@@ -525,7 +526,7 @@ describe('ObjectSelectDoubleClickProperties through the object tool', () => {
     rig.editor.userSwitchToFaceSelectTool();
     testDoubleClick(rig, testPointOver(rig, rig.brushMesh));
     expect(rig.faceSelectPointerDown).toHaveBeenCalledTimes(2);
-    expect(rig.dialog.isOpen()).toBe(false);
+    expect(rig.objectPropertiesOpen).not.toHaveBeenCalled();
     expect(rig.selectionManager.getSelectedObjectCount()).toBe(0);
   });
 

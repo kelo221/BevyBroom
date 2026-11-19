@@ -16,28 +16,6 @@ import { findSolidModelSection } from './panel_properties_solid_section_helpers.
 /** Edge length of the brush the volume cuts. */
 const VOLUME_TEST_BRUSH_SIZE = 2;
 
-/** Stand-in for the solid model panel the controller refreshes. */
-class VolumeTestSolidPanel {
-  /** Does nothing; the test reads the scene directly. */
-  refresh(): void {
-    return;
-  }
-
-  /** Does nothing; the controller only remembers the active model. */
-  setModel(): void {
-    return;
-  }
-
-  /**
-   * Returns no active model.
-   *
-   * @returns Null.
-   */
-  getModel(): SolidModel | null {
-    return null;
-  }
-}
-
 /**
  * Builds a world with one additive box brush and a volume covering its +X half,
  * a properties panel wired to a real solid model controller the way the layout
@@ -49,7 +27,7 @@ function volumeOperationRig() {
   const world = new THREE.Group();
   const selection = new ManagerSelection();
   const commandStack = new CommandStack(16);
-  const controller = new SolidModelController(world, commandStack, selection, new VolumeTestSolidPanel() as never);
+  const controller = new SolidModelController(world, commandStack, selection);
   const model = new SolidModel('Volume operation buttons');
   world.add(model.root);
   model.addBoxBrush(VOLUME_TEST_BRUSH_SIZE, SolidOperation.Additive);

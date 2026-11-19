@@ -1,10 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { CommandStack } from '@/commands/command_stack.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidModelController } from '@/solid/controller/solid_model_controller.js';
-import { SolidModelPanel } from '@/solid/ui/panel/solid_model_panel.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { EditorOrientation } from '@/navigation/orientation/editor_orientation.js';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
@@ -22,14 +21,7 @@ import {
  */
 function createController(world: THREE.Group, model: SolidModel): SolidModelController {
   const selection = new ManagerSelection();
-  const panel = {
-    refresh: vi.fn(),
-    isOpen: () => false,
-    toggle: vi.fn(),
-    bindModel: vi.fn(),
-    setModel: vi.fn(),
-  } as unknown as SolidModelPanel;
-  const controller = new SolidModelController(world, new CommandStack(16), selection, panel);
+  const controller = new SolidModelController(world, new CommandStack(16), selection);
   world.add(model.root);
   const brushMesh = model.getBrushes()[0]?.mesh;
   if (brushMesh) {

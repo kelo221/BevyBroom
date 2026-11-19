@@ -8,14 +8,15 @@ it has:
 2. The **toolbar**, one row of icon buttons and quick controls.
 3. The **tools palette**, a vertical column of tool buttons on the left edge.
 4. The **view column** in the center: a view bar above four viewports.
-5. The **right dock** with the selection filter, the current texture, VisGroups,
-   and the Map section with layers and the outliner.
+5. The **right dock** with the selection filter, the current texture, the
+   [Properties](#object-properties) of the selection, VisGroups, and the Map
+   section with layers and the outliner.
 6. The **info panel** docked below the viewports, with Console and Issues tabs.
 7. The **status bar** along the bottom edge.
 
-Detailed editing happens in floating windows that open above the workspace:
-the **Object Properties** dialog, the **Face Edit Sheet**, the **Browser**
-(Place, Textures and Levels tabs), and **Replace Textures**.
+The selection is edited in the **Properties** section of the right dock. A few
+floating windows open above the workspace: the **Face Edit Sheet**, the
+**Browser** (Place, Textures and Levels tabs), and **Replace Textures**.
 
 ## Menu bar
 
@@ -45,8 +46,8 @@ the **Object Properties** dialog, the **Face Edit Sheet**, the **Browser**
   panel.
 - **Window** opens every window and panel: the [Browser](#browser) on its
   **Place** (`Ctrl+Shift+B`), **Textures** (`Ctrl+Shift+T`) or **Levels**
-  (`Ctrl+Shift+L`) tab, the **Map Inspector** (`Ctrl+1`), the **Solid Model…**
-  panel, and a **Detached Viewport…**. On
+  (`Ctrl+Shift+L`) tab, the **Map Inspector** (`Ctrl+1`), and a **Detached
+  Viewport…**. On
   macOS it also holds the system Minimize, Zoom, and Full Screen rows.
 - **Help** opens **Search Commands…** (`Ctrl+Shift+P`), this
   **Documentation**, the **About BevyBroom…** dialog, and **MCP Server
@@ -251,28 +252,24 @@ Selecting a parent can represent a larger hierarchy. Be aware of this before del
 
 ## Object Properties
 
-Press `Alt+Enter`, choose **Edit > Object Properties**, or double-click an
-object to open the Object Properties dialog on the selection. Double-clicking
-works on any selectable object (brush, entity, light, room, portal) in any
-viewport while the object selection tool is active; it selects the object
-first, unless the object is already part of a multi-selection, in which case
-the dialog opens on the whole selection. Double-clicking empty space does
-nothing, and Face mode keeps its own double-click (selecting every face of a
-brush). Its title names the object, or the number of selected objects. Edits
-show live in the viewports and in a connected game while the dialog is open.
+The **Properties** section of the right dock, below the selection filter,
+always shows the selection. Its title names the object, or the number of
+selected objects; with nothing selected it says so. Every edit applies at once,
+shows live in the viewports and in a connected game, and is its own undo step
+(`Ctrl+Z`). Selecting another object switches the section to it.
 
-- **Apply** closes the dialog and keeps every edit made in it as **one** undo
-  step.
-- **Cancel**, the `×` button, or `Escape` closes the dialog and restores the
-  state from before it opened, without adding history.
-- `Ctrl+Z` and `Ctrl+Y` step through the edits made in the dialog while it is
-  open.
-- Selecting another object while the dialog is open applies the edits so far
-  and continues with the new selection.
+Press `Alt+Enter`, choose **Edit > Object Properties**, or double-click an
+object to show the right dock and scroll to the section. Double-clicking works
+on any selectable object (brush, entity, light, room, portal) in any viewport
+while the object selection tool is active; it selects the object first, unless
+the object is already part of a multi-selection. Double-clicking empty space
+does nothing, and Face mode keeps its own double-click (selecting every face of
+a brush).
+
 - **Copy** and **Paste** at the top copy the game components of the first
   selected object and paste them onto every selected object.
 
-The dialog has these tabs:
+The section has these tabs:
 
 - **Class Info** shows the name, the game component classes with their fields,
   a **Help** box that describes each class and its outputs and inputs, the
@@ -414,9 +411,7 @@ A tile's number badge shows how many objects of that kind the map contains.
 
 ### Other panels
 
-**Window > Solid Model…** also opens as a floating panel. The **AI Captures**
-debug window opens from **Settings > MCP**. **Solid Model** shows the active model
-and provides a quick **+ Box Brush** action.
+The **AI Captures** debug window opens from **Settings > MCP**.
 
 ## Info panel
 
@@ -449,9 +444,8 @@ resize it. The editor remembers which docks, the tools palette, and the toolbar
 are shown, their sizes, and their selected tabs between sessions. AI assistants
 connected through MCP can read and change this arrangement with the
 `get_main_window` and `set_main_window` tools, measure the views, the info
-panel, and the right dock with `get_shell_layout`, and open, apply, or cancel the
-Object Properties dialog with `get_object_properties_dialog` and
-`set_object_properties_dialog`; see the [AI tools reference](../src/ai/README.md).
+panel, and the right dock with `get_shell_layout`, and read or drive the
+Properties section with `get_properties_section` and `set_properties_section`; see the [AI tools reference](../src/ai/README.md).
 
 ## Status bar
 

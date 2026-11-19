@@ -338,11 +338,11 @@ These tools need the desktop app; the browser editor answers that it cannot star
 - The info panel starts folded to its strip; `infoPanelCollapsed: false` unfolds it to its remembered height.
 - The arrangement is remembered between sessions, the same as when it is changed from the View menu.
 
-| Tool                           | What it does                                                                                                                                                       |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `get_object_properties_dialog` | `open`, the visible `tab`, the `tabs` in order and the `editedIds` of the Object Properties dialog                                                                 |
-| `set_object_properties_dialog` | `action` `open` (needs a selection), `apply` (one undo step) or `cancel`, switch to `tab`, and/or write `comments` as a session edit                               |
-| `set_object_class`             | Convert objects `ids` in place to `class` (label, class id or game type path) on the editor stack. Each object keeps its id, name, transform, comments and outputs |
+| Tool                     | What it does                                                                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `get_properties_section` | The visible `tab`, the `tabs` that apply to the selection in order and the `editedIds` of the Properties section of the right dock                                 |
+| `set_properties_section` | Show the Properties section, switch to `tab`, and/or write `comments` onto the selection as one undo step                                                          |
+| `set_object_class`       | Convert objects `ids` in place to `class` (label, class id or game type path) on the editor stack. Each object keeps its id, name, transform, comments and outputs |
 
 - Object Properties edits (the Class combo, comments, Outputs and Inputs tabs) go on a private session stack while the dialog is open. `apply` records them as one editor undo step; `cancel` discards them.
 - `set_logic_outputs` and `set_object_class` use the editor stack. If the dialog is open they first keep the session edits so far as one undo step, then land on top. `cancel` does not revert those foreign commands.

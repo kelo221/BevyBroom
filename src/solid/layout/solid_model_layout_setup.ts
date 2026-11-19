@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { CommandStack } from '@/commands/command_stack.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
-import { SolidModelPanel } from '@/solid/ui/panel/solid_model_panel.js';
 import { SolidModelController } from '@/solid/controller/solid_model_controller.js';
 import { PanelProperties } from '@/ui/properties/panel_properties.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
@@ -15,8 +14,6 @@ export interface SolidModelLayoutHost {
   commandStack: CommandStack;
   selectionManager: ManagerSelection;
   propertiesPanel: PanelProperties;
-  toolbarContainer: HTMLElement;
-  solidPanelAnchor: HTMLElement;
   /** Perspective viewport when present; solid spawn may fall back elsewhere. */
   viewport3D: Viewport3D | null;
   gridSnap: GridSnap;
@@ -35,7 +32,6 @@ export interface SolidModelLayoutHost {
 
 /** Result of solid model UI wiring. */
 export interface SolidModelLayoutSetup {
-  solidModelPanel: SolidModelPanel;
   solidModelController: SolidModelController;
 }
 
@@ -43,25 +39,13 @@ export interface SolidModelLayoutSetup {
  * Creates the solid model floating panel, controller, and property handlers.
  *
  * @param host Layout host providing scene and UI dependencies.
- * @returns Panel and controller instances.
+ * @returns Controller instance.
  */
 export function setupSolidModelLayout(host: SolidModelLayoutHost): SolidModelLayoutSetup {
-  const solidModelPanel = new SolidModelPanel(
-    host.toolbarContainer,
-    {
-      onAddBoxBrush: () => solidModelController.addBoxBrush(),
-    },
-    host.solidPanelAnchor,
-  );
-  const solidModelController = new SolidModelController(
-    host.worldObject,
-    host.commandStack,
-    host.selectionManager,
-    solidModelPanel,
-  );
+  const solidModelController = new SolidModelController(host.worldObject, host.commandStack, host.selectionManager);
   wireSolidModelController(host, solidModelController);
   wireSolidBrushPropertyHandlers(host, solidModelController);
-  return { solidModelPanel, solidModelController };
+  return { solidModelController };
 }
 
 /**

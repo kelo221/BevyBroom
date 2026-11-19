@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { GameEntityDataAssetClient } from '@/game_entity/data_asset/game_entity_data_asset_client.js';
-import { PanelDataAssetEditor } from '@/game_entity/data_asset/ui/panel_data_asset_editor.js';
+import { SectionDataAssetEditor } from '@/game_entity/data_asset/ui/section_data_asset_editor.js';
 import { testDataAssetGameCreate, testDoorStatsAssetType } from '../game_entity_data_asset_test_support.js';
 
 /**
@@ -8,8 +8,8 @@ import { testDataAssetGameCreate, testDoorStatsAssetType } from '../game_entity_
  * every edit to the game, creates new files and explains when the game cannot
  * be reached.
  */
-describe('PanelDataAssetEditor', () => {
-  const panels: PanelDataAssetEditor[] = [];
+describe('SectionDataAssetEditor', () => {
+  const panels: SectionDataAssetEditor[] = [];
 
   afterEach(() => {
     panels.splice(0).forEach((panel) => panel.dispose());
@@ -22,8 +22,8 @@ describe('PanelDataAssetEditor', () => {
    * @param client Client the panel uses, or null for an offline game.
    * @returns Panel.
    */
-  function panelCreate(client: GameEntityDataAssetClient | null): PanelDataAssetEditor {
-    const panel = new PanelDataAssetEditor(document.body, () => client);
+  function panelCreate(client: GameEntityDataAssetClient | null): SectionDataAssetEditor {
+    const panel = new SectionDataAssetEditor(document.body, () => client);
     panels.push(panel);
     return panel;
   }
@@ -35,7 +35,7 @@ describe('PanelDataAssetEditor', () => {
    * @param path Field path.
    * @returns Row element.
    */
-  function fieldRow(panel: PanelDataAssetEditor, path: string): HTMLElement {
+  function fieldRow(panel: SectionDataAssetEditor, path: string): HTMLElement {
     const row = panel.getRootElement().querySelector<HTMLElement>(`[data-field-path="${path}"]`);
     if (!row) {
       throw new Error(`the panel shows field ${path}`);
@@ -103,5 +103,20 @@ describe('PanelDataAssetEditor', () => {
     const panel = panelCreate(client);
     await panel.assetOpen(testDoorStatsAssetType(), 'missing/file.door.ron');
     expect(panel.getRootElement().querySelector('[data-error="true"]')?.textContent).toContain('missing/file.door.ron');
+  });
+
+  it('is created hidden in the shared host, shows when opened and hides from Close', () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    SectionDataAssetEditor.sharedHostSet(host);
+    const shared = SectionDataAssetEditor.shared();
+    expect(host.contains(shared.getRootElement())).toBe(true);
+    expect(shared.isOpen()).toBe(false);
+    shared.show();
+    expect(shared.isOpen()).toBe(true);
+    shared.getRootElement().querySelector<HTMLButtonElement>('button[title="Close the data asset editor"]')?.click();
+    expect(shared.isOpen()).toBe(false);
+    SectionDataAssetEditor.sharedHostSet(null);
+    expect(host.contains(shared.getRootElement())).toBe(false);
   });
 });

@@ -9,45 +9,19 @@ import { CommandSolidBrushesDelete } from '@/solid/commands/brushes/command_soli
 import { createSolidModelStartupDefault } from '@/solid/model/solid_model_startup_default.js';
 import { markAsSolidCsgGroup } from '@/solid/model/solid_group.js';
 
-/** Lightweight panel stand-in for active-model resolution tests. */
-class MockSolidPanel {
-  private model: SolidModel | null = null;
-
-  setModel(model: SolidModel | null): void {
-    this.model = model;
-  }
-
-  getModel(): SolidModel | null {
-    return this.model;
-  }
-
-  refresh(): void {
-    return;
-  }
-
-  isOpen(): boolean {
-    return true;
-  }
-
-  toggle(): void {
-    return;
-  }
-}
-
 /** Unit tests for remembering the active solid model after selection clears. */
 describe('Solid model active context', () => {
   it('still adds a box brush after deleting the selected brush', () => {
     const world = new THREE.Group();
     const selection = new ManagerSelection();
-    const panel = new MockSolidPanel();
-    const controller = new SolidModelController(world, new CommandStack(16), selection, panel as never);
+    const controller = new SolidModelController(world, new CommandStack(16), selection);
     const model = new SolidModel('ActiveCtx');
     world.add(model.root);
     const first = model.addBoxBrush(2, SolidOperation.Additive);
     const second = model.addBoxBrush(2, SolidOperation.Additive);
     selection.selectObject(second.mesh!);
     // Selection change remembers the model via the controller listener.
-    expect(panel.getModel()).toBe(model);
+    expect(controller.resolveActiveModel()).toBe(model);
     expect(model.getBrushCount()).toBe(2);
 
     new CommandSolidBrushesDelete([second.mesh!]).execute();
@@ -57,15 +31,14 @@ describe('Solid model active context', () => {
 
     controller.addBoxBrush();
     expect(model.getBrushCount()).toBe(2);
-    expect(panel.getModel()).toBe(model);
+    expect(controller.resolveActiveModel()).toBe(model);
     void first;
   });
 
   it('places an imported solid model without selecting a brush', () => {
     const world = new THREE.Group();
     const selection = new ManagerSelection();
-    const panel = new MockSolidPanel();
-    const controller = new SolidModelController(world, new CommandStack(16), selection, panel as never);
+    const controller = new SolidModelController(world, new CommandStack(16), selection);
     const existing = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1));
     world.add(existing);
     selection.selectObject(existing);
@@ -74,19 +47,18 @@ describe('Solid model active context', () => {
     controller.placeImportedModel(model, 'Imported VMF');
     expect(world.children.includes(model.root)).toBe(true);
     expect(selection.getSelectedObjectCount()).toBe(0);
-    expect(panel.getModel()).toBe(model);
+    expect(controller.resolveActiveModel()).toBe(model);
   });
 
   it('adopts a startup solid model already in the world as the active context', () => {
     const world = new THREE.Group();
     const selection = new ManagerSelection();
-    const panel = new MockSolidPanel();
-    const controller = new SolidModelController(world, new CommandStack(16), selection, panel as never);
+    const controller = new SolidModelController(world, new CommandStack(16), selection);
     const startup = createSolidModelStartupDefault();
     world.add(startup.root);
-    expect(panel.getModel()).toBeNull();
+    expect(controller.resolveActiveModel()).toBeNull();
     expect(controller.adoptFirstSolidModelInWorld()).toBe(true);
-    expect(panel.getModel()).toBe(startup);
+    expect(controller.resolveActiveModel()).toBe(startup);
     controller.addBoxBrush();
     expect(startup.getBrushCount()).toBe(2);
   });
@@ -94,8 +66,7 @@ describe('Solid model active context', () => {
   it('adds a box brush under the group that owns the selected brush', () => {
     const world = new THREE.Group();
     const selection = new ManagerSelection();
-    const panel = new MockSolidPanel();
-    const controller = new SolidModelController(world, new CommandStack(16), selection, panel as never);
+    const controller = new SolidModelController(world, new CommandStack(16), selection);
     const model = new SolidModel('NestedAdd');
     world.add(model.root);
     const rootBrush = model.addBoxBrush(4, SolidOperation.Additive);
@@ -116,8 +87,7 @@ describe('Solid model active context', () => {
   it('sets selected brush operation additive and subtractive from keyboard path', () => {
     const world = new THREE.Group();
     const selection = new ManagerSelection();
-    const panel = new MockSolidPanel();
-    const controller = new SolidModelController(world, new CommandStack(16), selection, panel as never);
+    const controller = new SolidModelController(world, new CommandStack(16), selection);
     const model = new SolidModel('OpKeys');
     world.add(model.root);
     const brush = model.addBoxBrush(2, SolidOperation.Additive);

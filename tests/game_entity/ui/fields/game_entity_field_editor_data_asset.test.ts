@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { PanelDataAssetEditor } from '@/game_entity/data_asset/ui/panel_data_asset_editor.js';
+import { SectionDataAssetEditor } from '@/game_entity/data_asset/ui/section_data_asset_editor.js';
 import { GameEntityFieldEditorChoice } from '@/game_entity/ui/fields/game_entity_field_editor_choice.js';
 import { GameEntityFieldEditorDataAsset } from '@/game_entity/ui/fields/game_entity_field_editor_data_asset.js';
 import { testDoorField } from '../../game_entity_test_classes.js';
@@ -14,7 +14,7 @@ import { editsCapture, elementChange } from './game_entity_field_editor_test_sup
  * buttons that edit the shared file or create a new one and reference it.
  */
 describe('GameEntityFieldEditorDataAsset', () => {
-  const panels: PanelDataAssetEditor[] = [];
+  const panels: SectionDataAssetEditor[] = [];
 
   afterEach(() => {
     panels.splice(0).forEach((panel) => panel.dispose());
@@ -26,9 +26,9 @@ describe('GameEntityFieldEditorDataAsset', () => {
    *
    * @returns Editor and panel.
    */
-  function editorCreate(): { editor: GameEntityFieldEditorDataAsset; panel: PanelDataAssetEditor } {
+  function editorCreate(): { editor: GameEntityFieldEditorDataAsset; panel: SectionDataAssetEditor } {
     const { client } = testDataAssetGameCreate();
-    const panel = new PanelDataAssetEditor(document.body, () => client);
+    const panel = new SectionDataAssetEditor(document.body, () => client);
     panels.push(panel);
     const assetType = testDoorStatsAssetType();
     const field = testDoorField('stats');

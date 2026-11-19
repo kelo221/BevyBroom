@@ -10,7 +10,6 @@ import { CommandSolidModelCreate } from '@/solid/commands/model/command_solid_mo
 import { GridSnap } from '@/transform/snap/grid_snap.js';
 import { ManagerSnap } from '@/transform/snap/manager_snap.js';
 import { SolidModelController } from '@/solid/controller/solid_model_controller.js';
-import { SolidModelPanel } from '@/solid/ui/panel/solid_model_panel.js';
 import { isSolidCsgGroup, getSolidGroupOperation } from '@/solid/model/solid_group.js';
 
 /**
@@ -26,9 +25,7 @@ function createTestHost(
   commandStack: CommandStack,
   selectionManager: ManagerSelection,
 ): EditorApiHost {
-  const panelHost = document.createElement('div');
-  const panel = new SolidModelPanel(panelHost, { onAddBoxBrush: () => undefined });
-  const solidModelController = new SolidModelController(worldObject, commandStack, selectionManager, panel);
+  const solidModelController = new SolidModelController(worldObject, commandStack, selectionManager);
   const gridSnap = new GridSnap(true, 0.25);
   const snapManager = new ManagerSnap(0.25);
   return {

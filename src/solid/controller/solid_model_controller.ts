@@ -13,7 +13,6 @@ import {
 } from '@/solid/commands/brushes/command_solid_brushes_reorder.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
-import { SolidModelPanel } from '@/solid/ui/panel/solid_model_panel.js';
 import { SolidOperation, solidOperationToggleAdditiveSubtractive } from '@/solid/types/solid_operation.js';
 import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidBrushEdgeBatch } from '@/solid/model/solid_brush_edge_batch.js';
@@ -51,7 +50,6 @@ export class SolidModelController {
   private worldObject: THREE.Group;
   private commandStack: CommandStack;
   private selectionManager: ManagerSelection;
-  private panel: SolidModelPanel;
   private textureLock: TextureLockSettings | null;
   private getTransformMode: (() => TransformMode) | null;
   private syncViewports: (() => void) | null;
@@ -97,18 +95,11 @@ export class SolidModelController {
    * @param worldObject Scene root group.
    * @param commandStack Undo stack.
    * @param selectionManager Selection manager.
-   * @param panel Solid model tools panel.
    */
-  constructor(
-    worldObject: THREE.Group,
-    commandStack: CommandStack,
-    selectionManager: ManagerSelection,
-    panel: SolidModelPanel,
-  ) {
+  constructor(worldObject: THREE.Group, commandStack: CommandStack, selectionManager: ManagerSelection) {
     this.worldObject = worldObject;
     this.commandStack = commandStack;
     this.selectionManager = selectionManager;
-    this.panel = panel;
     this.textureLock = null;
     this.getTransformMode = null;
     this.syncViewports = null;
@@ -301,14 +292,6 @@ export class SolidModelController {
     }
   }
 
-  /** Toggles the solid model panel visibility. */
-  togglePanel(): void {
-    this.panel.toggle();
-    if (this.panel.isOpen()) {
-      this.bindPanelToSelection();
-    }
-  }
-
   /**
    * Adds a box brush under the active solid model and selects it. Spawns
    * grid-aligned in front of the active camera (model-local space). Appends
@@ -340,13 +323,11 @@ export class SolidModelController {
     if (brush?.mesh) {
       if (!this.selectionManager.selectObject(brush.mesh)) {
         this.refreshOutliner?.();
-        this.panel.refresh();
         this.syncViewports?.();
         return;
       }
       this.lastBrushInsertParent = brush.mesh.parent;
     }
-    this.panel.refresh();
     this.syncViewports?.();
     // Selection change already reveals/refreshes the outliner for the new brush.
     // A second full tree pass is unnecessary for large solid models.
@@ -371,7 +352,6 @@ export class SolidModelController {
     if (model.isInvertedWorld() === inverted) return;
     model.setInvertedWorld(inverted);
     this.rememberActiveModel(model);
-    this.panel.refresh();
     this.syncViewports?.();
     this.refreshOutliner?.();
     this.showStatus?.(inverted ? 'Inverted world enabled' : 'Inverted world disabled');
@@ -387,7 +367,6 @@ export class SolidModelController {
     if (meshes.length === 0) return;
     const command = new CommandSolidBrushOperationSet(meshes, operation);
     this.commandStack.push(command);
-    this.panel.refresh();
     this.syncViewports?.();
     this.refreshOutliner?.();
     this.showStatus?.('Updated brush operation');
@@ -438,7 +417,6 @@ export class SolidModelController {
       return;
     }
     this.commandStack.push(new CommandUndoBatch([...commands]));
-    this.panel.refresh();
     this.syncViewports?.();
     this.refreshOutliner?.();
     this.showStatus?.(message);
@@ -672,7 +650,6 @@ export class SolidModelController {
     if (groups.length === 0) return;
     const command = new CommandSolidGroupOperationSet(groups, operation);
     this.commandStack.push(command);
-    this.panel.refresh();
     this.syncViewports?.();
     this.refreshOutliner?.();
     this.showStatus?.('Updated group operation');
@@ -711,7 +688,6 @@ export class SolidModelController {
       updatedResults.push(model.getResultMeshForSync());
     }
     solidRootClearBakeBaselines(models, this.solidRootBakeBaselines);
-    this.panel.refresh();
     this.onLiveGeometryUpdated?.(updatedResults);
     this.refreshOutliner?.();
     return this.selectionIsSolidOnly(selectedMeshes);
@@ -730,7 +706,6 @@ export class SolidModelController {
     if (reorderNodes.length === 0) return;
     const command = new CommandSolidBrushesReorder(reorderNodes, end);
     this.commandStack.push(command);
-    this.panel.refresh();
     this.syncViewports?.();
     this.refreshOutliner?.();
     this.revealOutlinerAfterReorder(reorderNodes);
@@ -930,25 +905,20 @@ export class SolidModelController {
     return true;
   }
 
-  /** Reacts to scene selection changes by binding the tools panel. */
+  /** Reacts to scene selection changes by remembering the selected solid model. */
   private onSelectionChanged(): void {
-    this.bindPanelToSelection();
+    this.activeModelRememberFromSelection();
     this.updateBrushInsertParentFromSelection();
   }
 
   /**
-   * Binds the tools panel to the solid model owning the current selection. Does
-   * not clear the last active model when selection is empty (post-delete).
+   * Remembers the solid model owning the current selection. Keeps the last
+   * active model when the selection holds none (after a delete).
    */
-  private bindPanelToSelection(): void {
+  private activeModelRememberFromSelection(): void {
     const selectedModel = this.findSelectedSolidModel();
     if (selectedModel) {
       this.rememberActiveModel(selectedModel);
-      return;
-    }
-    const remembered = this.resolveRememberedModel();
-    if (remembered) {
-      this.panel.setModel(remembered);
     }
   }
 
@@ -1051,7 +1021,7 @@ export class SolidModelController {
   }
 
   /**
-   * Resolves the active model from selection, panel, or last remembered model.
+   * Resolves the active model from selection or the last remembered model.
    *
    * @returns Solid model or null.
    */
@@ -1061,22 +1031,16 @@ export class SolidModelController {
       this.rememberActiveModel(selected);
       return selected;
     }
-    const fromPanel = this.panel.getModel();
-    if (fromPanel && this.isModelStillInScene(fromPanel)) {
-      this.lastActiveModel = fromPanel;
-      return fromPanel;
-    }
     return this.resolveRememberedModel();
   }
 
   /**
-   * Stores a model as the current working solid for tools and the panel.
+   * Stores a model as the current working solid for tools.
    *
    * @param model Solid model to remember.
    */
   private rememberActiveModel(model: SolidModel): void {
     this.lastActiveModel = model;
-    this.panel.setModel(model);
   }
 
   /**

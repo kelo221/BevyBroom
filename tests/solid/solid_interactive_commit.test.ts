@@ -6,21 +6,6 @@ import { CommandStack } from '@/commands/command_stack.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import * as THREE from 'three';
 
-/** Lightweight mock of the solid tools panel used by the controller. */
-class MockSolidPanel {
-  setModel(_model: SolidModel | null): void {
-    void _model;
-  }
-
-  getModel(): SolidModel | null {
-    return null;
-  }
-
-  refresh(): void {
-    return;
-  }
-}
-
 /** Unit tests for interactive transform commit performance path. */
 describe('Solid interactive transform commit', () => {
   it('finalizeAfterInteractiveEdit keeps live geometry without forcing a full rebuild', () => {
@@ -50,12 +35,7 @@ describe('Solid interactive transform commit', () => {
     const model = new SolidModel('CommitCtrl');
     world.add(model.root);
     const brush = model.addBoxBrush(2, SolidOperation.Additive);
-    const controller = new SolidModelController(
-      world,
-      new CommandStack(8),
-      new ManagerSelection(),
-      new MockSolidPanel() as never,
-    );
+    const controller = new SolidModelController(world, new CommandStack(8), new ManagerSelection());
     brush.mesh!.position.x += 0.1;
     model.syncSelectedBrushesFromScene([brush.mesh!]);
     model.rebuildLive();
@@ -87,12 +67,7 @@ describe('Solid interactive transform commit', () => {
     other.pushTransformToMesh();
     model.syncBrushesFromScene();
     model.rebuild(true);
-    const controller = new SolidModelController(
-      world,
-      new CommandStack(8),
-      new ManagerSelection(),
-      new MockSolidPanel() as never,
-    );
+    const controller = new SolidModelController(world, new CommandStack(8), new ManagerSelection());
     brush.mesh!.position.x = 0.2;
     controller.onTransformsLive([brush.mesh!]);
     brush.mesh!.position.x = 1.5;

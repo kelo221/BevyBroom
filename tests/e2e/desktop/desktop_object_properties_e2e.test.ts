@@ -9,10 +9,10 @@ import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
 import type { ShellMainWindowState } from '@/layout/shell/actions/shell_main_window_control.js';
 
 /**
- * End-to-end acceptance of the Object Properties dialog in the built desktop
- * app: comments Cancel/Apply, a foreign set_logic_outputs call while the dialog
- * is open, and the Texture Browser floating window. Skipped unless
- * BROOM_E2E_DESKTOP_EXE names the app launcher.
+ * End-to-end acceptance of the Properties section of the right dock in the
+ * built desktop app: it shows the selected light, writes comments as one undo
+ * step, empties when nothing is selected, and the Browser's Textures tab.
+ * Skipped unless BROOM_E2E_DESKTOP_EXE names the app launcher.
  */
 const desktopExecutable = process.env['BROOM_E2E_DESKTOP_EXE'] ? resolve(process.env['BROOM_E2E_DESKTOP_EXE']) : '';
 e2eRequiredConfigurationAssert(desktopExecutable !== '', ['BROOM_E2E_DESKTOP_EXE']);
@@ -21,9 +21,8 @@ const LAUNCH_TIMEOUT_MILLISECONDS = 90000;
 const STEP_TIMEOUT_MILLISECONDS = 60000;
 const COMMENTS_TEXT = 'e2e object properties note';
 
-/** Data of a get_object_properties_dialog reply. */
+/** Data of a get_properties_section reply. */
 interface ObjectPropertiesE2eDialogState {
-  open: boolean;
   tab: string | null;
   tabs: string[];
   editedIds: string[];
@@ -61,7 +60,6 @@ describe.skipIf(desktopExecutable === '')('desktop Object Properties end to end'
   const app = new DesktopE2eAppProcess(desktopExecutable, mcpBasePort, e2eWindowsShownRead());
   let client: DesktopE2eMcpClient;
   let lightId = '';
-  let doorId = '';
 
   /** Starts the app and waits until the editor answers tools. */
   async function appLaunch(): Promise<void> {
@@ -76,12 +74,12 @@ describe.skipIf(desktopExecutable === '')('desktop Object Properties end to end'
   }
 
   /**
-   * Reads the Object Properties dialog state.
+   * Reads the Properties section state.
    *
-   * @returns Dialog state.
+   * @returns Section state.
    */
   async function dialogStateRead(): Promise<ObjectPropertiesE2eDialogState> {
-    return toolDataRead<ObjectPropertiesE2eDialogState>(await client.toolCallExpectOk('get_object_properties_dialog'));
+    return toolDataRead<ObjectPropertiesE2eDialogState>(await client.toolCallExpectOk('get_properties_section'));
   }
 
   /**
@@ -112,30 +110,21 @@ describe.skipIf(desktopExecutable === '')('desktop Object Properties end to end'
   });
 
   it(
-    'opens Object Properties on a selected light, cancels comments, then applies them',
+    'shows a selected light in the right dock Properties section and writes comments as one undo step',
     async () => {
       lightId = toolDataRead<{ id: string }>(
         await client.toolCallExpectOk('add_light', { name: 'PropertiesLight', position: { x: 0, y: 1, z: 0 } }),
       ).id;
-      await client.toolCallExpectOk('viewport_click', {
-        view: 'perspective',
-        at: { x: 0, y: 1, z: 0 },
-      });
-      const undoBeforeOpen = await undoCountRead();
-      const opened = await client.toolCallExpectOk('set_object_properties_dialog', { action: 'open' });
-      expect(toolDataRead<ObjectPropertiesE2eDialogState>(opened).open).toBe(true);
-      expect((await dialogStateRead()).editedIds).toEqual([lightId]);
-      await client.toolCallExpectOk('set_object_properties_dialog', { comments: COMMENTS_TEXT });
-      expect(sceneCommentsRead(await sceneJsonRead(), lightId)).toBe(COMMENTS_TEXT);
-      await client.toolCallExpectOk('set_object_properties_dialog', { action: 'cancel' });
-      expect((await dialogStateRead()).open).toBe(false);
-      expect(sceneCommentsRead(await sceneJsonRead(), lightId)).toBe('');
-      expect(await undoCountRead()).toBe(undoBeforeOpen);
       await client.toolCallExpectOk('viewport_click', { view: 'perspective', at: { x: 0, y: 1, z: 0 } });
-      await client.toolCallExpectOk('set_object_properties_dialog', { action: 'open', comments: COMMENTS_TEXT });
-      await client.toolCallExpectOk('set_object_properties_dialog', { action: 'apply' });
+      const undoBefore = await undoCountRead();
+      await client.toolCallExpectOk('set_main_window', { inspectorVisible: false });
+      await client.toolCallExpectOk('set_properties_section', { tab: 'class_info' });
+      const layout = toolDataRead<{ inspector: { width: number } }>(await client.toolCallExpectOk('get_shell_layout'));
+      expect(layout.inspector.width).toBeGreaterThan(0);
+      expect((await dialogStateRead()).editedIds).toEqual([lightId]);
+      await client.toolCallExpectOk('set_properties_section', { comments: COMMENTS_TEXT });
       expect(sceneCommentsRead(await sceneJsonRead(), lightId)).toBe(COMMENTS_TEXT);
-      expect(await undoCountRead()).toBe(undoBeforeOpen + 1);
+      expect(await undoCountRead()).toBe(undoBefore + 1);
       await client.toolCallExpectOk('undo');
       expect(sceneCommentsRead(await sceneJsonRead(), lightId)).toBe('');
     },
@@ -143,27 +132,11 @@ describe.skipIf(desktopExecutable === '')('desktop Object Properties end to end'
   );
 
   it(
-    'keeps session comments when a foreign set_logic_outputs lands while the dialog is open',
+    'empties the Properties section when nothing is selected and refuses comments then',
     async () => {
-      doorId = toolDataRead<{ id: string }>(
-        await client.toolCallExpectOk('add_game_entity', {
-          name: 'PropertiesDoor',
-          position: { x: 2, y: 0, z: 0 },
-        }),
-      ).id;
-      await client.toolCallExpectOk('viewport_click', { view: 'perspective', at: { x: 0, y: 1, z: 0 } });
-      await client.toolCallExpectOk('set_object_properties_dialog', { action: 'open', comments: COMMENTS_TEXT });
-      await client.toolCallExpectOk('set_logic_outputs', {
-        id: doorId,
-        outputs: [{ output: 'OnPressed', target: 'PropertiesDoor', input: 'Open' }],
-      });
-      expect((await dialogStateRead()).open).toBe(true);
-      await client.toolCallExpectOk('set_object_properties_dialog', { action: 'cancel' });
-      expect(sceneCommentsRead(await sceneJsonRead(), lightId)).toBe(COMMENTS_TEXT);
-      const outputs = toolDataRead<{ outputs: unknown[] }>(
-        await client.toolCallExpectOk('read_logic_outputs', { id: doorId }),
-      );
-      expect(outputs.outputs).toHaveLength(1);
+      await client.toolCallExpectOk('select', { brushIds: [] });
+      expect((await dialogStateRead()).editedIds).toEqual([]);
+      expect((await client.toolCall('set_properties_section', { comments: COMMENTS_TEXT })).ok).toBe(false);
     },
     STEP_TIMEOUT_MILLISECONDS,
   );

@@ -68,7 +68,6 @@ export interface EditorToolbarActions {
   onAddEntityPlaced: (factory: () => THREE.Group, objectRadius: number) => void;
   onUndo: () => void;
   onRedo: () => void;
-  onToggleSolidModelPanel: () => void;
   onToggleSettingsDialog: () => void;
   onOpenDocumentation: () => void;
   onOpenAboutDialog: () => void;

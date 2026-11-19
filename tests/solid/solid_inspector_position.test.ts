@@ -7,19 +7,6 @@ import { CommandStack } from '@/commands/command_stack.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { CommandTransformPositionSet } from '@/transform/commands/command_transform_position_set.js';
 
-/** Mock solid tools panel. */
-class MockSolidPanel {
-  setModel(_model: SolidModel | null): void {
-    void _model;
-  }
-  getModel(): SolidModel | null {
-    return null;
-  }
-  refresh(): void {
-    return;
-  }
-}
-
 /**
  * Returns Y bounds of the solid result mesh.
  *
@@ -57,12 +44,7 @@ describe('Solid inspector position edit', () => {
     new CommandTransformPositionSet([mesh], [new THREE.Vector3(0, 5, 0)]).execute();
     expect(mesh.position.y).toBeCloseTo(5, 5);
 
-    const controller = new SolidModelController(
-      world,
-      new CommandStack(8),
-      new ManagerSelection(),
-      new MockSolidPanel() as never,
-    );
+    const controller = new SolidModelController(world, new CommandStack(8), new ManagerSelection());
     const solidOnly = controller.onTransformsCommitted([mesh]);
     expect(solidOnly).toBe(true);
     expect(brush.position.y).toBeCloseTo(5, 5);

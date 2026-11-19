@@ -3,7 +3,6 @@ import { SolidModelController } from '@/solid/controller/solid_model_controller.
 import { TransformMode } from '@/types/transform_mode.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
-import { SolidModelPanel } from '@/solid/ui/panel/solid_model_panel.js';
 import * as THREE from 'three';
 
 /**
@@ -15,9 +14,7 @@ describe('SolidModelController rotate texture locks', () => {
     const world = new THREE.Group();
     const stack = new CommandStack(16);
     const selection = new ManagerSelection();
-    const panelHost = document.createElement('div');
-    const panel = new SolidModelPanel(panelHost, { onAddBoxBrush: () => undefined }, panelHost);
-    const controller = new SolidModelController(world, stack, selection, panel);
+    const controller = new SolidModelController(world, stack, selection);
     let mode = TransformMode.SCALE;
     controller.setTransformModeProvider(() => mode);
     // Access private method via bracket for unit coverage of lock policy.

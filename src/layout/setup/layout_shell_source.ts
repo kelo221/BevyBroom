@@ -33,7 +33,6 @@ export interface LayoutShellSourceHost {
   showStatusMessage(message: string): void;
   onSelectionChanged(): void;
   faceInspectorReveal(): void;
-  onToggleSolidModelPanel(): void;
   onToggleSettingsDialog(): void;
   onOpenDocumentation(): void;
   onOpenAboutDialog(): void;
@@ -167,7 +166,6 @@ function buildShellPanelCallbacks(
   | 'showStatusMessage'
   | 'onSelectionChanged'
   | 'faceInspectorReveal'
-  | 'onToggleSolidModelPanel'
   | 'onToggleSettingsDialog'
   | 'onOpenDocumentation'
   | 'onOpenAboutDialog'
@@ -184,7 +182,6 @@ function buildShellPanelCallbacks(
     showStatusMessage: (message) => host.showStatusMessage(message),
     onSelectionChanged: () => host.onSelectionChanged(),
     faceInspectorReveal: () => host.faceInspectorReveal(),
-    onToggleSolidModelPanel: () => host.onToggleSolidModelPanel(),
     onToggleSettingsDialog: () => host.onToggleSettingsDialog(),
     onOpenDocumentation: () => host.onOpenDocumentation(),
     onOpenAboutDialog: () => host.onOpenAboutDialog(),

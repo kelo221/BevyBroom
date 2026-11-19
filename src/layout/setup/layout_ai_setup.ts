@@ -39,7 +39,7 @@ export interface LayoutAiSetupHost {
   /** Returns the interactive views viewport_drag and viewport_click drive. */
   viewportsInteractiveRead?: EditorApiHost['viewportsInteractiveRead'];
   /** Returns the Object Properties dialog, creating it on first use. */
-  objectPropertiesDialogRead?: EditorApiHost['objectPropertiesDialogRead'];
+  objectPropertiesSectionRead?: EditorApiHost['objectPropertiesSectionRead'];
   /** Returns the id of the active tools palette tool. */
   activeToolRead?: EditorApiHost['activeToolRead'];
 }
@@ -80,7 +80,7 @@ export function setupLayoutAi(host: LayoutAiSetupHost): LayoutAiSetupResult {
     ...(host.issuesValidateNow ? { issuesValidateNow: host.issuesValidateNow } : {}),
     ...(host.mainWindowControlRead ? { mainWindowControlRead: host.mainWindowControlRead } : {}),
     ...(host.viewportsInteractiveRead ? { viewportsInteractiveRead: host.viewportsInteractiveRead } : {}),
-    ...(host.objectPropertiesDialogRead ? { objectPropertiesDialogRead: host.objectPropertiesDialogRead } : {}),
+    ...(host.objectPropertiesSectionRead ? { objectPropertiesSectionRead: host.objectPropertiesSectionRead } : {}),
     ...(host.activeToolRead ? { activeToolRead: host.activeToolRead } : {}),
   });
   sharedMcpBridgeHandler.bindEditorApi(editorApi);

@@ -66,7 +66,6 @@ import {
   onDetachedViewportDisposed as handleDetachedViewportDisposed,
 } from '@/layout/setup/viewport_layout_detached.js';
 import { findPrimaryPerspectiveViewport, resolveNamedViewportFields } from '@/layout/setup/layout_named_viewports.js';
-import { SolidModelPanel } from '@/solid/ui/panel/solid_model_panel.js';
 import { SolidModelController } from '@/solid/controller/solid_model_controller.js';
 import type { PlayerSystem } from '@/player/player_system.js';
 import { PanelAiCaptureDebug } from '@/ai/client/ui/panel_ai_capture_debug.js';
@@ -222,7 +221,6 @@ export abstract class ViewportLayoutCore {
   protected editorOrientationCoordinator!:
     import('@/navigation/orientation/coordinator_editor_orientation.js').CoordinatorEditorOrientation | null;
   protected gridOrientationHandler!: import('@/tools/grid/handler_grid_orientation.js').HandlerGridOrientation | null;
-  protected solidModelPanel!: SolidModelPanel | null;
   protected solidModelController!: SolidModelController | null;
   protected playerSystem: PlayerSystem | null = null;
   protected aiCaptureDebugPanel!: PanelAiCaptureDebug | null;
@@ -308,7 +306,6 @@ export abstract class ViewportLayoutCore {
     this.clipPlaneHandler = null;
     this.editorOrientationCoordinator = null;
     this.gridOrientationHandler = null;
-    this.solidModelPanel = null;
     this.solidModelController = null;
     this.aiCaptureDebugPanel = null;
     this.transformSpace = TransformSpace.Global;
@@ -755,7 +752,7 @@ export abstract class ViewportLayoutCore {
   protected abstract setupShellPanels(): void;
 
   /** @returns The Object Properties dialog, created on first use. */
-  protected abstract objectPropertiesDialogEnsure(): import('@/ui/object_properties/dialog_object_properties.js').DialogObjectProperties;
+  protected abstract objectPropertiesSectionEnsure(): import('@/ui/object_properties/section/section_object_properties.js').SectionObjectProperties;
 
   /**
    * Starts protecting unsaved work and offers work kept from an earlier

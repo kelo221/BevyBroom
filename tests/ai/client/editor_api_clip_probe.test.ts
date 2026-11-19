@@ -10,7 +10,6 @@ import { CommandSolidModelCreate } from '@/solid/commands/model/command_solid_mo
 import { GridSnap } from '@/transform/snap/grid_snap.js';
 import { ManagerSnap } from '@/transform/snap/manager_snap.js';
 import { SolidModelController } from '@/solid/controller/solid_model_controller.js';
-import { SolidModelPanel } from '@/solid/ui/panel/solid_model_panel.js';
 
 /**
  * Builds write API fixture.
@@ -21,9 +20,7 @@ function createApi(): { api: EditorApi; world: THREE.Group; stack: CommandStack 
   const world = new THREE.Group();
   const stack = new CommandStack(64);
   const selection = new ManagerSelection();
-  const panelHost = document.createElement('div');
-  const panel = new SolidModelPanel(panelHost, { onAddBoxBrush: () => undefined });
-  const solidModelController = new SolidModelController(world, stack, selection, panel);
+  const solidModelController = new SolidModelController(world, stack, selection);
   const host: EditorApiHost = {
     worldObject: world,
     commandStack: stack,

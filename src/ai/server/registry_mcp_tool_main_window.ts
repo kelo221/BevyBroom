@@ -88,27 +88,20 @@ export const MCP_MAIN_WINDOW_TOOL_DEFINITIONS: McpToolDefinition[] = [
     emptySchema(),
   ),
   tool(
-    'get_object_properties_dialog',
-    'The Object Properties dialog: open, the visible tab, the tab ids in order (class_info, outputs, inputs, properties, visgroup, ...) and the ids of the objects it edits.',
+    'get_properties_section',
+    'The Properties section of the right dock, which always shows the selection: the visible tab, the ids of the tabs that apply to the selection in order (class_info, outputs, inputs, properties, visgroup, ...) and the ids of the objects it edits (empty with no selection).',
     emptySchema(),
   ),
   tool(
-    'set_object_properties_dialog',
-    'Open the Object Properties dialog on the selection (like Alt+Enter), Apply its edits as one undo step or Cancel them, switch its tab, and optionally write comments as a session edit. Returns the state like get_object_properties_dialog.',
+    'set_properties_section',
+    'Show the Properties section of the right dock (like Alt+Enter), switch its tab, and optionally write designer comments onto every selected object as one undo step. Edits in the section apply at once. Returns the state like get_properties_section.',
     {
       type: 'object',
       properties: {
-        action: {
-          type: 'string',
-          enum: ['open', 'apply', 'cancel'],
-          description:
-            'open needs a selection; apply keeps the edits as one undo step; cancel restores the state from before opening.',
-        },
-        tab: { type: 'string', description: 'Tab id to show, from get_object_properties_dialog.' },
+        tab: { type: 'string', description: 'Tab id to show, from get_properties_section.' },
         comments: {
           type: 'string',
-          description:
-            'Designer comments written onto every edited object as a session edit. Needs the dialog open. Apply keeps them; Cancel discards them.',
+          description: 'Designer comments written onto every selected object as one undo step. Needs a selection.',
         },
       },
     },

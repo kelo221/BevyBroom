@@ -33,7 +33,6 @@ export interface LayoutShellHostCallbacks {
   showStatusMessage(message: string): void;
   onSelectionChanged(): void;
   faceInspectorReveal(): void;
-  onToggleSolidModelPanel(): void;
   onToggleSettingsDialog(): void;
   onOpenDocumentation(): void;
   onOpenAboutDialog(): void;
@@ -141,7 +140,6 @@ export function createShellSourceHostFromLayout(
     showStatusMessage: (message) => actions.showStatusMessage(message),
     onSelectionChanged: () => actions.onSelectionChanged(),
     faceInspectorReveal: () => actions.faceInspectorReveal(),
-    onToggleSolidModelPanel: () => actions.onToggleSolidModelPanel(),
     onToggleSettingsDialog: () => actions.onToggleSettingsDialog(),
     onOpenDocumentation: () => actions.onOpenDocumentation(),
     onOpenAboutDialog: () => actions.onOpenAboutDialog(),

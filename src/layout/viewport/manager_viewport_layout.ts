@@ -107,7 +107,6 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
         showStatusMessage: (message) => layout.showStatusMessage(message),
         onSelectionChanged: () => layout.onSelectionChanged(),
         faceInspectorReveal: () => layout.faceInspectorReveal(),
-        onToggleSolidModelPanel: () => layout.onToggleSolidModelPanel(),
         onToggleSettingsDialog: () => layout.onToggleSettingsDialog(),
         onOpenDocumentation: () => layout.onOpenDocumentation(),
         onOpenAboutDialog: () => layout.onOpenAboutDialog(),
@@ -816,7 +815,7 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
     this.clipboardSystem?.dispose();
     this.clipboardSystem = null;
     this.sceneRecoveryDispose();
-    this.objectPropertiesDialogDispose();
+    this.objectPropertiesSectionDispose();
     this.objectSelectDoubleClickDispose();
     this.objectContextMenuDispose();
     this.toolEditorSystem?.uninstallFocusPointerRouter();
