@@ -63,4 +63,18 @@ export interface ProjectLevelActions {
    *   field, for naming a new level.
    */
   levelBrowserReveal(isNameFieldFocused: boolean): void;
+  /**
+   * Returns whether a game project with a level folder is open.
+   *
+   * @returns True while new levels can be saved into a project.
+   */
+  projectOpenIs(): boolean;
+  /**
+   * Asks for the name of a new level, offering one no level uses yet.
+   *
+   * @param title Dialog title.
+   * @param confirmLabel Label of the confirming button.
+   * @returns A name no level uses, or null when cancelled or already taken.
+   */
+  levelNameAsk(title: string, confirmLabel: string): Promise<string | null>;
 }

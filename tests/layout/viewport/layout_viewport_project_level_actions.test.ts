@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { DialogPromptShow } from '@/ui/dialog/dialog_prompt_fields.js';
 import * as THREE from 'three';
 import {
   PROJECT_LEVEL_TEST_PROJECT_FILE,
@@ -79,5 +80,25 @@ describe('LayoutViewportProjectLevelActions', () => {
     expect(rig.service.openLevelRead()?.document).toBe('deep_pit.json');
     rig.actions.levelBrowserReveal(true);
     expect(rig.levelBrowserReveal).toHaveBeenCalledWith(true);
+  });
+
+  it('knows when a project is open and refuses a typed level name that is already in use', async () => {
+    const rig = projectLevelActionsRigCreate();
+    expect(rig.actions.projectOpenIs()).toBe(false);
+    await projectLevelRigProjectOpen(rig);
+    expect(rig.actions.projectOpenIs()).toBe(true);
+    await rig.actions.levelSaveAsNew('Castle Hall');
+    const typedName = vi.fn<(name: string) => string>();
+    const promptShow = vi.fn<DialogPromptShow>(async (options) => ({
+      name: typedName(options.fields[0]?.value ?? ''),
+    }));
+    Object.assign(rig.context, { levelNamePromptShow: promptShow });
+    typedName.mockReturnValue('castle hall');
+    expect(await rig.actions.levelNameAsk('Save Level', 'Save')).toBeNull();
+    typedName.mockImplementation((offered) => offered);
+    const offeredName = await rig.actions.levelNameAsk('Save Level', 'Save');
+    expect(offeredName).not.toBeNull();
+    const created = await rig.actions.levelSaveAsNew(offeredName ?? '');
+    expect(created.ok).toBe(true);
   });
 });

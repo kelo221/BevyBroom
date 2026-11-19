@@ -14,7 +14,7 @@ import { shadingExemptFlag } from '@/viewports/shading/shading_exempt.js';
 const ENTITY_POINT_BOX_ICON_SHARE = 0.85;
 
 /** Opacity of the box faces at full marker opacity. */
-const ENTITY_POINT_BOX_FILL_OPACITY = 0.2;
+const ENTITY_POINT_BOX_FILL_OPACITY = 0.35;
 
 /** UserData flag on the edge lines of a point box. */
 const ENTITY_POINT_BOX_EDGES_USERDATA_KEY = 'isEntityPointBoxEdges';

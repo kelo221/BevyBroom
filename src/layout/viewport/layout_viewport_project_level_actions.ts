@@ -9,6 +9,8 @@ import { dialogSceneFileChangedOnDiskConfirm } from '@/io/dialog/dialog_scene_fi
 import type { ProjectLevelActions, ProjectLevelOpenResult } from '@/project/level/project_level_actions.js';
 import type { ProjectLevelService } from '@/project/level/project_level_service.js';
 import type { ProjectLevelSummary, ProjectLevelWriteResult } from '@/project/level/project_level_types.js';
+import { ProjectLevelNamePrompt } from '@/project/level/prompt/project_level_name_prompt.js';
+import type { DialogPromptShow } from '@/ui/dialog/dialog_prompt_fields.js';
 
 /** Current editor parts the project level actions use. */
 export interface LayoutViewportProjectLevelActionsContext {
@@ -33,6 +35,8 @@ export interface LayoutViewportProjectLevelActionsContext {
    * @param isNameFieldFocused True to focus its name field.
    */
   levelBrowserReveal(isNameFieldFocused: boolean): void;
+  /** Shows the level name prompt; the modal prompt dialog when omitted. */
+  readonly levelNamePromptShow?: DialogPromptShow;
 }
 
 /**
@@ -132,6 +136,24 @@ export class LayoutViewportProjectLevelActions implements ProjectLevelActions {
   /** @inheritdoc */
   levelBrowserReveal(isNameFieldFocused: boolean): void {
     this.host.levelBrowserReveal(isNameFieldFocused);
+  }
+
+  /** @inheritdoc */
+  projectOpenIs(): boolean {
+    return this.serviceRead().listStateRead().documentDirectory !== null;
+  }
+
+  /** @inheritdoc */
+  async levelNameAsk(title: string, confirmLabel: string): Promise<string | null> {
+    const host = this.host;
+    const levels = this.serviceRead().listStateRead().levels;
+    const prompt = new ProjectLevelNamePrompt(host.levelNamePromptShow);
+    const name = await prompt.nameAsk({ host: host.toolbarContainer, title, confirmLabel, levels });
+    if (name !== null && ProjectLevelNamePrompt.nameTakenIs(levels, name)) {
+      this.failureShow(`A level named "${name}" already exists.`);
+      return null;
+    }
+    return name;
   }
 
   /**

@@ -18,7 +18,7 @@ export interface TextFileRpcServices {
   /** Shows the native open dialog and returns the chosen paths. */
   readonly openDialogShow: (allowedFileTypes: string) => Promise<string[]>;
   /** Shows the native save dialog and returns the chosen path, or null. */
-  readonly savePanelShow: (suggestedName: string, defaultExtension: string) => Promise<string | null>;
+  readonly savePanelShow: (params: FileDialogDesktopSavePickParams) => Promise<string | null>;
   /** Reads a text file. */
   readonly textRead: (path: string) => Promise<string>;
   /** Reads a modification time, or null when the file is missing. */
@@ -80,7 +80,7 @@ async function textFileRpcOpen(
 export function textFileRpcHandlersCreate(services: TextFileRpcServices): TextFileRpcHandlers {
   return {
     textFileOpen: ({ allowedFileTypes }) => textFileRpcOpen(services, allowedFileTypes),
-    savePathPick: ({ suggestedName, defaultExtension }) => services.savePanelShow(suggestedName, defaultExtension),
+    savePathPick: (params) => services.savePanelShow(params),
     textFileWrite: async ({ path, text }) => ({ lastModified: await services.textWrite(path, text) }),
     fileStat: async ({ path }) => {
       const lastModified = await services.modifiedRead(path);

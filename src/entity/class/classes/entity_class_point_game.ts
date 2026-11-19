@@ -54,6 +54,16 @@ export class EntityClassPointGame extends EntityClassPoint {
   }
 
   /**
+   * Returns true: game entities such as player starts and props stand on the
+   * surface they are placed on.
+   *
+   * @returns True.
+   */
+  override surfaceRestingIs(): boolean {
+    return true;
+  }
+
+  /**
    * Turns the state into a game entity carrying the class, keeping the other
    * components; the scale becomes one because game entities may not be scaled.
    *

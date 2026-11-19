@@ -9,7 +9,7 @@ import type { ControllerAreaLayout } from '@/layout/area/controller_area_layout.
 import type { ViewportRegistry } from '@/layout/viewport/viewport_registry.js';
 import type { ViewportPane } from '@/layout/viewport/viewport_pane.js';
 import { syncActivePanesFromVisibleLayout, wireReplacedPane, wireToolbarForPane } from './layout_viewport_chrome.js';
-import { areEditorStorageWritesSuppressed } from '@/settings/storage/clear_editor_storage.js';
+import { WorkspaceCameraPersistence } from '@/layout/workspace/workspace_camera_persistence.js';
 
 /**
  * Host surface required to wire area tiling interaction and the workspace
@@ -38,7 +38,7 @@ export interface WorkspaceAreaWiringHost {
 
 /**
  * Creates the workspace controller and switcher bar, then applies the active
- * workspace layout.
+ * workspace layout with the camera poses it was saved with.
  *
  * @param host Layout wiring host.
  */
@@ -53,25 +53,24 @@ export function wireWorkspaceSystem(host: WorkspaceAreaWiringHost): void {
   host.getWorkspaceSwitcherBar()?.dispose();
   const switcherBar = new WorkspaceSwitcherBar(host.getWorkspaceSwitcherSlot(), createSwitcherActions(host));
   host.setWorkspaceSwitcherBar(switcherBar);
-  controller.applyActiveWorkspace({ restoreCameras: false });
+  controller.applyActiveWorkspace({ restoreCameras: true });
   refreshWorkspaceSwitcherBar(host);
-  registerWorkspaceLayoutPageHidePersistence(host);
+  registerWorkspaceCameraPersistence(host);
 }
 
 /**
- * Persists the active workspace layout when the editor page unloads so split,
- * join, and kind edits are not lost on refresh.
+ * Saves the active workspace layout with its camera poses after the cameras
+ * stop moving and when the window loses focus or closes.
  *
  * @param host Layout wiring host.
  */
-function registerWorkspaceLayoutPageHidePersistence(host: WorkspaceAreaWiringHost): void {
+function registerWorkspaceCameraPersistence(host: WorkspaceAreaWiringHost): void {
   if (typeof window === 'undefined') return;
-  const persist = () => {
-    if (areEditorStorageWritesSuppressed()) return;
-    host.getWorkspaceController()?.persistCurrentIntoActive();
-  };
-  window.addEventListener('pagehide', persist);
-  window.addEventListener('beforeunload', persist);
+  new WorkspaceCameraPersistence({
+    viewportArea: host.getViewportArea(),
+    windowObject: window,
+    persist: () => host.getWorkspaceController()?.persistCurrentIntoActive(),
+  });
 }
 
 /**

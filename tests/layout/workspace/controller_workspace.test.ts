@@ -265,4 +265,54 @@ describe('WorkspaceController layout persistence', () => {
     expect(afterStartup.position.x).not.toBeCloseTo(99);
     layer.remove();
   });
+
+  it('reopens a saved workspace with its camera after a restart on the same storage', () => {
+    const storage = createMemoryStorage();
+    const firstRun = workspaceRunStart(storage);
+    const savedCamera = firstRun.perspectiveCameraRead();
+    savedCamera.position.set(-14, 9, 21);
+    savedCamera.quaternion.setFromEuler(new THREE.Euler(-0.3, 1.1, 0));
+    firstRun.workspace.persistCurrentIntoActive();
+    firstRun.layer.remove();
+    const secondRun = workspaceRunStart(storage);
+    const reopenedCamera = secondRun.perspectiveCameraRead();
+    expect(reopenedCamera.position.toArray()).toEqual(savedCamera.position.toArray());
+    expect(reopenedCamera.quaternion.angleTo(savedCamera.quaternion)).toBeCloseTo(0, 6);
+    expect(secondRun.workspace.getStore().getActiveWorkspaceId()).toBe(WORKSPACE_IDS.dual);
+    secondRun.layer.remove();
+  });
 });
+
+/**
+ * Starts the workspace system the way the editor does at launch: a store on the
+ * given storage with the dual workspace active, fresh panes, and the active
+ * workspace applied with its saved cameras.
+ *
+ * @param storage Storage shared between runs.
+ * @returns Controller, layout element and a reader of the perspective camera.
+ */
+function workspaceRunStart(storage: Storage): {
+  workspace: ControllerWorkspace;
+  layer: HTMLElement;
+  perspectiveCameraRead: () => THREE.PerspectiveCamera;
+} {
+  const store = new WorkspaceStore(storage);
+  store.setActiveWorkspaceId(WORKSPACE_IDS.dual);
+  const { controller: areaController, layer } = createDualAreaController();
+  const registry = new ViewportRegistry((kind) => createMockViewport(kind));
+  registry.setFactoryDependencies({ inputManager: {} as never, sharedScene: {} as never, surface: {} as never });
+  const workspace = new ControllerWorkspace(store, areaController, registry, {
+    onAreaAdded: (areaId, container, kind) => void registry.addPaneWithKind(areaId, container, kind),
+    onAreaRemoved: (areaId) => registry.removePane(areaId),
+    onAreaKindChanged: (areaId, kind) => void registry.replaceKind(areaId, kind),
+    onStructureChanged: vi.fn(),
+  });
+  workspace.applyActiveWorkspace({ restoreCameras: true });
+  const perspectiveCameraRead = (): THREE.PerspectiveCamera => {
+    const pane = registry.getPanes().find((candidate) => candidate.getKind() === ViewportKind.PERSPECTIVE);
+    const camera = pane?.getViewport()?.getCamera();
+    if (!(camera instanceof THREE.PerspectiveCamera)) throw new Error('the dual workspace has a perspective pane');
+    return camera;
+  };
+  return { workspace, layer, perspectiveCameraRead };
+}

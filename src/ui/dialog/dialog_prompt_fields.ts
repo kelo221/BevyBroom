@@ -33,6 +33,9 @@ export interface DialogPromptFieldsOptions {
 /** Trimmed text of every field by field id. */
 export type DialogPromptAnswer = Readonly<Record<string, string>>;
 
+/** Shows a prompt and resolves with its answer, or null when cancelled. */
+export type DialogPromptShow = (options: DialogPromptFieldsOptions) => Promise<DialogPromptAnswer | null>;
+
 /** Smallest width of a prompt in pixels. */
 const DIALOG_PROMPT_MIN_WIDTH_PX = 280;
 

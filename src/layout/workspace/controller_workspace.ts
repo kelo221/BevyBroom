@@ -173,15 +173,13 @@ export class ControllerWorkspace {
   }
 
   /**
-   * Sets the active workspace from a pane count and applies it without
-   * restoring cameras.
+   * Switches to the built-in workspace with a pane count, keeping the cameras
+   * of both workspaces.
    *
    * @param paneCount Pane count 1–4.
    */
   applyPaneCountMigration(paneCount: 1 | 2 | 3 | 4): void {
-    const id = workspaceIdForPaneCount(paneCount);
-    this.store.setActiveWorkspaceId(id);
-    this.applyActiveWorkspace({ restoreCameras: false });
+    this.switchTo(workspaceIdForPaneCount(paneCount));
   }
 
   /** Writes the current tree and live camera poses into the active workspace. */

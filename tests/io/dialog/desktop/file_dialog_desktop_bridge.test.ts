@@ -80,4 +80,23 @@ describe('desktop file dialog bridge', () => {
     expect(await manager.loadTextFile('.vmf', 'VMF', ['.vmf'])).toBeNull();
     expect(bridge.textFileWrite).not.toHaveBeenCalled();
   });
+
+  it('opens Save As in the starting folder it is given', async () => {
+    const bridge = desktopTestBridgeInstall();
+    const startingDirectory = DESKTOP_TEST_SCENE_PATH.slice(0, DESKTOP_TEST_SCENE_PATH.lastIndexOf('/'));
+    bridge.saveAnswer = `${startingDirectory}/copy.json`;
+    await new ManagerFileDialog().saveSceneDocumentAs('{}', 'scene.json', startingDirectory);
+    expect(bridge.savePathPick).toHaveBeenCalledWith({
+      suggestedName: 'scene.json',
+      defaultExtension: 'json',
+      startingDirectory,
+    });
+  });
+
+  it('throws instead of reporting a cancel when the chosen file cannot be written', async () => {
+    const bridge = desktopTestBridgeInstall();
+    bridge.saveAnswer = '/read only/copy.json';
+    bridge.textFileWrite.mockRejectedValueOnce(new Error('read-only volume'));
+    await expect(new ManagerFileDialog().saveSceneDocumentAs('{}', 'scene.json')).rejects.toThrow('copy.json');
+  });
 });

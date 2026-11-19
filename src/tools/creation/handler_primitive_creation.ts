@@ -13,6 +13,8 @@ import {
   computeOcclusionAwareSpawnPosition,
   DEFAULT_SPAWN_DISTANCE,
 } from '@/navigation/placement/object_spawn_placement.js';
+import type { ClipboardPlacementAim } from '@/clipboard/placement/clipboard_placement_cursor.js';
+import { entityPlacementSurfaceRestingApply } from '@/tools/creation/placement/entity_placement_surface_resting.js';
 
 /** Callback invoked after a primitive is created and added to the scene. */
 export type PrimitiveCreatedCallback = () => void;
@@ -162,25 +164,43 @@ export class HandlerPrimitiveCreation {
   }
 
   /**
-   * Places a new entity owner at the view-ray spawn point as one undoable step
-   * and selects its marker.
+   * Places a new entity owner as one undoable step and selects its marker:
+   * resting on the surface under the aim when one is given, otherwise at the
+   * view-ray spawn point.
    *
    * @param factory Creates the entity owner group.
    * @param objectRadius Approximate half-extent used for wall clearance.
+   * @param aim Aimed view point the owner rests under, or undefined.
    */
-  entityCreatePlaced(factory: () => THREE.Group, objectRadius: number): void {
+  entityCreatePlaced(factory: () => THREE.Group, objectRadius: number, aim?: ClipboardPlacementAim): void {
     if (this.selectionManager.isSelectionChangeLocked()) {
       this.selectionManager.notifySelectionChangeBlocked();
       return;
     }
     const owner = factory();
-    this.applySpawnPlacement(owner, objectRadius);
+    this.entityPlacementApply(owner, objectRadius, aim);
     this.commandStack.push(new CommandPrimitiveCreate(owner, this.worldObject));
     this.onPrimitiveCreatedCallback();
     const marker = EntityVisualBuilder.markerFind(owner);
     if (marker) {
       this.selectionManager.selectObject(marker);
     }
+  }
+
+  /**
+   * Positions a new entity owner on the surface under an aim, or on the view
+   * ray without one.
+   *
+   * @param owner New entity owner.
+   * @param objectRadius Approximate half-extent used for wall clearance.
+   * @param aim Aimed view point, or undefined.
+   */
+  private entityPlacementApply(owner: THREE.Group, objectRadius: number, aim: ClipboardPlacementAim | undefined): void {
+    if (aim === undefined) {
+      this.applySpawnPlacement(owner, objectRadius);
+      return;
+    }
+    entityPlacementSurfaceRestingApply(owner, aim, this.worldObject, this.getGridInterval?.() ?? 1);
   }
 
   /**

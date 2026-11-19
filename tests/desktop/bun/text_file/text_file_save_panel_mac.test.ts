@@ -6,9 +6,16 @@ import {
 
 describe('macOS save panel', () => {
   it('quotes the suggested name so quotes and backslashes cannot break the script', () => {
-    const script = textFileSavePanelMacScriptBuild('my "big" \\ level.json');
+    const script = textFileSavePanelMacScriptBuild({ suggestedName: 'my "big" \\ level.json' });
     expect(script).toContain('default name "my \\"big\\" \\\\ level.json"');
     expect(script.startsWith('activate')).toBe(true);
+    expect(script).not.toContain('default location');
+  });
+
+  it('opens the panel in the starting folder when one is given', () => {
+    const startingDirectory = '/games/my "cart" game/levels';
+    const script = textFileSavePanelMacScriptBuild({ suggestedName: 'scene.json', startingDirectory });
+    expect(script).toContain('default location (POSIX file "/games/my \\"cart\\" game/levels")');
   });
 
   it('adds the default extension only when the chosen name has none', () => {

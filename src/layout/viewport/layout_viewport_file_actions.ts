@@ -66,8 +66,16 @@ export class LayoutViewportFileActions {
     return this.contextRead();
   }
 
-  /** Confirms discarding the scene, then restores the startup scene. */
+  /**
+   * Starts a new scene: inside an open game project a new level that is named
+   * and saved into the project's level folder at once, otherwise the startup
+   * scene after confirming that unsaved work may be discarded.
+   */
   sceneNew(): void {
+    if (this.host.projectLevelActionsRead().projectOpenIs()) {
+      void this.projectLevelNewRun();
+      return;
+    }
     const host = this.host;
     void runLayoutNewScene(
       host.toolbarContainer,
@@ -81,9 +89,26 @@ export class LayoutViewportFileActions {
   }
 
   /**
+   * Asks for a level name, then replaces the scene with a new project level
+   * saved under that name.
+   *
+   * @returns The new level document, or null when nothing was created.
+   */
+  private async projectLevelNewRun(): Promise<string | null> {
+    const levelActions = this.host.projectLevelActionsRead();
+    const name = await levelActions.levelNameAsk('New Level', 'Create');
+    if (name === null) {
+      return null;
+    }
+    const created = await levelActions.levelNew(name, true);
+    return created.ok ? created.level.document : null;
+  }
+
+  /**
    * Saves the scene back into the open project level when there is one, else to
-   * its remembered file, asking for one when none is remembered and before
-   * overwriting a file another program changed.
+   * its remembered file. Without either, inside an open game project it asks
+   * for a level name and saves a new project level; outside one it asks for a
+   * file. Overwriting a file another program changed is confirmed first.
    *
    * @returns The written file name or level document, or null when nothing was
    *   written.
@@ -95,6 +120,9 @@ export class LayoutViewportFileActions {
       const saved = await levelActions.levelSave(true);
       return saved.ok ? saved.level.document : null;
     }
+    if (host.sceneIOHandler.sceneDocumentFileNameRead() === null && levelActions.projectOpenIs()) {
+      return this.projectLevelSaveAsNewRun();
+    }
     const fileName = await host.sceneIOHandler.saveScene(host.worldObject, host.statusBar, (changedFileName) =>
       dialogSceneFileChangedOnDiskConfirm(host.toolbarContainer, changedFileName),
     );
@@ -103,12 +131,30 @@ export class LayoutViewportFileActions {
   }
 
   /**
-   * Saves the scene to a newly chosen file as a new document.
+   * Asks for a level name and saves the scene as a new project level.
+   *
+   * @returns The new level document, or null when nothing was written.
+   */
+  private async projectLevelSaveAsNewRun(): Promise<string | null> {
+    const levelActions = this.host.projectLevelActionsRead();
+    const name = await levelActions.levelNameAsk('Save Level', 'Save');
+    if (name === null) {
+      return null;
+    }
+    const saved = await levelActions.levelSaveAsNew(name);
+    return saved.ok ? saved.level.document : null;
+  }
+
+  /**
+   * Saves the scene to a newly chosen file as a new document. Inside an open
+   * game project the file dialog starts in the project's level folder.
    *
    * @returns The written file name, or null when nothing was written.
    */
   async sceneSaveAs(): Promise<string | null> {
-    const fileName = await this.host.sceneIOHandler.saveSceneAs(this.host.worldObject, this.host.statusBar);
+    const host = this.host;
+    const startingDirectory = host.projectLevelActionsRead().serviceRead().listStateRead().documentDirectory;
+    const fileName = await host.sceneIOHandler.saveSceneAs(host.worldObject, host.statusBar, startingDirectory);
     this.savedStateAdoptWhenWritten(fileName);
     return fileName;
   }

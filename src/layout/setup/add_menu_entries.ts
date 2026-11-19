@@ -1,4 +1,5 @@
 import type * as THREE from 'three';
+import type { ClipboardPlacementAim } from '@/clipboard/placement/clipboard_placement_cursor.js';
 import type { ToolbarMenuEntry } from '@/ui/toolbar/toolbar.js';
 import { AddMenuSectionRegistry } from '@/layout/setup/add_menu_section_registry.js';
 
@@ -17,10 +18,11 @@ export interface AddMenuActions {
   onAddRoom: () => void;
   onAddPortal: () => void;
   /**
-   * Adds an entity owner built by a factory at the spawn point as one undoable
-   * step and selects it.
+   * Adds an entity owner built by a factory as one undoable step and selects
+   * it: resting on the surface under the aim when one is given, otherwise at
+   * the spawn point.
    */
-  onAddEntityPlaced: (factory: () => THREE.Group, objectRadius: number) => void;
+  onAddEntityPlaced: (factory: () => THREE.Group, objectRadius: number, aim?: ClipboardPlacementAim) => void;
 }
 
 /**

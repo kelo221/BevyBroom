@@ -1,12 +1,20 @@
 import * as THREE from 'three';
 import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { EntityVisualBuilder } from '@/entity/visual/entity_visual_builder.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 import { ICON_GRID_SIZE, IconRegistry } from '@/ui/icons/icon_registry.js';
 import { shadingExemptFlag } from '@/viewports/shading/shading_exempt.js';
+import { Theme } from '@/theme.js';
 
 /** UserData flag on the icon billboard of an entity owner. */
 const ENTITY_ICON_USERDATA_KEY = 'isEntityIcon';
+
+/** Width of the dark halo stroked around icon outlines, in icon grid units. */
+const ENTITY_ICON_HALO_WIDTH = 4;
+
+/** Vertex color of the icon fill; the material tint shows through unchanged. */
+const ENTITY_ICON_FILL_VERTEX_COLOR = new THREE.Color(1, 1, 1);
 
 /** Icon geometries by icon name; shared by every billboard and never disposed. */
 const entityVisualBillboardGeometries = new Map<IconName, THREE.BufferGeometry>();
@@ -108,7 +116,12 @@ export class EntityVisualBillboard {
    * @returns The icon mesh.
    */
   private static iconCreate(owner: THREE.Object3D): THREE.Mesh {
-    const material = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide });
+    const material = new THREE.MeshBasicMaterial({
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      vertexColors: true,
+    });
     const icon = new THREE.Mesh(new THREE.BufferGeometry(), material);
     icon.name = 'Entity Icon';
     icon.renderOrder = 1;
@@ -136,19 +149,77 @@ export class EntityVisualBillboard {
   }
 
   /**
-   * Builds the flat geometry of an icon from its SVG path data.
+   * Builds the flat geometry of an icon from its SVG path data: a dark halo
+   * stroked along every outline, then the fill drawn over it, together one
+   * meter wide.
    *
    * @param iconName Icon name.
-   * @returns New icon geometry.
+   * @returns New icon geometry with vertex colors.
    */
   private static geometryBuild(iconName: IconName): THREE.BufferGeometry {
+    const svgPaths = EntityVisualBillboard.svgPathsParse(iconName);
+    const halo = EntityVisualBillboard.haloGeometryBuild(svgPaths);
+    const fill = new THREE.ShapeGeometry(svgPaths.flatMap((path) => path.toShapes())).toNonIndexed();
+    EntityVisualBillboard.vertexColorsPaint(halo, new THREE.Color(Theme.entityIconHaloColor));
+    EntityVisualBillboard.vertexColorsPaint(fill, ENTITY_ICON_FILL_VERTEX_COLOR);
+    const geometry = mergeGeometries([halo, fill]) ?? fill;
+    EntityVisualBillboard.geometryNormalize(geometry);
+    return geometry;
+  }
+
+  /**
+   * Parses the SVG path data of an icon.
+   *
+   * @param iconName Icon name.
+   * @returns Parsed SVG paths in icon grid units.
+   */
+  private static svgPathsParse(iconName: IconName): THREE.ShapePath[] {
     const grid = ICON_GRID_SIZE;
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${grid} ${grid}"><path d="${IconRegistry.pathOf(iconName)}"/></svg>`;
-    const shapes = new SVGLoader().parse(svg).paths.flatMap((path) => path.toShapes());
-    const geometry = new THREE.ShapeGeometry(shapes);
+    return new SVGLoader().parse(svg).paths;
+  }
+
+  /**
+   * Builds the stroke geometry that runs along every outline of the paths.
+   *
+   * @param svgPaths Parsed SVG paths.
+   * @returns Non-indexed stroke geometry in icon grid units.
+   */
+  private static haloGeometryBuild(svgPaths: readonly THREE.ShapePath[]): THREE.BufferGeometry {
+    const strokeStyle = SVGLoader.getStrokeStyle(ENTITY_ICON_HALO_WIDTH, undefined, 'round', 'round');
+    const strokes = svgPaths
+      .flatMap((path) => path.subPaths)
+      .map((subPath) => SVGLoader.pointsToStroke(subPath.getPoints(), strokeStyle))
+      .filter((stroke): stroke is THREE.BufferGeometry => stroke !== null);
+    return mergeGeometries(strokes) ?? new THREE.BufferGeometry();
+  }
+
+  /**
+   * Gives every vertex of a geometry the same color.
+   *
+   * @param geometry Geometry to paint.
+   * @param color Vertex color.
+   */
+  private static vertexColorsPaint(geometry: THREE.BufferGeometry, color: THREE.Color): void {
+    const vertexCount = geometry.getAttribute('position').count;
+    const colors = new Float32Array(vertexCount * 3);
+    for (let vertexIndex = 0; vertexIndex < vertexCount; vertexIndex++) {
+      color.toArray(colors, vertexIndex * 3);
+    }
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  }
+
+  /**
+   * Moves icon grid geometry to the origin, flips it to +Y up and scales it so
+   * the icon with its halo is one meter wide.
+   *
+   * @param geometry Geometry in icon grid units.
+   */
+  private static geometryNormalize(geometry: THREE.BufferGeometry): void {
+    const grid = ICON_GRID_SIZE;
+    const extent = grid + ENTITY_ICON_HALO_WIDTH;
     geometry.translate(-grid / 2, -grid / 2, 0);
-    geometry.scale(1 / grid, -1 / grid, 1);
+    geometry.scale(1 / extent, -1 / extent, 1);
     geometry.computeBoundingSphere();
-    return geometry;
   }
 }
