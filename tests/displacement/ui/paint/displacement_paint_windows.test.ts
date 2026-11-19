@@ -77,20 +77,15 @@ describe('DisplacementPaintWindows', () => {
     reporting.dispose();
   });
 
-  it('opens the paint window beside the element the options name', () => {
+  it('shows the paint options inside the host it was given, in the right dock', () => {
     windows.dispose();
-    const sheet = document.createElement('div');
-    document.body.appendChild(sheet);
-    const sheetRect = { left: 50, top: 70, width: 260, height: 400 };
-    sheet.getBoundingClientRect = () =>
-      ({ ...sheetRect, right: sheetRect.left + sheetRect.width, bottom: sheetRect.top + sheetRect.height }) as DOMRect;
-    Object.defineProperty(window, 'innerWidth', { configurable: true, value: sheetRect.left + sheetRect.width * 4 });
-    windows = new DisplacementPaintWindows(document.body, { besideElementRead: () => sheet });
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    windows = new DisplacementPaintWindows(host);
     paintWindowsTestSheetShowDisplacement();
     getStateDisplacementSculpt().settingsWrite({ activeTool: 'paint_geometry' });
-    const root = windows.paintGeometryDialog.getRootElement();
-    expect(parseFloat(root.style.left)).toBeGreaterThan(sheetRect.left + sheetRect.width);
-    expect(parseFloat(root.style.top)).toBe(sheetRect.top);
+    expect(host.contains(windows.paintGeometryDialog.getRootElement())).toBe(true);
+    expect(host.contains(windows.paintAlphaDialog.getRootElement())).toBe(false);
   });
 
   it('stays closed while the sheet does not show the Displacement tab', () => {

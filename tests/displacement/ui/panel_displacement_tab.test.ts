@@ -64,7 +64,7 @@ describe('PanelDisplacementTab', () => {
     const tab = new PanelDisplacementTab({
       actionsRead: () => null,
       changeListenerAdd: () => () => undefined,
-      floatingHost: document.body,
+      toolOptionsHost: document.body,
       statusReport: () => undefined,
       afterChange: () => undefined,
     });

@@ -14,9 +14,11 @@ it has:
 6. The **info panel** docked below the viewports, with Console and Issues tabs.
 7. The **status bar** along the bottom edge.
 
-The selection is edited in the **Properties** section of the right dock. A few
-floating windows open above the workspace: the **Face Edit Sheet**, the
-**Browser** (Place, Textures and Levels tabs), and **Replace Textures**.
+The selection is edited in the **Properties** section of the right dock, and
+the active tool's options (the **Face Edit Sheet**, **Entity Sprinkle**, and
+the displacement **Paint** and **Noise** options) show in the right dock above
+it. Only the **Browser** (Place, Textures and Levels tabs) and **Replace
+Textures** open as floating windows.
 
 ## Menu bar
 
@@ -140,8 +142,9 @@ From top to bottom:
   notches double it), and `[` / `]` halve / double it; plain wheel still zooms.
   The cursor sphere and the Radius field in the options bar follow at once, and
   the bracket keys can be rebound under Settings > Keyboard > Sprinkle Tool.
-  It opens the Entity Sprinkle window with the Type, Mode, Density, grid and
-  orientation settings; closing the window returns to the Select tool.
+  Its **Entity Sprinkle** options show in the right dock with the Type, Mode,
+  Density, grid and orientation settings; closing them returns to the Select
+  tool.
 - **Grid** aligns the grid and camera orientation to a face or edge.
 
 In Edit Mode the palette shows only the tools that work there. Hide or show the
@@ -298,17 +301,18 @@ The section has these tabs:
 
 See [Game components](game_components.md) for game classes and entity I/O.
 
-## Floating windows
+## Floating windows and tool options
 
 Floating windows open above the workspace. Reposition one by dragging its title
 bar and close it with its `×` button. Closing a window does not delete scene
-data. The Face Edit Sheet, the Browser and Replace Textures open centered the first time, then reopen where you last left them during the
-session.
+data. The Browser and Replace Textures open centered the first time, then
+reopen where you last left them during the session.
 
 ### Face Edit Sheet
 
-The Face Edit Sheet opens when you choose **Face Select**, and the view bar
-reopens it after you close it. It edits the selected faces and has two tabs:
+The Face Edit Sheet is the face tool's options section in the right dock. It
+opens when you choose **Face Select** (showing the right dock if it was
+hidden), and the view bar reopens it after you close it with its `×`. It edits the selected faces and has two tabs:
 
 - **Material** follows the Hammer layout. The top row has **Texture scale** X
   and Y, **Texture shift** X and Y (the **X** and **Y** buttons beside them

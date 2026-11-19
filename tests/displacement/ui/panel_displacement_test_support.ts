@@ -79,7 +79,7 @@ export function displacementUiTabCreate(rigName: string): DisplacementUiTestTab 
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    floatingHost: document.body,
+    toolOptionsHost: document.body,
     statusReport: (message) => reports.push(message),
     afterChange: () => undefined,
   });

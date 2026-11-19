@@ -1,5 +1,4 @@
-import { PanelFloating } from '@/ui/floating_panel/panel_floating.js';
-import { applyFloatingPanelToolChrome } from '@/ui/floating_panel/panel_floating_tool_chrome.js';
+import { PanelToolOptions } from '@/ui/dock/tool_options/panel_tool_options.js';
 import { TabBook } from '@/ui/tabs/tab_book.js';
 import { getStateFaceEditSession } from '@/texture/paint/state_face_edit_session.js';
 import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
@@ -7,28 +6,25 @@ import type { DialogFaceEditSheetHandlers } from './face_edit_sheet_handlers.js'
 import { FaceEditSheetMaterialTab } from './material/face_edit_sheet_material_tab.js';
 import type { FaceEditSheetSelectionState } from './material/sections/face_edit_sheet_section.js';
 
-/** Outer width of the Face Edit Sheet window. */
-const DIALOG_FACE_EDIT_SHEET_WIDTH = '380px';
-
 /**
- * Floating Hammer++ Face Edit Sheet (`Material` | `Displacement` tabs) synced
- * with `StateFaceEditSession` and `StateTexturePaint`. Opens centered and keeps
- * its dragged position on later opens.
+ * Hammer++ Face Edit Sheet (`Material` | `Displacement` tabs) shown as the face
+ * tool's options in the right dock, synced with `StateFaceEditSession` and
+ * `StateTexturePaint`.
  */
-export class DialogFaceEditSheet extends PanelFloating {
+export class DialogFaceEditSheet extends PanelToolOptions {
   private readonly tabBook: TabBook;
   private readonly materialTab: FaceEditSheetMaterialTab;
   private readonly displacementBody: HTMLElement;
   private readonly unsubscribers: ReadonlyArray<() => void>;
 
   /**
-   * Creates the floating Face Edit Sheet.
+   * Creates the Face Edit Sheet.
    *
-   * @param host Parent element hosting floating panels.
+   * @param host Element tool options are shown in.
    * @param handlers UV and material action callbacks.
    */
   constructor(host: HTMLElement, handlers: DialogFaceEditSheetHandlers) {
-    super(host, { centered: true, draggable: true, closeOnEscape: true, layoutId: 'face_edit_sheet' });
+    super(host, { titleText: 'Face Edit Sheet', className: 'dialog-face-edit-sheet' });
     this.tabBook = this.tabBookCreate(host.ownerDocument);
     this.materialTab = new FaceEditSheetMaterialTab(handlers);
     this.displacementBody = this.displacementBodyCreate(host.ownerDocument);
@@ -60,7 +56,7 @@ export class DialogFaceEditSheet extends PanelFloating {
     this.materialTab.selectionWrite(selection);
   }
 
-  /** Disposes listeners and removes the floating panel. */
+  /** Disposes listeners and removes the section. */
   override dispose(): void {
     this.unsubscribers.forEach((unsubscribe) => unsubscribe());
     this.materialTab.dispose();
@@ -73,7 +69,7 @@ export class DialogFaceEditSheet extends PanelFloating {
     this.materialTab.textureSync();
   }
 
-  /** Syncs `sheetOpenWrite(false)` when hidden via Escape or title bar. */
+  /** Syncs `sheetOpenWrite(false)` when hidden from its Close button. */
   protected override onAfterHide(): void {
     getStateFaceEditSession().sheetOpenWrite(false);
   }
@@ -112,19 +108,12 @@ export class DialogFaceEditSheet extends PanelFloating {
     return body;
   }
 
-  /** Builds the floating window shell: title bar, then the two tabs. */
+  /** Adds the Material and Displacement tabs to the section body. */
   private shellBuild(): void {
-    this.root.classList.add('dialog-face-edit-sheet');
-    applyFloatingPanelToolChrome(this.root, {
-      width: DIALOG_FACE_EDIT_SHEET_WIDTH,
-      maxHeight: 'calc(100vh - 48px)',
-      borderBox: true,
-      overflowHidden: true,
-    });
-    const titleParts = this.createStandardTitleBar({ titleText: 'Face Edit Sheet', flexShrinkZero: true });
+    this.body.style.padding = '0';
     this.tabBook.tabAdd({ id: 'material', label: 'Material', pageResolve: () => this.materialTab.elementRead() });
     this.tabBook.tabAdd({ id: 'displacement', label: 'Displacement', pageResolve: () => this.displacementBody });
-    this.root.append(titleParts.bar, this.tabBook.getElement());
+    this.body.appendChild(this.tabBook.getElement());
   }
 
   /**

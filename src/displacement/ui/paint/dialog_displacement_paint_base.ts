@@ -8,7 +8,7 @@ import {
   type DisplacementSculptSettings,
 } from '@/displacement/state/state_displacement_sculpt.js';
 import type { DisplacementPaintTool } from '@/displacement/model/displacement_types.js';
-import { PanelFloatingToolWindow } from '@/ui/floating_panel/panel_floating_tool_window.js';
+import { PanelToolOptions } from '@/ui/dock/tool_options/panel_tool_options.js';
 
 /** Settings entry a positive slider edits. */
 export type DialogDisplacementPaintPositiveKey = 'radius' | 'distance';
@@ -19,7 +19,7 @@ export type DialogDisplacementPaintPositiveKey = 'radius' | 'distance';
  * the shared displacement sculpt settings and returns the viewport tool to
  * Select when it closes while its tool is active.
  */
-export abstract class DialogDisplacementPaintBase extends PanelFloatingToolWindow {
+export abstract class DialogDisplacementPaintBase extends PanelToolOptions {
   protected readonly edgeRadio = new InputRadioGroup(
     [
       { value: 'soft', label: 'Soft-Edge' },
@@ -51,13 +51,7 @@ export abstract class DialogDisplacementPaintBase extends PanelFloatingToolWindo
     titleText: string,
     className: string,
   ) {
-    super(host, {
-      titleText,
-      className,
-      width: '280px',
-      floating: { corner: 'top-left', draggable: true, closeOnEscape: true },
-      layoutId: `displacement_${paintTool}`,
-    });
+    super(host, { titleText, className });
     this.sharedCommitHandlersBind();
   }
 
