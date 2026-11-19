@@ -13,6 +13,7 @@ import type {
   LevelBuildPublishResult,
 } from '@/level_build/publish/level_build_publish_types.js';
 import type { TextureProjectListResult, TextureProjectReadResult } from '@/texture/project/texture_project_types.js';
+import type { ProjectFileReadResult } from '@/project/files/project_file_read_result.js';
 import type {
   SprinkleDefinitionFile,
   SprinkleDefinitionFilesReadResult,
@@ -59,6 +60,10 @@ export class GameProcessControlFake extends GameProcessControl {
    * back.
    */
   projectTextureReadGate: Promise<void> = Promise.resolve();
+  /** Base64 model bytes by asset-relative path. */
+  readonly projectModelFiles = new Map<string, string>();
+  /** Every model path asked to be read, in order. */
+  readonly projectModelReads: string[] = [];
   /** Sprinkle definition files, per project file. */
   readonly projectSprinkleFiles = new Map<string, SprinkleDefinitionFile[]>();
   /** Paths of every sprinkle definition file asked to open. */
@@ -135,6 +140,13 @@ export class GameProcessControlFake extends GameProcessControl {
     await this.projectTextureReadGate;
     const bytesBase64 = this.projectTextureFilesRead(projectFile).get(path);
     return bytesBase64 === undefined ? { ok: false, message: `No texture ${path}` } : { ok: true, path, bytesBase64 };
+  }
+
+  /** @inheritdoc */
+  async projectModelRead(path: string): Promise<ProjectFileReadResult> {
+    this.projectModelReads.push(path);
+    const bytesBase64 = this.projectModelFiles.get(path);
+    return bytesBase64 === undefined ? { ok: false, message: `No model ${path}` } : { ok: true, path, bytesBase64 };
   }
 
   /** @inheritdoc */

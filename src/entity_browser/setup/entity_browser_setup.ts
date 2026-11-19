@@ -1,5 +1,6 @@
 import type * as THREE from 'three';
 import { GameEntityClassRegistry } from '@/game_entity/class/game_entity_class_registry.js';
+import { GameEntityModelLibrary } from '@/game_entity/model/game_entity_model_library.js';
 import type { AddMenuActions } from '@/layout/setup/add_menu_entries.js';
 import {
   EntityBrowserPlacementAtClientPoint,
@@ -59,6 +60,7 @@ export function entityBrowserSetup(host: EntityBrowserSetupHost): EntityBrowser 
     }),
   );
   browser.disposeCallbackAdd(entityBrowserSetupPrefabFollow(browser, getPrefabCatalogStore()));
+  browser.disposeCallbackAdd(GameEntityModelLibrary.shared.changeListenerAdd(() => browser.refresh()));
   const worldChangeUnsubscribe = host.worldChangeSubscribe?.(() => browser.usageRefresh());
   if (worldChangeUnsubscribe) {
     browser.disposeCallbackAdd(worldChangeUnsubscribe);

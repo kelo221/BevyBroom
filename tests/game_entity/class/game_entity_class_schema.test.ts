@@ -98,6 +98,15 @@ describe('game entity class schema', () => {
     expect(gameClass?.marker_boxes).toEqual({ tall: { size: [4, 2, 1], offset: [0, 0, 0] } });
   });
 
+  it('keeps the model a marker box names and leaves out blank or malformed ones', () => {
+    const size = [1, 1, 1];
+    expect(gameEntityMarkerBoxFromUnknown({ size, model: 'Models/Crate.glb' })?.model).toBe('Models/Crate.glb');
+    [' ', 7, null].forEach((model) => {
+      const markerBox = gameEntityMarkerBoxFromUnknown({ size, model });
+      expect(markerBox === null ? [] : Object.keys(markerBox)).not.toContain('model');
+    });
+  });
+
   it('leaves marker box keys out of classes that declare none', () => {
     const gameClass = gameEntityClassFromUnknown({ type_path: 'game::store::Start', marker_boxes: {} });
     expect(gameClass === null ? [] : Object.keys(gameClass)).not.toEqual(

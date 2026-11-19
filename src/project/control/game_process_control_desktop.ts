@@ -1,3 +1,4 @@
+import type { ProjectFileReadResult } from '@/project/files/project_file_read_result.js';
 import type {
   ProjectDataFileChangeResult,
   ProjectDataFileKind,
@@ -120,6 +121,16 @@ export class GameProcessControlDesktop extends GameProcessControl {
    */
   projectTextureRead(path: string): Promise<TextureProjectReadResult> {
     return this.rpc.request.projectTextureRead({ path });
+  }
+
+  /**
+   * Asks the main process for the bytes of one project model.
+   *
+   * @param path Model path relative to the asset root.
+   * @returns The bytes as base64, or why the file is not returned.
+   */
+  projectModelRead(path: string): Promise<ProjectFileReadResult> {
+    return this.rpc.request.projectModelRead({ path });
   }
 
   /**

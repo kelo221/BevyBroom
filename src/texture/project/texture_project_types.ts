@@ -1,3 +1,5 @@
+import type { ProjectFileReadResult } from '@/project/files/project_file_read_result.js';
+
 /** Largest project texture file the desktop app sends to the editor, in bytes. */
 export const TEXTURE_PROJECT_FILE_BYTE_LIMIT = 64 * 1024 * 1024;
 
@@ -13,12 +15,4 @@ export type TextureProjectListResult =
   | { ok: false; message: string };
 
 /** Bytes of one image of the open project's texture directories. */
-export type TextureProjectReadResult =
-  | {
-      ok: true;
-      /** Image path relative to the asset root, forward slashes. */
-      path: string;
-      /** File contents as base64 text. */
-      bytesBase64: string;
-    }
-  | { ok: false; message: string };
+export type TextureProjectReadResult = ProjectFileReadResult;

@@ -102,6 +102,7 @@ export type McpToolName =
   | 'list_game_classes'
   | 'add_game_entity'
   | 'set_game_components'
+  | 'read_game_entity_model'
   | 'set_logic_outputs'
   | 'read_logic_outputs'
   | 'read_data_asset'

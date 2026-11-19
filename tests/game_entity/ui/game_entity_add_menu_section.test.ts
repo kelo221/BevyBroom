@@ -5,7 +5,12 @@ import { GameEntityOwner } from '@/game_entity/owner/game_entity_owner.js';
 import { gameEntityAddMenuEntries, gameEntityAddMenuSection } from '@/game_entity/ui/game_entity_add_menu_section.js';
 import type { AddMenuActions } from '@/layout/setup/add_menu_entries.js';
 import { isMenuAction, isMenuSubmenu, type ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
-import { TEST_DOOR_TYPE_PATH, testClassesInstall, testDoorClassCreate } from '../game_entity_test_classes.js';
+import {
+  TEST_DOOR_TYPE_PATH,
+  testClassesInstall,
+  testClassListCreate,
+  testDoorClassCreate,
+} from '../game_entity_test_classes.js';
 
 /**
  * Creates Add menu callbacks that record placed entities.
@@ -66,6 +71,23 @@ describe('gameEntityAddMenuSection', () => {
     const [owner] = placed;
     expect(owner && GameEntityOwner.isOwner(owner)).toBe(true);
     expect(owner && GameEntityComponentStore.read(owner)).toEqual({ [TEST_DOOR_TYPE_PATH]: {} });
+  });
+
+  it('offers a class that picks its marker box by a field as one entry per boxed value', () => {
+    const box = { size: [1, 2, 0.2] as [number, number, number], offset: [0, 1, 0] as [number, number, number] };
+    const door = { ...testDoorClassCreate(), marker_box_field: 'kind', marker_boxes: { Iron: box, Glass: box } };
+    const list = testClassListCreate();
+    list.classes = [door];
+    cleanups.push(testClassesInstall(list).uninstall);
+    const { actions, placed } = actionsCreate();
+    const variants = submenuChildren(submenuChildren(gameEntityAddMenuEntries(actions), door.category), door.label);
+    expect(variants.map((entry) => (isMenuAction(entry) ? entry.label : ''))).toEqual(['Glass', 'Iron']);
+    variants.forEach((entry) => isMenuAction(entry) && entry.onClick());
+    expect(placed.map((owner) => GameEntityComponentStore.read(owner))).toEqual([
+      { [door.type_path]: { kind: 'Glass' } },
+      { [door.type_path]: { kind: 'Iron' } },
+    ]);
+    expect(placed.map((owner) => owner.name)).toEqual(['Glass', 'Iron']);
   });
 
   it('always offers an empty game entity first', () => {

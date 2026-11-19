@@ -147,7 +147,8 @@ function gameEntityMarkerBoxMapRead(value: unknown): Record<string, GameEntityMa
  *
  * @param value Any value.
  * @returns Valid box, or null when its size is missing or not positive. A
- *   missing or malformed offset reads as the origin.
+ *   missing or malformed offset reads as the origin; a model path that is not
+ *   filled text is left out.
  */
 export function gameEntityMarkerBoxFromUnknown(value: unknown): GameEntityMarkerBox | null {
   if (!gameEntityRecordIs(value)) {
@@ -157,7 +158,11 @@ export function gameEntityMarkerBoxFromUnknown(value: unknown): GameEntityMarker
   if (size === null || size.some((edge) => edge <= 0)) {
     return null;
   }
-  return { size, offset: gameEntityVector3Read(value['offset']) ?? [0, 0, 0] };
+  const markerBox: GameEntityMarkerBox = { size, offset: gameEntityVector3Read(value['offset']) ?? [0, 0, 0] };
+  if (gameEntityTextIsFilled(value['model'])) {
+    markerBox.model = value['model'];
+  }
+  return markerBox;
 }
 
 /**

@@ -51,6 +51,36 @@ The class file uses the same format the game bridge reports its classes in:
 
 - Every level of the project shows these classes in **Add > Game Entities** and
   in Object Properties, with the game closed.
+- A class can declare the box its markers are drawn as: `"marker_box"`, and
+  `"marker_boxes"` keyed by the value of the field `"marker_box_field"` names.
+  A box may name a `"model"`, a binary glTF (`.glb`) path relative to the
+  asset root, which the editor draws at the entity's origin. A class that picks
+  its box by a field is offered once per boxed value, so a catalogue of props
+  becomes one Add menu entry and one Place tile per prop:
+
+  ```json
+  {
+    "type_path": "cart_crashers::level::StoreProp",
+    "label": "Store prop",
+    "category": "Store",
+    "placement": "point",
+    "fields": [{ "path": "fixture", "label": "Fixture", "kind": "text", "default": "freezer" }],
+    "marker_box_field": "fixture",
+    "marker_boxes": {
+      "freezer": {
+        "size": [2.06, 0.75, 1.2],
+        "offset": [0, 0.375, 0],
+        "model": "assets/Models/Props/Freezer/Freezer.glb"
+      }
+    }
+  }
+  ```
+
+  The model is an editor-only drawing: it is never picked, saved or exported,
+  and the game spawns whatever it wants for the entity. BevyBroom reads the
+  models again whenever the editor window gains focus, so a model exported
+  again shows up without reopening the project.
+
 - A class can declare `"collision": "solid"`, `"volume"` or `"none"`: the
   collision kind solid models carrying it take in exported levels, such as
   `"volume"` for a finish zone. See

@@ -1,27 +1,23 @@
-import { readFileSync, statSync } from 'node:fs';
 import { isImageFileName } from '@/texture/library/image_file_filter.js';
-import { ProjectDefinitionParser } from '@/project/model/project_definition_parser.js';
 import {
   TEXTURE_PROJECT_FILE_BYTE_LIMIT,
   type TextureProjectReadResult,
 } from '@/texture/project/texture_project_types.js';
 import { ProjectFilePaths } from '@/desktop/bun/project_files/project_file_paths.js';
-import { ProjectFileRealPath } from '@/desktop/bun/project_files/project_file_real_path.js';
+import { ProjectFileReader } from '@/desktop/bun/project_files/project_file_reader.js';
 
 /**
  * Reads one image of a project's texture directories, refusing every path that
  * is not an image inside one of them or that resolves outside the asset root.
  */
-export class ProjectTextureReader {
-  private readonly byteLimit: number;
-
+export class ProjectTextureReader extends ProjectFileReader {
   /**
    * Creates a reader.
    *
    * @param byteLimit Largest file size it returns, in bytes.
    */
   constructor(byteLimit: number = TEXTURE_PROJECT_FILE_BYTE_LIMIT) {
-    this.byteLimit = byteLimit;
+    super(byteLimit, 'texture');
   }
 
   /**
@@ -34,15 +30,7 @@ export class ProjectTextureReader {
    */
   read(assetRoot: string, textureDirectories: readonly string[], texturePath: string): TextureProjectReadResult {
     const refusal = ProjectTextureReader.pathRefusalDescribe(textureDirectories, texturePath);
-    if (refusal !== null) {
-      return { ok: false, message: `Cannot read texture "${texturePath}": ${refusal}` };
-    }
-    try {
-      return this.fileRead(assetRoot, ProjectFilePaths.relativeNormalize(texturePath));
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      return { ok: false, message: `Cannot read texture "${texturePath}": ${reason}` };
-    }
+    return this.readUnlessRefused(assetRoot, texturePath, refusal);
   }
 
   /**
@@ -53,8 +41,9 @@ export class ProjectTextureReader {
    * @returns Reason, or null when the path may be read.
    */
   private static pathRefusalDescribe(textureDirectories: readonly string[], texturePath: string): string | null {
-    if (texturePath.trim() === '' || !ProjectDefinitionParser.isContainedRelativePath(texturePath)) {
-      return 'it is not a path inside the asset root';
+    const containedRefusal = ProjectFileReader.containedPathRefusalDescribe(texturePath);
+    if (containedRefusal !== null) {
+      return containedRefusal;
     }
     if (!isImageFileName(texturePath)) {
       return 'it is not an image file';
@@ -62,27 +51,5 @@ export class ProjectTextureReader {
     const relativePath = ProjectFilePaths.relativeNormalize(texturePath);
     const isInsideTextureDirectory = ProjectFilePaths.isInsideAnyDirectory(relativePath, textureDirectories);
     return isInsideTextureDirectory ? null : 'it is not inside a texture directory of the project';
-  }
-
-  /**
-   * Reads a file after checking where it really lives and how large it is.
-   *
-   * @param assetRoot Absolute asset root.
-   * @param relativePath Normalized image path relative to the asset root.
-   * @returns The bytes as base64, or why the file is not returned.
-   */
-  private fileRead(assetRoot: string, relativePath: string): TextureProjectReadResult {
-    const realFilePath = ProjectFileRealPath.insideRootResolve(assetRoot, relativePath);
-    if (realFilePath === null) {
-      return { ok: false, message: `Cannot read texture "${relativePath}": it resolves outside the asset root` };
-    }
-    const byteSize = statSync(realFilePath).size;
-    if (byteSize > this.byteLimit) {
-      return {
-        ok: false,
-        message: `Cannot read texture "${relativePath}": ${byteSize} bytes exceed the limit of ${this.byteLimit}`,
-      };
-    }
-    return { ok: true, path: relativePath, bytesBase64: readFileSync(realFilePath).toString('base64') };
   }
 }

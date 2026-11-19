@@ -10,6 +10,11 @@ import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import { GameEntityVisualBuilder } from '@/game_entity/visual/game_entity_visual_builder.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 import { hexToRgb } from '@/utils/utils_color.js';
+import {
+  gameEntityAddMenuVariantsOf,
+  type GameEntityAddMenuVariant,
+} from '@/game_entity/ui/game_entity_add_menu_variants.js';
+import { GameEntityVisualMarkerBox } from '@/game_entity/visual/game_entity_visual_marker_box.js';
 
 /** Icon of game entity rows; the same icon game entities show everywhere. */
 const GAME_ENTITY_MENU_ICON: IconName = GameEntityOwner.definition.iconName({});
@@ -45,7 +50,7 @@ export function gameEntityAddMenuEntries(actions: AddMenuActions): ToolbarMenuEn
   const categoryEntries = [...categories].map(([category, classes]): ToolbarMenuEntry => ({
     kind: 'submenu',
     label: category,
-    children: classes.map((gameClass) => gameEntityAddMenuClassEntry(actions, gameClass)),
+    children: classes.map((gameClass) => gameEntityAddMenuClassOrVariantsEntry(actions, gameClass)),
   }));
   return [gameEntityAddMenuEmptyEntry(actions), { kind: 'separator' }, ...categoryEntries];
 }
@@ -96,6 +101,86 @@ function gameEntityAddMenuCategories(classes: readonly GameEntityClass[]): Map<s
     categories.set(gameClass.category, members);
   }
   return categories;
+}
+
+/**
+ * Builds the entry of a class: a submenu with one entry per marker box field
+ * value when the class picks its marker box by a field, otherwise one entry for
+ * the class.
+ *
+ * @param actions Creation callbacks.
+ * @param gameClass Component class.
+ * @returns Menu entry.
+ */
+function gameEntityAddMenuClassOrVariantsEntry(actions: AddMenuActions, gameClass: GameEntityClass): ToolbarMenuEntry {
+  const variants = gameEntityAddMenuVariantsOf(gameClass);
+  if (variants.length === 0) {
+    return gameEntityAddMenuClassEntry(actions, gameClass);
+  }
+  return {
+    kind: 'submenu',
+    label: gameClass.label,
+    icon: GAME_ENTITY_MENU_ICON,
+    children: variants.map((variant) => gameEntityAddMenuVariantEntry(actions, gameClass, variant)),
+  };
+}
+
+/**
+ * Builds the entry that places a game entity carrying a class whose marker box
+ * field holds one value. Objects carrying the class with that value count as
+ * instances of the entry.
+ *
+ * @param actions Creation callbacks.
+ * @param gameClass Component class.
+ * @param variant Field value and the components it gives.
+ * @returns Menu action with catalog information.
+ */
+function gameEntityAddMenuVariantEntry(
+  actions: AddMenuActions,
+  gameClass: GameEntityClass,
+  variant: GameEntityAddMenuVariant,
+): ToolbarMenuEntry {
+  const create = (): THREE.Group => {
+    const owner = gameEntityCreateForClass(gameClass, variant.components, variant.valueText);
+    GameEntityVisualBuilder.refresh(owner);
+    return owner;
+  };
+  return addMenuCatalogActionCreate(
+    {
+      label: variant.valueText,
+      icon: GAME_ENTITY_MENU_ICON,
+      iconColor: hexToRgb(GameEntityVisualBuilder.classColorOf(gameClass)),
+      tooltip: `${gameClass.type_path} (${gameClass.marker_box_field ?? ''} = ${variant.valueText})`,
+      onClick: () => actions.onAddEntityPlaced(create, GAME_ENTITY_PLACEMENT_RADIUS),
+    },
+    {
+      id: `${gameEntityClassIdOf(gameClass.type_path)}.${variant.valueText}`,
+      placeAtAim: (aim) => actions.onAddEntityPlaced(create, GAME_ENTITY_PLACEMENT_RADIUS, aim),
+      objectMatches: (object) => gameEntityAddMenuVariantMatches(object, gameClass, variant),
+      previewCreate: create,
+    },
+  );
+}
+
+/**
+ * Returns whether an object carries a class with its marker box field holding a
+ * variant's value.
+ *
+ * @param object Candidate scene object.
+ * @param gameClass Component class.
+ * @param variant Field value to match.
+ * @returns True for matching objects.
+ */
+function gameEntityAddMenuVariantMatches(
+  object: THREE.Object3D,
+  gameClass: GameEntityClass,
+  variant: GameEntityAddMenuVariant,
+): boolean {
+  const components = GameEntityComponentStore.read(object);
+  if (!Object.hasOwn(components, gameClass.type_path)) {
+    return false;
+  }
+  return GameEntityVisualMarkerBox.fieldValueTextOf(gameClass, components) === variant.valueText;
 }
 
 /**

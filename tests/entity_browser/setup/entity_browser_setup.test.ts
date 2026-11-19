@@ -7,7 +7,12 @@ import type { EntityBrowser } from '@/entity_browser/ui/entity_browser.js';
 import { ENTITY_BROWSER_TILE_ID_ATTRIBUTE } from '@/entity_browser/ui/entity_browser_tile.js';
 import { gameEntityClassIdOf } from '@/game_entity/class/game_entity_class_id.js';
 import { MemorySettingsStorage } from '@/settings/storage/settings_storage.js';
-import { testClassesInstall, testDoorClassCreate } from '../../game_entity/game_entity_test_classes.js';
+import {
+  testClassesInstall,
+  testClassListCreate,
+  testDoorClassCreate,
+} from '../../game_entity/game_entity_test_classes.js';
+import { GameEntityModelLibrary } from '@/game_entity/model/game_entity_model_library.js';
 import { entityBrowserTestEditorCreate, type EntityBrowserTestEditor } from '../entity_browser_test_support.js';
 
 /** A browser created through the layout setup with its world change source. */
@@ -123,6 +128,30 @@ describe('entityBrowserSetup', () => {
     const { uninstall } = testClassesInstall();
     cleanups.push(uninstall);
     expect(shownIds(browser)).toContain(doorId);
+  });
+
+  it('shows one tile per value of a class that picks its marker box by a field', () => {
+    const { browser } = setupBrowserCreate();
+    cleanups.push(() => browser.dispose());
+    const box = { size: [1, 2, 0.2] as [number, number, number], offset: [0, 1, 0] as [number, number, number] };
+    const door = { ...testDoorClassCreate(), marker_box_field: 'kind', marker_boxes: { Iron: box, Glass: box } };
+    const list = testClassListCreate();
+    list.classes = [door];
+    cleanups.push(testClassesInstall(list).uninstall);
+    const doorId = gameEntityClassIdOf(door.type_path);
+    expect(shownIds(browser)).toEqual(expect.arrayContaining([`${doorId}.Glass`, `${doorId}.Iron`]));
+    expect(shownIds(browser)).not.toContain(doorId);
+  });
+
+  it('rebuilds its previews whenever a game entity model becomes ready', () => {
+    const { browser } = setupBrowserCreate();
+    cleanups.push(() => GameEntityModelLibrary.shared.readerSet(null));
+    const refresh = vi.spyOn(browser, 'refresh');
+    GameEntityModelLibrary.shared.readerSet(null);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    browser.dispose();
+    GameEntityModelLibrary.shared.readerSet(null);
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it('stops following game class changes once disposed', () => {

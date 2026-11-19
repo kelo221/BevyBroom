@@ -9,6 +9,8 @@ import type { GameEntityClass, GameEntityMarkerBox } from '@/game_entity/class/g
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 import { GameEntityVisualMarkerBox } from '@/game_entity/visual/game_entity_visual_marker_box.js';
+import { GameEntityVisualMarkerModel } from '@/game_entity/visual/game_entity_visual_marker_model.js';
+import { GameEntityModelLibrary } from '@/game_entity/model/game_entity_model_library.js';
 import { Theme } from '@/theme.js';
 
 /** Marker color of game entities whose classes the editor does not know. */
@@ -26,8 +28,9 @@ const GAME_ENTITY_MARKER_NAME = 'Game Entity Marker';
 /**
  * Builds the editor-only marker of a game entity: a box with a camera-facing
  * icon, tinted with the marker color of its first known component class and
- * sized by the marker box its classes declare. Tint and box follow class and
- * component changes when the marker is next drawn.
+ * sized by the marker box its classes declare, with the model that box names
+ * drawn at the entity's origin once it is loaded. Tint, box and model follow
+ * class, component and model changes when the marker is next drawn.
  */
 export class GameEntityVisualBuilder {
   /**
@@ -75,8 +78,8 @@ export class GameEntityVisualBuilder {
   }
 
   /**
-   * Sizes and tints the marker again when the classes or the attached
-   * components changed since the last time.
+   * Sizes, tints and fills the marker again when the classes, the attached
+   * components or the loaded models changed since the last time.
    *
    * @param owner Game entity owner group.
    * @param marker Marker mesh.
@@ -90,11 +93,12 @@ export class GameEntityVisualBuilder {
     marker.userData[GAME_ENTITY_MARKER_LOOK_KEY] = lookKey;
     EntityVisualPointBox.shapeApply(owner, markerBox ?? ENTITY_POINT_BOX_SHAPE_DEFAULT, GAME_ENTITY_MARKER_NAME);
     EntityVisualPointBox.tint(owner, GameEntityVisualBuilder.colorOf(owner), 1);
+    GameEntityVisualMarkerModel.apply(owner, markerBox?.model ?? null);
   }
 
   /**
    * Returns a text key that changes whenever the classes, the attached
-   * components or the chosen marker box change.
+   * components, the chosen marker box or the loaded models change.
    *
    * @param owner Game entity owner group.
    * @param markerBox Chosen marker box, or null for the plain point marker.
@@ -103,6 +107,7 @@ export class GameEntityVisualBuilder {
   private static lookKeyOf(owner: THREE.Object3D, markerBox: GameEntityMarkerBox | null): string {
     const typePaths = Object.keys(GameEntityComponentStore.read(owner)).join('|');
     const shapeKey = EntityVisualPointBoxGeometry.shapeKeyOf(markerBox ?? ENTITY_POINT_BOX_SHAPE_DEFAULT);
-    return `${GameEntityClassRegistry.generation()}:${typePaths}:${shapeKey}`;
+    const modelKey = `${GameEntityModelLibrary.shared.generation()}:${markerBox?.model ?? ''}`;
+    return `${GameEntityClassRegistry.generation()}:${typePaths}:${shapeKey}:${modelKey}`;
   }
 }

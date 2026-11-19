@@ -72,7 +72,9 @@ Open:
 - Data asset references and an optional bake in the package.
 - End-to-end check of a full package (textured room, lit doorway, component, data asset, portals, bake) and of an interrupted build on a real game. The current Build Level end-to-end step (a floor, a room and a light loaded with `--level`) passes.
 
-## M05 Real game materials and assets (#7): not started
+## M05 Real game materials and assets (#7): started
+
+Game entity markers draw the game's own models: a marker box may name a `.glb` model (a path relative to the asset root) that the editor draws at the entity's origin, read by the desktop app (`projectModelRead`) and loaded once per project (`src/game_entity/model/`). A class that picks its box by a field value is offered once per value in Add > Game Entities and the Place browser, so a game's prop catalogue becomes one entry per prop. The bridge carries the model (`PlaceableMarkerBox::model`, `marker_model_for`). The MCP tool `read_game_entity_model` reports what an entity draws. Unit tested in `tests/game_entity/model/`, `tests/game_entity/visual/game_entity_visual_marker_model.test.ts` and `tests/desktop/bun/project_models/`; end-to-end step in `tests/e2e/desktop/desktop_game_entity_models_e2e.test.ts`.
 
 The material browser gained **Replace With Selected Material** (swap one material for another on every face, or only on the selection, as one undo step; also the MCP `replace_texture` tool). Everything the issue lists is still open: the game material authoring adapter for `DynLitMaterial`, shared versus per-instance materials, game-rendered previews, reimport and override precedence, and an isolated preview world. Most of it needs game-side work in the companion and a decision on how material previews are isolated from the authored scene's lighting.
 
