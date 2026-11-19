@@ -12,7 +12,7 @@ import { SceneDeserializer } from '@/io/scene/scene_deserializer.js';
 import type { LevelExportCliArguments } from '@/level_export/cli/level_export_cli_arguments.js';
 import { LevelExportPackageCheck } from '@/level_export/cli/level_export_package_check.js';
 import { LevelExportPackageBuilder } from '@/level_export/package/level_export_package_builder.js';
-import { levelBuildGeometryFileName } from '@/level_build/manifest/level_build_manifest.js';
+import { LEVEL_BUILD_GEOMETRY_FILE_NAME } from '@/level_build/manifest/level_build_manifest.js';
 import type { LevelBuildPublishRequest } from '@/level_build/publish/level_build_publish_types.js';
 import type { ProjectDefinition } from '@/project/model/project_definition.js';
 import { ProjectDefinitionParser } from '@/project/model/project_definition_parser.js';
@@ -37,8 +37,8 @@ const LEVEL_EXPORT_HASH_PRIME = 0x01000193;
 /**
  * Exports one level of a project from the command line: reads the project and
  * the level document, rebuilds the level, and writes the level package, or
- * checks the package on disk against it. The geometry file is named after a
- * hash of its bytes, so the same document always gives the same files.
+ * checks the package on disk against it. The geometry revision is a hash of the
+ * geometry bytes, so the same document always gives the same files.
  */
 export class LevelExportRunner {
   /**
@@ -152,7 +152,7 @@ export class LevelExportRunner {
    */
   private static check(levelDirectory: string, request: LevelBuildPublishRequest): LevelExportRunResult {
     const revision = request.geometryRevision ?? 0;
-    const expected = LevelPackageWriter.packageFilesBuild(request, levelBuildGeometryFileName(revision), revision);
+    const expected = LevelPackageWriter.packageFilesBuild(request, LEVEL_BUILD_GEOMETRY_FILE_NAME, revision);
     const differences = LevelExportPackageCheck.differencesList(levelDirectory, expected);
     if (differences.length === 0) {
       return { ok: true, message: `${request.levelName} is up to date in ${levelDirectory}`, differences };

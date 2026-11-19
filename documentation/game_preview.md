@@ -125,9 +125,9 @@ Before anything is written, the build checks the scene with the same checks as t
 
 A package holds:
 
-- `geometry_<revision>.glb`: the level geometry, exported the same way the game preview receives it: in editor axes and meters, with no editor helper meshes. Lights, rooms, portals and game components are not in this file; they come from the manifest, so the game never creates them twice.
-- `level.broom.json`: a version 2 manifest naming that geometry file, the authored state (lights, rooms, portals, transforms, visibility, components) and the game materials the geometry uses.
+- `geometry.glb`: the level geometry, exported the same way the game preview receives it: in editor axes and meters, with no editor helper meshes. Lights, rooms, portals and game components are not in this file; they come from the manifest, so the game never creates them twice.
+- `level.broom.json`: a version 2 manifest naming that geometry file and its revision, which grows with every build, the authored state (lights, rooms, portals, transforms, visibility, components) and the game materials the geometry uses.
 
-The new geometry file is written next to the old one and the manifest is replaced in one rename, so a build that is interrupted leaves the previous package loadable. Older geometry files are removed only after the new manifest is in place.
+Every build replaces the same files, each through one rename, so a reader never sees a half-written file and the folder never grows. The numbered `geometry_<n>.glb` files older builds wrote are removed by the next build.
 
 The MCP tool `build_level` (optional `levelName`) runs the same build and returns the level folder, the geometry file and the materials, or the problems that stopped it.

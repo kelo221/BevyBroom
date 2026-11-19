@@ -117,7 +117,7 @@ export class GameProcessControlFake extends GameProcessControl {
       this.nextPublishResult ?? {
         ok: true,
         levelDirectory: `/levels/${request.levelName}`,
-        geometryFile: 'geometry_0000000000000001.glb',
+        geometryFile: 'geometry.glb',
         geometryRevision: 1,
         removedGeometryFiles: [],
       }

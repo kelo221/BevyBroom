@@ -1,4 +1,14 @@
-import { closeSync, fsyncSync, mkdirSync, openSync, readdirSync, renameSync, rmSync, writeSync } from 'node:fs';
+import {
+  closeSync,
+  fsyncSync,
+  mkdirSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeSync,
+} from 'node:fs';
 
 /** File operations the writers of project files need. */
 export interface ProjectFileSystem {
@@ -15,6 +25,13 @@ export interface ProjectFileSystem {
    * @returns File names, empty when the directory is missing.
    */
   fileNamesList(path: string): string[];
+  /**
+   * Reads the bytes of a file.
+   *
+   * @param path Absolute file path.
+   * @returns File content; throws when the file cannot be read.
+   */
+  fileRead(path: string): Uint8Array;
   /**
    * Writes bytes to a file and flushes them to disk.
    *
@@ -46,6 +63,7 @@ export function projectFileSystemNodeCreate(): ProjectFileSystem {
   return {
     directoryEnsure: (path) => mkdirSync(path, { recursive: true }),
     fileNamesList: (path) => readdirSync(path),
+    fileRead: (path) => new Uint8Array(readFileSync(path)),
     fileWriteFlushed: (path, bytes) => projectFileWriteFlushed(path, bytes),
     fileRename: (from, to) => renameSync(from, to),
     fileRemove: (path) => rmSync(path, { force: true }),

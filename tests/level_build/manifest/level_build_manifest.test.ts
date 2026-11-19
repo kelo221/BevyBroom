@@ -4,8 +4,8 @@ import { resolve } from 'node:path';
 import * as THREE from 'three';
 import {
   LEVEL_BUILD_MANIFEST_VERSION,
-  levelBuildGeometryFileName,
-  levelBuildGeometryStampRead,
+  LEVEL_BUILD_GEOMETRY_FILE_NAME,
+  levelBuildGeometryFileIsNumbered,
   levelBuildNameSanitize,
   type LevelBuildManifest,
 } from '@/level_build/manifest/level_build_manifest.js';
@@ -59,12 +59,12 @@ describe('level build manifest', () => {
     expect(levelBuildNameSanitize('x'.repeat(100))).toHaveLength(64);
   });
 
-  it('round-trips geometry file stamps and ignores other files', () => {
-    for (const stamp of [1, 42, 9_000_000]) {
-      expect(levelBuildGeometryStampRead(levelBuildGeometryFileName(stamp))).toBe(stamp);
+  it('tells numbered geometry files of older builds from the package files', () => {
+    expect(levelBuildGeometryFileIsNumbered('geometry_0000000000000007.glb')).toBe(true);
+    expect(levelBuildGeometryFileIsNumbered('geometry_42.glb')).toBe(true);
+    for (const name of [LEVEL_BUILD_GEOMETRY_FILE_NAME, 'level.broom.json', 'geometry_.glb', 'geometry_7.glb.tmp']) {
+      expect(levelBuildGeometryFileIsNumbered(name)).toBe(false);
     }
-    expect(levelBuildGeometryStampRead('level.broom.json')).toBeNull();
-    expect(levelBuildGeometryStampRead('geometry_.glb')).toBeNull();
   });
 
   it('builds a manifest whose state lists every authored object of the world', () => {
@@ -74,7 +74,7 @@ describe('level build manifest', () => {
       levelName: 'My Hall',
       projectIdentifier: 'project-a',
       geometryRevision: 3,
-      geometryFile: levelBuildGeometryFileName(3),
+      geometryFile: LEVEL_BUILD_GEOMETRY_FILE_NAME,
       materials: ['b/wood', 'a/stone'],
     });
     expect(manifest.level_name).toBe(levelBuildNameSanitize('My Hall'));

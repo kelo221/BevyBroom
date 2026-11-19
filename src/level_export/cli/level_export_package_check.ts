@@ -1,12 +1,12 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import type { LevelPackageFile } from '@/desktop/bun/level_build/level_package_writer.js';
-import { levelBuildGeometryStampRead } from '@/level_build/manifest/level_build_manifest.js';
+import { levelBuildGeometryFileIsNumbered } from '@/level_build/manifest/level_build_manifest.js';
 
 /** Compares a level package on disk with the files a fresh export produces. */
 export class LevelExportPackageCheck {
   /**
    * Returns the names of the files that differ: expected files that are missing
-   * or hold other bytes, and geometry files no fresh export writes.
+   * or hold other bytes, and numbered geometry files older exports left.
    *
    * @param levelDirectory Directory of the package on disk.
    * @param expected Files of a fresh export.
@@ -18,9 +18,7 @@ export class LevelExportPackageCheck {
       .map((file) => file.name);
     const expectedNames = new Set(expected.map((file) => file.name));
     const stale = existsSync(levelDirectory)
-      ? readdirSync(levelDirectory).filter(
-          (name) => levelBuildGeometryStampRead(name) !== null && !expectedNames.has(name),
-        )
+      ? readdirSync(levelDirectory).filter((name) => levelBuildGeometryFileIsNumbered(name) && !expectedNames.has(name))
       : [];
     return [...differing, ...stale.sort()];
   }

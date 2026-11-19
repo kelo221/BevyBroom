@@ -6,7 +6,7 @@ A game reads everything about a level from its exported **level package**: the g
 
 | File               | Holds                                                                                                                                                                                        |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `geometry_<n>.glb` | The render geometry, with lightmap UVs. Tool-texture faces and volumes are left out (see below). Each solid model's and plain mesh's node carries its collision as `broom_collision` extras. |
+| `geometry.glb`     | The render geometry, with lightmap UVs. Tool-texture faces and volumes are left out (see below). Each solid model's and plain mesh's node carries its collision as `broom_collision` extras. |
 | `level.broom.json` | The manifest: lights, rooms, portals, transforms and game components, as the live preview sends them. A game with `BroomLevelPlugin` loads it by name.                                       |
 | `collision.json`   | The convex collision pieces of every solid model, the parts that are not convex, and the placements of game entities and procedural objects. Format below.                                   |
 

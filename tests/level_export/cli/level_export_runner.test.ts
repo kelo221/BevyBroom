@@ -8,7 +8,10 @@ import { LevelExportRunner } from '@/level_export/cli/level_export_runner.js';
 import { COLLISION_EXPORT_EXTRAS_KEY } from '@/level_export/collision/object_data_contributor_collision_extras.js';
 import { COLLISION_FILE_NAME, type CollisionDocument } from '@/level_export/collision/collision_types.js';
 import { levelBuildGlbMaterialIdsRead } from '@/level_build/package/level_build_glb_material_reader.js';
-import { LEVEL_BUILD_MANIFEST_FILE_NAME } from '@/level_build/manifest/level_build_manifest.js';
+import {
+  LEVEL_BUILD_GEOMETRY_FILE_NAME,
+  LEVEL_BUILD_MANIFEST_FILE_NAME,
+} from '@/level_build/manifest/level_build_manifest.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
 import { collisionTestModelCreate } from '../collision/collision_test_models.js';
 import {
@@ -116,7 +119,7 @@ describe('LevelExportRunner', () => {
     );
     expect((await run(project)).ok).toBe(true);
     const first = filesRead(project.levelDirectory);
-    expect([...first.keys()].filter((name) => name.startsWith('geometry_'))).toHaveLength(1);
+    expect([...first.keys()].filter((name) => name.endsWith('.glb'))).toEqual([LEVEL_BUILD_GEOMETRY_FILE_NAME]);
     expect(first.has(COLLISION_FILE_NAME) && first.has(LEVEL_BUILD_MANIFEST_FILE_NAME)).toBe(true);
     expect((await run(project)).ok).toBe(true);
     expect(filesRead(project.levelDirectory)).toEqual(first);
@@ -147,7 +150,7 @@ describe('LevelExportRunner', () => {
     expect(zonePieces.length).toBeGreaterThan(0);
     expect(zonePieces.every((piece) => piece.kind === 'volume')).toBe(true);
     expect(collision.pieces.some((piece) => piece.planes.some((plane) => plane.texture === NODRAW_TEXTURE))).toBe(true);
-    const glb = [...files.entries()].find(([name]) => name.startsWith('geometry_'))?.[1] ?? Buffer.alloc(0);
+    const glb = files.get(LEVEL_BUILD_GEOMETRY_FILE_NAME) ?? Buffer.alloc(0);
     const materials = levelBuildGlbMaterialIdsRead(new Uint8Array(glb));
     expect(materials).toContain(WALL_TEXTURE);
     expect(materials).not.toContain(NODRAW_TEXTURE);

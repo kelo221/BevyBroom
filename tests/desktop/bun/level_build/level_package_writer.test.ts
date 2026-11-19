@@ -11,7 +11,7 @@ import {
 import {
   LEVEL_BUILD_MANIFEST_FILE_NAME,
   LEVEL_BUILD_MANIFEST_VERSION,
-  levelBuildGeometryStampRead,
+  LEVEL_BUILD_GEOMETRY_FILE_NAME,
   type LevelBuildManifest,
 } from '@/level_build/manifest/level_build_manifest.js';
 import type {
@@ -111,15 +111,33 @@ describe('LevelPackageWriter', () => {
     expect(readFileSync(`${levelDirectory}/${result.geometryFile}`, 'utf8')).toBe('first');
   });
 
-  it('gives every build a newer geometry file and removes the older ones', () => {
+  it('replaces the same three files on every build with a newer revision', () => {
     const levelDirectory = levelDirectoryCreate();
     const writer = new LevelPackageWriter();
     const first = publishExpectOk(writer, levelDirectory, 'first');
+    const filesAfterFirst = readdirSync(levelDirectory).sort();
     const second = publishExpectOk(writer, levelDirectory, 'second');
+    expect(second.geometryFile).toBe(LEVEL_BUILD_GEOMETRY_FILE_NAME);
+    expect(second.geometryFile).toBe(first.geometryFile);
     expect(second.geometryRevision).toBeGreaterThan(first.geometryRevision);
-    expect(second.removedGeometryFiles).toEqual([first.geometryFile]);
-    const geometryFiles = readdirSync(levelDirectory).filter((name) => levelBuildGeometryStampRead(name) !== null);
-    expect(geometryFiles).toEqual([second.geometryFile]);
+    expect(readdirSync(levelDirectory).sort()).toEqual(filesAfterFirst);
+    expect(filesAfterFirst).toEqual(
+      [COLLISION_FILE_NAME, LEVEL_BUILD_GEOMETRY_FILE_NAME, LEVEL_BUILD_MANIFEST_FILE_NAME].sort(),
+    );
+    expect(readFileSync(`${levelDirectory}/${second.geometryFile}`, 'utf8')).toBe('second');
+  });
+
+  it('removes the numbered geometry files older builds left behind', () => {
+    const levelDirectory = levelDirectoryCreate();
+    const fileSystem = projectFileSystemNodeCreate();
+    fileSystem.directoryEnsure(levelDirectory);
+    const leftovers = ['geometry_0000000000000002.glb', 'geometry_0000000000000003.glb'];
+    leftovers.forEach((name) => fileSystem.fileWriteFlushed(`${levelDirectory}/${name}`, new Uint8Array([1])));
+    const result = publishExpectOk(new LevelPackageWriter(), levelDirectory, 'first');
+    expect([...result.removedGeometryFiles].sort()).toEqual(leftovers);
+    expect(readdirSync(levelDirectory).filter((name) => name.endsWith('.glb'))).toEqual([
+      LEVEL_BUILD_GEOMETRY_FILE_NAME,
+    ]);
   });
 
   it('writes the collision document next to the manifest', () => {
@@ -128,27 +146,25 @@ describe('LevelPackageWriter', () => {
     expect(readFileSync(`${levelDirectory}/${COLLISION_FILE_NAME}`, 'utf8')).toBe(requestCreate('first').collisionJson);
   });
 
-  it('keeps a requested geometry revision, rewriting the same file name', () => {
+  it('keeps a requested geometry revision', () => {
     const levelDirectory = levelDirectoryCreate();
-    const writer = new LevelPackageWriter();
     const revision = 4242;
-    const first = writer.publish(levelDirectory, { ...requestCreate('same'), geometryRevision: revision });
-    const second = writer.publish(levelDirectory, { ...requestCreate('same'), geometryRevision: revision });
-    expect(first.ok && second.ok && first.geometryFile === second.geometryFile).toBe(true);
-    const geometryFiles = readdirSync(levelDirectory).filter((name) => levelBuildGeometryStampRead(name) !== null);
-    expect(geometryFiles.map((name) => levelBuildGeometryStampRead(name))).toEqual([revision]);
+    const result = new LevelPackageWriter().publish(levelDirectory, {
+      ...requestCreate('same'),
+      geometryRevision: revision,
+    });
+    expect(result.ok && result.geometryRevision).toBe(revision);
+    expect(manifestRead(levelDirectory).geometry_revision).toBe(revision);
   });
 
-  it('keeps the previous package loadable when replacing the manifest fails', () => {
+  it('keeps the package loadable when replacing the manifest fails', () => {
     const levelDirectory = levelDirectoryCreate();
     const first = publishExpectOk(new LevelPackageWriter(), levelDirectory, 'first');
     const failing = levelPackageFileSystemFailingOnManifestRename();
     const result = new LevelPackageWriter(failing).publish(levelDirectory, requestCreate('second'));
     expect(result.ok).toBe(false);
-    expect(manifestRead(levelDirectory).geometry_file).toBe(first.geometryFile);
-    expect(existsSync(`${levelDirectory}/${first.geometryFile}`)).toBe(true);
-    const geometryFiles = readdirSync(levelDirectory).filter((name) => levelBuildGeometryStampRead(name) !== null);
-    expect(geometryFiles).toEqual([first.geometryFile]);
+    expect(manifestRead(levelDirectory).geometry_revision).toBe(first.geometryRevision);
+    expect(existsSync(`${levelDirectory}/${manifestRead(levelDirectory).geometry_file}`)).toBe(true);
   });
 });
 

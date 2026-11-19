@@ -4,7 +4,7 @@
  * Bun scripts/level_export.ts --project <broom.project.json> --level <id>
  * [--out <dir>] [--check]
  *
- * Writes `geometry_*.glb`, `level.broom.json` and `collision.json` into the
+ * Writes `geometry.glb`, `level.broom.json` and `collision.json` into the
  * project's level directory (or `--out`). With `--check` it writes nothing and
  * exits with 1, naming the files, when the package on disk differs from what
  * the document produces now.
