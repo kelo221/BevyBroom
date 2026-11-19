@@ -5,8 +5,8 @@ import {
 } from '@/desktop/bun/project_files/project_file_system_node.js';
 import {
   LEVEL_BUILD_MANIFEST_FILE_NAME,
-  levelBuildGeometryFileName,
-  levelBuildGeometryStampRead,
+  LEVEL_BUILD_GEOMETRY_FILE_NAME,
+  levelBuildGeometryFileIsNumbered,
   type LevelBuildManifest,
 } from '@/level_build/manifest/level_build_manifest.js';
 import { COLLISION_FILE_NAME } from '@/level_export/collision/collision_types.js';
@@ -22,10 +22,10 @@ export interface LevelPackageFile {
 }
 
 /**
- * Writes a level package so a reader never sees a half-written level: the
- * geometry goes to a new file, the manifest is replaced in one rename, and only
- * then are older geometry files removed. A failure before the rename leaves the
- * previous manifest and the geometry it names untouched.
+ * Writes a level package into the same three files every build: the geometry,
+ * the collision document and the manifest, each replaced by one rename so a
+ * reader never sees a half-written file. Numbered geometry files of older
+ * builds are removed afterwards.
  */
 export class LevelPackageWriter {
   /**
@@ -44,16 +44,14 @@ export class LevelPackageWriter {
    */
   publish(levelDirectory: string, request: LevelBuildPublishRequest): LevelBuildPublishResult {
     this.fileSystem.directoryEnsure(levelDirectory);
-    const existingFiles = this.fileSystem.fileNamesList(levelDirectory);
-    const geometryRevision = request.geometryRevision ?? this.stampNextRead(existingFiles);
-    const geometryFile = levelBuildGeometryFileName(geometryRevision);
+    const geometryRevision = request.geometryRevision ?? this.revisionNextRead(levelDirectory);
+    const geometryFile = LEVEL_BUILD_GEOMETRY_FILE_NAME;
     try {
       this.packageFilesWrite(levelDirectory, request, geometryFile, geometryRevision);
     } catch (error) {
-      this.fileSystem.fileRemove(`${levelDirectory}/${geometryFile}`);
       return { ok: false, message: `Level package not written: ${this.errorMessageRead(error)}` };
     }
-    const removedGeometryFiles = this.geometryFilesPrune(levelDirectory, existingFiles, geometryFile);
+    const removedGeometryFiles = this.numberedGeometryFilesPrune(levelDirectory);
     return { ok: true, levelDirectory, geometryFile, geometryRevision, removedGeometryFiles };
   }
 
@@ -100,14 +98,21 @@ export class LevelPackageWriter {
   }
 
   /**
-   * Returns a stamp above every geometry file already in the directory.
+   * Returns the revision after the one the package's current manifest names.
    *
-   * @param existingFiles File names of the level directory.
-   * @returns Next stamp, at least one.
+   * @param levelDirectory Level directory.
+   * @returns Next revision, one when there is no readable manifest.
    */
-  private stampNextRead(existingFiles: readonly string[]): number {
-    const stamps = existingFiles.map((name) => levelBuildGeometryStampRead(name) ?? 0);
-    return Math.max(0, ...stamps) + 1;
+  private revisionNextRead(levelDirectory: string): number {
+    try {
+      const text = new TextDecoder().decode(
+        this.fileSystem.fileRead(`${levelDirectory}/${LEVEL_BUILD_MANIFEST_FILE_NAME}`),
+      );
+      const revision = (JSON.parse(text) as Partial<LevelBuildManifest>).geometry_revision;
+      return typeof revision === 'number' && Number.isFinite(revision) ? revision + 1 : 1;
+    } catch {
+      return 1;
+    }
   }
 
   /**
@@ -138,17 +143,15 @@ export class LevelPackageWriter {
   }
 
   /**
-   * Removes the geometry files that existed before this build, except the one
-   * this build wrote when it reused a name.
+   * Removes the numbered geometry files older builds left in the directory.
    *
    * @param levelDirectory Level directory.
-   * @param existingFiles File names listed before the build.
-   * @param keptFile Geometry file this build wrote.
    * @returns Names of the removed files; files still in use are kept.
    */
-  private geometryFilesPrune(levelDirectory: string, existingFiles: readonly string[], keptFile: string): string[] {
-    return existingFiles
-      .filter((name) => levelBuildGeometryStampRead(name) !== null && name !== keptFile)
+  private numberedGeometryFilesPrune(levelDirectory: string): string[] {
+    return this.fileSystem
+      .fileNamesList(levelDirectory)
+      .filter((name) => levelBuildGeometryFileIsNumbered(name))
       .filter((name) => this.fileRemoveIfPossible(`${levelDirectory}/${name}`));
   }
 

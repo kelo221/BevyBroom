@@ -66,24 +66,17 @@ function levelBuildNameCharacterSanitize(character: string): string {
   return /^[A-Z]$/.test(character) ? character.toLowerCase() : '_';
 }
 
-/**
- * Returns the geometry file name of one build. Stamps grow with every build so
- * a new file never replaces the one a running game shows.
- *
- * @param stamp Build stamp.
- * @returns File name such as geometry_0000000000000007.glb.
- */
-export function levelBuildGeometryFileName(stamp: number): string {
-  return `geometry_${String(stamp).padStart(16, '0')}.glb`;
-}
+/** Name of the geometry file of every level package; each build replaces it. */
+export const LEVEL_BUILD_GEOMETRY_FILE_NAME = 'geometry.glb';
 
 /**
- * Reads the stamp of a geometry file name.
+ * Returns whether a file name is a numbered geometry file, such as
+ * geometry_0000000000000007.glb, which older builds wrote and builds now
+ * remove.
  *
  * @param fileName File name in a level directory.
- * @returns The stamp, or null when the name is no geometry file.
+ * @returns True for numbered geometry files.
  */
-export function levelBuildGeometryStampRead(fileName: string): number | null {
-  const match = /^geometry_(\d+)\.glb$/.exec(fileName);
-  return match?.[1] ? Number(match[1]) : null;
+export function levelBuildGeometryFileIsNumbered(fileName: string): boolean {
+  return /^geometry_\d+\.glb$/.test(fileName);
 }
