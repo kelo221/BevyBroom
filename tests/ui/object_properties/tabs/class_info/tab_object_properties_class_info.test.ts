@@ -362,4 +362,21 @@ describe('TabObjectPropertiesClassInfo', () => {
     expect(comments.value).toBe('Other notes');
     container.remove();
   });
+
+  /**
+   * In a narrow dock the two columns must not squeeze each other: the column
+   * row wraps, the left column keeps a usable basis and grows first, and the
+   * right column may grow to the full width once it wraps below.
+   */
+  it('lets the right column wrap below the left one in a narrow container', () => {
+    const { container } = classInfoMount([doorCreate('door')]);
+    const columns = objectPropertiesTestQuery<HTMLElement>(container, '.object-properties-class-info-columns');
+    const left = objectPropertiesTestQuery<HTMLElement>(container, '.object-properties-class-info-column-left');
+    const right = objectPropertiesTestQuery<HTMLElement>(container, '.object-properties-class-info-column-right');
+    expect(columns.style.flexWrap).toBe('wrap');
+    expect(Number.parseFloat(left.style.flexBasis)).toBeGreaterThan(0);
+    expect(Number.parseFloat(left.style.flexGrow)).toBeGreaterThan(Number.parseFloat(right.style.flexGrow));
+    expect(Number.parseFloat(right.style.flexGrow)).toBeGreaterThan(0);
+    expect(Number.parseFloat(right.style.flexShrink)).toBeGreaterThan(0);
+  });
 });

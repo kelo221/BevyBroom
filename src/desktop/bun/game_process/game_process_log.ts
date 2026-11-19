@@ -3,6 +3,9 @@ import {
   type ProjectBuildDiagnostic,
 } from '@/project/build/project_build_diagnostics_parser.js';
 
+/** Prefix of the lines the editor writes into the log itself. */
+export const GAME_PROCESS_LOG_EDITOR_PREFIX = '[editor] ';
+
 /** Number of output lines kept for the editor. */
 const GAME_PROCESS_LOG_TAIL_LINES = 300;
 
@@ -55,6 +58,22 @@ export class GameProcessLog {
    */
   diagnosticsRead(): readonly ProjectBuildDiagnostic[] {
     return this.diagnostics;
+  }
+
+  /**
+   * Returns the newest line a program printed, skipping the editor's own lines
+   * and blank lines.
+   *
+   * @returns Trimmed line, or null when no program printed anything kept.
+   */
+  programLineNewestRead(): string | null {
+    for (let index = this.tail.length - 1; index >= 0; index -= 1) {
+      const line = this.tail[index] ?? '';
+      if (line.trim() !== '' && !line.startsWith(GAME_PROCESS_LOG_EDITOR_PREFIX)) {
+        return line.trim();
+      }
+    }
+    return null;
   }
 
   /**

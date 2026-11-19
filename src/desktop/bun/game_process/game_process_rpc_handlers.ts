@@ -1,4 +1,9 @@
-import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
+import type {
+  GameProcessAction,
+  GameProcessLevelTarget,
+  GameProcessStatus,
+  ProjectOpenResult,
+} from '@/project/process/game_process_types.js';
 import type { GameProcessHost } from '@/desktop/bun/game_process/game_process_host.js';
 import type {
   LevelBuildPublishRequest,
@@ -6,12 +11,16 @@ import type {
 } from '@/level_build/publish/level_build_publish_types.js';
 import { LevelPackageWriter } from '@/desktop/bun/level_build/level_package_writer.js';
 import { levelBuildNameSanitize } from '@/level_build/manifest/level_build_manifest.js';
+import { levelBuildPublishDirectoryRead } from '@/level_build/publish/level_build_publish_directory.js';
 
 /** Desktop requests that open projects and drive the managed game. */
 export interface GameProcessRpcHandlers {
   projectChooseFile: () => Promise<string | null>;
   projectOpen: (params: { projectFile: string }) => Promise<ProjectOpenResult>;
-  gameProcessAction: (params: { action: GameProcessAction }) => GameProcessStatus;
+  gameProcessAction: (params: {
+    action: GameProcessAction;
+    level?: GameProcessLevelTarget | null;
+  }) => GameProcessStatus;
   gameProcessStatus: () => GameProcessStatus;
   levelPackagePublish: (params: LevelBuildPublishRequest) => LevelBuildPublishResult;
 }
@@ -32,7 +41,7 @@ export function gameProcessRpcHandlersCreate(
   return {
     projectChooseFile: async () => (await fileChoose()).find((path) => path.trim() !== '') ?? null,
     projectOpen: ({ projectFile }) => host.projectOpen(projectFile),
-    gameProcessAction: ({ action }) => host.actionStart(action),
+    gameProcessAction: ({ action, level }) => host.actionStart(action, level ?? null),
     gameProcessStatus: () => host.statusRead(),
     levelPackagePublish: (request) => levelPackagePublishToProject(host, levelPackageWriter, request),
   };
@@ -56,5 +65,8 @@ function levelPackagePublishToProject(
     return { ok: false, message: 'Open a game project before building a level.' };
   }
   const levelName = levelBuildNameSanitize(request.levelName);
-  return levelPackageWriter.publish(`${definition.levelDirectory}/${levelName}`, { ...request, levelName });
+  return levelPackageWriter.publish(levelBuildPublishDirectoryRead(definition.levelDirectory, levelName), {
+    ...request,
+    levelName,
+  });
 }

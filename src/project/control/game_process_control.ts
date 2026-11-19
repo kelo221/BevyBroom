@@ -6,7 +6,12 @@ import type {
   ProjectDataFilesReadResult,
   ProjectDataFileWriteRequest,
 } from '@/project/data/project_data_file_types.js';
-import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
+import type {
+  GameProcessAction,
+  GameProcessLevelTarget,
+  GameProcessStatus,
+  ProjectOpenResult,
+} from '@/project/process/game_process_types.js';
 import type {
   LevelBuildPublishRequest,
   LevelBuildPublishResult,
@@ -57,9 +62,10 @@ export abstract class GameProcessControl {
    * Starts an action on the managed game.
    *
    * @param action Action to start.
+   * @param level Level the game starts in, or null for none.
    * @returns Status right after the action was scheduled.
    */
-  abstract actionStart(action: GameProcessAction): Promise<GameProcessStatus>;
+  abstract actionStart(action: GameProcessAction, level: GameProcessLevelTarget | null): Promise<GameProcessStatus>;
 
   /**
    * Reads the status of the managed game.

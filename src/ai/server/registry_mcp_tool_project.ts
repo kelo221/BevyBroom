@@ -24,7 +24,7 @@ export const MCP_PROJECT_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ),
   tool(
     'game_launch',
-    `Build the game when the project can be built, then start it and connect the preview. Returns at once; poll project_status. ${MCP_PROJECT_DESKTOP_NOTE}`,
+    `Build the game when the project can be built, then start it and connect the preview. When the project's preview arguments name {level_id}, {level_document} or {level_export_directory}, the open project level is built first (from the scene as it is now) and the game starts in it; launchLevelId tells which. Returns at once; poll project_status. ${MCP_PROJECT_DESKTOP_NOTE}`,
     emptySchema(),
   ),
   tool(
@@ -35,6 +35,11 @@ export const MCP_PROJECT_TOOL_DEFINITIONS: McpToolDefinition[] = [
   tool(
     'game_restart',
     `Stop the game and start it again without building. Returns at once; poll project_status. ${MCP_PROJECT_DESKTOP_NOTE}`,
+    emptySchema(),
+  ),
+  tool(
+    'game_play_level',
+    `Play the open level in the game now, as Run > Play Level in Game (F9) does: when the game starts in the open level, save and build it first, then start the game, or build and start it again when it already runs (restart when it cannot be built). Returns at once; poll project_status. ${MCP_PROJECT_DESKTOP_NOTE}`,
     emptySchema(),
   ),
   tool(

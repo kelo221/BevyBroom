@@ -4,6 +4,7 @@ import { ProjectDefinitionParser } from '@/project/model/project_definition_pars
 import { ProjectDefinitionValidator } from '@/project/model/project_definition_validator.js';
 import type {
   GameProcessAction,
+  GameProcessLevelTarget,
   GameProcessPhase,
   GameProcessStatus,
   ProjectOpenResult,
@@ -11,11 +12,16 @@ import type {
 } from '@/project/process/game_process_types.js';
 import type { GameProcessHandle, GameProcessSpawner } from '@/desktop/bun/game_process/game_process_spawner.js';
 import type { GameProcessProjectReader } from '@/desktop/bun/game_process/game_process_project_reader.js';
-import { GameProcessLog } from '@/desktop/bun/game_process/game_process_log.js';
+import { GAME_PROCESS_LOG_EDITOR_PREFIX, GameProcessLog } from '@/desktop/bun/game_process/game_process_log.js';
+import { GameProcessLaunchPlaceholders } from '@/project/process/launch_level/game_process_launch_placeholders.js';
 
 /** Why the game of a project without a preview section cannot be started. */
 export const GAME_PROCESS_NO_PREVIEW_REFUSAL =
   'The project file has no "preview" section, so the editor cannot build or start its game. Levels, textures, classes and prefabs still work.';
+
+/** Why a game whose arguments name the open level cannot start without one. */
+export const GAME_PROCESS_NO_LEVEL_REFUSAL =
+  'The game starts in the open level ({level_id} in its arguments), so open or save a project level first.';
 
 /** Open project with everything the host needs to run it. */
 interface GameProcessOpenProject {
@@ -76,15 +82,16 @@ export class GameProcessHost {
    * Starts an action; it runs after every action started before it.
    *
    * @param action Action to run.
+   * @param level Level the game starts in, or null for none.
    * @returns Status right after the action was scheduled.
    */
-  actionStart(action: GameProcessAction): GameProcessStatus {
-    const refusal = this.actionRefusalDescribe(action);
+  actionStart(action: GameProcessAction, level: GameProcessLevelTarget | null = null): GameProcessStatus {
+    const refusal = this.actionRefusalDescribe(action) ?? this.levelRefusalDescribe(action, level);
     if (refusal !== null) {
       this.message = refusal;
       return this.statusRead();
     }
-    void this.enqueue(() => this.actionRun(action));
+    void this.enqueue(() => this.actionRun(action, level));
     return this.statusRead();
   }
 
@@ -160,11 +167,24 @@ export class GameProcessHost {
   }
 
   /**
+   * Explains why a game whose arguments name the open level cannot start.
+   *
+   * @param action Requested action.
+   * @param level Level the game starts in, or null for none.
+   * @returns Reason, or null when the action may run.
+   */
+  private levelRefusalDescribe(action: GameProcessAction, level: GameProcessLevelTarget | null): string | null {
+    const isLevelNeeded = action !== 'stop' && this.project?.summary.isLevelLaunch === true;
+    return isLevelNeeded && level === null ? GAME_PROCESS_NO_LEVEL_REFUSAL : null;
+  }
+
+  /**
    * Runs one action.
    *
    * @param action Action to run.
+   * @param level Level the game starts in, or null for none.
    */
-  private async actionRun(action: GameProcessAction): Promise<void> {
+  private async actionRun(action: GameProcessAction, level: GameProcessLevelTarget | null): Promise<void> {
     if (action !== 'launch') {
       await this.stopRun();
     }
@@ -177,7 +197,7 @@ export class GameProcessHost {
     }
     const isBuilt = action === 'restart' ? true : await this.buildRun();
     if (isBuilt) {
-      this.startRun();
+      this.startRun(level);
     }
   }
 
@@ -222,13 +242,17 @@ export class GameProcessHost {
     }
   }
 
-  /** Starts the game and watches it until it exits. */
-  private startRun(): void {
-    const launch = this.project?.definition.launch;
+  /**
+   * Starts the game and watches it until it exits.
+   *
+   * @param level Level the game starts in, or null for none.
+   */
+  private startRun(level: GameProcessLevelTarget | null): void {
+    const launch = this.launchCommandResolve(level);
     if (!launch) {
       return;
     }
-    this.phaseWrite('starting', `Starting ${launch.program}.`);
+    this.phaseWrite('starting', `Starting ${launch.program}${level === null ? '' : ` in level ${level.levelId}`}.`);
     try {
       this.handle = this.spawner.spawn(launch, (line) => this.log.lineAdd(line));
     } catch (error) {
@@ -238,6 +262,25 @@ export class GameProcessHost {
     this.exitCode = null;
     this.phaseWrite('running', `The game runs as process ${this.handle.processId}.`);
     void this.exitWatch(this.handle);
+  }
+
+  /**
+   * Returns the command that starts the game with the level placeholders
+   * replaced.
+   *
+   * @param level Level the game starts in, or null for none.
+   * @returns Command, or null when the project starts no game.
+   */
+  private launchCommandResolve(level: GameProcessLevelTarget | null): PreviewLaunchCommand | null {
+    const definition = this.project?.definition ?? null;
+    if (definition === null || definition.launch === null) {
+      return null;
+    }
+    if (level === null) {
+      return definition.launch;
+    }
+    const values = GameProcessLaunchPlaceholders.valuesCreate(definition, level);
+    return GameProcessLaunchPlaceholders.commandResolve(definition.launch, values);
   }
 
   /**
@@ -252,7 +295,21 @@ export class GameProcessHost {
     }
     this.handle = null;
     this.exitCode = exitCode;
-    this.phaseWrite('exited', `The game exited with code ${exitCode}.`);
+    this.phaseWrite('exited', this.exitMessageCreate(exitCode));
+  }
+
+  /**
+   * Describes the end of a game; a failing game also names the last line it
+   * printed, which usually says why it stopped.
+   *
+   * @param exitCode Exit code of the game.
+   * @returns Message for the user.
+   */
+  private exitMessageCreate(exitCode: number): string {
+    const lastLine = exitCode === 0 ? null : this.log.programLineNewestRead();
+    return lastLine === null
+      ? `The game exited with code ${exitCode}.`
+      : `The game exited with code ${exitCode}: ${lastLine}`;
   }
 
   /** Stops the managed game, if any. */
@@ -281,6 +338,8 @@ export class GameProcessHost {
       endpoint: definition.launch?.endpoint ?? '',
       canLaunch: definition.launch !== null,
       canBuild: definition.build !== null,
+      isLevelLaunch: GameProcessLaunchPlaceholders.isLevelNeeded(definition.launch),
+      isLevelExportLaunch: GameProcessLaunchPlaceholders.isLevelExportNeeded(definition.launch),
       toolTextures: definition.toolTextures,
       problems: ProjectDefinitionValidator.validate(definition, this.reader),
     };
@@ -296,7 +355,7 @@ export class GameProcessHost {
     this.phase = phase;
     this.message = message;
     this.generation += 1;
-    this.log.lineAdd(`[editor] ${message}`);
+    this.log.lineAdd(`${GAME_PROCESS_LOG_EDITOR_PREFIX}${message}`);
   }
 
   /**

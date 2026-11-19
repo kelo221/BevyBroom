@@ -1,7 +1,10 @@
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 import type { GameProcessAction } from '@/project/process/game_process_types.js';
-import { projectWorkbenchActionIsAvailable } from '@/project/workbench/project_workbench_action_availability.js';
+import {
+  projectWorkbenchActionIsAvailable,
+  projectWorkbenchLevelPlayIsAvailable,
+} from '@/project/workbench/project_workbench_action_availability.js';
 
 /** Labels of the game actions in the Run menu. */
 const SHELL_MENU_RUN_GAME_ACTIONS: ReadonlyArray<{ action: GameProcessAction; label: string }> = [
@@ -24,6 +27,7 @@ export class ShellMenuRun extends ShellMenu {
   entriesBuild(context: ShellMenuContext): ToolbarMenuEntry[] {
     return [
       this.actionEntry(context, 'Play', () => context.windowActions.playStart(), { shortcutAction: 'play_start' }),
+      this.levelPlayEntryBuild(context),
       this.separatorEntry(),
       ...this.gameActionEntriesBuild(context),
       this.levelBuildEntryBuild(context),
@@ -45,6 +49,21 @@ export class ShellMenuRun extends ShellMenu {
         isEnabled: () => projectWorkbenchActionIsAvailable(actions.gameProjectWorkbenchRead().statusRead(), action),
       }),
     );
+  }
+
+  /**
+   * Builds the row that saves the open level and plays it in the game at once.
+   *
+   * @param context Actions and docks the entries run.
+   * @returns Menu action entry, enabled while the game can be started or
+   *   started again.
+   */
+  private levelPlayEntryBuild(context: ShellMenuContext): ToolbarMenuEntry {
+    const workbenchRead = context.toolbarActions.gameProjectWorkbenchRead;
+    return this.actionEntry(context, 'Play Level in Game', () => void workbenchRead().levelPlay(), {
+      shortcutAction: 'game_play_level',
+      isEnabled: () => projectWorkbenchLevelPlayIsAvailable(workbenchRead().statusRead()),
+    });
   }
 
   /**

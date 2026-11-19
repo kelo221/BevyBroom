@@ -154,6 +154,23 @@ describe('SceneSerializer', () => {
     }
   });
 
+  /**
+   * Objects directly in the world are top-level entries: their parent is null,
+   * never the world group, so readers such as games that only accept top-level
+   * objects do not mistake them for grouped objects.
+   */
+  it('writes no parent for objects directly in the world', () => {
+    const group = new THREE.Group();
+    group.name = 'TopGroup';
+    worldGroup.add(group, createBoxAtPosition(2, 0, 0));
+    group.add(createBoxAtPosition(3, 0, 0));
+    const result = serializer.serialize(worldGroup);
+    const topLevelEntries = result.objects.filter((entry) => entry.parentId === null);
+    expect(topLevelEntries).toHaveLength(worldGroup.children.length);
+    expect(result.objects.some((entry) => entry.parentId === worldGroup.uuid)).toBe(false);
+    expect(result.objects.filter((entry) => entry.parentId === group.uuid)).toHaveLength(1);
+  });
+
   it('should serialize group type correctly', () => {
     const group = new THREE.Group();
     group.name = 'TestGroup';

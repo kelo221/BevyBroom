@@ -7,7 +7,12 @@ import type {
   ProjectDataFileWriteRequest,
 } from '@/project/data/project_data_file_types.js';
 import type { ElectrobunDesktopBunRpcClient } from '@/ai/shared/mcp_rpc_schema.js';
-import type { GameProcessAction, GameProcessStatus, ProjectOpenResult } from '@/project/process/game_process_types.js';
+import type {
+  GameProcessAction,
+  GameProcessLevelTarget,
+  GameProcessStatus,
+  ProjectOpenResult,
+} from '@/project/process/game_process_types.js';
 import { GameProcessControl, GameProcessControlUnavailable } from '@/project/control/game_process_control.js';
 import type {
   LevelBuildPublishRequest,
@@ -71,10 +76,11 @@ export class GameProcessControlDesktop extends GameProcessControl {
    * Starts an action in the main process.
    *
    * @param action Action to start.
+   * @param level Level the game starts in, or null for none.
    * @returns Status right after the action was scheduled.
    */
-  actionStart(action: GameProcessAction): Promise<GameProcessStatus> {
-    return this.rpc.request.gameProcessAction({ action });
+  actionStart(action: GameProcessAction, level: GameProcessLevelTarget | null): Promise<GameProcessStatus> {
+    return this.rpc.request.gameProcessAction({ action, level });
   }
 
   /**

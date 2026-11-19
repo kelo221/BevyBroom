@@ -139,6 +139,7 @@ export type McpToolName =
   | 'game_rebuild'
   | 'game_restart'
   | 'game_stop'
+  | 'game_play_level'
   | 'list_project_levels'
   | 'open_project_level'
   | 'save_project_level'

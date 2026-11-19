@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { GAME_PROCESS_NO_PREVIEW_REFUSAL, GameProcessHost } from '@/desktop/bun/game_process/game_process_host.js';
+import {
+  GAME_PROCESS_NO_LEVEL_REFUSAL,
+  GAME_PROCESS_NO_PREVIEW_REFUSAL,
+  GameProcessHost,
+} from '@/desktop/bun/game_process/game_process_host.js';
 import type { GameProcessProjectReader } from '@/desktop/bun/game_process/game_process_project_reader.js';
 import { GameProcessSpawnerFake } from './game_process_spawner_fake.js';
 
@@ -15,14 +19,20 @@ const PROJECT_FILE = `${PROJECT_DIRECTORY}/broom.project.json`;
  * @param projectIdentifier Project id written into the file.
  * @param hasPreviewSection Whether the file names a program that starts the
  *   game.
+ * @param previewArguments Arguments that start the game.
  * @returns Reader.
  */
-function readerCreate(projectIdentifier: string, hasPreviewSection = true): GameProcessProjectReader {
-  const preview = { program: 'cargo', arguments: ['run', '-p', 'game'], endpoint: 'http://127.0.0.1:15999' };
+function readerCreate(
+  projectIdentifier: string,
+  hasPreviewSection = true,
+  previewArguments: string[] = ['run', '-p', 'game'],
+): GameProcessProjectReader {
+  const preview = { program: 'cargo', arguments: previewArguments, endpoint: 'http://127.0.0.1:15999' };
   const project = {
     project_id: projectIdentifier,
     asset_root: 'assets',
     level_directory: 'broom/levels',
+    document_directory: 'broom/documents',
     ...(hasPreviewSection ? { preview } : {}),
   };
   return {
@@ -38,11 +48,14 @@ function readerCreate(projectIdentifier: string, hasPreviewSection = true): Game
 /**
  * Builds a host with an opened project.
  *
+ * @param previewArguments Arguments that start the game.
  * @returns Host and its fake spawner.
  */
-async function hostWithProjectCreate(): Promise<{ host: GameProcessHost; spawner: GameProcessSpawnerFake }> {
+async function hostWithProjectCreate(
+  previewArguments?: string[],
+): Promise<{ host: GameProcessHost; spawner: GameProcessSpawnerFake }> {
   const spawner = new GameProcessSpawnerFake();
-  const host = new GameProcessHost(spawner, readerCreate('game-a'));
+  const host = new GameProcessHost(spawner, readerCreate('game-a', true, previewArguments));
   const opened = await host.projectOpen(PROJECT_FILE);
   if (!opened.ok) throw new Error(opened.message);
   return { host, spawner };
@@ -140,6 +153,26 @@ describe('GameProcessHost', () => {
     expect((await host.idle()).phase).toBe('exited');
   });
 
+  it('names the last line a failing game printed, and only the exit code of a game that ends well', async () => {
+    const { host, spawner } = await hostWithProjectCreate();
+    host.actionStart('launch');
+    await host.idle();
+    const reason = 'The level file cannot be played: an object is inside a group.';
+    spawner.runs[1]?.print(reason);
+    spawner.runs[1]?.print('');
+    spawner.runs[1]?.exit(2);
+    await host.idle();
+    await Promise.resolve();
+    expect(host.statusRead().message).toBe(`The game exited with code 2: ${reason}`);
+    host.actionStart('restart');
+    await host.idle();
+    spawner.runs.at(-1)?.print('bye');
+    spawner.runs.at(-1)?.exit(0);
+    await Promise.resolve();
+    await host.idle();
+    expect(host.statusRead().message).toBe('The game exited with code 0.');
+  });
+
   it('stops the game of the previous project when another project is opened', async () => {
     const { host, spawner } = await hostWithProjectCreate();
     host.actionStart('launch');
@@ -147,5 +180,72 @@ describe('GameProcessHost', () => {
     await host.projectOpen(PROJECT_FILE);
     expect(spawner.runningRuns()).toHaveLength(0);
     expect(host.statusRead().phase).toBe('idle');
+  });
+
+  /**
+   * Level placeholders: a game whose arguments name {level_id},
+   * {level_document} or {level_export_directory} starts in the level the editor
+   * passes, needs one, and a game without placeholders starts as before.
+   */
+  describe('level placeholders', () => {
+    const levelArguments = [
+      'run',
+      '--level={level_id}',
+      '--document',
+      '{level_document}',
+      '--export',
+      '{level_export_directory}',
+    ];
+
+    it('replaces every level placeholder with the values of the passed level', async () => {
+      const { host, spawner } = await hostWithProjectCreate(levelArguments);
+      expect(host.statusRead().project).toMatchObject({ isLevelLaunch: true, isLevelExportLaunch: true });
+      host.actionStart('launch', { levelId: 'Lobby Two', levelDocument: 'areas/lobby two.json' });
+      const status = await host.idle();
+      expect(status.phase).toBe('running');
+      const definition = host.projectDefinitionRead();
+      if (!definition) throw new Error('expected an open project');
+      expect(spawner.runs.at(-1)?.command.arguments).toEqual([
+        'run',
+        '--level=lobby_two',
+        '--document',
+        `${definition.documentDirectory}/areas/lobby two.json`,
+        '--export',
+        `${definition.levelDirectory}/lobby_two`,
+      ]);
+    });
+
+    it('refuses to start, rebuild or restart without a level but still stops', async () => {
+      const { host, spawner } = await hostWithProjectCreate(levelArguments);
+      for (const action of ['launch', 'rebuild', 'restart'] as const) {
+        expect(host.actionStart(action).message).toBe(GAME_PROCESS_NO_LEVEL_REFUSAL);
+      }
+      await host.idle();
+      expect(spawner.runs).toEqual([]);
+      host.actionStart('launch', { levelId: 'lobby', levelDocument: 'lobby.json' });
+      await host.idle();
+      host.actionStart('stop');
+      expect((await host.idle()).phase).toBe('stopped');
+      expect(spawner.runningRuns()).toHaveLength(0);
+    });
+
+    it('reports an unknown placeholder as a project error that stops the start', async () => {
+      const { host, spawner } = await hostWithProjectCreate(['run', '{level_id}', '{level_name}']);
+      const problems = host.statusRead().project?.problems ?? [];
+      expect(problems).toEqual([expect.objectContaining({ severity: 'error' })]);
+      expect(problems[0]?.message).toContain('{level_name}');
+      host.actionStart('launch', { levelId: 'lobby', levelDocument: 'lobby.json' });
+      await host.idle();
+      expect(spawner.runs).toEqual([]);
+    });
+
+    it('starts a game without placeholders exactly as before, ignoring a passed level', async () => {
+      const plainArguments = ['run', '-p', 'game'];
+      const { host, spawner } = await hostWithProjectCreate(plainArguments);
+      expect(host.statusRead().project?.isLevelLaunch).toBe(false);
+      host.actionStart('launch', { levelId: 'lobby', levelDocument: 'lobby.json' });
+      await host.idle();
+      expect(spawner.runs.at(-1)?.command.arguments).toEqual(plainArguments);
+    });
   });
 });

@@ -39,3 +39,15 @@ export function projectWorkbenchActionIsAvailable(
   }
   return !PROJECT_WORKBENCH_BUSY_PHASES.includes(status.phase) && status.phase !== 'idle';
 }
+
+/**
+ * Returns whether Play Level in Game can run: it starts, rebuilds or restarts
+ * the game, whichever fits the phase.
+ *
+ * @param status Newest status, or null before a project was opened.
+ * @returns True when one of those actions is available.
+ */
+export function projectWorkbenchLevelPlayIsAvailable(status: GameProcessStatus | null): boolean {
+  const actions: readonly GameProcessAction[] = ['launch', 'rebuild', 'restart'];
+  return actions.some((action) => projectWorkbenchActionIsAvailable(status, action));
+}

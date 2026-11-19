@@ -20,6 +20,18 @@ export interface ProjectSummary {
   canLaunch: boolean;
   /** True when the editor knows how to build the game. */
   canBuild: boolean;
+  /**
+   * True when the game's arguments name the open level through a placeholder
+   * such as `{level_id}`, so starting the game needs an open project level.
+   */
+  isLevelLaunch: boolean;
+  /**
+   * True when the game's arguments name the open level's package through
+   * `{level_id}` or `{level_export_directory}`, so the level is built before
+   * the game starts. A game that names only `{level_document}` reads the saved
+   * document and needs no build.
+   */
+  isLevelExportLaunch: boolean;
   /** Problems found when the project was opened. */
   problems: ProjectProblem[];
   /** Textures the project marks for the level export, such as nodraw. */
@@ -46,6 +58,14 @@ export interface GameProcessStatus {
 
 /** Actions on the managed game. */
 export type GameProcessAction = 'launch' | 'rebuild' | 'restart' | 'stop';
+
+/** The project level the game is started in. */
+export interface GameProcessLevelTarget {
+  /** Level name the built level is published under. */
+  levelId: string;
+  /** Level document path relative to the project's document directory. */
+  levelDocument: string;
+}
 
 /** Result of opening a project. */
 export type ProjectOpenResult = { ok: true; status: GameProcessStatus } | { ok: false; message: string };

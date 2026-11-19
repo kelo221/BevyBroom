@@ -27,18 +27,21 @@ export const PROJECT_WORKBENCH_NO_PREVIEW_TEXT =
 const PROJECT_WORKBENCH_STATUS_ERROR_LIMIT = 3;
 
 /**
- * Builds the project status lines: project, game phase, last message, project
- * problems, the first build errors and a warning when the document belongs to
- * another project.
+ * Builds the project status lines: project, game phase, last message, the level
+ * the game starts in, project problems, the first build errors and a warning
+ * when the document belongs to another project.
  *
  * @param status Newest status, or null before a project was opened.
  * @param isDocumentLinkedElsewhere True when the document belongs to another
  *   project.
+ * @param launchLevelText Which level the game starts in, or null when the game
+ *   takes no level.
  * @returns Lines in display order.
  */
 export function projectWorkbenchStatusLinesBuild(
   status: GameProcessStatus | null,
   isDocumentLinkedElsewhere: boolean,
+  launchLevelText: string | null = null,
 ): ProjectWorkbenchStatusLine[] {
   if (status === null || status.project === null) {
     return [{ text: 'No project open. Open a project or connect to a running game.', isError: false }];
@@ -50,8 +53,10 @@ export function projectWorkbenchStatusLinesBuild(
   const linkLines = isDocumentLinkedElsewhere
     ? [{ text: 'This document belongs to another project; its game will be refused.', isError: true }]
     : [];
+  const launchLevelLines = launchLevelText === null ? [] : [{ text: launchLevelText, isError: false }];
   return [
     ...projectWorkbenchStatusPhaseLinesBuild(status, status.project.name),
+    ...launchLevelLines,
     ...problemLines,
     ...projectWorkbenchStatusErrorLinesBuild(status),
     ...linkLines,
