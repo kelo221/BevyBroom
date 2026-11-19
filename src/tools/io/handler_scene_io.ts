@@ -138,14 +138,20 @@ export class HandlerSceneIo {
    *
    * @param worldGroup The root group containing the scene objects.
    * @param statusBar The status bar for feedback, or null.
+   * @param startingDirectory Absolute folder the file dialog opens in, or null
+   *   for the dialog's own choice.
    * @returns The written file name, or null when nothing was written.
    */
-  async saveSceneAs(worldGroup: THREE.Group, statusBar: StatusBar | null): Promise<string | null> {
+  async saveSceneAs(
+    worldGroup: THREE.Group,
+    statusBar: StatusBar | null,
+    startingDirectory: string | null = null,
+  ): Promise<string | null> {
     const previousDocumentIdentifier = documentIdentityRead(worldGroup);
     try {
       documentIdentityReset(worldGroup);
       const jsonString = this.sceneJsonBuild(worldGroup);
-      const filename = await this.fileDialogManager.saveSceneDocumentAs(jsonString, 'scene.json');
+      const filename = await this.fileDialogManager.saveSceneDocumentAs(jsonString, 'scene.json', startingDirectory);
       this.documentIdentityRestoreWhenUnsaved(worldGroup, previousDocumentIdentifier, filename);
       this.showSaveResult(filename, statusBar);
       return filename;
@@ -187,9 +193,10 @@ export class HandlerSceneIo {
   }
 
   /**
-   * Displays save result in the status bar.
+   * Displays save result in the status bar; no file means the file dialog was
+   * cancelled, since failed writes throw.
    *
-   * @param filename The saved filename, or null on failure.
+   * @param filename The saved filename, or null when cancelled.
    * @param statusBar The status bar for feedback, or null.
    */
   private showSaveResult(filename: string | null, statusBar: StatusBar | null): void {
@@ -198,7 +205,7 @@ export class HandlerSceneIo {
       statusBar.setLastSavedInfo(filename);
       statusBar.setLastAction(`Saved scene to ${filename}`);
     } else {
-      statusBar.setErrorText('Failed to save scene');
+      statusBar.setLastAction('Save cancelled');
     }
   }
 

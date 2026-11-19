@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { StatusBar } from '@/ui/status/status_bar.js';
 import * as THREE from 'three';
 import { HandlerSceneIo } from '@/tools/io/handler_scene_io.js';
 import { SceneSerializer } from '@/io/scene/scene_serializer.js';
@@ -110,6 +111,18 @@ describe('SceneIOHandler', () => {
     saveSceneDocumentAsSpy(handler).mockResolvedValue(null);
     await handler.saveSceneAs(worldGroup, null);
     expect(documentIdentityRead(worldGroup)).toBe(originalIdentifier);
+  });
+
+  it('reports a cancelled save as cancelled and a failed write as an error', async () => {
+    const statusBar = { setLastAction: vi.fn(), setErrorText: vi.fn(), setLastSavedInfo: vi.fn() };
+    const saveAs = saveSceneDocumentAsSpy(handler);
+    saveAs.mockResolvedValue(null);
+    await handler.saveSceneAs(worldGroup, statusBar as unknown as StatusBar);
+    expect(statusBar.setLastAction).toHaveBeenCalledWith('Save cancelled');
+    expect(statusBar.setErrorText).not.toHaveBeenCalled();
+    saveAs.mockRejectedValue(new Error('disk full'));
+    await handler.saveSceneAs(worldGroup, statusBar as unknown as StatusBar);
+    expect(statusBar.setErrorText).toHaveBeenCalledWith(expect.stringContaining('disk full'));
   });
 
   it('asks before Save overwrites a scene file another program changed, and keeps it when declined', async () => {
@@ -284,7 +297,9 @@ world
 function saveSceneDocumentAsSpy(handler: HandlerSceneIo) {
   const fileDialog = (
     handler as unknown as {
-      fileDialogManager: { saveSceneDocumentAs: (data: string, name: string) => Promise<string | null> };
+      fileDialogManager: {
+        saveSceneDocumentAs: (data: string, name: string, startingDirectory: string | null) => Promise<string | null>;
+      };
     }
   ).fileDialogManager;
   return vi.spyOn(fileDialog, 'saveSceneDocumentAs');

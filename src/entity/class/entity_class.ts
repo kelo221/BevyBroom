@@ -107,6 +107,17 @@ export abstract class EntityClassPoint extends EntityClass {
   }
 
   /**
+   * Returns whether new entities of the class rest on the surface under the
+   * point they are placed at. The default is false: they float on the view
+   * ray.
+   *
+   * @returns True when placed entities rest on surfaces.
+   */
+  surfaceRestingIs(): boolean {
+    return false;
+  }
+
+  /**
    * Creates a new owner of this class, named after it.
    *
    * @returns New entity owner group.

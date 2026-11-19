@@ -117,6 +117,8 @@ function gameEntityAddMenuClassEntry(actions: AddMenuActions, gameClass: GameEnt
     },
     {
       id: gameEntityClassIdOf(gameClass.type_path),
+      placeAtAim: (aim) =>
+        actions.onAddEntityPlaced(() => gameEntityCreateForClass(gameClass), GAME_ENTITY_PLACEMENT_RADIUS, aim),
       objectMatches: (object) => Object.hasOwn(GameEntityComponentStore.read(object), gameClass.type_path),
       previewCreate: () => gameEntityCreateForClass(gameClass),
     },

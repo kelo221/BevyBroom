@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import type { FileDialogDesktopSavePickParams } from '@/io/dialog/desktop/file_dialog_desktop_types.js';
 
 /**
  * Escapes text for use inside an AppleScript string literal.
@@ -11,15 +12,21 @@ export function textFileSavePanelMacQuote(text: string): string {
 }
 
 /**
- * Builds the AppleScript that shows the macOS save panel in front and prints
- * the chosen POSIX path.
+ * Builds the AppleScript that shows the macOS save panel in front, opened in
+ * the starting folder when one is given, and prints the chosen POSIX path.
  *
- * @param suggestedName File name the panel suggests.
+ * @param params Suggested file name and optional starting folder.
  * @returns AppleScript source.
  */
-export function textFileSavePanelMacScriptBuild(suggestedName: string): string {
-  const defaultName = textFileSavePanelMacQuote(suggestedName);
-  return `activate\nPOSIX path of (choose file name with prompt "Save" default name "${defaultName}")`;
+export function textFileSavePanelMacScriptBuild(
+  params: Pick<FileDialogDesktopSavePickParams, 'suggestedName' | 'startingDirectory'>,
+): string {
+  const defaultName = textFileSavePanelMacQuote(params.suggestedName);
+  const location =
+    params.startingDirectory === undefined
+      ? ''
+      : ` default location (POSIX file "${textFileSavePanelMacQuote(params.startingDirectory)}")`;
+  return `activate\nPOSIX path of (choose file name with prompt "Save" default name "${defaultName}"${location})`;
 }
 
 /**
@@ -37,13 +44,14 @@ export function textFileSavePanelMacExtensionEnsure(path: string, defaultExtensi
 /**
  * Shows the macOS save panel through osascript.
  *
- * @param suggestedName File name the panel suggests.
- * @param defaultExtension Extension added when the chosen name has none.
+ * @param params Suggested file name, extension added when the chosen name has
+ *   none, and optional starting folder.
  * @returns Chosen absolute path, or null when cancelled.
  */
-export function textFileSavePanelMacShow(suggestedName: string, defaultExtension: string): Promise<string | null> {
+export function textFileSavePanelMacShow(params: FileDialogDesktopSavePickParams): Promise<string | null> {
+  const defaultExtension = params.defaultExtension;
   return new Promise((resolve) => {
-    const child = spawn('osascript', ['-e', textFileSavePanelMacScriptBuild(suggestedName)]);
+    const child = spawn('osascript', ['-e', textFileSavePanelMacScriptBuild(params)]);
     let output = '';
     child.stdout.on('data', (chunk: Buffer) => (output += chunk.toString('utf8')));
     child.on('error', () => resolve(null));

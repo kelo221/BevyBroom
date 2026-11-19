@@ -2,6 +2,7 @@ import type { EntityClassPoint } from '@/entity/class/entity_class.js';
 import { EntityClassRegistry } from '@/entity/class/registry/entity_class_registry.js';
 import type { EntityBrowserCatalogEntry } from '@/entity_browser/catalog/entity_browser_catalog_entry.js';
 import type { AddMenuActions } from '@/layout/setup/add_menu_entries.js';
+import type { AddMenuCatalogAimPlacer } from '@/layout/setup/add_menu_catalog.js';
 import { hexToRgb } from '@/utils/utils_color.js';
 
 /** Approximate half-extent of a new point entity, used for wall clearance. */
@@ -57,8 +58,24 @@ export class EntityClassCatalogEntries {
       objectMatches: (object) => pointClass.matches(object),
       previewCreate: () => pointClass.ownerCreate(),
       activate: () => actions.onAddEntityPlaced(() => pointClass.ownerCreate(), ENTITY_CLASS_CATALOG_PLACEMENT_RADIUS),
-      placeAtAim: null,
+      placeAtAim: EntityClassCatalogEntries.aimPlacerOf(pointClass, actions),
       contextEntriesCreate: null,
     };
+  }
+
+  /**
+   * Returns the placer that rests new owners of a class on the surface under an
+   * aim, for classes that rest on surfaces.
+   *
+   * @param pointClass Point class.
+   * @param actions Creation callbacks.
+   * @returns Aim placer, or null when the class floats on the view ray.
+   */
+  private static aimPlacerOf(pointClass: EntityClassPoint, actions: AddMenuActions): AddMenuCatalogAimPlacer | null {
+    if (!pointClass.surfaceRestingIs()) {
+      return null;
+    }
+    return (aim) =>
+      actions.onAddEntityPlaced(() => pointClass.ownerCreate(), ENTITY_CLASS_CATALOG_PLACEMENT_RADIUS, aim);
   }
 }

@@ -57,8 +57,10 @@ export interface LayoutSettingsCreateDeps {
 /**
  * Creates the settings store, applicator, and subscription, and applies every
  * snapshot to the editor; the viewport pane count is applied only when it
- * differs from the last applied count. Does not construct the settings dialog
- * so no modal DOM exists until the user opens Settings.
+ * differs from the last applied count. With workspaces the stored count is not
+ * applied at creation, so the remembered workspace stays open; only a later
+ * change switches it. Does not construct the settings dialog so no modal DOM
+ * exists until the user opens Settings.
  *
  * @param deps Layout settings create dependencies.
  * @returns Owned settings subsystem parts.
@@ -66,7 +68,7 @@ export interface LayoutSettingsCreateDeps {
 export function createLayoutSettingsSystem(deps: LayoutSettingsCreateDeps): LayoutSettingsSystemParts {
   const settingsStore = new EditorSettingsStore();
   const settingsApplicator = new SettingsApplicator(document.documentElement);
-  let appliedPaneCount: ViewSettings['viewportPaneCount'] | null = null;
+  let appliedPaneCount = layoutSettingsPaneCountInitialRead(deps, settingsStore);
   const snapshotApply = (snapshot: EditorSettingsSnapshot): void => {
     settingsApplicator.applySnapshot(snapshot);
     deps.toolbar.setButtonLabelsEnabled(snapshot.view.toolbarButtonLabels);
@@ -80,6 +82,22 @@ export function createLayoutSettingsSystem(deps: LayoutSettingsCreateDeps): Layo
   snapshotApply(settingsStore.getSnapshot());
   const settingsUnsubscribe = settingsStore.subscribe(snapshotApply);
   return { settingsStore, settingsApplicator, settingsUnsubscribe };
+}
+
+/**
+ * Returns the pane count counted as already applied when the settings system
+ * starts: the stored count when workspaces own the layout, so it is not applied
+ * over the remembered workspace, otherwise none.
+ *
+ * @param deps Layout settings create dependencies.
+ * @param settingsStore Store holding the stored pane count.
+ * @returns Pane count treated as applied, or null to apply the stored one.
+ */
+function layoutSettingsPaneCountInitialRead(
+  deps: LayoutSettingsCreateDeps,
+  settingsStore: EditorSettingsStore,
+): ViewSettings['viewportPaneCount'] | null {
+  return deps.onViewportPaneCount ? settingsStore.getSnapshot().view.viewportPaneCount : null;
 }
 
 /**

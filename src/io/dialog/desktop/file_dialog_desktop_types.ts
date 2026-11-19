@@ -25,6 +25,8 @@ export interface FileDialogDesktopSavePickParams {
   readonly suggestedName: string;
   /** Extension without dot added when the chosen name has none, such as "json". */
   readonly defaultExtension: string;
+  /** Absolute folder the dialog opens in; the dialog's own choice when left out. */
+  readonly startingDirectory?: string;
 }
 
 /** Request to write a whole text file. */

@@ -5,11 +5,15 @@ import {
   applyLayoutTextureFilterSettings,
   applyOrthographicPanMouseSettings,
   bindFlyingCameraMoveSpeedWriteBack,
+  createLayoutSettingsSystem,
   panSpeedFactorFromSensitivity,
+  type LayoutSettingsCreateDeps,
   runEditorFactoryResetAndReload,
 } from '@/layout/setup/layout_settings_system.js';
 import type { Viewport3D } from '@/viewports/core/viewport_3d.js';
 import type { Viewport2D } from '@/viewports/core/viewport_2d.js';
+import type { ViewportPaneLayout } from '@/layout/viewport/viewport_pane_layout.js';
+import type { Toolbar } from '@/ui/toolbar/toolbar.js';
 import { MOUSE_MOVE_SPEED_MAX, MOUSE_SENSITIVITY_MAX, type ViewSettings } from '@/settings/store/settings_types.js';
 import { createDefaultMouseSettings } from '@/settings/store/settings_defaults.js';
 import { EditorSettingsStore } from '@/settings/store/editor_settings_store.js';
@@ -148,5 +152,42 @@ describe('runEditorFactoryResetAndReload', () => {
     expect(areEditorStorageWritesSuppressed()).toBe(true);
     expect(values.size).toBe(0);
     expect(reload).toHaveBeenCalledOnce();
+  });
+});
+
+/**
+ * Builds settings dependencies without viewports whose pane count goes to a
+ * workspace callback.
+ *
+ * @param onViewportPaneCount Workspace pane count callback.
+ * @returns Settings dependencies.
+ */
+function paneCountDepsCreate(onViewportPaneCount: (paneCount: 1 | 2 | 3 | 4) => void): LayoutSettingsCreateDeps {
+  return {
+    getPerspectiveViewport: () => null,
+    getRendererHost: () => null,
+    getOrthographicViewports: () => [],
+    viewportPaneLayout: { apply: vi.fn(), getVisibleSlots: () => [] } as unknown as ViewportPaneLayout,
+    toolbar: { setButtonLabelsEnabled: vi.fn() } as unknown as Toolbar,
+    resizeAll: vi.fn(),
+    onViewportPaneCount,
+  };
+}
+
+/**
+ * The stored viewport pane count must not override the workspace the editor
+ * reopened with; only a later change of the count switches workspaces.
+ */
+describe('createLayoutSettingsSystem pane count', () => {
+  it('keeps the reopened workspace at startup and switches only when the pane count changes', () => {
+    const onViewportPaneCount = vi.fn<(paneCount: 1 | 2 | 3 | 4) => void>();
+    const parts = createLayoutSettingsSystem(paneCountDepsCreate(onViewportPaneCount));
+    expect(onViewportPaneCount).not.toHaveBeenCalled();
+    const storedCount = parts.settingsStore.getSnapshot().view.viewportPaneCount;
+    const changedCount = storedCount === 1 ? 2 : 1;
+    parts.settingsStore.setViewportPaneCount(changedCount);
+    expect(onViewportPaneCount).toHaveBeenCalledExactlyOnceWith(changedCount);
+    parts.settingsUnsubscribe();
+    localStorage.clear();
   });
 });

@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type * as THREE from 'three';
+import * as THREE from 'three';
+import type { ClipboardPlacementAim } from '@/clipboard/placement/clipboard_placement_cursor.js';
+import { GameEntityOwner } from '@/game_entity/owner/game_entity_owner.js';
 import { EntityClassCatalogEntries } from '@/entity/class/catalog/entity_class_catalog_entries.js';
 import { EntityClassRegistry } from '@/entity/class/registry/entity_class_registry.js';
 import type { AddMenuActions } from '@/layout/setup/add_menu_entries.js';
@@ -13,8 +15,13 @@ import { testClassesInstall } from '../../../game_entity/game_entity_test_classe
  *
  * @returns Actions and the recorded factories.
  */
-function actionsCreate(): { actions: AddMenuActions; factories: Array<() => THREE.Group> } {
+function actionsCreate(): {
+  actions: AddMenuActions;
+  factories: Array<() => THREE.Group>;
+  aims: Array<ClipboardPlacementAim | undefined>;
+} {
   const factories: Array<() => THREE.Group> = [];
+  const aims: Array<ClipboardPlacementAim | undefined> = [];
   const doNothing = vi.fn();
   const actions: AddMenuActions = {
     onAddCube: doNothing,
@@ -28,9 +35,12 @@ function actionsCreate(): { actions: AddMenuActions; factories: Array<() => THRE
     onAddSpotLight: doNothing,
     onAddRoom: doNothing,
     onAddPortal: doNothing,
-    onAddEntityPlaced: (factory) => factories.push(factory),
+    onAddEntityPlaced: (factory, _objectRadius, aim) => {
+      factories.push(factory);
+      aims.push(aim);
+    },
   };
-  return { actions, factories };
+  return { actions, factories, aims };
 }
 
 /**
@@ -94,5 +104,22 @@ describe('EntityClassCatalogEntries', () => {
       expect(EntityClassRegistry.classOf(owner)?.id).toBe(entry.id);
       expect(entry.objectMatches?.(owner)).toBe(true);
     }
+  });
+
+  it('rests game entities on the aimed surface and lets other point classes float', () => {
+    const { actions, factories, aims } = actionsCreate();
+    const aim: ClipboardPlacementAim = { camera: new THREE.PerspectiveCamera(), ndc: new THREE.Vector2() };
+    for (const entry of EntityClassCatalogEntries.pointEntriesBuild(actions)) {
+      const isGameEntityEntry = GameEntityOwner.isOwner(entry.previewCreate?.() ?? new THREE.Group());
+      expect(entry.placeAtAim !== null, entry.label).toBe(isGameEntityEntry);
+      entry.placeAtAim?.(aim);
+      if (isGameEntityEntry) {
+        expect(aims[aims.length - 1]).toBe(aim);
+        expect(EntityClassRegistry.classOf(factories[factories.length - 1]?.() ?? new THREE.Group())?.id).toBe(
+          entry.id,
+        );
+      }
+    }
+    expect(aims.length).toBeGreaterThan(0);
   });
 });

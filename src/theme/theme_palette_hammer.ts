@@ -310,6 +310,8 @@ export const ThemePaletteHammer = Object.freeze({
   roomGuideColor: 0x4fc3f7,
   /** Marker of entity kinds without their own color. */
   entityIconDefaultColor: 0xb0b0b0,
+  /** Dark halo around entity icons so they read on light and dark surfaces. */
+  entityIconHaloColor: 0x0c0e12,
   /** Marker of game entities whose classes the editor does not know. */
   gameEntityUnknownColor: 0x808080,
   /** Default color of new user visgroups. */

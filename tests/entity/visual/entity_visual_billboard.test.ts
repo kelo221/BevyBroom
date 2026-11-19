@@ -4,6 +4,7 @@ import { EntityVisualBillboard } from '@/entity/visual/entity_visual_billboard.j
 import { LightOwner } from '@/light/model/light_owner.js';
 import { lightSettingsCreateDefault } from '@/light/model/light_settings.js';
 import { ICON_NAMES } from '@/ui/icons/icon_name.js';
+import { Theme } from '@/theme.js';
 
 /**
  * Builds a camera looking at a point from a direction.
@@ -45,6 +46,17 @@ describe('EntityVisualBillboard', () => {
       expect(box.min.x).toBeGreaterThanOrEqual(-0.5 - 1e-6);
       expect(box.max.y).toBeLessThanOrEqual(0.5 + 1e-6);
       expect(EntityVisualBillboard.geometryOf(iconName)).toBe(geometry);
+    }
+  });
+
+  it('outlines every icon with a dark halo drawn before its fill so it reads on light surfaces', () => {
+    const haloColor = new THREE.Color(Theme.entityIconHaloColor);
+    for (const iconName of ICON_NAMES) {
+      const colors = EntityVisualBillboard.geometryOf(iconName).getAttribute('color');
+      const firstColor = new THREE.Color().fromBufferAttribute(colors, 0);
+      const lastColor = new THREE.Color().fromBufferAttribute(colors, colors.count - 1);
+      expect(firstColor.getHex(), iconName).toBe(haloColor.getHex());
+      expect(lastColor.getHex(), iconName).toBe(new THREE.Color(1, 1, 1).getHex());
     }
   });
 

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { DEFAULT_SPAWN_DISTANCE, isSpawnRaycastMesh } from '@/navigation/placement/object_spawn_placement.js';
+import { ENTITY_PICK_MESH_USERDATA_KEY } from '@/entity/model/entity_owner_keys.js';
 import {
   clipboardPlacementOffset2dCompute,
   clipboardPlacementOffset3dCompute,
@@ -36,6 +37,8 @@ export interface ClipboardPlacementAimOptions {
    * surface or ground plane under the aim instead of keeping its depth.
    */
   readonly isRestingInDownwardViews: boolean;
+  /** When true, the markers of entities never stop the aim ray. */
+  readonly isIgnoringEntityMarkers?: boolean;
 }
 
 /** Placement choices of a clipboard paste: orthographic views keep the depth. */
@@ -106,7 +109,7 @@ export function clipboardPlacementAimOffsetCompute(
   return clipboardPlacementOffset3dCompute({
     bounds,
     ray,
-    surfaceHit: clipboardPlacementSurfaceHitFind(ray, worldObject),
+    surfaceHit: clipboardPlacementSurfaceHitFind(ray, worldObject, options.isIgnoringEntityMarkers === true),
     workingPlane: new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
     workingPlaneMaxDistance: isOrthographic ? Infinity : CLIPBOARD_PLACEMENT_WORKING_PLANE_MAX_DISTANCE,
     fallbackDistance: DEFAULT_SPAWN_DISTANCE,
@@ -162,16 +165,15 @@ function clipboardPlacementRayLooksDown(ray: THREE.Ray): boolean {
  *
  * @param ray World ray.
  * @param worldObject World root whose content meshes the ray may hit.
+ * @param isIgnoringEntityMarkers True when entity markers never stop the ray.
  * @returns Hit point and world normal, or null when nothing is hit.
  */
 function clipboardPlacementSurfaceHitFind(
   ray: THREE.Ray,
   worldObject: THREE.Object3D,
+  isIgnoringEntityMarkers: boolean,
 ): ClipboardPlacementSurfaceHit | null {
-  const targets: THREE.Mesh[] = [];
-  worldObject.traverseVisible((object) => {
-    if (isSpawnRaycastMesh(object, true)) targets.push(object);
-  });
+  const targets = clipboardPlacementSurfaceTargetsCollect(worldObject, isIgnoringEntityMarkers);
   const raycaster = new THREE.Raycaster(ray.origin, ray.direction);
   const hit = raycaster.intersectObjects(targets, false).find((candidate) => candidate.face);
   if (!hit?.face) {
@@ -179,4 +181,23 @@ function clipboardPlacementSurfaceHitFind(
   }
   const normal = hit.face.normal.clone().applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld));
   return { point: hit.point.clone(), normal: normal.normalize() };
+}
+
+/**
+ * Collects the visible content meshes an aim ray may rest content on.
+ *
+ * @param worldObject World root whose content meshes are collected.
+ * @param isIgnoringEntityMarkers True to leave out the markers of entities.
+ * @returns Meshes the ray may hit.
+ */
+function clipboardPlacementSurfaceTargetsCollect(
+  worldObject: THREE.Object3D,
+  isIgnoringEntityMarkers: boolean,
+): THREE.Mesh[] {
+  const targets: THREE.Mesh[] = [];
+  worldObject.traverseVisible((object) => {
+    const isSkippedMarker = isIgnoringEntityMarkers && object.userData[ENTITY_PICK_MESH_USERDATA_KEY] === true;
+    if (!isSkippedMarker && isSpawnRaycastMesh(object, true)) targets.push(object);
+  });
+  return targets;
 }

@@ -194,8 +194,8 @@ function buildPrimitiveToolbarActions(
     onAddSpotLight: () => host.getPrimitiveCreationHandler().createSpotLight(),
     onAddRoom: () => host.getPrimitiveCreationHandler().createRoom(),
     onAddPortal: () => host.getPrimitiveCreationHandler().createPortal(),
-    onAddEntityPlaced: (factory, objectRadius) =>
-      host.getPrimitiveCreationHandler().entityCreatePlaced(factory, objectRadius),
+    onAddEntityPlaced: (factory, objectRadius, aim) =>
+      host.getPrimitiveCreationHandler().entityCreatePlaced(factory, objectRadius, aim),
     onToggleSettingsDialog: () => host.onToggleSettingsDialog(),
     onOpenDocumentation: () => host.onOpenDocumentation(),
     onOpenAboutDialog: () => host.onOpenAboutDialog(),

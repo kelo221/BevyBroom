@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Theme } from '@/theme.js';
+import type { ClipboardPlacementAim } from '@/clipboard/placement/clipboard_placement_cursor.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { HandlerHierarchyReparent } from '@/outliner/hierarchy/handler_hierarchy_reparent.js';
 import { Toolbar } from '@/ui/toolbar/toolbar.js';
@@ -62,10 +63,11 @@ export interface EditorToolbarActions {
   onAddRoom: () => void;
   onAddPortal: () => void;
   /**
-   * Adds an entity owner built by a factory at the spawn point as one undoable
-   * step and selects it.
+   * Adds an entity owner built by a factory as one undoable step and selects
+   * it: resting on the surface under the aim when one is given, otherwise at
+   * the spawn point.
    */
-  onAddEntityPlaced: (factory: () => THREE.Group, objectRadius: number) => void;
+  onAddEntityPlaced: (factory: () => THREE.Group, objectRadius: number, aim?: ClipboardPlacementAim) => void;
   onUndo: () => void;
   onRedo: () => void;
   onToggleSettingsDialog: () => void;

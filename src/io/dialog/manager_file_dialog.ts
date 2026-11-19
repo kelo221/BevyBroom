@@ -112,12 +112,19 @@ export class ManagerFileDialog {
    *
    * @param data The scene JSON text.
    * @param suggestedName The suggested filename for the picker.
-   * @returns The written file name, or null when cancelled or failed.
+   * @param startingDirectory Absolute folder the desktop dialog opens in, or
+   *   null for the dialog's own choice.
+   * @returns The written file name, or null when cancelled.
+   * @throws When the chosen file could not be written.
    */
-  async saveSceneDocumentAs(data: string, suggestedName: string): Promise<string | null> {
+  async saveSceneDocumentAs(
+    data: string,
+    suggestedName: string,
+    startingDirectory: string | null = null,
+  ): Promise<string | null> {
     const desktopBridge = fileDialogDesktopBridgeResolve();
     if (!isFileSystemAccessAvailable() && desktopBridge) {
-      return this.saveSceneDocumentAsWithDesktopDialog(desktopBridge, data, suggestedName);
+      return this.saveSceneDocumentAsWithDesktopDialog(desktopBridge, data, { suggestedName, startingDirectory });
     }
     if (!isFileSystemAccessAvailable()) {
       return this.saveJSONFallback(data, suggestedName);
@@ -127,7 +134,22 @@ export class ManagerFileDialog {
       return null;
     }
     this.sceneDocumentTarget.remember(handle);
-    return this.sceneDocumentTarget.textWrite(data);
+    return this.sceneDocumentRememberedWriteOrThrow(data);
+  }
+
+  /**
+   * Writes the remembered scene document file.
+   *
+   * @param data The scene JSON text.
+   * @returns The written file name.
+   * @throws When the file could not be written.
+   */
+  private async sceneDocumentRememberedWriteOrThrow(data: string): Promise<string> {
+    const writtenName = await this.sceneDocumentTarget.textWrite(data);
+    if (writtenName === null) {
+      throw new Error(`could not write ${this.sceneDocumentTarget.fileNameRead() ?? 'the chosen file'}`);
+    }
+    return writtenName;
   }
 
   /**
@@ -178,20 +200,25 @@ export class ManagerFileDialog {
    *
    * @param desktopBridge Native file dialogs and file access.
    * @param data The scene JSON text.
-   * @param suggestedName The suggested filename.
-   * @returns The written file name, or null when cancelled or failed.
+   * @param dialog Suggested file name and the folder the dialog opens in.
+   * @returns The written file name, or null when cancelled.
+   * @throws When the chosen file could not be written.
    */
   private async saveSceneDocumentAsWithDesktopDialog(
     desktopBridge: FileDialogDesktopBridge,
     data: string,
-    suggestedName: string,
+    dialog: { readonly suggestedName: string; readonly startingDirectory: string | null },
   ): Promise<string | null> {
-    const path = await desktopBridge.savePathPick({ suggestedName, defaultExtension: 'json' });
+    const path = await desktopBridge.savePathPick({
+      suggestedName: dialog.suggestedName,
+      defaultExtension: 'json',
+      ...(dialog.startingDirectory === null ? {} : { startingDirectory: dialog.startingDirectory }),
+    });
     if (path === null) {
       return null;
     }
     this.sceneDocumentTarget.remember(new FileDialogDesktopHandle(desktopBridge, path));
-    return this.sceneDocumentTarget.textWrite(data);
+    return this.sceneDocumentRememberedWriteOrThrow(data);
   }
 
   /** Forgets the remembered scene document file so the next save asks for one. */
