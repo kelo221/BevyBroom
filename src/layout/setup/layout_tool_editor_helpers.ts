@@ -550,7 +550,7 @@ export function tryBeginComponentSingleUseDrag(
     deps.setStatusMessage(text);
   });
   syncSingleUseSnapFromShift(deps);
-  deps.componentTransformHandler.setCommitCleanup(coordinator.dragWeldRead());
+  deps.componentTransformHandler.setCommitCleanup(coordinator.dragFinishRead());
   deps.componentTransformHandler.setFaceNormalHint(
     componentDragFaceNormalWorld(session.getComponentSelection().getSelected(), session.getDomain()),
   );

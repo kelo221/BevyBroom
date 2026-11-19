@@ -201,7 +201,7 @@ export class BridgeComponentTransformInteraction {
       return false;
     }
     this.wireHandlerCallbacks(coordinator);
-    this.deps.componentTransformHandler.setCommitCleanup(coordinator.dragWeldRead());
+    this.deps.componentTransformHandler.setCommitCleanup(coordinator.dragFinishRead());
     this.deps.componentTransformHandler.setFaceNormalHint(
       componentDragFaceNormalWorld(session.getComponentSelection().getSelected(), session.getDomain()),
     );

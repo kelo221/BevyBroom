@@ -16,6 +16,10 @@ export function layoutToolsPaletteEditModeCoordinatorCreate(host: LayoutToolsPal
     getViewports: () => host.getAllInteractiveViewports(),
     showStatusMessage: (message) => host.showStatusMessage(message),
     getCommandStack: () => host.commandStack,
+    onComponentSelectionChanged: () => {
+      host.updateGizmoVisibility();
+      host.updateGizmoPivot();
+    },
   });
 }
 

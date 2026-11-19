@@ -46,7 +46,7 @@ import type { TopologyVertexMergeMode } from '@/edit/topology/topology_vertex_me
 import { pickEditEdgeParameterAtClient, type EditEdgeParameterHit } from '@/edit/pick/edit_edge_parameter_pick.js';
 import { projectLoopCutParameterOnLockedEdge } from '@/edit/tool/edit_loop_cut_slide.js';
 import type { TopologyWorkingEdge } from '@/edit/topology/topology_working_edge_key.js';
-import { TopologyDragWeld } from '@/edit/topology/topology_drag_weld.js';
+import { TopologyDragFinish } from '@/edit/topology/topology_drag_finish.js';
 import { OverlayVertexCoincidentWarning } from '@/edit/overlay/overlay_vertex_coincident_warning.js';
 
 /** Minimal viewport surface used for Edit Mode picking. */
@@ -62,6 +62,8 @@ export interface CoordinatorEditModeDependencies {
   getViewports: () => readonly EditModeViewportPickSurface[];
   showStatusMessage: (message: string) => void;
   getCommandStack: () => CommandStack | null;
+  /** Called after the component selection changed, e.g. to show the gizmo on it. */
+  onComponentSelectionChanged?: () => void;
 }
 
 /** Owns the Edit Mode session, component selection, picking, and cage display. */
@@ -69,7 +71,7 @@ export class CoordinatorEditMode {
   private readonly deps: CoordinatorEditModeDependencies;
   private readonly session: EditSession;
   private readonly topologyHandler: HandlerComponentTopology;
-  private readonly dragWeld: TopologyDragWeld;
+  private readonly dragFinish: TopologyDragFinish;
   private cageOverlay: ComponentEditCageOverlay | null;
   private coincidentWarning: OverlayVertexCoincidentWarning | null;
   private brushCages: BrushEditCage[];
@@ -89,23 +91,24 @@ export class CoordinatorEditMode {
       showStatusMessage: (message: string) => this.deps.showStatusMessage(message),
     };
     this.topologyHandler = new HandlerComponentTopology(topologyDependencies);
-    this.dragWeld = new TopologyDragWeld(topologyDependencies);
+    this.dragFinish = new TopologyDragFinish(topologyDependencies);
     this.cageOverlay = null;
     this.coincidentWarning = null;
     this.brushCages = [];
     this.session.getComponentSelection().setChangeCallback((selected) => {
       this.refreshOverlay(selected);
+      this.deps.onComponentSelectionChanged?.();
     });
   }
 
   /**
-   * Returns the weld that merges vertices a component drag dropped onto each
-   * other.
+   * Returns the work that finishes component drags: merging dropped corners and
+   * keeping brushes convex.
    *
-   * @returns Drag weld.
+   * @returns Drag finish.
    */
-  dragWeldRead(): TopologyDragWeld {
-    return this.dragWeld;
+  dragFinishRead(): TopologyDragFinish {
+    return this.dragFinish;
   }
 
   /**
@@ -833,7 +836,7 @@ export class CoordinatorEditMode {
       return;
     }
     const meshSources = this.buildCageMeshSources();
-    this.cageOverlay.update(meshSources, this.brushCages, selected);
+    this.cageOverlay.update(meshSources, this.brushCages, selected, this.session.getComponentMode());
     if (!deferCoincidentScan) {
       this.coincidentWarning?.updateFromCageSources(meshSources, this.brushCages);
     }
