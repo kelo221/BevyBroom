@@ -21,10 +21,13 @@ export class ProjectModelReader extends ProjectFileReader {
    *
    * @param assetRoot Absolute asset root, forward slashes.
    * @param modelPath Model path relative to the asset root.
+   * @param projectDirectory Absolute project directory: a linked model may
+   *   really live in it or in its git directory; the asset root when left out.
    * @returns The bytes as base64, or why the file is not returned.
    */
-  read(assetRoot: string, modelPath: string): ProjectFileReadResult {
-    return this.readUnlessRefused(assetRoot, modelPath, ProjectModelReader.pathRefusalDescribe(modelPath));
+  read(assetRoot: string, modelPath: string, projectDirectory: string = assetRoot): ProjectFileReadResult {
+    const refusal = ProjectModelReader.pathRefusalDescribe(modelPath);
+    return this.readUnlessRefused(assetRoot, modelPath, refusal, projectDirectory);
   }
 
   /**

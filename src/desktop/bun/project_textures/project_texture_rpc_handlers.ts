@@ -69,5 +69,5 @@ function projectTextureReadFromHost(
   if (!definition) {
     return { ok: false, message: PROJECT_TEXTURE_NO_PROJECT_MESSAGE };
   }
-  return reader.read(definition.assetRoot, definition.textureDirectories, texturePath);
+  return reader.read(definition.assetRoot, definition.textureDirectories, texturePath, definition.projectDirectory);
 }

@@ -26,11 +26,18 @@ export class ProjectTextureReader extends ProjectFileReader {
    * @param assetRoot Absolute asset root, forward slashes.
    * @param textureDirectories Directories relative to the asset root.
    * @param texturePath Image path relative to the asset root.
+   * @param projectDirectory Absolute project directory: a linked image may
+   *   really live in it or in its git directory; the asset root when left out.
    * @returns The bytes as base64, or why the file is not returned.
    */
-  read(assetRoot: string, textureDirectories: readonly string[], texturePath: string): TextureProjectReadResult {
+  read(
+    assetRoot: string,
+    textureDirectories: readonly string[],
+    texturePath: string,
+    projectDirectory: string = assetRoot,
+  ): TextureProjectReadResult {
     const refusal = ProjectTextureReader.pathRefusalDescribe(textureDirectories, texturePath);
-    return this.readUnlessRefused(assetRoot, texturePath, refusal);
+    return this.readUnlessRefused(assetRoot, texturePath, refusal, projectDirectory);
   }
 
   /**

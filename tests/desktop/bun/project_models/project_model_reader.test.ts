@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { symlinkSync } from 'node:fs';
 import { ProjectModelReader } from '@/desktop/bun/project_models/project_model_reader.js';
 import {
   projectTextureTestAssetRootCreate,
@@ -50,5 +51,54 @@ describe('ProjectModelReader', () => {
     const large = reader.read(assetRoot, 'models/large.glb');
     expect(large.ok ? '' : large.message).toContain(String(byteLimit));
     expect(reader.read(assetRoot, 'models/missing.glb').ok).toBe(false);
+  });
+
+  it('follows a link to a file elsewhere in the project, as git-annex keeps them, and refuses one out of the project', () => {
+    const projectDirectory = projectTextureTestAssetRootCreate();
+    const outsideDirectory = projectTextureTestAssetRootCreate();
+    const bytes = new Uint8Array([0x67, 0x6c, 0x54, 0x46]);
+    projectTextureTestFileWrite(projectDirectory, '.git/annex/objects/crate.glb', bytes);
+    projectTextureTestFileWrite(outsideDirectory, 'secret.glb', bytes);
+    projectTextureTestFileWrite(projectDirectory, 'assets/models/.keep', '');
+    symlinkSync('../../.git/annex/objects/crate.glb', `${projectDirectory}/assets/models/crate.glb`);
+    symlinkSync(`${outsideDirectory}/secret.glb`, `${projectDirectory}/assets/models/secret.glb`);
+    const reader = new ProjectModelReader();
+    const assetRoot = `${projectDirectory}/assets`;
+    const linked = reader.read(assetRoot, 'models/crate.glb', projectDirectory);
+    expect(linked.ok ? Array.from(Buffer.from(linked.bytesBase64, 'base64')) : linked.message).toEqual(
+      Array.from(bytes),
+    );
+    expect(reader.read(assetRoot, 'models/secret.glb', projectDirectory).ok).toBe(false);
+    expect(reader.read(assetRoot, 'models/crate.glb').ok).toBe(false);
+  });
+
+  it("follows a worktree's link into the shared git directory of the main checkout", () => {
+    const mainCheckout = projectTextureTestAssetRootCreate();
+    const worktree = projectTextureTestAssetRootCreate();
+    const bytes = new Uint8Array([0x67, 0x6c, 0x54, 0x46, 9]);
+    projectTextureTestFileWrite(mainCheckout, '.git/annex/objects/crate.glb', bytes);
+    projectTextureTestFileWrite(mainCheckout, '.git/worktrees/tree/commondir', '../..\n');
+    projectTextureTestFileWrite(worktree, '.git', `gitdir: ${mainCheckout}/.git/worktrees/tree\n`);
+    projectTextureTestFileWrite(worktree, 'assets/models/.keep', '');
+    symlinkSync(`${mainCheckout}/.git/annex/objects/crate.glb`, `${worktree}/assets/models/crate.glb`);
+    const linked = new ProjectModelReader().read(`${worktree}/assets`, 'models/crate.glb', worktree);
+    expect(linked.ok ? Array.from(Buffer.from(linked.bytesBase64, 'base64')) : linked.message).toEqual(
+      Array.from(bytes),
+    );
+  });
+
+  it('follows a link through a git directory whose annex store lives elsewhere', () => {
+    const mainCheckout = projectTextureTestAssetRootCreate();
+    const worktree = projectTextureTestAssetRootCreate();
+    const bytes = new Uint8Array([0x67, 0x6c, 0x54, 0x46, 7]);
+    projectTextureTestFileWrite(mainCheckout, '.git/annex/objects/crate.glb', bytes);
+    projectTextureTestFileWrite(worktree, '.git/HEAD', 'ref: refs/heads/tree\n');
+    symlinkSync(`${mainCheckout}/.git/annex`, `${worktree}/.git/annex`);
+    projectTextureTestFileWrite(worktree, 'assets/models/.keep', '');
+    symlinkSync('../../.git/annex/objects/crate.glb', `${worktree}/assets/models/crate.glb`);
+    const linked = new ProjectModelReader().read(`${worktree}/assets`, 'models/crate.glb', worktree);
+    expect(linked.ok ? Array.from(Buffer.from(linked.bytesBase64, 'base64')) : linked.message).toEqual(
+      Array.from(bytes),
+    );
   });
 });

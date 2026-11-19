@@ -25,7 +25,7 @@ export function projectModelRpcHandlersCreate(
     projectModelRead: ({ path }) => {
       const definition = host.projectDefinitionRead();
       return definition
-        ? reader.read(definition.assetRoot, path)
+        ? reader.read(definition.assetRoot, path, definition.projectDirectory)
         : { ok: false, message: PROJECT_MODEL_NO_PROJECT_MESSAGE };
     },
   };
