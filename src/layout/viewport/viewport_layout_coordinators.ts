@@ -52,6 +52,7 @@ import {
   type LayoutSettingsCreateDeps,
 } from '@/layout/setup/layout_settings_system.js';
 import { LayoutGamePreview } from '@/preview/layout/layout_game_preview.js';
+import { LayoutGamePreviewStripBinding } from '@/preview/layout/layout_game_preview_strip_binding.js';
 import type { ProjectLevelActions } from '@/project/level/project_level_actions.js';
 import { DisplacementOverlaySystem } from '@/displacement/overlay/displacement_overlay_system.js';
 import { SprinkleToolSystem } from '@/tools/sprinkle/setup/sprinkle_tool_system.js';
@@ -83,6 +84,7 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     this.installToolEditorFocusSystem();
     this.setupSceneRecovery();
     this.shellElements.dockCommands.toolWindowsOpenRestore();
+    new LayoutGamePreviewStripBinding(this.shellElements.infoPanel, () => this.gamePreviewLayoutEnsure());
   }
 
   /**
@@ -812,11 +814,11 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
   }
 
   /**
-   * Toggles the floating Game Preview panel, creating the preview link on first
-   * use.
+   * Shows the Game Preview tab of the bottom strip, creating the preview link
+   * on first use.
    */
-  protected onToggleGamePreviewPanel(): void {
-    this.gamePreviewLayoutEnsure().panelToggle();
+  protected onRevealGamePreviewPanel(): void {
+    this.gamePreviewLayoutEnsure().panelReveal();
   }
 
   /**
@@ -827,7 +829,8 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
   protected gamePreviewLayoutEnsure(): LayoutGamePreview {
     this.gamePreviewLayout ??= new LayoutGamePreview({
       worldGroup: this.worldObject,
-      panelHost: this.toolbarContainer,
+      panelHost: this.shellElements.infoPanel.slotRead('preview'),
+      panelHostReveal: () => this.shellElements.dockCommands.infoPanelTabReveal('preview'),
       textureBrowserControllerRead: () => this.textureBrowserController,
       sceneFileNameRead: () => this.sceneIOHandler.sceneDocumentFileNameRead(),
       statusMessageShow: (message) => this.showStatusMessage(message),

@@ -39,7 +39,7 @@ export interface LayoutShellActionSource {
   onOpenDocumentation: () => void;
   onOpenAboutDialog: () => void;
   onOpenMcpDialog: () => void;
-  onToggleGamePreviewPanel: () => void;
+  onRevealGamePreviewPanel: () => void;
   /** Returns the project workbench that opens game projects and runs their game. */
   gameProjectWorkbenchRead: () => ProjectWorkbench;
   /** Returns the actions on the open project's levels. */
@@ -126,7 +126,7 @@ export function createToolbarShellActions(source: LayoutShellActionSource) {
     onOpenDocumentation: () => source.onOpenDocumentation(),
     onOpenAboutDialog: () => source.onOpenAboutDialog(),
     onOpenMcpDialog: () => source.onOpenMcpDialog(),
-    onToggleGamePreviewPanel: () => source.onToggleGamePreviewPanel(),
+    onRevealGamePreviewPanel: () => source.onRevealGamePreviewPanel(),
     gameProjectWorkbenchRead: () => source.gameProjectWorkbenchRead(),
     projectLevelActionsRead: () => source.projectLevelActionsRead(),
     onOpenDetachedViewport: () => source.onOpenDetachedViewport(),

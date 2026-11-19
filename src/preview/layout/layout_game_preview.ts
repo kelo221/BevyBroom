@@ -27,8 +27,10 @@ export const LAYOUT_GAME_PREVIEW_FALLBACK_LEVEL_NAME = 'untitled';
 export interface LayoutGamePreviewHosts {
   /** Editor world root mirrored into the game. */
   worldGroup: THREE.Group;
-  /** Element the floating panel is mounted in. */
+  /** Game Preview page of the bottom strip the panel is mounted in. */
   panelHost: HTMLElement;
+  /** Shows and unfolds the bottom strip with its Game Preview tab in front. */
+  panelHostReveal: () => void;
   /** Returns the texture browser controller, or null while it does not exist. */
   textureBrowserControllerRead: () => ControllerTextureBrowser | null;
   /** Returns the file name of the current scene document, or null when unsaved. */
@@ -40,8 +42,9 @@ export interface LayoutGamePreviewHosts {
 }
 
 /**
- * Lazily creates the game preview link and its floating panel, and applies the
- * game material catalog to the texture browser and to existing materials.
+ * Lazily creates the game preview link and its Game Preview page in the bottom
+ * strip, and applies the game material catalog to the texture browser and to
+ * existing materials.
  */
 export class LayoutGamePreview {
   private readonly hosts: LayoutGamePreviewHosts;
@@ -60,9 +63,36 @@ export class LayoutGamePreview {
     this.hosts = hosts;
   }
 
-  /** Shows or hides the game preview panel, creating it on first use. */
-  panelToggle(): void {
-    this.panelEnsure().toggle();
+  /**
+   * Shows the Game Preview tab of the bottom strip, creating its page on first
+   * use.
+   */
+  panelReveal(): void {
+    this.panelEnsure();
+    this.hosts.panelHostReveal();
+  }
+
+  /**
+   * Starts or stops the live refresh of the Game Preview page, creating the
+   * page the first time it is shown.
+   *
+   * @param isShown Whether the Game Preview tab is in front now.
+   */
+  panelShownSet(isShown: boolean): void {
+    if (isShown) {
+      this.panelEnsure().shownSet(true);
+      return;
+    }
+    this.panel?.shownSet(false);
+  }
+
+  /**
+   * Returns the Game Preview page, or null before it was first shown.
+   *
+   * @returns Page, or null.
+   */
+  panelRead(): PanelGamePreview | null {
+    return this.panel;
   }
 
   /**
@@ -231,9 +261,9 @@ export class LayoutGamePreview {
   }
 
   /**
-   * Returns the panel, creating it on first use.
+   * Returns the Game Preview page, creating it on first use.
    *
-   * @returns The floating panel.
+   * @returns The page.
    */
   private panelEnsure(): PanelGamePreview {
     if (!this.panel) {

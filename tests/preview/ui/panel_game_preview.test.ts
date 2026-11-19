@@ -56,8 +56,8 @@ describe('PanelGamePreview', () => {
     const link = new ProjectWorkbenchLinkPreview(service);
     workbench = new ProjectWorkbench({ control, link, worldGroup, recentStore: new ProjectRecentStore(null) });
     panel = new PanelGamePreview(document.body, service, workbench);
-    panel.show();
-    return panel.getRootElement();
+    panel.shownSet(true);
+    return panel.getElement();
   }
 
   beforeEach(() => {
@@ -80,6 +80,17 @@ describe('PanelGamePreview', () => {
     workbench?.dispose();
     vi.unstubAllGlobals();
     globalThis.localStorage.clear();
+  });
+
+  it('lives inside its host, refreshes only while shown and leaves the host on dispose', () => {
+    const root = panelOpen(new GameProcessControlUnavailable());
+    expect(document.body.contains(root)).toBe(true);
+    expect(panel?.isShown()).toBe(true);
+    panel?.shownSet(false);
+    expect(panel?.isShown()).toBe(false);
+    panel?.dispose();
+    panel = null;
+    expect(document.body.contains(root)).toBe(false);
   });
 
   it('starts disconnected with the bake action unavailable', () => {

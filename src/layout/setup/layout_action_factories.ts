@@ -58,7 +58,7 @@ export interface ToolbarActionHost {
   onOpenDocumentation: () => void;
   onOpenAboutDialog: () => void;
   onOpenMcpDialog: () => void;
-  onToggleGamePreviewPanel: () => void;
+  onRevealGamePreviewPanel: () => void;
   /** Returns the project workbench that opens game projects and runs their game. */
   gameProjectWorkbenchRead: () => ProjectWorkbench;
   /** Returns the actions on the open project's levels. */
@@ -178,7 +178,7 @@ function buildPrimitiveToolbarActions(
   | 'onOpenDocumentation'
   | 'onOpenAboutDialog'
   | 'onOpenMcpDialog'
-  | 'onToggleGamePreviewPanel'
+  | 'onRevealGamePreviewPanel'
   | 'gameProjectWorkbenchRead'
   | 'projectLevelActionsRead'
   | 'onOpenDetachedViewport'
@@ -205,7 +205,7 @@ function buildPrimitiveToolbarActions(
     onOpenDocumentation: () => host.onOpenDocumentation(),
     onOpenAboutDialog: () => host.onOpenAboutDialog(),
     onOpenMcpDialog: () => host.onOpenMcpDialog(),
-    onToggleGamePreviewPanel: () => host.onToggleGamePreviewPanel(),
+    onRevealGamePreviewPanel: () => host.onRevealGamePreviewPanel(),
     gameProjectWorkbenchRead: () => host.gameProjectWorkbenchRead(),
     projectLevelActionsRead: () => host.projectLevelActionsRead(),
     onOpenDetachedViewport: () => host.onOpenDetachedViewport(),

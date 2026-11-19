@@ -28,7 +28,7 @@ export class ShellMenuRun extends ShellMenu {
       ...this.gameActionEntriesBuild(context),
       this.levelBuildEntryBuild(context),
       this.separatorEntry(),
-      this.actionEntry(context, 'Game Preview…', () => context.toolbarActions.onToggleGamePreviewPanel()),
+      this.actionEntry(context, 'Game Preview', () => context.toolbarActions.onRevealGamePreviewPanel()),
     ];
   }
 

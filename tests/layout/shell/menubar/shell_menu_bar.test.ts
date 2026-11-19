@@ -222,9 +222,9 @@ describe('ShellMenuRun', () => {
     const entries = shellMenuBarTestEntriesBuild(context, 'Run');
     const play = shellTestMenuActionFind(entries, 'Play');
     play.onClick();
-    shellTestMenuActionFind(entries, 'Game Preview…').onClick();
+    shellTestMenuActionFind(entries, 'Game Preview').onClick();
     expect(windowActions.playStart).toHaveBeenCalledTimes(1);
-    expect(toolbarActions.onToggleGamePreviewPanel).toHaveBeenCalledTimes(1);
+    expect(toolbarActions.onRevealGamePreviewPanel).toHaveBeenCalledTimes(1);
     expect(shellTestMenuShortcutRead(play)).toBe(shellTestShortcutLabelFormat('play_start'));
   });
 

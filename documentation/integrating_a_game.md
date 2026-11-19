@@ -184,7 +184,7 @@ Start the game from the editor folder with the project's `preview` command:
 bun run preview:game C:\path\to\your\game\broom.project.json
 ```
 
-Then choose **Run > Game Preview…** in the editor, check the endpoint and press **Connect**. Or, in the desktop app, choose **File > Open Project…**, pick the `broom.project.json`, and use **Run > Launch Game**, which builds the game, starts it and connects (see [Building and running from source](building_and_running.md)).
+Then choose **Run > Game Preview** in the editor, check the endpoint and press **Connect**. Or, in the desktop app, choose **File > Open Project…**, pick the `broom.project.json`, and use **Run > Launch Game**, which builds the game, starts it and connects (see [Building and running from source](building_and_running.md)).
 
 Once connected:
 

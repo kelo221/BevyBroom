@@ -73,7 +73,7 @@ export interface EditorToolbarActions {
   onOpenDocumentation: () => void;
   onOpenAboutDialog: () => void;
   onOpenMcpDialog: () => void;
-  onToggleGamePreviewPanel: () => void;
+  onRevealGamePreviewPanel: () => void;
   /** Returns the project workbench that opens game projects and runs their game. */
   gameProjectWorkbenchRead: () => ProjectWorkbench;
   /** Returns the actions on the open project's levels. */

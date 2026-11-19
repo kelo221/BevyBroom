@@ -14,12 +14,12 @@ The game side lives in the Rust workspace in `bevy/` of this repository: the `br
 
    This reads the `preview` section of the project file and runs it (for the sample project that is `cargo run --release -p broom_preview`). You can also start the game yourself.
 
-2. In the editor choose **Run > Game Preview…**.
+2. In the editor choose **Run > Game Preview**, which unfolds the **Game Preview** tab of the info panel below the views.
 3. Check the endpoint (default `http://127.0.0.1:15702`) and press **Connect**.
 
-The panel shows what the game received and applied: state and geometry revisions, the number of lights, the bake state, how many game materials were loaded and the newest error the game reported.
+The tab shows what the game received and applied: state and geometry revisions, the number of lights, the bake state, how many game materials were loaded and the newest error the game reported.
 
-If the game is not running yet the panel says it is retrying; it connects as soon as the game answers. When the game restarts, the editor notices and sends everything again, so you never get duplicate objects.
+If the game is not running yet the tab says it is retrying; it connects as soon as the game answers. When the game restarts, the editor notices and sends everything again, so you never get duplicate objects.
 
 ## What updates live
 
@@ -75,7 +75,7 @@ Things to know:
 - A cookie only shows on a spot light whose **Outer** angle is 90° or less; the Cookie group says so when the cone is wider. The image must be inside the game's assets folder.
 - Fog only shows on cameras with DynLight's `FogPostProcess` component. The preview program adds it; add it to your game's camera too.
 - Effect, cookie, fog, shimmer and the bounce light's visibility change live and never make the bake out of date. Illumination, transparency and the other bounce settings are baked, so changing them asks for a new bake.
-- The Game Preview panel's **Lights** line counts realtime lights and realtime shadows against the game's budgets (`realtime_light_budget` and `shadow_cubemap_budget` in DynLight's settings). When the scene goes over one, the panel says so: past the light budget only the realtime lights nearest the camera are lit in real time, and past the shadow budget only that many lights cast realtime shadows at once.
+- The Game Preview tab's **Lights** line counts realtime lights and realtime shadows against the game's budgets (`realtime_light_budget` and `shadow_cubemap_budget` in DynLight's settings). When the scene goes over one, the tab says so: past the light budget only the realtime lights nearest the camera are lit in real time, and past the shadow budget only that many lights cast realtime shadows at once.
 
 Lights are saved in the scene file and duplicate with `Ctrl+D`. GLB exports carry every light as an empty node with DynLight light extras, never as a marker mesh, and shipped levels also carry every light setting in the level manifest.
 
@@ -89,7 +89,7 @@ Rooms and portals let the game skip the realtime lights, shadow cubemaps and fog
 
 Moving rooms and portals or toggling a door never rebuilds the level geometry; only the room and portal data is sent.
 
-DynLight joins rooms through portals by itself. Each room must reach the middle of the wall at every doorway it touches; if the rooms and portals do not fit together, the game turns culling off and the panel's **Rooms** line says **culling off** followed by DynLight's reason. When everything fits it says **culling active**. With no rooms in the scene culling is simply not used.
+DynLight joins rooms through portals by itself. Each room must reach the middle of the wall at every doorway it touches; if the rooms and portals do not fit together, the game turns culling off and the Game Preview tab's **Rooms** line says **culling off** followed by DynLight's reason. When everything fits it says **culling active**. With no rooms in the scene culling is simply not used.
 
 Rooms and portals are saved in the scene file and are exported to GLB as empty nodes the game can read (see [Saving, Loading, Importing, and Exporting](files_import_and_export.md)).
 
@@ -103,7 +103,7 @@ When connected, the **Textures** tab of the Browser shows the game's material ca
 
 ## Preview bake
 
-Moving static geometry or baked lights makes the game's baked shadows out of date; the panel then shows **Scene changed, bake needed**. Press **Preview Bake** to bake again. If you keep editing while the bake runs, its result is dropped instead of showing shadows for an older scene; this also applies to the very first bake of a level, which then reports **bake needed** rather than **No bake**.
+Moving static geometry or baked lights makes the game's baked shadows out of date; the Game Preview tab then shows **Scene changed, bake needed**. Press **Preview Bake** to bake again. If you keep editing while the bake runs, its result is dropped instead of showing shadows for an older scene; this also applies to the very first bake of a level, which then reports **bake needed** rather than **No bake**.
 
 Baked shadows use the second UV set (`TEXCOORD_1`) the editor writes on every exported mesh, so the game no longer falls back to the texture UVs.
 
@@ -115,7 +115,7 @@ Baked shadows use the second UV set (`TEXCOORD_1`) the editor writes on every ex
 
 The game stores each level in a folder named after the scene file. When a document is saved under a new name, the game moves it to the new folder and deletes its own files (`geometry_*.glb` and `level.broom.json`) from the old one. It never deletes anything else, and never touches another document's folder.
 
-If the game fails to load a geometry revision, the editor sends it once more. If that fails too, the error stays in the panel until the next geometry edit.
+If the game fails to load a geometry revision, the editor sends it once more. If that fails too, the error stays on the Game Preview tab until the next geometry edit.
 
 ## Build Level
 

@@ -41,7 +41,8 @@ the **Object Properties** dialog, the **Face Edit Sheet**, the **Browser**
   Inspector**, **Show Info Panel**, **Show Toolbar**, and **Show Tools
   Palette**, and **Editor Sounds**.
 - **Run** starts **Play** mode; launches, rebuilds, restarts, and stops the
-  game; runs **Build Level**; and opens the **Game Preview…** panel.
+  game; runs **Build Level**; and shows the **Game Preview** tab of the info
+  panel.
 - **Window** opens every window and panel: the [Browser](#browser) on its
   **Place** (`Ctrl+Shift+B`), **Textures** (`Ctrl+Shift+T`) or **Levels**
   (`Ctrl+Shift+L`) tab, the **Map Inspector** (`Ctrl+1`), the **Solid Model…**
@@ -413,8 +414,8 @@ A tile's number badge shows how many objects of that kind the map contains.
 
 ### Other panels
 
-**Window > Solid Model…**, **Run > Game Preview…**, and **Window > AI Captures
-(Debug)…** also open as floating panels. **Solid Model** shows the active model
+**Window > Solid Model…** and **Window > AI Captures (Debug)…** also open as
+floating panels. **Solid Model** shows the active model
 and provides a quick **+ Box Brush** action.
 
 ## Info panel
@@ -422,8 +423,8 @@ and provides a quick **+ Box Brush** action.
 The info panel is docked below the viewports. Hide or show it with **View >
 Show Info Panel** or `Ctrl+4`.
 
-It starts folded to a one-line strip that shows the **Console** and **Issues**
-tabs, the newest console line in its severity color, and count badges for
+It starts folded to a one-line strip that shows the **Console**, **Issues** and
+**Game Preview** tabs, the newest console line in its severity color, and count badges for
 issues, console errors, and console warnings. A new error line or a new issue
 briefly pulses its badge without unfolding the panel. Click a tab, a badge, or
 the newest line to unfold the panel to its last height; click the shown tab of
@@ -436,6 +437,10 @@ panel frees.
   solid model warnings, and game components whose class the game does not
   know. The list updates shortly after each edit. Click an issue to select its
   object and frame it in every view.
+- **Game Preview** opens the game project and runs its game, connects to the
+  running game preview, shows what the game received and applied, and asks the
+  game for a preview bake. **Run > Game Preview** unfolds the info panel on this
+  tab. See [Game preview](game_preview.md).
 
 ## Arranging the main window
 

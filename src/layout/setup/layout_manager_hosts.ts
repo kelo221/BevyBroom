@@ -38,7 +38,7 @@ export interface LayoutShellHostCallbacks {
   onOpenDocumentation(): void;
   onOpenAboutDialog(): void;
   onOpenMcpDialog(): void;
-  onToggleGamePreviewPanel(): void;
+  onRevealGamePreviewPanel(): void;
   /** Returns the project workbench that opens game projects and runs their game. */
   gameProjectWorkbenchRead(): ProjectWorkbench;
   /** Returns the actions on the open project's levels. */
@@ -147,7 +147,7 @@ export function createShellSourceHostFromLayout(
     onOpenDocumentation: () => actions.onOpenDocumentation(),
     onOpenAboutDialog: () => actions.onOpenAboutDialog(),
     onOpenMcpDialog: () => actions.onOpenMcpDialog(),
-    onToggleGamePreviewPanel: () => actions.onToggleGamePreviewPanel(),
+    onRevealGamePreviewPanel: () => actions.onRevealGamePreviewPanel(),
     gameProjectWorkbenchRead: () => actions.gameProjectWorkbenchRead(),
     projectLevelActionsRead: () => actions.projectLevelActionsRead(),
     onOpenDetachedViewport: () => actions.onOpenDetachedViewport(),
