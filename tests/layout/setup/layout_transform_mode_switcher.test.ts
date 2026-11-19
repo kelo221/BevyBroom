@@ -74,14 +74,13 @@ describe('LayoutTransformModeSwitcher', () => {
     expect(rig.host.gizmoPivotUpdate).toHaveBeenCalled();
   });
 
-  it('turns Edit Mode transform widgets off when the active mode is chosen again', () => {
+  it('keeps the Edit Mode gizmo on when the active mode is chosen again', () => {
     const rig = transformModeSwitcherRigCreate(true, null);
     rig.switcher.transformModeApply(TransformMode.ROTATE);
     expect(rig.gizmoModeRead()).toBe(TransformMode.ROTATE);
     rig.switcher.transformModeApply(TransformMode.ROTATE);
-    expect(rig.gizmoModeRead()).toBe(TransformMode.BOUNDS);
-    expect(rig.setActiveTransformMode).toHaveBeenLastCalledWith(TransformMode.BOUNDS);
-    expect(rig.host.showStatusMessage).toHaveBeenCalledWith('Transform widgets off');
+    expect(rig.gizmoModeRead()).toBe(TransformMode.ROTATE);
+    expect(rig.setActiveTransformMode).toHaveBeenLastCalledWith(TransformMode.ROTATE);
   });
 
   it('ignores Bounds in Edit Mode', () => {

@@ -2,7 +2,12 @@ import type { CommandStack } from '@/commands/command_stack.js';
 import type { EditSession } from '@/edit/session/edit_session.js';
 import type { ComponentTransformCommitCleanup } from '@/edit/transform/component_transform_commit_cleanup.js';
 import { CommandComponentTopology } from './command_component_topology.js';
-import { commitTopologyWorkingMutation } from './topology_commit.js';
+import { commitTopologyWorkingMutation, loadWorkingGeometryFromTarget } from './topology_commit.js';
+import {
+  topologySelectionCornersCapture,
+  topologySelectionRemap,
+  type TopologySelectionCorners,
+} from './topology_selection_remap.js';
 import { topologyDragBrushConvexResolve } from './topology_drag_brush_convex.js';
 import {
   topologyOperatorApplied,
@@ -63,6 +68,10 @@ export class TopologyDragFinish implements ComponentTransformCommitCleanup {
   /** @inheritdoc */
   dragCommit(targetIds: readonly string[]): boolean {
     const targets = this.targetsResolve(targetIds);
+    const selectionCorners = topologySelectionCornersCapture(
+      this.deps.getSession().getComponentSelection().getSelected(),
+      this.geometryByTargetRead(targets),
+    );
     const outcomes = targets.map((target) => this.targetFinish(target));
     if (outcomes.includes('not_convex')) {
       this.dragRevert();
@@ -72,7 +81,7 @@ export class TopologyDragFinish implements ComponentTransformCommitCleanup {
       this.beforeSnapshots = [];
       return false;
     }
-    this.dragRecord(targets);
+    this.dragRecord(targets, selectionCorners);
     return true;
   }
 
@@ -122,18 +131,34 @@ export class TopologyDragFinish implements ComponentTransformCommitCleanup {
   }
 
   /**
-   * Records the drag and its cleanup as one undo step and drops the component
-   * selection, whose indices changed.
+   * Records the drag and its cleanup as one undo step and selects the dragged
+   * components again in the rebuilt topology, so the gizmo stays on them.
    *
    * @param targets Dragged targets.
+   * @param selectionCorners Corner positions of the selection before the
+   *   cleanup.
    */
-  private dragRecord(targets: readonly TopologyEditTarget[]): void {
+  private dragRecord(
+    targets: readonly TopologyEditTarget[],
+    selectionCorners: readonly TopologySelectionCorners[],
+  ): void {
     const after = targets.map((target) => captureTopologySnapshot(target));
     const refresh = (): void => this.deps.refreshPresentation();
     this.deps.getCommandStack()?.recordExecuted(new CommandComponentTopology(this.beforeSnapshots, after, refresh));
     this.beforeSnapshots = [];
-    this.deps.getSession().getComponentSelection().clear();
+    const remapped = topologySelectionRemap(selectionCorners, this.geometryByTargetRead(targets));
+    this.deps.getSession().getComponentSelection().replaceAll(remapped);
     this.deps.refreshPresentation();
+  }
+
+  /**
+   * Reads the working geometry of every target, keyed by target id.
+   *
+   * @param targets Live targets.
+   * @returns Working geometry per target id.
+   */
+  private geometryByTargetRead(targets: readonly TopologyEditTarget[]): Map<string, TopologyWorkingGeometry> {
+    return new Map(targets.map((target) => [target.targetId, loadWorkingGeometryFromTarget(target)]));
   }
 
   /**

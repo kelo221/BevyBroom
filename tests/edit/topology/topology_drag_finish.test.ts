@@ -170,4 +170,18 @@ describe('TopologyDragFinish', () => {
     after.vertices.forEach((vertex, index) => expect(vertex.distanceTo(before[index] ?? vertex)).toBeLessThan(1e-9));
     expect(fixture.stack.getUndoCount()).toBe(0);
   });
+
+  it('keeps the dragged corners selected after they merge into a wedge', () => {
+    const fixture = fixtureCreate();
+    const selected = topPositiveXEdgeSelect(fixture);
+    fixture.session.getComponentSelection().replaceAll(selected);
+    dragDown(fixture, selected, -BOX_SIZE);
+    const wedge = brushRead(fixture);
+    const kept = fixture.session.getComponentSelection().getSelected();
+    expect(kept).toHaveLength(selected.length);
+    const minY = Math.min(...wedge.vertices.map((vertex) => vertex.y));
+    for (const entry of kept) {
+      expect(wedge.vertices[Number(entry.componentKey)]?.y).toBeCloseTo(minY, 6);
+    }
+  });
 });
