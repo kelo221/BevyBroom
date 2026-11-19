@@ -6,9 +6,9 @@ import {
 import { LayoutTextureWindows } from '@/texture/layout/layout_texture_windows.js';
 import { entityBrowserSetup, type EntityBrowserSetupHost } from '@/entity_browser/setup/entity_browser_setup.js';
 import type { EntityBrowser } from '@/entity_browser/ui/entity_browser.js';
-import { PanelFloatingEntityBrowser } from '@/entity_browser/ui/panel_floating_entity_browser.js';
 import { levelBrowserSetup, type LevelBrowserSetupHost } from '@/level_browser/setup/level_browser_setup.js';
-import type { PanelFloatingLevelBrowser } from '@/level_browser/ui/panel_floating_level_browser.js';
+import type { LevelBrowser } from '@/level_browser/ui/level_browser.js';
+import { BrowserWindowSetup } from '@/browser/setup/browser_window_setup.js';
 import { getStateEntityPlace } from '@/tools/entity_place/state_entity_place.js';
 import {
   ShellDockPanelsMount,
@@ -41,8 +41,8 @@ export interface LayoutShellPanelsOptions {
   faceInspectorDependencies: FaceInspectorSetupDeps;
   /** Services of the entity browser. */
   entityBrowserHost: EntityBrowserSetupHost;
-  /** Services of the level browser, without the window host. */
-  levelBrowserHost: Omit<LevelBrowserSetupHost, 'floatingWindowHost'>;
+  /** Services of the level browser. */
+  levelBrowserHost: LevelBrowserSetupHost;
   /** Services of the layers panel and the console and issues views. */
   dockPanels: Omit<ShellDockPanelsMountOptions, 'inspector' | 'infoPanel'>;
   /** Services of the Hammer bar sections. */
@@ -56,20 +56,20 @@ export interface LayoutShellPanelsOptions {
 /**
  * Builds the panels of the main window: the Hammer bar sections and the layers
  * panel in the inspector, the console and issues views in the info panel, and
- * the floating texture browser, Face Edit Sheet, entity browser, level browser
- * and Entity Sprinkle window.
+ * the Browser window (Place, Textures and Levels tabs), Face Edit Sheet and
+ * Entity Sprinkle window.
  */
 export class LayoutShellPanels {
   /** Face inspector with the controllers that drive it. */
   readonly faceInspectorParts: FaceInspectorSetupResult;
-  /** Floating texture browser, Face Edit Sheet and Replace Textures window. */
+  /** Textures tab, Face Edit Sheet and Replace Textures window. */
   readonly textureWindows: LayoutTextureWindows;
-  /** Entity browser shown in the floating entity browser window. */
+  /** Entity browser shown on the Place tab of the Browser. */
   readonly entityBrowser: EntityBrowser;
-  /** Floating entity browser window. */
-  readonly entityBrowserWindow: PanelFloatingEntityBrowser;
-  /** Floating level browser window. */
-  readonly levelBrowserWindow: PanelFloatingLevelBrowser;
+  /** Level browser shown on the Levels tab of the Browser. */
+  readonly levelBrowser: LevelBrowser;
+  /** Browser window with the Place, Textures and Levels tabs. */
+  readonly browserWindow: BrowserWindowSetup;
   /** Object Bar, VisGroups and prefab sections of the Hammer bar. */
   readonly hammerBar: ShellHammerBarMount;
   /** Entity Sprinkle window open while the Sprinkle tool is active. */
@@ -86,13 +86,15 @@ export class LayoutShellPanels {
     this.faceInspectorParts = faceInspectorSetup(options.faceInspectorDependencies);
     this.prefabActions = new PrefabEditorActions(options.prefabActions);
     prefabEditorActionsActive.write(this.prefabActions);
-    this.textureWindows = this.textureWindowsCreate(options);
     this.entityBrowser = entityBrowserSetup(options.entityBrowserHost);
-    this.entityBrowserWindow = new PanelFloatingEntityBrowser(options.docks.toolbarContainer, this.entityBrowser);
-    this.levelBrowserWindow = levelBrowserSetup({
-      ...options.levelBrowserHost,
-      floatingWindowHost: options.docks.toolbarContainer,
+    this.levelBrowser = levelBrowserSetup(options.levelBrowserHost);
+    this.browserWindow = new BrowserWindowSetup({
+      host: options.docks.toolbarContainer,
+      entityBrowser: this.entityBrowser,
+      faceInspector: this.faceInspectorParts.faceInspector,
+      levelBrowser: this.levelBrowser,
     });
+    this.textureWindows = this.textureWindowsCreate(options);
     this.dockPanels = new ShellDockPanelsMount({
       ...options.dockPanels,
       inspector: options.docks.inspector,
@@ -103,7 +105,7 @@ export class LayoutShellPanels {
     this.floatingWindowsRegister(options.docks.dockCommands);
   }
 
-  /** Opens the floating texture browser holding the face inspector. */
+  /** Opens the Browser on its Textures tab. */
   faceInspectorReveal(): void {
     this.textureWindows.textureBrowserShow();
   }
@@ -113,19 +115,19 @@ export class LayoutShellPanels {
     this.textureWindows.faceEditSheetReveal();
   }
 
-  /** Opens the floating entity browser. */
+  /** Opens the Browser on its Place tab. */
   entityBrowserReveal(): void {
-    this.entityBrowserWindow.show();
+    this.browserWindow.placeTab.show();
   }
 
   /**
-   * Opens the floating level browser.
+   * Opens the Browser on its Levels tab.
    *
    * @param isNameFieldFocused True to focus its name field, for naming a new
    *   level.
    */
   levelBrowserReveal(isNameFieldFocused: boolean): void {
-    this.levelBrowserWindow.reveal(isNameFieldFocused);
+    this.browserWindow.levelsReveal(isNameFieldFocused);
   }
 
   /**
@@ -144,11 +146,10 @@ export class LayoutShellPanels {
     this.sprinkleDialogMount.dispose();
     this.hammerBar.dispose();
     this.dockPanels.dispose();
-    this.levelBrowserWindow.levelBrowserRead().dispose();
-    this.levelBrowserWindow.dispose();
-    this.entityBrowserWindow.dispose();
-    this.entityBrowser.dispose();
     this.textureWindows.dispose();
+    this.browserWindow.dispose();
+    this.levelBrowser.dispose();
+    this.entityBrowser.dispose();
     this.faceInspectorParts.faceInspector.dispose();
     this.faceInspectorParts.textureBrowserController.dispose();
   }
@@ -163,6 +164,7 @@ export class LayoutShellPanels {
     const faceDependencies = options.faceInspectorDependencies;
     return new LayoutTextureWindows({
       host: options.docks.toolbarContainer,
+      textureBrowser: this.browserWindow.texturesTab,
       faceInspectorParts: this.faceInspectorParts,
       commandStack: faceDependencies.commandStack,
       worldObject: options.hammerBar.worldObject,
@@ -194,15 +196,15 @@ export class LayoutShellPanels {
   }
 
   /**
-   * Registers the floating browsers with the View menu commands and the Entity
-   * tool Browse button.
+   * Registers the Browser tabs with the View menu commands and the Entity tool
+   * Browse button.
    *
    * @param dockCommands Commands the View menu runs.
    */
   private floatingWindowsRegister(dockCommands: ShellDockCommands): void {
-    dockCommands.floatingWindowRegister('texture_browser', this.textureWindows.textureBrowser);
-    dockCommands.floatingWindowRegister('entity_browser', this.entityBrowserWindow);
-    dockCommands.floatingWindowRegister('level_browser', this.levelBrowserWindow);
+    dockCommands.floatingWindowRegister('texture_browser', this.browserWindow.texturesTab);
+    dockCommands.floatingWindowRegister('entity_browser', this.browserWindow.placeTab);
+    dockCommands.floatingWindowRegister('level_browser', this.browserWindow.levelsTab);
     getStateEntityPlace().browseDelegateWrite(() => this.entityBrowserReveal());
   }
 }

@@ -7,9 +7,10 @@ import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
 
 /**
  * End-to-end acceptance of the Window menu in the built desktop app: the menu
- * bar lists Window before Help, each browser window opens and closes from its
- * default shortcut, and the command search finds the browsers under Window.
- * Skipped unless BROOM_E2E_DESKTOP_EXE names the app launcher.
+ * bar lists Window before Help, each Browser tab opens and closes from its
+ * default shortcut, all tabs share one Browser window, and the command search
+ * finds the Browser tabs under Window. Skipped unless BROOM_E2E_DESKTOP_EXE
+ * names the app launcher.
  */
 const desktopExecutable = process.env['BROOM_E2E_DESKTOP_EXE'] ? resolve(process.env['BROOM_E2E_DESKTOP_EXE']) : '';
 e2eRequiredConfigurationAssert(desktopExecutable !== '', ['BROOM_E2E_DESKTOP_EXE']);
@@ -17,13 +18,14 @@ const mcpBasePort = Number(process.env['BROOM_E2E_WINDOW_MENU_MCP_PORT'] ?? '191
 const LAUNCH_TIMEOUT_MILLISECONDS = 90000;
 const STEP_TIMEOUT_MILLISECONDS = 60000;
 
-/** Floating window ids the browser shortcuts open. */
+/** Browser tab ids the browser shortcuts open. */
 type WindowMenuE2eWindowId = 'texture_browser' | 'entity_browser' | 'level_browser';
 
 /** Parts of a get_main_window reply the steps read. */
 interface WindowMenuE2eMainWindow {
   menus: string[];
   floatingWindows: Record<WindowMenuE2eWindowId, boolean>;
+  toolWindows: Record<string, { isOpen: boolean }>;
 }
 
 /** One row of a get_open_menus reply. */
@@ -38,7 +40,7 @@ interface WindowMenuE2eMenu {
   rows: WindowMenuE2eRow[];
 }
 
-/** Each browser window with the key that opens it together with Ctrl+Shift. */
+/** Each Browser tab with the key that opens it together with Ctrl+Shift. */
 const WINDOW_MENU_E2E_BROWSER_KEYS: ReadonlyArray<readonly [WindowMenuE2eWindowId, string]> = [
   ['texture_browser', 'KeyT'],
   ['entity_browser', 'KeyB'],
@@ -117,13 +119,33 @@ describe.skipIf(desktopExecutable === '')('desktop Window menu and browser short
   );
 
   it(
-    'finds the Entity Browser under Window in the command search',
+    'switches the one Browser window between tabs instead of opening another window',
+    async () => {
+      await client.toolCallExpectOk('keyboard_input', { code: 'KeyB', keys: { ctrl: true, shift: true } });
+      await floatingWindowWait('entity_browser', true);
+      await client.toolCallExpectOk('keyboard_input', { code: 'KeyT', keys: { ctrl: true, shift: true } });
+      await floatingWindowWait('texture_browser', true);
+      const mainWindow = await mainWindowRead();
+      expect(mainWindow.floatingWindows.entity_browser).toBe(false);
+      expect(mainWindow.toolWindows['browser']?.isOpen).toBe(true);
+      for (const windowId of WINDOW_MENU_E2E_BROWSER_KEYS.map(([tabWindowId]) => tabWindowId)) {
+        expect(mainWindow.toolWindows[windowId]).toBeUndefined();
+      }
+      await client.toolCallExpectOk('keyboard_input', { code: 'KeyT', keys: { ctrl: true, shift: true } });
+      await floatingWindowWait('texture_browser', false);
+      expect((await mainWindowRead()).toolWindows['browser']?.isOpen).toBe(false);
+    },
+    STEP_TIMEOUT_MILLISECONDS * 2,
+  );
+
+  it(
+    'finds the Browser Place tab under Window in the command search',
     async () => {
       await client.toolCallExpectOk('keyboard_input', { code: 'KeyP', keys: { ctrl: true, shift: true } });
-      await client.toolCallExpectOk('keyboard_input', { text: 'entity browser' });
+      await client.toolCallExpectOk('keyboard_input', { text: 'browser place' });
       const menus = (await client.toolDataExpectOk<{ menus: WindowMenuE2eMenu[] }>('get_open_menus')).menus;
       const search = menus.find((menu) => menu.kind === 'command_search');
-      expect(search?.rows[0]).toMatchObject({ label: 'Entity Browser', path: 'Window' });
+      expect(search?.rows[0]).toMatchObject({ label: 'Browser: Place', path: 'Window' });
       await client.toolCallExpectOk('keyboard_input', { code: 'Escape' });
     },
     STEP_TIMEOUT_MILLISECONDS,

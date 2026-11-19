@@ -167,18 +167,18 @@ These are listed under **Brush Operations** in **Settings > Keyboard**.
 
 ### Main window
 
-| Shortcut       | Action                                  |
-| -------------- | --------------------------------------- |
-| `Ctrl+1`       | Show the right dock (Map inspector)     |
-| `Ctrl+4`       | Show or hide the info panel             |
-| `Ctrl+5`       | Show or hide the inspector              |
-| Ctrl+`         | Collapse or expand the info panel       |
-| `Ctrl+Alt+T`   | Show or hide the toolbar                |
-| `Alt+Enter`    | Open Object Properties on the selection |
-| `Ctrl+Shift+P` | Search Commands                         |
-| `Ctrl+Shift+T` | Open or close the Texture Browser       |
-| `Ctrl+Shift+B` | Open or close the Entity Browser        |
-| `Ctrl+Shift+L` | Open or close the Level Browser         |
+| Shortcut       | Action                                    |
+| -------------- | ----------------------------------------- |
+| `Ctrl+1`       | Show the right dock (Map inspector)       |
+| `Ctrl+4`       | Show or hide the info panel               |
+| `Ctrl+5`       | Show or hide the inspector                |
+| Ctrl+`         | Collapse or expand the info panel         |
+| `Ctrl+Alt+T`   | Show or hide the toolbar                  |
+| `Alt+Enter`    | Open Object Properties on the selection   |
+| `Ctrl+Shift+P` | Search Commands                           |
+| `Ctrl+Shift+T` | Open the Browser on Textures, or close it |
+| `Ctrl+Shift+B` | Open the Browser on Place, or close it    |
+| `Ctrl+Shift+L` | Open the Browser on Levels, or close it   |
 
 These shortcuts are listed under **Window and Views** and **Browsers** in **Settings > Keyboard**, and the menus show the current binding next to each command. On macOS, `Ctrl` is `⌘`.
 

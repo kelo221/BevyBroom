@@ -99,7 +99,7 @@ The game reports the components it registered for placement. They appear under *
 
 ## Game materials
 
-When connected, the **Texture Browser** shows the game's material catalog as **Game materials**. Assigning one of them to a face stores the game material id, and the game uses its own material for that face, including normal and metallic maps the editor does not show. When the catalog file or one of its textures changes on disk, both the game and the editor update in place.
+When connected, the **Textures** tab of the Browser shows the game's material catalog as **Game materials**. Assigning one of them to a face stores the game material id, and the game uses its own material for that face, including normal and metallic maps the editor does not show. When the catalog file or one of its textures changes on disk, both the game and the editor update in place.
 
 ## Preview bake
 

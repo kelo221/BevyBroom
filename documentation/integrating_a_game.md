@@ -70,7 +70,7 @@ Every path is relative and must stay inside the project; a path such as `../othe
 | `material_catalog`          | Relative to `asset_root`: the game's material catalog (see step 3). The game reads it and sends it to the editor.                                                                                                                              |
 | `level_directory`           | Relative to `asset_root`: where levels are written, one folder per level, by the live preview and by **Run > Build Level**.                                                                                                                    |
 | `document_directory`        | Relative to the project file: meant for the editor's scene files, `broom/documents` by default. It is checked to stay inside the project, but neither the editor nor the game uses it yet.                                                     |
-| `texture_directories`       | Optional, relative to `asset_root`: folders whose images the desktop editor's Texture Browser lists as **Project textures**. See [Textures and UV mapping](textures_and_uvs.md). The game does not read it.                                    |
+| `texture_directories`       | Optional, relative to `asset_root`: folders whose images the desktop editor's Textures tab lists as **Project textures**. See [Textures and UV mapping](textures_and_uvs.md). The game does not read it.                                       |
 | `sprinkle_directories`      | Optional, relative to `asset_root`: folders whose `*.txt` sprinkle definition files (Valve KeyValues) the desktop editor's Sprinkle tool loads as types. The game does not read it.                                                            |
 | `entity_classes`            | Optional, relative to the project file: a `.json` file declaring the game's entity classes for every level, without the game running. See [Project classes and prefabs](project_classes_and_prefabs.md). The game does not read it.            |
 | `prefab_directory`          | Optional, relative to the project file: the folder holding one file per prefab. See [Project classes and prefabs](project_classes_and_prefabs.md). The game does not read it.                                                                  |
@@ -87,7 +87,7 @@ For your own game, point `preview` at your game instead of `broom_preview`, for 
 
 ## 3. Describe the materials
 
-The material catalog lists the game's materials with stable ids such as `stone/castle_wall`. The editor shows them in the Texture Browser as **Game materials**; a face that uses one exports the id, and the game gives that face its own material. Start from `bevy/assets/broom/materials.json` (the sample game's catalog) or `bevy/fixtures/material_catalog_sample.json` (a short example of the format, parsed by the tests of both sides). Texture paths in the catalog are relative to `asset_root`.
+The material catalog lists the game's materials with stable ids such as `stone/castle_wall`. The editor shows them on the Textures tab of the Browser as **Game materials**; a face that uses one exports the id, and the game gives that face its own material. Start from `bevy/assets/broom/materials.json` (the sample game's catalog) or `bevy/fixtures/material_catalog_sample.json` (a short example of the format, parsed by the tests of both sides). Texture paths in the catalog are relative to `asset_root`.
 
 - With the `dynlight` feature the bridge builds each entry as a `DynLitMaterial`; without it as a `StandardMaterial`.
 - To bind your own material type, implement `CatalogMaterialKind` for it and add `BroomBridgePlugin::new(paths).with_catalog_material::<M>()`. Your renderer must add `MaterialPlugin::<M>`.
@@ -189,7 +189,7 @@ Then choose **Run > Game Preview…** in the editor, check the endpoint and pres
 Once connected:
 
 - The game shows the level as you edit it: transforms, geometry, materials and, with DynLight, lights, rooms and portals. See [Game preview and lights](game_preview.md).
-- The Texture Browser lists the catalog as **Game materials**, and, in the desktop app with the project open, the images of `texture_directories` as **Project textures**.
+- The Textures tab of the Browser lists the catalog as **Game materials**, and, in the desktop app with the project open, the images of `texture_directories` as **Project textures**.
 - **Add > Game Entities** lists the registered components by category, and the **Class Info** tab of Object Properties edits them.
 - The Game Preview panel shows what the game received and applied, and the newest error it reported.
 

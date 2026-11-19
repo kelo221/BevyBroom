@@ -1,12 +1,12 @@
 # Textures and UV Mapping
 
-Texturing has two parts: choosing an image and controlling how that image is placed on the selected surfaces. Choosing happens in the floating **Texture Browser**. Placement happens in the **Face Edit Sheet**.
+Texturing has two parts: choosing an image and controlling how that image is placed on the selected surfaces. Choosing happens on the **Textures** tab of the **Browser**. Placement happens in the **Face Edit Sheet**.
 
-Face Select (`Shift+Tab`) opens the Face Edit Sheet. **Textures** on the view bar reopens it if you closed it. Open the Texture Browser with **Browse** in the right dock, **Browse…** in the Face Edit Sheet, or **Window > Texture Browser** (`Ctrl+Shift+T`). See [Understanding the interface](understanding_the_interface.md).
+Face Select (`Shift+Tab`) opens the Face Edit Sheet. **Textures** on the view bar reopens it if you closed it. Open it with **Browse** in the right dock, **Browse…** in the Face Edit Sheet, or **Window > Browser: Textures** (`Ctrl+Shift+T`). See [Understanding the interface](understanding_the_interface.md).
 
 ## Open a texture folder
 
-1. Open the **Texture Browser**.
+1. Open the **Textures** tab of the Browser.
 2. Click **Open Folder…** next to the filter field.
 3. Choose a local folder containing supported image files.
 4. Approve browser access if prompted.
@@ -35,13 +35,13 @@ For an entire ordinary mesh:
 
 1. Use Object Select.
 2. Select the mesh.
-3. Click a texture in the Texture Browser.
+3. Click a texture on the Textures tab.
 
 For individual surfaces:
 
 1. Enter Face Select with `Shift+Tab`.
 2. Select one or more face regions.
-3. Click a texture in the Texture Browser, or **Apply** in the Face Edit Sheet.
+3. Click a texture on the Textures tab, or **Apply** in the Face Edit Sheet.
 
 In Face Select, **right-click** a face to put the current texture on it, keeping that face's alignment. **Alt+right-click** applies the texture plus the alignment of the last face you lifted. The **Apply Current Texture** tool on the tools palette paints the current texture onto the selection, then stamps it onto the faces you click.
 

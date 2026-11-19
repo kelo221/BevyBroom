@@ -3,18 +3,24 @@ import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js'
 import type { ShellFloatingWindowId } from '@/layout/shell/actions/shell_floating_window.js';
 import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
 
-/** One browser window of the Window menu: its id, row label and shortcut. */
+/**
+ * One tab of the Browser window in the Window menu: its id, row label and
+ * shortcut.
+ */
 interface ShellMenuWindowBrowser {
   readonly windowId: ShellFloatingWindowId;
   readonly label: string;
   readonly shortcutAction: KeyboardShortcutAction;
 }
 
-/** Browser windows listed at the top of the Window menu. */
+/**
+ * Browser tabs listed at the top of the Window menu, in the Browser's tab
+ * order.
+ */
 export const SHELL_MENU_WINDOW_BROWSERS: readonly ShellMenuWindowBrowser[] = [
-  { windowId: 'texture_browser', label: 'Texture Browser', shortcutAction: 'window_texture_browser' },
-  { windowId: 'entity_browser', label: 'Entity Browser', shortcutAction: 'window_entity_browser' },
-  { windowId: 'level_browser', label: 'Level Browser', shortcutAction: 'window_level_browser' },
+  { windowId: 'entity_browser', label: 'Browser: Place', shortcutAction: 'window_entity_browser' },
+  { windowId: 'texture_browser', label: 'Browser: Textures', shortcutAction: 'window_texture_browser' },
+  { windowId: 'level_browser', label: 'Browser: Levels', shortcutAction: 'window_level_browser' },
 ];
 
 /** Window menu row that arranges the open floating windows side by side. */

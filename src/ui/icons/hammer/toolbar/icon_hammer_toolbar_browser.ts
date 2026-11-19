@@ -27,7 +27,7 @@ const ICON_HAMMER_BROWSER_LEVEL_PANELS: readonly (readonly number[])[] = [
   [20.5, 6.5, 29.5, 3.5, 29.5, 25.5, 20.5, 28.5],
 ];
 
-/** Toolbar icons that open the Texture, Entity and Level Browser windows. */
+/** Toolbar icons that open the Browser on its Place, Textures and Levels tabs. */
 export class IconHammerToolbarBrowser extends IconHammerGroup<IconHammerToolbarBrowserName> {
   /**
    * Returns the drawer of every icon in the group.

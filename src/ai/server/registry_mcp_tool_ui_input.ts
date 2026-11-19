@@ -44,12 +44,12 @@ export const MCP_UI_INPUT_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ),
   tool(
     'get_entity_browser_tiles',
-    'Read-only: the tiles the Entity Browser shows, in display order, each with `id` (such as "prefab.shelf_row" or "lights.point"), `label`, `category` and `selected`. Empty while the Entity Browser is closed; open it with set_main_window {floatingWindows: {entity_browser: true}}.',
+    'Read-only: the tiles the Place tab of the Browser shows, in display order, each with `id` (such as "prefab.shelf_row" or "lights.point"), `label`, `category` and `selected`. Empty while the Browser is closed or on another tab; open it on Place with set_main_window {floatingWindows: {entity_browser: true}}.',
     emptySchema(),
   ),
   tool(
     'entity_browser_drag',
-    'Drag an Entity Browser tile into a view like a user: press on the tile, move onto the view point where the world point `at` shows, and release. The kind is placed there the way a drop places it (a prefab rests on the surface under the point). Returns `selection` afterwards, which holds what was placed, and `dropPoint` (client x, y of the drop). The Entity Browser must be open and show the tile.',
+    'Drag a tile of the Browser Place tab into a view like a user: press on the tile, move onto the view point where the world point `at` shows, and release. The kind is placed there the way a drop places it (a prefab rests on the surface under the point). Returns `selection` afterwards, which holds what was placed, and `dropPoint` (client x, y of the drop). The Browser must be open on its Place tab and show the tile.',
     {
       type: 'object',
       properties: {

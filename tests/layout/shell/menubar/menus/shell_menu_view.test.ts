@@ -210,9 +210,9 @@ describe('ShellMenuView', () => {
     const { entries } = shellMenuViewTestRigCreate();
     const labels = shellTestMenuLabelsRead(entries);
     for (const windowLabel of [
-      'Texture Browser',
-      'Entity Browser',
-      'Level Browser',
+      'Browser: Place',
+      'Browser: Textures',
+      'Browser: Levels',
       'Map Inspector',
       'Detached Viewport…',
     ]) {

@@ -55,10 +55,10 @@ export function toolInstructionForTransformMode(mode: TransformMode): ToolInstru
   };
 }
 
-/** Instruction for opening the floating texture browser from face mode. */
+/** Instruction for opening the Browser on its Textures tab from face mode. */
 export const TOOL_INSTRUCTION_FACE_INSPECTOR: ToolInstruction = {
-  title: 'Texture Browser',
-  description: 'Open the floating texture browser to pick and align the material of the selected faces.',
+  title: 'Textures',
+  description: 'Open the Textures tab of the Browser to pick and align the material of the selected faces.',
 };
 
 /** Instruction for face extrude. */

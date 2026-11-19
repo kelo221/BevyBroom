@@ -7,10 +7,9 @@ import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
 
 /**
  * End-to-end acceptance of dockable, resizable tool windows in the built
- * desktop app: the Entity Browser docks to the right of the map views and
- * squeezes them, two browsers docked to one edge share it, a floating browser
- * takes the position and size it is given, floating browsers tile without
- * overlapping, and a docked browser comes back docked after a restart. Skipped
+ * desktop app: the Browser docks to the right of the map views and squeezes
+ * them, moves to the left dock and empties the right one, floats at the
+ * position and size it is given, and comes back docked after a restart. Skipped
  * unless BROOM_E2E_DESKTOP_EXE names the app launcher.
  */
 const desktopExecutable = process.env['BROOM_E2E_DESKTOP_EXE'] ? resolve(process.env['BROOM_E2E_DESKTOP_EXE']) : '';
@@ -41,8 +40,11 @@ interface DockE2eToolWindow {
   rect: { left: number; top: number; width: number; height: number } | null;
 }
 
-/** Browser windows the steps move around. */
-const DOCK_E2E_BROWSERS = ['entity_browser', 'level_browser', 'texture_browser'] as const;
+/** Browser tabs the steps open and close, each one opening the Browser window. */
+const DOCK_E2E_BROWSER_TABS = ['entity_browser', 'level_browser', 'texture_browser'] as const;
+
+/** Layout id of the Browser window. */
+const DOCK_E2E_BROWSER_WINDOW = 'browser';
 
 /**
  * Returns whether a window rect lies inside an area, allowing one pixel of
@@ -122,11 +124,11 @@ describe.skipIf(desktopExecutable === '')('desktop dockable tool windows end to 
   }
 
   /**
-   * Resets the window layout and closes every browser so the app keeps no
-   * layout from the test.
+   * Resets the window layout and closes the Browser so the app keeps no layout
+   * from the test.
    */
   async function browsersFloatAndClose(): Promise<void> {
-    const closed = Object.fromEntries(DOCK_E2E_BROWSERS.map((windowId) => [windowId, false]));
+    const closed = Object.fromEntries(DOCK_E2E_BROWSER_TABS.map((windowId) => [windowId, false]));
     await client.toolCallExpectOk('set_main_window', { resetWindowLayout: true, floatingWindows: closed });
   }
 
@@ -141,18 +143,18 @@ describe.skipIf(desktopExecutable === '')('desktop dockable tool windows end to 
   }, LAUNCH_TIMEOUT_MILLISECONDS);
 
   it(
-    'docks the Entity Browser right of the map views, which get narrower, and keeps its tiles working',
+    'docks the Browser right of the map views, which get narrower, and keeps its Place tiles working',
     async () => {
       const before = await client.toolDataExpectOk<DockE2eShellLayout>('get_shell_layout');
       await client.toolCallExpectOk('set_main_window', {
         floatingWindows: { entity_browser: true },
-        toolWindowPlacements: { entity_browser: 'right' },
+        toolWindowPlacements: { [DOCK_E2E_BROWSER_WINDOW]: 'right' },
       });
       const docked = await shellLayoutWait('the right dock', (layout) => layout.dockRight.width > 0);
       expect(docked.views.width).toBeLessThan(before.views.width);
-      const entityBrowser = await toolWindowRead('entity_browser');
-      expect(entityBrowser.placement).toBe('right');
-      expect(dockE2eRectInside(entityBrowser.rect, docked.dockRight)).toBe(true);
+      const browser = await toolWindowRead(DOCK_E2E_BROWSER_WINDOW);
+      expect(browser.placement).toBe('right');
+      expect(dockE2eRectInside(browser.rect, docked.dockRight)).toBe(true);
       const tiles = await client.toolDataExpectOk<{ tiles: unknown[] }>('get_entity_browser_tiles');
       expect(tiles.tiles.length).toBeGreaterThan(0);
     },
@@ -160,69 +162,56 @@ describe.skipIf(desktopExecutable === '')('desktop dockable tool windows end to 
   );
 
   it(
-    'shares the left dock between two browsers and hides the right dock once it is empty',
+    'moves the Browser to the left dock and hides the right dock once it is empty',
     async () => {
       await client.toolCallExpectOk('set_main_window', {
-        floatingWindows: { level_browser: true },
-        toolWindowPlacements: { entity_browser: 'left', level_browser: 'left' },
+        toolWindowPlacements: { [DOCK_E2E_BROWSER_WINDOW]: 'left' },
       });
       const layout = await shellLayoutWait(
         'the left dock to replace the right one',
         (candidate) => candidate.dockLeft.width > 0 && candidate.dockRight.width === 0,
       );
-      const windows = await toolWindowsRead();
-      expect(windows['entity_browser']?.placement).toBe('left');
-      expect(windows['level_browser']?.placement).toBe('left');
-      const shownInDock = [windows['entity_browser'], windows['level_browser']].filter((toolWindow) =>
-        dockE2eRectInside(toolWindow?.rect ?? null, layout.dockLeft),
-      );
-      expect(shownInDock.length).toBeGreaterThan(0);
+      const browser = await toolWindowRead(DOCK_E2E_BROWSER_WINDOW);
+      expect(browser.placement).toBe('left');
+      expect(dockE2eRectInside(browser.rect, layout.dockLeft)).toBe(true);
     },
     STEP_TIMEOUT_MILLISECONDS,
   );
 
   it(
-    'floats a browser at the position and size it is given and tiles floating browsers without overlap',
+    'floats the Browser at the position and size it is given',
     async () => {
       const rect = { left: 120, top: 140, width: 420, height: 330 };
       await client.toolCallExpectOk('set_main_window', {
-        toolWindowPlacements: { entity_browser: 'floating', level_browser: 'floating' },
-        toolWindowRects: { entity_browser: rect },
+        toolWindowPlacements: { [DOCK_E2E_BROWSER_WINDOW]: 'floating' },
+        toolWindowRects: { [DOCK_E2E_BROWSER_WINDOW]: rect },
       });
-      const floating = await toolWindowRead('entity_browser');
+      const floating = await toolWindowRead(DOCK_E2E_BROWSER_WINDOW);
       expect(floating.placement).toBe('floating');
       expect(floating.rect?.width).toBeCloseTo(rect.width, 0);
       expect(floating.rect?.height).toBeCloseTo(rect.height, 0);
-      await client.toolCallExpectOk('set_main_window', { tileFloatingWindows: true });
-      const windows = await toolWindowsRead();
-      const first = windows['entity_browser']?.rect;
-      const second = windows['level_browser']?.rect;
-      if (!first || !second) throw new Error('tiled browsers are not open');
-      const overlapsHorizontally = first.left < second.left + second.width && second.left < first.left + first.width;
-      const overlapsVertically = first.top < second.top + second.height && second.top < first.top + first.height;
-      expect(overlapsHorizontally && overlapsVertically).toBe(false);
     },
     STEP_TIMEOUT_MILLISECONDS,
   );
 
   it(
-    'opens a browser docked at quit docked again after a restart',
+    'opens the Browser docked at quit docked again after a restart',
     async () => {
       await client.toolCallExpectOk('set_main_window', {
-        floatingWindows: { level_browser: false, entity_browser: true },
-        toolWindowPlacements: { entity_browser: 'bottom' },
+        floatingWindows: { entity_browser: true },
+        toolWindowPlacements: { [DOCK_E2E_BROWSER_WINDOW]: 'bottom' },
       });
       await desktopE2eWaitUntil(
-        'the docked browser to be saved',
-        async () => ((await toolWindowRead('entity_browser')).placement === 'bottom' ? true : null),
+        'the docked Browser to be saved',
+        async () => ((await toolWindowRead(DOCK_E2E_BROWSER_WINDOW)).placement === 'bottom' ? true : null),
         STEP_TIMEOUT_MILLISECONDS,
       );
       await app.stop();
       await appLaunch();
       const reopened = await desktopE2eWaitUntil(
-        'the Entity Browser to reopen docked',
+        'the Browser to reopen docked',
         async () => {
-          const toolWindow = await toolWindowRead('entity_browser');
+          const toolWindow = await toolWindowRead(DOCK_E2E_BROWSER_WINDOW);
           return toolWindow.isOpen ? toolWindow : null;
         },
         STEP_TIMEOUT_MILLISECONDS,

@@ -32,7 +32,7 @@ If you are compiling or packaging BevyBroom from its source code, use [Building 
 
 ## A panel or the toolbar is missing
 
-The inspector, the info panel, and the toolbar can be hidden, and the editor remembers that between sessions. Turn them back on in the **View** menu with **Show Inspector** (`Ctrl+5`), **Show Info Panel** (`Ctrl+4`), and **Show Toolbar** (`Ctrl+Alt+T`). Face attributes live in the **Face Edit Sheet**, and the **Texture Browser** is a floating window (**Window > Texture Browser**).
+The inspector, the info panel, and the toolbar can be hidden, and the editor remembers that between sessions. Turn them back on in the **View** menu with **Show Inspector** (`Ctrl+5`), **Show Info Panel** (`Ctrl+4`), and **Show Toolbar** (`Ctrl+Alt+T`). Face attributes live in the **Face Edit Sheet**, and textures are picked on the **Textures** tab of the Browser (**Window > Browser: Textures**).
 
 ## A brush or component does not behave as expected
 
@@ -82,7 +82,7 @@ The clip plane is not ready. Select a target, activate Clip Plane, and place thr
 
 ## Textures are missing
 
-- Reopen the folder with **Open Folder…** in the **Texture Browser**.
+- Reopen the folder with **Open Folder…** on the **Textures** tab of the Browser.
 - Grant folder permission.
 - Confirm the image files are supported.
 - Check whether the scene refers to textures from a folder that moved or was renamed.

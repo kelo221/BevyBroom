@@ -25,7 +25,7 @@ interface EditorApiEntityBrowserTile {
 
 /** Message given when a tile is not on screen. */
 const EDITOR_API_ENTITY_BROWSER_TILE_MISSING =
-  'is not shown; open the Entity Browser (set_main_window floatingWindows.entity_browser) and clear its filters';
+  'is not shown; open the Browser on its Place tab (set_main_window floatingWindows.entity_browser) and clear its filters';
 
 /**
  * Reads the Entity Browser's tiles and drags a tile into a view the way a user
@@ -74,11 +74,23 @@ export class EditorApiEntityBrowser {
    */
   private tilesRead(): EditorApiEntityBrowserTile[] {
     const elements = this.ownerDocument.querySelectorAll<HTMLElement>(`[${ENTITY_BROWSER_TILE_ID_ATTRIBUTE}]`);
-    return [...elements].map((element) => {
-      const [label = '', category = ''] = element.title.split('\n');
-      const id = element.getAttribute(ENTITY_BROWSER_TILE_ID_ATTRIBUTE) ?? '';
-      return { id, label, category, selected: element.getAttribute('aria-selected') === 'true' };
-    });
+    return [...elements]
+      .filter((element) => this.tileShownIs(element))
+      .map((element) => {
+        const [label = '', category = ''] = element.title.split('\n');
+        const id = element.getAttribute(ENTITY_BROWSER_TILE_ID_ATTRIBUTE) ?? '';
+        return { id, label, category, selected: element.getAttribute('aria-selected') === 'true' };
+      });
+  }
+
+  /**
+   * Tells whether a tile sits on a shown page, not on a hidden Browser tab.
+   *
+   * @param tileElement Tile element.
+   * @returns True when no ancestor of the tile is hidden.
+   */
+  private tileShownIs(tileElement: HTMLElement): boolean {
+    return tileElement.closest('[hidden]') === null;
   }
 
   /**
@@ -96,9 +108,10 @@ export class EditorApiEntityBrowser {
     if (at === null || !EDITOR_API_VIEWPORT_VIEW_NAMES.includes(view)) {
       return failResult(`at must be {x, y, z} and view one of ${EDITOR_API_VIEWPORT_VIEW_NAMES.join(', ')}`);
     }
-    const tile = this.ownerDocument.querySelector<HTMLElement>(
+    const tileFound = this.ownerDocument.querySelector<HTMLElement>(
       `[${ENTITY_BROWSER_TILE_ID_ATTRIBUTE}="${CSS.escape(tileId)}"]`,
     );
+    const tile = tileFound !== null && this.tileShownIs(tileFound) ? tileFound : null;
     const viewport = editorApiVisibleViewportFind(this.host, view);
     if (tile === null || viewport === null) {
       return failResult(
