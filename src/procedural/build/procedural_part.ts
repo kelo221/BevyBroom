@@ -9,4 +9,6 @@ export interface ProceduralPart {
   readonly name: string;
   readonly materialSlot: string;
   readonly faces: readonly (readonly THREE.Vector3[])[];
+  /** What the part is to the game, such as a deck or a side; solid when omitted. */
+  readonly role?: string;
 }

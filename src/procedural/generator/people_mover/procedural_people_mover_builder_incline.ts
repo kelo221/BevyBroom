@@ -1,3 +1,9 @@
+import {
+  PROCEDURAL_PART_ROLE_DECK,
+  PROCEDURAL_PART_ROLE_SIDE,
+  PROCEDURAL_PART_ROLE_STEP,
+  proceduralPartRoleSet,
+} from '@/procedural/build/procedural_part_role.js';
 import * as THREE from 'three';
 import type { ProceduralPart } from '@/procedural/build/procedural_part.js';
 import { ProceduralPartFrame } from '@/procedural/build/procedural_part_frame.js';
@@ -31,11 +37,14 @@ export class ProceduralPeopleMoverBuilderIncline {
   static travelatorBuild(shape: ProceduralPeopleMoverShape, width: number): ProceduralPart[] {
     const frame = ProceduralPeopleMoverBuilderIncline.frameOf(shape);
     const half = width / 2;
-    const belt = frame.boxPart(
-      'Belt',
-      PROCEDURAL_PEOPLE_MOVER_SLOT_TREAD,
-      { runFrom: 0, runTo: shape.run, upFrom: -SIZES.beltThickness, upTo: 0, acrossFrom: -half, acrossTo: half },
-      shape.rise / shape.run,
+    const belt = proceduralPartRoleSet(
+      frame.boxPart(
+        'Belt',
+        PROCEDURAL_PEOPLE_MOVER_SLOT_TREAD,
+        { runFrom: 0, runTo: shape.run, upFrom: -SIZES.beltThickness, upTo: 0, acrossFrom: -half, acrossTo: half },
+        shape.rise / shape.run,
+      ),
+      PROCEDURAL_PART_ROLE_DECK,
     );
     return [belt, ...ProceduralPeopleMoverBuilderIncline.sharedPartsBuild(frame, shape, width, SIZES.beltThickness)];
   }
@@ -50,11 +59,14 @@ export class ProceduralPeopleMoverBuilderIncline {
   static escalatorBuild(shape: ProceduralPeopleMoverShape, width: number): ProceduralPart[] {
     const frame = ProceduralPeopleMoverBuilderIncline.frameOf(shape);
     const half = width / 2;
-    const truss = frame.boxPart(
-      'Truss',
-      PROCEDURAL_PEOPLE_MOVER_SLOT_PANELS,
-      { runFrom: 0, runTo: shape.run, upFrom: -SIZES.trussDepth, upTo: 0, acrossFrom: -half, acrossTo: half },
-      shape.rise / shape.run,
+    const truss = proceduralPartRoleSet(
+      frame.boxPart(
+        'Truss',
+        PROCEDURAL_PEOPLE_MOVER_SLOT_PANELS,
+        { runFrom: 0, runTo: shape.run, upFrom: -SIZES.trussDepth, upTo: 0, acrossFrom: -half, acrossTo: half },
+        shape.rise / shape.run,
+      ),
+      PROCEDURAL_PART_ROLE_DECK,
     );
     const steps = ProceduralPeopleMoverBuilderIncline.stepsBuild(frame, shape, half);
     return [
@@ -93,16 +105,15 @@ export class ProceduralPeopleMoverBuilderIncline {
     const riser = shape.rise / count;
     const steps: ProceduralPart[] = [];
     for (let index = 0; index < count; index++) {
-      steps.push(
-        frame.boxPart(`Step ${index + 1}`, PROCEDURAL_PEOPLE_MOVER_SLOT_TREAD, {
-          runFrom: index * tread,
-          runTo: (index + 1) * tread,
-          upFrom: index * riser,
-          upTo: (index + 1) * riser,
-          acrossFrom: -half,
-          acrossTo: half,
-        }),
-      );
+      const step = frame.boxPart(`Step ${index + 1}`, PROCEDURAL_PEOPLE_MOVER_SLOT_TREAD, {
+        runFrom: index * tread,
+        runTo: (index + 1) * tread,
+        upFrom: index * riser,
+        upTo: (index + 1) * riser,
+        acrossFrom: -half,
+        acrossTo: half,
+      });
+      steps.push(proceduralPartRoleSet(step, PROCEDURAL_PART_ROLE_STEP));
     }
     return steps;
   }
@@ -156,7 +167,7 @@ export class ProceduralPeopleMoverBuilderIncline {
     return [
       frame.boxPart('Landing Low', PROCEDURAL_PEOPLE_MOVER_SLOT_TREAD, low),
       frame.boxPart('Landing High', PROCEDURAL_PEOPLE_MOVER_SLOT_TREAD, high),
-    ];
+    ].map((landing) => proceduralPartRoleSet(landing, PROCEDURAL_PART_ROLE_DECK));
   }
 
   /**
@@ -191,7 +202,7 @@ export class ProceduralPeopleMoverBuilderIncline {
     return [
       frame.boxPart(`Panel ${placement.side}`, PROCEDURAL_PEOPLE_MOVER_SLOT_PANELS, panel, slope),
       frame.boxPart(`Handrail ${placement.side}`, PROCEDURAL_PEOPLE_MOVER_SLOT_RAILS, rail, slope),
-    ];
+    ].map((sidePart) => proceduralPartRoleSet(sidePart, PROCEDURAL_PART_ROLE_SIDE));
   }
 
   /**

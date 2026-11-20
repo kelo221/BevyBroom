@@ -75,4 +75,31 @@ describe('LevelExportPlacementsBuilder', () => {
     expect(lowWorld.distanceTo(mover.localToWorld(start.clone()))).toBeLessThan(1e-5);
     expect(highWorld.distanceTo(mover.localToWorld(end.clone()))).toBeLessThan(1e-5);
   });
+
+  /**
+   * The game builds a mover's colliders from the parts the editor draws, so
+   * every drawn part is exported in world space with its role, and the deck and
+   * sides cover the mover exactly as its mesh does.
+   */
+  it('exports every part of a people mover in world space with its role', () => {
+    const { world, mover } = escalatorWorldCreate();
+    const placement = LevelExportPlacementsBuilder.build(world).find((candidate) => candidate.object_id === mover.uuid);
+    const generator = ProceduralGeneratorRegistry.find(PROCEDURAL_GENERATOR_PEOPLE_MOVER_ID);
+    const settings = ProceduralOwner.settingsRead(mover);
+    if (generator === null || settings === null) throw new Error('the escalator has settings');
+    const parts = generator.partsBuild(settings.parameters);
+    const exported = placement?.procedural?.parts_world ?? [];
+    expect(exported.map((part) => part.name)).toEqual(parts.map((part) => part.name));
+    expect(new Set(exported.map((part) => part.role))).toEqual(new Set(['deck', 'side', 'step']));
+    parts.forEach((part, index) => {
+      const worldBox = new THREE.Box3().setFromPoints(
+        part.faces.flat().map((corner) => mover.localToWorld(corner.clone())),
+      );
+      const exportedBox = new THREE.Box3().setFromPoints(
+        (exported[index]?.points ?? []).map((point) => new THREE.Vector3(...point)),
+      );
+      expect(exportedBox.min.distanceTo(worldBox.min)).toBeLessThan(1e-4);
+      expect(exportedBox.max.distanceTo(worldBox.max)).toBeLessThan(1e-4);
+    });
+  });
 });

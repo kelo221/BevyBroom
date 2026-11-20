@@ -86,6 +86,19 @@ export interface PlacementProcedural {
   derived: Record<string, unknown>;
   /** Derived values that are points, in world space, by name. */
   derived_points_world: Record<string, CollisionVector3>;
+  /** Every convex part the generator builds, in world space, in build order. */
+  parts_world: PlacementProceduralPart[];
+}
+
+/**
+ * One convex part of a procedural object in world space: what it is to the game
+ * and its corners, whose convex hull is the part.
+ */
+export interface PlacementProceduralPart {
+  name: string;
+  /** Such as `deck`, `side`, `step`, `car`, `shaft` or `solid`. */
+  role: string;
+  points: CollisionVector3[];
 }
 
 /**
