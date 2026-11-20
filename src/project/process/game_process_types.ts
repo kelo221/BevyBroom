@@ -48,6 +48,11 @@ export interface GameProcessStatus {
   exitCode: number | null;
   /** Compiler messages of the last build. */
   diagnostics: ProjectBuildDiagnostic[];
+  /**
+   * Warnings and errors the running game printed as `warning: …` or `error: …`
+   * lines.
+   */
+  gameNotices: ProjectBuildDiagnostic[];
   /** Newest output lines of builds and the game. */
   logTail: string[];
   /** What happened last, for the user. */

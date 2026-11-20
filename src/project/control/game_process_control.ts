@@ -386,6 +386,7 @@ export class GameProcessControlUnavailable extends GameProcessControl {
       processId: null,
       exitCode: null,
       diagnostics: [],
+      gameNotices: [],
       logTail: [],
       message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE,
       generation: 0,

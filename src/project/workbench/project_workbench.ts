@@ -255,6 +255,7 @@ export class ProjectWorkbench {
       processId: null,
       exitCode: null,
       diagnostics: [],
+      gameNotices: [],
       logTail: [],
       message: '',
       generation: 0,
@@ -378,7 +379,10 @@ export class ProjectWorkbench {
   private statusAccept(status: GameProcessStatus): void {
     this.status = status;
     this.consoleReporter.report(status);
-    ProjectIssueBoard.publish({ diagnostics: status.diagnostics, problems: status.project?.problems ?? [] });
+    ProjectIssueBoard.publish({
+      diagnostics: [...status.diagnostics, ...status.gameNotices],
+      problems: status.project?.problems ?? [],
+    });
     this.changeNotify();
   }
 

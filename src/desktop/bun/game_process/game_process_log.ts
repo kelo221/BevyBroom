@@ -2,6 +2,7 @@ import {
   ProjectBuildDiagnosticsParser,
   type ProjectBuildDiagnostic,
 } from '@/project/build/project_build_diagnostics_parser.js';
+import { GameProcessNoticeCollector } from '@/desktop/bun/game_process/game_process_notice_collector.js';
 
 /** Prefix of the lines the editor writes into the log itself. */
 export const GAME_PROCESS_LOG_EDITOR_PREFIX = '[editor] ';
@@ -17,6 +18,7 @@ export class GameProcessLog {
   private readonly tail: string[] = [];
   private buildLines: string[] | null = null;
   private diagnostics: ProjectBuildDiagnostic[] = [];
+  private readonly gameNotices = new GameProcessNoticeCollector();
 
   /**
    * Records one output line; during a build it also counts as compiler output.
@@ -28,7 +30,25 @@ export class GameProcessLog {
     if (this.tail.length > GAME_PROCESS_LOG_TAIL_LINES) {
       this.tail.splice(0, this.tail.length - GAME_PROCESS_LOG_TAIL_LINES);
     }
-    this.buildLines?.push(line);
+    if (this.buildLines === null) {
+      this.gameNotices.lineAdd(line);
+      return;
+    }
+    this.buildLines.push(line);
+  }
+
+  /** Forgets the warnings and errors of the previous run of the game. */
+  gameBegin(): void {
+    this.gameNotices.clear();
+  }
+
+  /**
+   * Returns the warnings and errors the game printed since it started.
+   *
+   * @returns Notices in output order.
+   */
+  gameNoticesRead(): readonly ProjectBuildDiagnostic[] {
+    return this.gameNotices.noticesRead();
   }
 
   /**

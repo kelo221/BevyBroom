@@ -334,6 +334,7 @@ export function gameStatusCreate(project: ProjectSummary | null, phase: GameProc
     processId: null,
     exitCode: null,
     diagnostics: [],
+    gameNotices: [],
     logTail: [],
     message: phase,
     generation: 1,

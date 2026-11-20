@@ -181,4 +181,21 @@ describe('InputManager', () => {
     window.dispatchEvent(new PointerEvent('pointerdown', { button: 2 }));
     expect(manager.isRightMouseDown()).toBe(false);
   });
+  /**
+   * MacOS sends no keyup for a letter released while Command is held (Cmd+S,
+   * Cmd+E). Releasing Command must release such letters, or the fly camera
+   * keeps moving on the next right-button look.
+   */
+  it('releases letters whose keyup macOS swallowed when Command is released', () => {
+    const manager = new ManagerInput();
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'MetaLeft', key: 'Meta' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ShiftLeft', key: 'Shift' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE', key: 'e', metaKey: true }));
+    expect(manager.isPhysicalKeyDown('KeyE')).toBe(true);
+    window.dispatchEvent(new KeyboardEvent('keyup', { code: 'MetaLeft', key: 'Meta' }));
+    expect(manager.isPhysicalKeyDown('KeyE')).toBe(false);
+    expect(manager.isKeyDown('KeyE')).toBe(false);
+    expect(manager.isShiftDown()).toBe(true);
+    manager.dispose();
+  });
 });

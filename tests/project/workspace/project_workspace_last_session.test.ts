@@ -51,6 +51,7 @@ class FakeWorkspaceEditor {
       listIdle: () => Promise.resolve(),
       isLevelListed: (document) => LISTED_LEVELS.includes(document),
       levelOpen: (document) => Promise.resolve(this.levelOpen(document)),
+      levelAdopt: (document) => this.levelAdopt(document),
       openLevelRead: () => this.openLevelRead(),
       changeListenerAdd: (listener) => this.listenerAdd(listener),
     };
@@ -83,6 +84,16 @@ class FakeWorkspaceEditor {
     this.openLevelDocument = document;
     this.changed();
     return { ok: true };
+  }
+
+  /**
+   * Makes a level the open level without loading it.
+   *
+   * @param document Level document.
+   */
+  levelAdopt(document: string): void {
+    this.openLevelDocument = document;
+    this.changed();
   }
 
   /**
@@ -171,6 +182,8 @@ describe('ProjectWorkspaceLastSession', () => {
     await sessionStart(editor, store, true);
     expect(editor.openProjectFile).toBe(PROJECT_FILE);
     expect(editor.openedLevels).toEqual([]);
+    expect(editor.openLevelDocument).toBe(levelDocument);
+    expect(store.read()).toEqual({ projectFile: PROJECT_FILE, levelDocument });
   });
 
   it('skips a level the project no longer lists', async () => {

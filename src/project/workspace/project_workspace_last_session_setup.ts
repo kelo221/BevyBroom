@@ -60,7 +60,22 @@ function projectWorkspaceLastLevelsCreate(levelActions: ProjectLevelActions): Pr
     listIdle: () => levelActions.serviceRead().idle(),
     isLevelListed: (document) => levelActions.serviceRead().levelFind(document) !== null,
     levelOpen: (document) => levelActions.levelOpen(document, false),
+    levelAdopt: (document) => projectWorkspaceLastLevelAdopt(levelActions, document),
     openLevelRead: () => levelActions.serviceRead().openLevelRead(),
     changeListenerAdd: (listener) => levelActions.serviceRead().changeListenerAdd(listener),
   };
+}
+
+/**
+ * Makes a listed level the open level without loading it.
+ *
+ * @param levelActions Level actions of the editor.
+ * @param document Level document path.
+ */
+function projectWorkspaceLastLevelAdopt(levelActions: ProjectLevelActions, document: string): void {
+  const service = levelActions.serviceRead();
+  const level = service.levelFind(document);
+  if (level !== null) {
+    service.openLevelAdopt(level);
+  }
 }

@@ -140,6 +140,28 @@ describe('ProjectWorkbench', () => {
     expect(issues[0]?.severity).toBe('error');
   });
 
+  /**
+   * A warning the running game prints reaches the console once per start and
+   * stays in the Issues list while the game reports it.
+   */
+  it('shows the warnings the running game prints in the console once and in the Issues list', async () => {
+    const rig = workbenchRigCreate();
+    workbenches.push(rig.workbench);
+    await rig.workbench.projectOpen('/games/epsilon/broom.project.json');
+    const running = gameStatusCreate(rig.workbench.statusRead()?.project ?? null, 'running');
+    running.generation = 3;
+    const warningText = 'The store prop shelf names the fixture missing-id, which is not in the catalogue.';
+    running.gameNotices = [{ severity: 'warning', message: warningText, file: '', line: 0, column: 0 }];
+    rig.control.nextStatus = running;
+    await rig.workbench.statusRefresh();
+    await rig.workbench.statusRefresh();
+    const warningEntries = rig.consoleLog.entriesRead().filter((entry) => entry.text === `Game: ${warningText}`);
+    expect(warningEntries).toHaveLength(1);
+    expect(warningEntries[0]?.level).toBe('warning');
+    const issues = new IssueProviderProjectBuild().collect();
+    expect(issues).toEqual([expect.objectContaining({ severity: 'warning', description: warningText })]);
+  });
+
   it('builds the open level before the game starts and starts the game in it', async () => {
     const rig = await levelLaunchRigCreate('store');
     expect(rig.workbench.launchLevelTextRead()).toContain('(store)');
