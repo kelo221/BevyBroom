@@ -58,6 +58,9 @@ pub struct PlaceableField {
     /// Variant names of enum fields.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub variants: Vec<String>,
+    /// How the editor names and groups each variant of an enum field, by variant name.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub variant_details: BTreeMap<String, PlaceableVariantDetail>,
     /// The asset type path of asset fields.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub asset_type: Option<String>,
@@ -67,6 +70,15 @@ pub struct PlaceableField {
     /// Hidden fields keep their default and are not shown.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub hidden: bool,
+}
+
+/// The display name and group of one enum variant, such as "Big fridge" in "Fridges & freezers".
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
+pub struct PlaceableVariantDetail {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
 }
 
 /// Where a placeable class may be attached.

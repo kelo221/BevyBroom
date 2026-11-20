@@ -37,8 +37,8 @@ import { StatusBarZoomFeed } from '@/ui/status/status_bar_zoom_feed.js';
 
 /** Builds the UI shell and dynamic viewports and wires their layout systems. */
 export class ManagerViewportLayout extends ViewportLayoutShellWiring {
-  private transformModeSwitcher: LayoutTransformModeSwitcher | null = null;
-  private statusBarZoomFeed: StatusBarZoomFeed | null = null;
+  declare private transformModeSwitcher?: LayoutTransformModeSwitcher | null;
+  declare private statusBarZoomFeed?: StatusBarZoomFeed | null;
 
   /**
    * Builds outliner action callbacks for the shell builder.

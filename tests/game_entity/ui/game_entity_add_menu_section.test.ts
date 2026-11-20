@@ -90,6 +90,36 @@ describe('gameEntityAddMenuSection', () => {
     expect(placed.map((owner) => owner.name)).toEqual(['Glass', 'Iron']);
   });
 
+  /**
+   * Kinds of several classes in one category are listed by their group, not by
+   * their class, so a fridge and a shelf type never share a list just because
+   * the game models both with one class.
+   */
+  it('lists the kinds of every class in a category under their groups, by name', () => {
+    const box = { size: [1, 2, 0.2] as [number, number, number], offset: [0, 1, 0] as [number, number, number] };
+    const propDoor = testDoorClassCreate();
+    const kindField = propDoor.fields.find((field) => field.path === 'kind');
+    if (!kindField) throw new Error('door has a kind field');
+    kindField.variant_details = {
+      Iron: { label: 'Big fridge', group: 'Fridges & freezers' },
+      Glass: { label: 'Bull milk', group: 'Goods' },
+    };
+    const prop = {
+      ...propDoor,
+      type_path: 'menu_test::Prop',
+      marker_box_field: 'kind',
+      marker_boxes: { Iron: box, Glass: box },
+    };
+    const list = testClassListCreate();
+    list.classes = [prop];
+    cleanups.push(testClassesInstall(list).uninstall);
+    const { actions } = actionsCreate();
+    const groups = submenuChildren(gameEntityAddMenuEntries(actions), prop.category);
+    expect(groups.map((entry) => (isMenuSubmenu(entry) ? entry.label : ''))).toEqual(['Fridges & freezers', 'Goods']);
+    const goods = submenuChildren(groups, 'Goods');
+    expect(goods.map((entry) => (isMenuAction(entry) ? entry.label : ''))).toEqual(['Bull milk']);
+  });
+
   it('always offers an empty game entity first', () => {
     const { actions, placed } = actionsCreate();
     const [first] = gameEntityAddMenuEntries(actions);

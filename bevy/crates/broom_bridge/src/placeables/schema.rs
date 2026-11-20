@@ -156,6 +156,7 @@ fn field_describe(
         maximum: None,
         step: None,
         variants: Vec::new(),
+        variant_details: std::collections::BTreeMap::new(),
         asset_type: None,
         children: Vec::new(),
         hidden: false,

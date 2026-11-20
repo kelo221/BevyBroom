@@ -50,6 +50,34 @@ describe('game entity class schema', () => {
     expect(gameClass?.placement).toBe('any');
   });
 
+  it('reads the names and groups of enum variants and drops malformed ones', () => {
+    const gameClass = gameEntityClassFromUnknown({
+      type_path: 'game::store::Prop',
+      fields: [
+        {
+          path: 'fixture',
+          kind: 'enum',
+          default: 'freezer',
+          variants: ['freezer', 'gate'],
+          variant_details: { freezer: { label: 'Freezer', group: 'Cold' }, gate: { label: 3 }, ghost: 'x' },
+        },
+      ],
+    });
+    expect(gameClass?.fields[0]?.variant_details).toEqual({ freezer: { label: 'Freezer', group: 'Cold' } });
+  });
+
+  it('keeps the variant details of the shared bridge fixture', () => {
+    const raw = JSON.parse(
+      readFileSync(resolve(FIXTURE_BRIDGE_DIRECTORY, 'placeable_classes_sample.json'), 'utf8'),
+    ) as { classes: Array<{ fields?: Array<Record<string, unknown>> }> };
+    const rawDetails = raw.classes.flatMap((entry) => entry.fields ?? []).find((field) => field['variant_details']);
+    const parsed = gameEntityClassListFromUnknown(raw)
+      ?.classes.flatMap((entry) => entry.fields)
+      .find((field) => field.variant_details !== undefined);
+    expect(rawDetails).toBeDefined();
+    expect(parsed?.variant_details).toEqual(rawDetails?.['variant_details']);
+  });
+
   it('keeps the entity I/O pins of every class in the shared bridge fixture', () => {
     const raw = JSON.parse(
       readFileSync(resolve(FIXTURE_BRIDGE_DIRECTORY, 'placeable_classes_sample.json'), 'utf8'),

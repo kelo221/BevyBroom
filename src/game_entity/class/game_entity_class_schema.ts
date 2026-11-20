@@ -10,6 +10,7 @@ import {
   type PreviewPlaceableIoParameterKind,
   type PreviewPlaceableIoPin,
   type PreviewPlaceableMarkerBox,
+  type PreviewPlaceableVariantDetail,
 } from '@/preview/protocol/preview_protocol_placeable_types.js';
 import { gameEntityFieldValueFromUnknown } from '@/game_entity/component/game_entity_component_value.js';
 
@@ -21,6 +22,9 @@ export type GameEntityField = PreviewPlaceableField;
 
 /** Box a game entity marker is drawn as, in the entity's own space. */
 export type GameEntityMarkerBox = PreviewPlaceableMarkerBox;
+
+/** Display name and group of one enum variant. */
+export type GameEntityVariantDetail = PreviewPlaceableVariantDetail;
 
 /** One asset type that asset fields may reference. */
 export type GameEntityAssetType = PreviewPlaceableAssetType;
@@ -250,6 +254,7 @@ function gameEntityFieldOptionalsRead(value: Record<string, unknown>, field: Gam
   if (Array.isArray(value['variants'])) {
     field.variants = value['variants'].filter((variant): variant is string => typeof variant === 'string');
   }
+  gameEntityFieldVariantDetailsRead(value, field);
   if (typeof value['asset_type'] === 'string') {
     field.asset_type = value['asset_type'];
   }
@@ -259,6 +264,49 @@ function gameEntityFieldOptionalsRead(value: Record<string, unknown>, field: Gam
   if (value['hidden'] === true) {
     field.hidden = true;
   }
+}
+
+/**
+ * Copies the well-formed variant names and groups of an untrusted enum field.
+ *
+ * @param value Untrusted field record.
+ * @param field Field being built.
+ */
+function gameEntityFieldVariantDetailsRead(value: Record<string, unknown>, field: GameEntityField): void {
+  const details = value['variant_details'];
+  if (!gameEntityRecordIs(details)) {
+    return;
+  }
+  const read: Record<string, GameEntityVariantDetail> = {};
+  for (const [variant, entry] of Object.entries(details)) {
+    const detail = gameEntityVariantDetailFromUnknown(entry);
+    if (detail !== null) {
+      read[variant] = detail;
+    }
+  }
+  if (Object.keys(read).length > 0) {
+    field.variant_details = read;
+  }
+}
+
+/**
+ * Reads the label and group of one enum variant.
+ *
+ * @param value Untrusted variant detail.
+ * @returns Detail with its filled texts, or null when it has none.
+ */
+function gameEntityVariantDetailFromUnknown(value: unknown): GameEntityVariantDetail | null {
+  if (!gameEntityRecordIs(value)) {
+    return null;
+  }
+  const detail: GameEntityVariantDetail = {};
+  if (gameEntityTextIsFilled(value['label'])) {
+    detail.label = value['label'];
+  }
+  if (gameEntityTextIsFilled(value['group'])) {
+    detail.group = value['group'];
+  }
+  return Object.keys(detail).length > 0 ? detail : null;
 }
 
 /**

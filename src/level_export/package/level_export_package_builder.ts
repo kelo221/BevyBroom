@@ -8,6 +8,7 @@ import type { LevelBuildManifest } from '@/level_build/manifest/level_build_mani
 import { LevelBuildManifestBuilder } from '@/level_build/manifest/level_build_manifest_builder.js';
 import { levelBuildGlbMaterialIdsRead } from '@/level_build/package/level_build_glb_material_reader.js';
 import type { ProjectToolTextures } from '@/project/model/project_tool_textures_parser.js';
+import { CommandSolidBrushGameComponentsDetach } from '@/solid/commands/brush/command_solid_brush_game_components_detach.js';
 
 /** Exports a world as a GLB with export options. */
 export type LevelExportGlbExport = (worldGroup: THREE.Group, options: ExportSceneOptions) => Promise<ArrayBuffer>;
@@ -37,7 +38,9 @@ export interface LevelExportPackage {
  */
 export class LevelExportPackageBuilder {
   /**
-   * Builds the package files.
+   * Builds the package files. While it builds, every brush that carries game
+   * components stands in a solid model of its own that holds the components,
+   * and afterwards the world is as it was.
    *
    * @param source World, level name, project id and tool textures.
    * @param glbExport GLB exporter; the editor's own by default.
@@ -47,6 +50,39 @@ export class LevelExportPackageBuilder {
     source: LevelExportPackageSource,
     glbExport: LevelExportGlbExport = (worldGroup, options) =>
       new GlbExporter().exportForLevelPackage(worldGroup, options),
+  ): Promise<LevelExportPackage> {
+    const brushComponentsDetach = CommandSolidBrushGameComponentsDetach.createForWorld(source.worldGroup);
+    brushComponentsDetach?.execute();
+    try {
+      return await LevelExportPackageBuilder.filesBuild(source, glbExport);
+    } finally {
+      LevelExportPackageBuilder.brushComponentsDetachRevert(brushComponentsDetach);
+    }
+  }
+
+  /**
+   * Puts brushes that were moved into solid models of their own for the export
+   * back where the author left them.
+   *
+   * @param brushComponentsDetach Executed move, or null when nothing moved.
+   */
+  private static brushComponentsDetachRevert(
+    brushComponentsDetach: CommandSolidBrushGameComponentsDetach | null,
+  ): void {
+    brushComponentsDetach?.undo();
+    brushComponentsDetach?.createdModelsRelease();
+  }
+
+  /**
+   * Builds the package files from the world as it is.
+   *
+   * @param source World, level name, project id and tool textures.
+   * @param glbExport GLB exporter.
+   * @returns GLB bytes, manifest and collision text.
+   */
+  private static async filesBuild(
+    source: LevelExportPackageSource,
+    glbExport: LevelExportGlbExport,
   ): Promise<LevelExportPackage> {
     source.worldGroup.updateMatrixWorld(true);
     const glb = new Uint8Array(await glbExport(source.worldGroup, LevelExportPackageBuilder.exportOptionsOf(source)));

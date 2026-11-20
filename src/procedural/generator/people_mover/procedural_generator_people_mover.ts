@@ -57,9 +57,9 @@ const PROCEDURAL_PEOPLE_MOVER_FIELDS: readonly GameEntityField[] = [
   },
   {
     path: PROCEDURAL_PEOPLE_MOVER_BELT,
-    label: 'Belt Speed',
+    label: 'Belt Speed (m/s, minus runs down)',
     kind: 'number',
-    default: 0.5,
+    default: 3,
     minimum: -10,
     maximum: 10,
     step: 0.1,

@@ -54,14 +54,14 @@ import { EditorToolId } from '@/types/editor_tool_id.js';
  */
 export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinators {
   protected readonly fileActions = new LayoutViewportFileActions(() => this.fileActionsContextRead());
-  private projectLevelActions: LayoutViewportProjectLevelActions | null = null;
-  private solidBrushTools: HandlerSolidBrushTools | null = null;
-  private selectionVisibility: HandlerSelectionVisibility | null = null;
-  private objectPropertiesSection: SectionObjectProperties | null = null;
-  private objectSelectDoubleClickNativeListener: ObjectSelectDoubleClickNativeListener | null = null;
-  private objectContextMenu: ObjectSelectContextMenu | null = null;
-  protected sceneRecovery: SystemSceneRecovery | null = null;
-  private projectWorkspaceLastSession: ProjectWorkspaceLastSession | null = null;
+  declare private projectLevelActions?: LayoutViewportProjectLevelActions | null;
+  declare private solidBrushTools?: HandlerSolidBrushTools | null;
+  declare private selectionVisibility?: HandlerSelectionVisibility | null;
+  declare private objectPropertiesSection?: SectionObjectProperties | null;
+  declare private objectSelectDoubleClickNativeListener?: ObjectSelectDoubleClickNativeListener | null;
+  declare private objectContextMenu?: ObjectSelectContextMenu | null;
+  declare protected sceneRecovery?: SystemSceneRecovery | null;
+  declare private projectWorkspaceLastSession?: ProjectWorkspaceLastSession | null;
 
   /**
    * Returns the current editor parts the File menu actions use.
@@ -80,7 +80,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
       ensureSettingsSystem: () => this.ensureSettingsSystem(),
       onSceneLoaded: () => this.onSceneLoaded(),
       refreshAfterWorldMutation: () => this.refreshAfterWorldMutation(),
-      sceneRecoveryRead: () => this.sceneRecovery,
+      sceneRecoveryRead: () => this.sceneRecovery ?? null,
       projectLevelActionsRead: () => this.projectLevelActionsRead(),
     };
   }
@@ -100,7 +100,7 @@ export abstract class ViewportLayoutShellWiring extends ViewportLayoutCoordinato
       solidModelController: this.solidModelController,
       serviceRead: () => this.gamePreviewLayoutEnsure().projectLevelServiceEnsure(),
       onSceneLoaded: () => this.onSceneLoaded(),
-      sceneRecoveryRead: () => this.sceneRecovery,
+      sceneRecoveryRead: () => this.sceneRecovery ?? null,
       levelBrowserReveal: (isNameFieldFocused) => this.shellPanels?.levelBrowserReveal(isNameFieldFocused),
     };
   }

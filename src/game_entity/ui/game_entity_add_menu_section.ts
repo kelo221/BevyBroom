@@ -50,7 +50,7 @@ export function gameEntityAddMenuEntries(actions: AddMenuActions): ToolbarMenuEn
   const categoryEntries = [...categories].map(([category, classes]): ToolbarMenuEntry => ({
     kind: 'submenu',
     label: category,
-    children: classes.map((gameClass) => gameEntityAddMenuClassOrVariantsEntry(actions, gameClass)),
+    children: gameEntityAddMenuCategoryChildren(actions, classes),
   }));
   return [gameEntityAddMenuEmptyEntry(actions), { kind: 'separator' }, ...categoryEntries];
 }
@@ -104,25 +104,49 @@ function gameEntityAddMenuCategories(classes: readonly GameEntityClass[]): Map<s
 }
 
 /**
- * Builds the entry of a class: a submenu with one entry per marker box field
- * value when the class picks its marker box by a field, otherwise one entry for
- * the class.
+ * Builds the entries of one category: one entry per class that offers no choice
+ * of kinds, then one submenu per group of the kinds the other classes offer,
+ * such as "Fridges & freezers" holding the freezer and the big fridge. Groups
+ * and the kinds in them are in name order.
  *
  * @param actions Creation callbacks.
- * @param gameClass Component class.
- * @returns Menu entry.
+ * @param classes Classes of the category.
+ * @returns Category entries.
  */
-function gameEntityAddMenuClassOrVariantsEntry(actions: AddMenuActions, gameClass: GameEntityClass): ToolbarMenuEntry {
-  const variants = gameEntityAddMenuVariantsOf(gameClass);
-  if (variants.length === 0) {
-    return gameEntityAddMenuClassEntry(actions, gameClass);
-  }
-  return {
+function gameEntityAddMenuCategoryChildren(
+  actions: AddMenuActions,
+  classes: readonly GameEntityClass[],
+): ToolbarMenuEntry[] {
+  const classEntries = classes
+    .filter((gameClass) => gameEntityAddMenuVariantsOf(gameClass).length === 0)
+    .map((gameClass) => gameEntityAddMenuClassEntry(actions, gameClass));
+  const groups = gameEntityAddMenuVariantGroups(classes.flatMap((gameClass) => gameEntityAddMenuVariantsOf(gameClass)));
+  const groupEntries = [...groups].map(([group, variants]): ToolbarMenuEntry => ({
     kind: 'submenu',
-    label: gameClass.label,
+    label: group,
     icon: GAME_ENTITY_MENU_ICON,
-    children: variants.map((variant) => gameEntityAddMenuVariantEntry(actions, gameClass, variant)),
-  };
+    children: variants.map((variant) => gameEntityAddMenuVariantEntry(actions, variant.gameClass, variant)),
+  }));
+  return [...classEntries, ...groupEntries];
+}
+
+/**
+ * Sorts kinds into their groups, groups and kinds in name order.
+ *
+ * @param variants Kinds of one category.
+ * @returns Kinds by group.
+ */
+function gameEntityAddMenuVariantGroups(
+  variants: readonly GameEntityAddMenuVariant[],
+): Map<string, GameEntityAddMenuVariant[]> {
+  const sorted = [...variants].sort(
+    (first, second) => first.group.localeCompare(second.group) || first.label.localeCompare(second.label),
+  );
+  const groups = new Map<string, GameEntityAddMenuVariant[]>();
+  for (const variant of sorted) {
+    groups.set(variant.group, [...(groups.get(variant.group) ?? []), variant]);
+  }
+  return groups;
 }
 
 /**
@@ -141,16 +165,16 @@ function gameEntityAddMenuVariantEntry(
   variant: GameEntityAddMenuVariant,
 ): ToolbarMenuEntry {
   const create = (): THREE.Group => {
-    const owner = gameEntityCreateForClass(gameClass, variant.components, variant.valueText);
+    const owner = gameEntityCreateForClass(gameClass, variant.components, variant.label);
     GameEntityVisualBuilder.refresh(owner);
     return owner;
   };
   return addMenuCatalogActionCreate(
     {
-      label: variant.valueText,
+      label: variant.label,
       icon: GAME_ENTITY_MENU_ICON,
       iconColor: hexToRgb(GameEntityVisualBuilder.classColorOf(gameClass)),
-      tooltip: `${gameClass.type_path} (${gameClass.marker_box_field ?? ''} = ${variant.valueText})`,
+      tooltip: `${variant.label} (${gameClass.label})`,
       onClick: () => actions.onAddEntityPlaced(create, GAME_ENTITY_PLACEMENT_RADIUS),
     },
     {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { CommandStack } from '@/commands/command_stack.js';
+import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import { CollisionKindStore } from '@/level_export/kind/collision_kind_store.js';
 import { PanelPropertiesCollisionSection } from '@/level_export/ui/panel_properties_collision_section.js';
 import { PanelPropertiesSectionRegistry } from '@/ui/properties/panel_properties_section_registry.js';
@@ -77,5 +78,24 @@ describe('PanelPropertiesCollisionSection', () => {
     expect(roots.map((root) => CollisionKindStore.overrideRead(root))).toEqual([null, null]);
     stack.undo();
     expect(roots.map((root) => CollisionKindStore.overrideRead(root))).toEqual(['volume', 'volume']);
+  });
+
+  /**
+   * A brush with game components is exported as an object of its own, so its
+   * collision kind is its own: picking one must not turn the whole level model
+   * into that kind.
+   */
+  it('overrides the kind of a selected brush with game components, not its solid model', () => {
+    const model = collisionTestModelCreate([
+      { box, operation: SolidOperation.Additive },
+      { box, operation: SolidOperation.Additive },
+    ]);
+    const zoneBrush = model.findBrush('brush-1')?.mesh ?? model.root;
+    GameEntityComponentStore.write(zoneBrush, { 'collision_section_test::Zone': {} });
+    const section = new PanelPropertiesCollisionSection(chrome);
+    section.updateFromObjects([zoneBrush]);
+    kindPick(section, 'volume');
+    expect(CollisionKindStore.overrideRead(zoneBrush)).toBe('volume');
+    expect(CollisionKindStore.overrideRead(model.root)).toBeNull();
   });
 });

@@ -4,6 +4,7 @@ import { COLLISION_KINDS, type CollisionKind } from '@/level_export/collision/co
 import { CollisionKindStore } from '@/level_export/kind/collision_kind_store.js';
 import { CommandCollisionKindSet } from '@/level_export/kind/command_collision_kind_set.js';
 import { LevelExportObjectFilter } from '@/level_export/level_export_object_filter.js';
+import { CommandSolidBrushGameComponentsDetach } from '@/solid/commands/brush/command_solid_brush_game_components_detach.js';
 import { findSolidModelRoot } from '@/solid/model/solid_group.js';
 import { InputSelect, type InputSelectChoice } from '@/ui/input/input_select.js';
 import type { PanelPropertiesSection, PanelPropertiesSectionChrome } from '@/ui/properties/panel_properties_section.js';
@@ -82,10 +83,13 @@ export class PanelPropertiesCollisionSection implements PanelPropertiesSection {
    * Returns the object whose collision kind a selected object edits.
    *
    * @param object Selected object.
-   * @returns Its solid model, the object itself when it is a plain content
-   *   mesh, or null.
+   * @returns The object itself when it is a brush with game components or a
+   *   plain content mesh, else its solid model, or null.
    */
   private static collisionObjectOf(object: THREE.Object3D): THREE.Object3D | null {
+    if (CommandSolidBrushGameComponentsDetach.brushWithComponentsIs(object)) {
+      return object;
+    }
     return findSolidModelRoot(object) ?? (LevelExportObjectFilter.contentMeshIs(object) ? object : null);
   }
 
