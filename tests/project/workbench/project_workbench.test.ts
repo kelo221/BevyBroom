@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import * as THREE from 'three';
 import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
 import { documentProjectLinkRead, documentProjectLinkWrite } from '@/project/document/document_project_link.js';
 import { ProjectIssueBoard } from '@/project/issues/project_issue_board.js';
@@ -135,7 +136,7 @@ describe('ProjectWorkbench', () => {
     await rig.workbench.statusRefresh();
     const consoleTexts = rig.consoleLog.entriesRead().map((entry) => entry.text);
     expect(consoleTexts).toContain('src/main.rs:7:3: cannot find value `speed`');
-    const issues = new IssueProviderProjectBuild().collect();
+    const issues = new IssueProviderProjectBuild().collect(new THREE.Group());
     expect(issues.map((issue) => issue.description)).toEqual(['src/main.rs:7:3: cannot find value `speed`']);
     expect(issues[0]?.severity).toBe('error');
   });
@@ -158,8 +159,31 @@ describe('ProjectWorkbench', () => {
     const warningEntries = rig.consoleLog.entriesRead().filter((entry) => entry.text === `Game: ${warningText}`);
     expect(warningEntries).toHaveLength(1);
     expect(warningEntries[0]?.level).toBe('warning');
-    const issues = new IssueProviderProjectBuild().collect();
+    const issues = new IssueProviderProjectBuild().collect(new THREE.Group());
     expect(issues).toEqual([expect.objectContaining({ severity: 'warning', description: warningText })]);
+  });
+
+  /**
+   * A warning that names an object by uuid points its console line and its
+   * Issues row at that object.
+   */
+  it('points the console line and the Issues row of an object warning at the object', async () => {
+    const rig = workbenchRigCreate();
+    workbenches.push(rig.workbench);
+    await rig.workbench.projectOpen('/games/epsilon/broom.project.json');
+    const world = new THREE.Group();
+    const zone = new THREE.Object3D();
+    zone.name = 'Exit zone';
+    world.add(zone);
+    const warningText = `${zone.name} (${zone.uuid}): has no size, so it is left out.`;
+    const running = gameStatusCreate(rig.workbench.statusRead()?.project ?? null, 'running');
+    running.gameNotices = [{ severity: 'warning', message: warningText, file: '', line: 0, column: 0 }];
+    rig.control.nextStatus = running;
+    await rig.workbench.statusRefresh();
+    const consoleEntry = rig.consoleLog.entriesRead().find((entry) => entry.text === `Game: ${warningText}`);
+    expect(consoleEntry?.objectReference).toEqual({ objectName: zone.name, objectId: zone.uuid });
+    const issues = new IssueProviderProjectBuild().collect(world);
+    expect(issues).toEqual([expect.objectContaining({ objectUuid: zone.uuid, objectName: zone.name })]);
   });
 
   it('builds the open level before the game starts and starts the game in it', async () => {

@@ -90,14 +90,16 @@ describe('ControllerLevelBuild', () => {
   it('stops at error issues and publishes nothing', async () => {
     const rig = rigCreate();
     await projectOpen(rig);
-    const brushMesh = SolidModel.fromObject(rig.world.children[0] ?? rig.world)?.getBrushes()[0]?.mesh;
-    if (!brushMesh) {
-      throw new Error('rig has no brush mesh');
+    const modelRoot = SolidModel.fromObject(rig.world.children[0] ?? rig.world)?.root;
+    if (!modelRoot) {
+      throw new Error('rig has no solid model');
     }
-    GameEntityComponentStore.write(brushMesh, { 'game::Door': {} });
+    const groupInsideModel = new THREE.Group();
+    modelRoot.add(groupInsideModel);
+    GameEntityComponentStore.write(groupInsideModel, { 'game::Door': {} });
     const result = await rig.controller.build();
     expect(result.ok).toBe(false);
-    expect(result.ok ? [] : result.problems.map((problem) => problem.objectUuid)).toContain(brushMesh.uuid);
+    expect(result.ok ? [] : result.problems.map((problem) => problem.objectUuid)).toContain(groupInsideModel.uuid);
     expect(rig.control.publishedLevels).toHaveLength(0);
   });
 

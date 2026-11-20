@@ -8,6 +8,7 @@ import type {
   CollisionVector3,
   PlacementKind,
   PlacementProcedural,
+  PlacementProceduralPart,
   PlacementRecord,
 } from '@/level_export/collision/collision_types.js';
 import { LevelExportObjectFilter } from '@/level_export/level_export_object_filter.js';
@@ -16,6 +17,8 @@ import { ProceduralGeneratorRegistry } from '@/procedural/generator/procedural_g
 import { ProceduralParametersRead } from '@/procedural/generator/procedural_parameters_read.js';
 import { ProceduralOwner } from '@/procedural/model/procedural_owner.js';
 import type { ProceduralSettings } from '@/procedural/model/procedural_settings.js';
+import type { ProceduralPart } from '@/procedural/build/procedural_part.js';
+import { proceduralPartRoleOf } from '@/procedural/build/procedural_part_role.js';
 
 /**
  * Lists every object the game places itself: game entities, procedural objects
@@ -122,6 +125,41 @@ export class LevelExportPlacementsBuilder {
       parameters: structuredClone(settings.parameters),
       derived: structuredClone(derived),
       derived_points_world: pointsWorld,
+      parts_world: LevelExportPlacementsBuilder.partsWorldOf(object, generator?.partsBuild(settings.parameters) ?? []),
     };
+  }
+
+  /**
+   * Returns the parts of a procedural object in world space with their unique
+   * corners.
+   *
+   * @param object Procedural owner with a current world matrix.
+   * @param parts Parts in the owner's space.
+   * @returns Parts in world space.
+   */
+  private static partsWorldOf(object: THREE.Object3D, parts: readonly ProceduralPart[]): PlacementProceduralPart[] {
+    return parts.map((part) => ({
+      name: part.name,
+      role: proceduralPartRoleOf(part),
+      points: LevelExportPlacementsBuilder.cornersUniqueOf(part).map((corner) =>
+        CollisionNumberFormat.vector3(corner.clone().applyMatrix4(object.matrixWorld)),
+      ),
+    }));
+  }
+
+  /**
+   * Returns the corners of a part once each, in face order.
+   *
+   * @param part Convex part.
+   * @returns Unique corners.
+   */
+  private static cornersUniqueOf(part: ProceduralPart): THREE.Vector3[] {
+    const corners: THREE.Vector3[] = [];
+    for (const corner of part.faces.flat()) {
+      if (!corners.some((known) => known.distanceToSquared(corner) < 1e-12)) {
+        corners.push(corner);
+      }
+    }
+    return corners;
   }
 }

@@ -9,6 +9,12 @@ export interface GameEntityAddMenuVariant {
   readonly valueText: string;
   /** Components a new entity of this kind carries. */
   readonly components: GameEntityComponents;
+  /** Class the kind is a value of. */
+  readonly gameClass: GameEntityClass;
+  /** Display name, such as "Big fridge". */
+  readonly label: string;
+  /** Group the kind is listed in, such as "Fridges & freezers". */
+  readonly group: string;
 }
 
 /**
@@ -26,7 +32,29 @@ export function gameEntityAddMenuVariantsOf(gameClass: GameEntityClass): GameEnt
   }
   return Object.keys(gameClass.marker_boxes ?? {})
     .sort()
-    .map((valueText) => ({ valueText, components: gameEntityAddMenuVariantComponents(gameClass, field, valueText) }));
+    .map((valueText) => ({
+      valueText,
+      components: gameEntityAddMenuVariantComponents(gameClass, field, valueText),
+      gameClass,
+      label: field.variant_details?.[valueText]?.label ?? gameEntityAddMenuVariantLabelFromValue(valueText),
+      group: field.variant_details?.[valueText]?.group ?? gameClass.label,
+    }));
+}
+
+/**
+ * Returns a readable name for a field value without a display name, such as
+ * "Shelf tall 4" for `shelf-tall-4`.
+ *
+ * @param valueText Field value as text.
+ * @returns Readable name.
+ */
+export function gameEntityAddMenuVariantLabelFromValue(valueText: string): string {
+  const words = valueText
+    .replace(/[-_]+/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .trim()
+    .toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 /**

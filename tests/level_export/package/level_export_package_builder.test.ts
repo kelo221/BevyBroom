@@ -5,6 +5,7 @@ import { COLLISION_FILE_VERSION, type CollisionDocument } from '@/level_export/c
 import { CollisionKindStore } from '@/level_export/kind/collision_kind_store.js';
 import { LevelExportPackageBuilder } from '@/level_export/package/level_export_package_builder.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
+import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import { collisionTestModelCreate } from '../collision/collision_test_models.js';
 import { collisionTestBoxMeshCreate } from '../collision/mesh/collision_mesh_test_boxes.js';
 
@@ -79,5 +80,38 @@ describe('LevelExportPackageBuilder', () => {
     expect(exported.children).toHaveLength(2);
     expect(exportedZone).toBeDefined();
     expect(exported.children.filter((child) => child instanceof THREE.Mesh)).toHaveLength(1);
+  });
+
+  /**
+   * A brush that carries a component, such as a finish zone drawn as a brush of
+   * the level's model, reaches the game as a piece of its own with the
+   * component and kind, out of the model's compiled mesh, and the editor world
+   * is left as the author built it.
+   */
+  it('exports a brush with game components as its own piece and leaves the world unchanged', async () => {
+    const box = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(2, 1, 2));
+    const zoneBox = new THREE.Box3(new THREE.Vector3(4, 0, 4), new THREE.Vector3(6, 1, 6));
+    const model = collisionTestModelCreate([
+      { box, operation: SolidOperation.Additive },
+      { box: zoneBox, operation: SolidOperation.Additive },
+    ]);
+    const zoneBrush = model.getBrushes()[1]?.mesh ?? new THREE.Mesh();
+    GameEntityComponentStore.write(zoneBrush, { 'builder_test::FinishZone': {} });
+    CollisionKindStore.overrideWrite(zoneBrush, 'volume');
+    const world = new THREE.Group();
+    world.add(model.root);
+    const brushesBefore = model.getBrushes().map((brush) => brush.mesh);
+    const built = await LevelExportPackageBuilder.build(
+      { worldGroup: world, levelName: 'zone', projectIdentifier: 'p', toolTextures: { nodraw: [] } },
+      async () => new ArrayBuffer(0),
+    );
+    const pieces = (JSON.parse(built.collisionJson) as CollisionDocument).pieces;
+    const zonePieces = pieces.filter((piece) => piece.object_id === zoneBrush.uuid);
+    expect(zonePieces.map((piece) => [piece.kind, Object.keys(piece.components)])).toEqual([
+      ['volume', ['builder_test::FinishZone']],
+    ]);
+    expect(pieces.filter((piece) => piece.object_id === model.root.uuid).map((piece) => piece.kind)).toEqual(['solid']);
+    expect(world.children).toEqual([model.root]);
+    expect(model.getBrushes().map((brush) => brush.mesh)).toEqual(brushesBefore);
   });
 });

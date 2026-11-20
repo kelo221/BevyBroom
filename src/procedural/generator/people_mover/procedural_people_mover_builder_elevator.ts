@@ -1,3 +1,8 @@
+import {
+  PROCEDURAL_PART_ROLE_CAR,
+  PROCEDURAL_PART_ROLE_SHAFT,
+  proceduralPartRoleSet,
+} from '@/procedural/build/procedural_part_role.js';
 import * as THREE from 'three';
 import type { ProceduralPart } from '@/procedural/build/procedural_part.js';
 import { ProceduralPartFrame } from '@/procedural/build/procedural_part_frame.js';
@@ -41,7 +46,11 @@ export class ProceduralPeopleMoverBuilderElevator {
       acrossFrom: -half,
       acrossTo: half,
     });
-    return [car, ...ProceduralPeopleMoverBuilderElevator.postsBuild(frame, shape, half)];
+    const posts = ProceduralPeopleMoverBuilderElevator.postsBuild(frame, shape, half);
+    return [
+      proceduralPartRoleSet(car, PROCEDURAL_PART_ROLE_CAR),
+      ...posts.map((post) => proceduralPartRoleSet(post, PROCEDURAL_PART_ROLE_SHAFT)),
+    ];
   }
 
   /**

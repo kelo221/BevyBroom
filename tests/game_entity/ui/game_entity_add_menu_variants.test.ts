@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { GameEntityClass } from '@/game_entity/class/game_entity_class_schema.js';
-import { gameEntityAddMenuVariantsOf } from '@/game_entity/ui/game_entity_add_menu_variants.js';
+import {
+  gameEntityAddMenuVariantLabelFromValue,
+  gameEntityAddMenuVariantsOf,
+} from '@/game_entity/ui/game_entity_add_menu_variants.js';
 import { testDoorClassCreate } from '../game_entity_test_classes.js';
 
 /** Marker box every test variant uses. */
@@ -48,5 +51,22 @@ describe('gameEntityAddMenuVariantsOf', () => {
   it('offers nothing when the class picks no box by a field it lists', () => {
     expect(gameEntityAddMenuVariantsOf(testDoorClassCreate())).toEqual([]);
     expect(gameEntityAddMenuVariantsOf(doorPickingBoxesBy('missing_field', ['Iron']))).toEqual([]);
+  });
+
+  it('names and groups each kind from the field, falling back to a readable name in the class group', () => {
+    const door = doorPickingBoxesBy('kind', ['Iron', 'Glass']);
+    const kindField = door.fields.find((field) => field.path === 'kind');
+    if (!kindField) throw new Error('door has a kind field');
+    kindField.variant_details = { Iron: { label: 'Iron door', group: 'Metal' } };
+    const variants = gameEntityAddMenuVariantsOf(door);
+    expect(variants.map((variant) => [variant.valueText, variant.label, variant.group])).toEqual([
+      ['Glass', 'Glass', door.label],
+      ['Iron', 'Iron door', 'Metal'],
+    ]);
+  });
+
+  it('turns field values into readable names', () => {
+    expect(gameEntityAddMenuVariantLabelFromValue('shelf-tall-4')).toBe('Shelf tall 4');
+    expect(gameEntityAddMenuVariantLabelFromValue('BigFridge')).toBe('Big fridge');
   });
 });

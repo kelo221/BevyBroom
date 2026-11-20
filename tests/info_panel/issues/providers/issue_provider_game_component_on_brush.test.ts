@@ -23,11 +23,19 @@ function worldCreate(): { world: THREE.Group; model: SolidModel; brushMesh: THRE
 
 /** Unit tests for the check of game components the game never receives. */
 describe('IssueProviderGameComponentOnBrush', () => {
-  it('reports an error for components stored on a brush', () => {
+  it('reports nothing for components on a brush, which the export gives a model of its own', () => {
     const { world, brushMesh } = worldCreate();
     GameEntityComponentStore.write(brushMesh, { 'game::Door': {} });
+    expect(new IssueProviderGameComponentOnBrush().collect(world)).toEqual([]);
+  });
+
+  it('reports an error for components on a group inside a solid model', () => {
+    const { world, model } = worldCreate();
+    const group = new THREE.Group();
+    model.root.add(group);
+    GameEntityComponentStore.write(group, { 'game::Door': {} });
     const issues = new IssueProviderGameComponentOnBrush().collect(world);
-    expect(issues.map((issue) => [issue.severity, issue.objectUuid])).toEqual([['error', brushMesh.uuid]]);
+    expect(issues.map((issue) => [issue.severity, issue.objectUuid])).toEqual([['error', group.uuid]]);
   });
 
   it('accepts components on the solid model root', () => {

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ConsoleLog } from '@/info_panel/console/console_log.js';
+import type { ConsoleLogEntry } from '@/info_panel/console/console_log_entry.js';
 import { ConsoleView } from '@/info_panel/console/console_view.js';
 import { consoleViewLineTimeFormat } from '@/info_panel/console/console_view_line.js';
 import {
@@ -78,6 +79,20 @@ describe('ConsoleView', () => {
     clearRow?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(log.entriesRead()).toEqual([]);
     expect(linesRead(view)).toEqual([]);
+  });
+
+  it('reports only clicked lines that name a scene object', () => {
+    const activated: ConsoleLogEntry[] = [];
+    const clickableView = new ConsoleView(log, (entry) => activated.push(entry));
+    log.entryAppendWarning('plain');
+    log.entryAppendWarning('Door: why, so it is left out.', { objectName: 'Door', objectId: null });
+    const lines = linesRead(clickableView);
+    lines.at(-2)?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(activated).toEqual([]);
+    lines.at(-1)?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(activated.map((entry) => entry.objectReference?.objectName)).toEqual(['Door']);
+    expect(lines.at(-1)?.style.cursor).toBe('pointer');
+    clickableView.dispose();
   });
 
   it('stops following the log and leaves its host once disposed', () => {

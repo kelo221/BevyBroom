@@ -4,6 +4,7 @@ import type {
   ConsoleLogEntry,
   ConsoleLogLevel,
 } from '@/info_panel/console/console_log_entry.js';
+import type { GameNoticeObjectReference } from '@/project/issues/game_notice_object_reference.js';
 
 /** Most lines a console log keeps; older lines are dropped. */
 export const CONSOLE_LOG_CAPACITY_DEFAULT = 1000;
@@ -59,18 +60,20 @@ export class ConsoleLog {
    * Writes a warning line.
    *
    * @param text Message text.
+   * @param objectReference Scene object the line is about, if any.
    */
-  entryAppendWarning(text: string): void {
-    this.entryAppend('warning', text);
+  entryAppendWarning(text: string, objectReference?: GameNoticeObjectReference): void {
+    this.entryAppend('warning', text, objectReference);
   }
 
   /**
    * Writes an error line.
    *
    * @param text Message text.
+   * @param objectReference Scene object the line is about, if any.
    */
-  entryAppendError(text: string): void {
-    this.entryAppend('error', text);
+  entryAppendError(text: string, objectReference?: GameNoticeObjectReference): void {
+    this.entryAppend('error', text, objectReference);
   }
 
   /**
@@ -78,13 +81,15 @@ export class ConsoleLog {
    *
    * @param level Importance of the line.
    * @param text Message text.
+   * @param objectReference Scene object the line is about, if any.
    */
-  entryAppend(level: ConsoleLogLevel, text: string): void {
+  entryAppend(level: ConsoleLogLevel, text: string, objectReference?: GameNoticeObjectReference): void {
     const entry: ConsoleLogEntry = {
       sequence: this.nextSequence,
       level,
       timestampMilliseconds: this.clock(),
       text,
+      ...(objectReference === undefined ? {} : { objectReference }),
     };
     this.nextSequence += 1;
     this.entries.push(entry);

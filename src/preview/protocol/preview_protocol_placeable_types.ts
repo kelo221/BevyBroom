@@ -73,9 +73,20 @@ export interface PreviewPlaceableField {
   maximum?: number;
   step?: number;
   variants?: string[];
+  /** How the editor names and groups each variant of an enum field, by variant. */
+  variant_details?: Record<string, PreviewPlaceableVariantDetail>;
   asset_type?: string;
   children?: PreviewPlaceableField[];
   hidden?: boolean;
+}
+
+/**
+ * Display name and group of one enum variant, such as the label "Big fridge" in
+ * the group "Fridges & freezers" for the variant `big-fridge`.
+ */
+export interface PreviewPlaceableVariantDetail {
+  label?: string;
+  group?: string;
 }
 
 /**

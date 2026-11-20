@@ -261,6 +261,32 @@ fn class_list_fixture_parses() {
     assert_eq!(round_trip, list);
 }
 
+/// Enum fields may name and group their variants for the editor's Place browser; the shared
+/// fixture's door kind does, and the names survive a round trip.
+#[test]
+fn class_list_fixture_reads_variant_details() {
+    let json = include_str!("../../../../../fixtures/placeable_classes_sample.json");
+    let list: PlaceableClassList = serde_json::from_str(json).expect("the fixture parses");
+    let detailed = list
+        .classes
+        .iter()
+        .flat_map(|class| class.fields.iter())
+        .find(|field| !field.variant_details.is_empty())
+        .expect("a field with variant details");
+    let iron = detailed
+        .variant_details
+        .get("Iron")
+        .expect("the Iron variant");
+    assert_eq!(iron.label.as_deref(), Some("Iron door"));
+    assert_eq!(iron.group.as_deref(), Some("Metal doors"));
+    assert!(
+        detailed
+            .variant_details
+            .keys()
+            .all(|variant| detailed.variants.contains(variant))
+    );
+}
+
 /// A brush entity class that marks an area, such as a finish zone.
 #[derive(Component, Reflect, Default)]
 #[reflect(Component, Default)]

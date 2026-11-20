@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import type { Issue } from '@/info_panel/issues/issue.js';
-import { shellIssueObjectSelect } from '@/layout/shell/actions/shell_issue_object_select.js';
+import {
+  shellGameNoticeObjectSelect,
+  shellIssueObjectSelect,
+} from '@/layout/shell/actions/shell_issue_object_select.js';
 
 /**
  * Creates an issue about one object.
@@ -51,5 +54,25 @@ describe('shellIssueObjectSelect', () => {
     expect(shellIssueObjectSelect(issueAboutCreate(null), worldObject, selectionManager)).toBe(false);
     expect(shellIssueObjectSelect(issueAboutCreate(removedObject.uuid), worldObject, selectionManager)).toBe(false);
     expect(selectionManager.getAllSelectedObjectsAsArray()).toEqual([mesh]);
+  });
+});
+
+describe('shellGameNoticeObjectSelect', () => {
+  it('selects the object whose uuid the warning printed', () => {
+    const { worldObject, mesh } = worldWithNestedMeshCreate();
+    const selectionManager = new ManagerSelection();
+    const reference = { objectName: 'unrelated', objectId: mesh.uuid };
+    expect(shellGameNoticeObjectSelect(reference, worldObject, selectionManager)).toBe(true);
+    expect(selectionManager.getAllSelectedObjectsAsArray()).toContain(mesh);
+  });
+
+  it('selects the only object with the printed name when no id was printed', () => {
+    const { worldObject, mesh } = worldWithNestedMeshCreate();
+    mesh.name = 'Finish zone';
+    const selectionManager = new ManagerSelection();
+    expect(
+      shellGameNoticeObjectSelect({ objectName: 'Finish zone', objectId: null }, worldObject, selectionManager),
+    ).toBe(true);
+    expect(selectionManager.getAllSelectedObjectsAsArray()).toContain(mesh);
   });
 });

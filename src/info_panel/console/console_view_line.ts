@@ -1,5 +1,8 @@
 import type { ConsoleLogEntry } from '@/info_panel/console/console_log_entry.js';
-import { consoleViewLineElementStyle } from '@/info_panel/console/console_view_styles.js';
+import {
+  consoleViewLineElementLinkStyle,
+  consoleViewLineElementStyle,
+} from '@/info_panel/console/console_view_styles.js';
 
 /**
  * Formats the time of a console line as local hours, minutes and seconds.
@@ -33,7 +36,11 @@ export function consoleViewLineElementCreate(entry: ConsoleLogEntry): HTMLElemen
   const lineElement = document.createElement('div');
   lineElement.className = 'editor-console-line';
   lineElement.dataset['level'] = entry.level;
+  lineElement.dataset['sequence'] = String(entry.sequence);
   lineElement.textContent = consoleViewLineTextFormat(entry);
   consoleViewLineElementStyle(lineElement, entry.level);
+  if (entry.objectReference !== undefined) {
+    consoleViewLineElementLinkStyle(lineElement);
+  }
   return lineElement;
 }

@@ -76,6 +76,18 @@ pub struct CollisionPlacementProcedural {
     pub derived: serde_json::Map<String, serde_json::Value>,
     /// Derived values that are points (such as a people mover's `low_end`), in world space.
     pub derived_points_world: BTreeMap<String, [f32; 3]>,
+    /// Every convex part the generator builds, in world space, in build order.
+    #[serde(default)]
+    pub parts_world: Vec<CollisionProceduralPart>,
+}
+
+/// One convex part of a procedural object in world space: the convex hull of its points.
+#[derive(Deserialize, Clone, Debug, PartialEq)]
+pub struct CollisionProceduralPart {
+    pub name: String,
+    /// What the part is to the game: `deck`, `side`, `step`, `car`, `shaft` or `solid`.
+    pub role: String,
+    pub points: Vec<[f32; 3]>,
 }
 
 /// One object the game places: a game entity, a procedural object or an object with components.
@@ -176,6 +188,37 @@ mod tests {
                 assert!(piece.contains(Vec3::from_array(*vertex), 1e-4));
             }
         }
+    }
+
+    /// A procedural placement carries every part it draws in world space, each with a role and
+    /// at least the four corners of a solid.
+    #[test]
+    fn sample_procedural_placement_has_world_parts_with_roles() {
+        let document = CollisionDocument::parse(COLLISION_SAMPLE).expect("the sample parses");
+        let procedural = document
+            .placements
+            .iter()
+            .find_map(|placement| placement.procedural.as_ref())
+            .expect("a procedural placement");
+        assert!(!procedural.parts_world.is_empty());
+        assert!(
+            procedural
+                .parts_world
+                .iter()
+                .any(|part| part.role == "deck")
+        );
+        assert!(
+            procedural
+                .parts_world
+                .iter()
+                .any(|part| part.role == "side")
+        );
+        assert!(
+            procedural
+                .parts_world
+                .iter()
+                .all(|part| part.points.len() >= 4)
+        );
     }
 
     /// A placement's transform is its world position, rotation and scale.
