@@ -23,6 +23,11 @@ export interface ProjectWorkspaceLastLevels {
   isLevelListed(document: string): boolean;
   /** Opens a level of the open project into the scene, without asking. */
   levelOpen(document: string): Promise<{ ok: boolean }>;
+  /**
+   * Makes a listed level of the open project the open level without loading it,
+   * so the scene in the editor is saved into it and played from it.
+   */
+  levelAdopt(document: string): void;
   /** The open level as its project file and document, or null. */
   openLevelRead(): { projectFile: string; document: string } | null;
   /** Calls the listener whenever the open level or level list changes. */
@@ -85,29 +90,37 @@ export class ProjectWorkspaceLastSession {
   }
 
   /**
-   * Reopens a project, then its level unless recovered work replaced the scene.
+   * Reopens a project, then its level; when recovered work replaced the scene,
+   * the level is only made the open level so the recovered work stays.
    *
    * @param lastWorkspace Project and level to reopen.
    */
   private async workspaceReopen(lastWorkspace: ProjectWorkspaceLast): Promise<void> {
     const opened = await this.hosts.projects.projectOpen(lastWorkspace.projectFile);
     const isSceneRecovered = await this.hosts.recoveryDecided;
-    if (!opened.ok || isSceneRecovered || lastWorkspace.levelDocument === null || this.isDisposed) {
+    if (!opened.ok || lastWorkspace.levelDocument === null || this.isDisposed) {
       return;
     }
-    await this.levelReopen(lastWorkspace.levelDocument);
+    await this.levelReopen(lastWorkspace.levelDocument, isSceneRecovered);
   }
 
   /**
-   * Opens a level of the open project when the project still lists it.
+   * Opens a level of the open project when the project still lists it, or only
+   * adopts it as the open level when recovered work holds the scene.
    *
    * @param document Level document path.
+   * @param isSceneRecovered True when recovered work replaced the scene.
    */
-  private async levelReopen(document: string): Promise<void> {
+  private async levelReopen(document: string, isSceneRecovered: boolean): Promise<void> {
     await this.hosts.levels.listIdle();
-    if (!this.isDisposed && this.hosts.levels.isLevelListed(document)) {
-      await this.hosts.levels.levelOpen(document);
+    if (this.isDisposed || !this.hosts.levels.isLevelListed(document)) {
+      return;
     }
+    if (isSceneRecovered) {
+      this.hosts.levels.levelAdopt(document);
+      return;
+    }
+    await this.hosts.levels.levelOpen(document);
   }
 
   /** Remembers the workspace now and after every project or level change. */

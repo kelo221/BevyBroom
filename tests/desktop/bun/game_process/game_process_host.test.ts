@@ -153,6 +153,32 @@ describe('GameProcessHost', () => {
     expect((await host.idle()).phase).toBe('exited');
   });
 
+  /**
+   * A running game's `warning:` and `error:` lines become notices the editor
+   * shows; cargo's compiler warnings before it hands over to the game do not,
+   * and a new start forgets the notices of the previous run.
+   */
+  it('collects the warnings and errors the running game prints, and forgets them on the next start', async () => {
+    const { host, spawner } = await hostWithProjectCreate();
+    host.actionStart('launch');
+    await host.idle();
+    const game = spawner.runs[1];
+    const skippedProp =
+      'The store prop shelf names the fixture missing-id, which is not in the catalogue, so it is left out.';
+    game?.print('warning: unused variable: `compilerOnly`');
+    game?.print('     Running `target/debug/game`');
+    game?.print(`warning: ${skippedProp}`);
+    game?.print('\u001b[31merror: the save file could not be read\u001b[0m');
+    game?.print('an ordinary line');
+    expect(host.statusRead().gameNotices).toEqual([
+      expect.objectContaining({ severity: 'warning', message: skippedProp }),
+      expect.objectContaining({ severity: 'error', message: 'the save file could not be read' }),
+    ]);
+    host.actionStart('restart');
+    await host.idle();
+    expect(host.statusRead().gameNotices).toEqual([]);
+  });
+
   it('names the last line a failing game printed, and only the exit code of a game that ends well', async () => {
     const { host, spawner } = await hostWithProjectCreate();
     host.actionStart('launch');

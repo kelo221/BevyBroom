@@ -1,5 +1,37 @@
 import { keyboardShortcutCodeFromEvent } from './keyboard_event_match.js';
 
+/** Key codes of the Command (Meta) keys. */
+const MANAGER_INPUT_META_KEY_CODES: ReadonlySet<string> = new Set(['MetaLeft', 'MetaRight', 'OSLeft', 'OSRight']);
+
+/** Key codes of modifier keys, whose own keyup events always arrive. */
+const MANAGER_INPUT_MODIFIER_KEY_CODES: ReadonlySet<string> = new Set([
+  'ShiftLeft',
+  'ShiftRight',
+  'ControlLeft',
+  'ControlRight',
+  'AltLeft',
+  'AltRight',
+  'MetaLeft',
+  'MetaRight',
+  'OSLeft',
+  'OSRight',
+  'CapsLock',
+  'Fn',
+]);
+
+/**
+ * Removes every key that is not a modifier key from a key state map.
+ *
+ * @param keyStates Key code to held state map, changed in place.
+ */
+function managerInputKeyStatesReleaseExceptModifiers(keyStates: Map<string, boolean>): void {
+  for (const keyCode of [...keyStates.keys()]) {
+    if (!MANAGER_INPUT_MODIFIER_KEY_CODES.has(keyCode)) {
+      keyStates.delete(keyCode);
+    }
+  }
+}
+
 /**
  * Tracks keyboard and mouse button held state and the last known pointer client
  * position. Clears all tracked state when the owning window blurs or becomes
@@ -71,6 +103,19 @@ export class ManagerInput {
   private recordKeyState(event: KeyboardEvent, isDown: boolean): void {
     this.recordLayoutStableKeyState(event, isDown);
     this.recordPhysicalKeyState(event, isDown);
+    if (!isDown && MANAGER_INPUT_META_KEY_CODES.has(event.code)) {
+      this.keyStatesReleaseExceptModifiers();
+    }
+  }
+
+  /**
+   * Marks every held key except modifier keys as released. macOS sends no keyup
+   * for keys let go while Command is held, so releasing Command is the last
+   * moment those keys can be known to be up.
+   */
+  private keyStatesReleaseExceptModifiers(): void {
+    managerInputKeyStatesReleaseExceptModifiers(this.keyStates);
+    managerInputKeyStatesReleaseExceptModifiers(this.physicalKeyStates);
   }
 
   /**

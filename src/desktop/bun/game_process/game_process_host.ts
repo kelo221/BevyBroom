@@ -126,6 +126,7 @@ export class GameProcessHost {
       processId: this.handle?.processId ?? null,
       exitCode: this.exitCode,
       diagnostics: [...this.log.diagnosticsRead()],
+      gameNotices: [...this.log.gameNoticesRead()],
       logTail: this.log.tailRead(),
       message: this.message,
       generation: this.generation,
@@ -253,6 +254,7 @@ export class GameProcessHost {
       return;
     }
     this.phaseWrite('starting', `Starting ${launch.program}${level === null ? '' : ` in level ${level.levelId}`}.`);
+    this.log.gameBegin();
     try {
       this.handle = this.spawner.spawn(launch, (line) => this.log.lineAdd(line));
     } catch (error) {
