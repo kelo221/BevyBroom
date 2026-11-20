@@ -2,7 +2,7 @@ import type * as THREE from 'three';
 import type { CommandStack } from '@/commands/command_stack.js';
 import { GameEntityClassRegistry } from '@/game_entity/class/game_entity_class_registry.js';
 import { ConsoleLog } from '@/info_panel/console/console_log.js';
-import { ConsoleView } from '@/info_panel/console/console_view.js';
+import { ConsoleView, type ConsoleViewActivateCallback } from '@/info_panel/console/console_view.js';
 import {
   IssuesScheduler,
   type IssuesSchedulerChangeSubscribe,
@@ -74,10 +74,12 @@ export class InfoPanelSources {
   /**
    * Creates a console view of the log.
    *
+   * @param onEntryActivate Runs with the entry of a clicked line that names a
+   *   scene object.
    * @returns New view; dispose it when its tab closes.
    */
-  consoleViewCreate(): ConsoleView {
-    return new ConsoleView(this.consoleLog);
+  consoleViewCreate(onEntryActivate?: ConsoleViewActivateCallback): ConsoleView {
+    return new ConsoleView(this.consoleLog, onEntryActivate);
   }
 
   /**

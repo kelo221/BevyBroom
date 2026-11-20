@@ -233,6 +233,7 @@ describe('InfoPanelStripSummary in the info panel strip', () => {
       worldGroup: testWorld.world,
       commandStack,
       onIssueActivate: () => undefined,
+      onConsoleEntryActivate: () => undefined,
     });
     const errorText = `strip error ${consoleLog.entriesRead().length}`;
     consoleLog.entryAppendError(errorText);

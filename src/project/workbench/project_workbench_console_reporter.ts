@@ -1,6 +1,7 @@
 import { ConsoleLog } from '@/info_panel/console/console_log.js';
 import { ProjectBuildDiagnosticsParser } from '@/project/build/project_build_diagnostics_parser.js';
 import type { GameProcessStatus } from '@/project/process/game_process_types.js';
+import { gameNoticeObjectReferenceParse } from '@/project/issues/game_notice_object_reference.js';
 
 /**
  * Writes the managed game's phase changes, build errors and the warnings and
@@ -80,11 +81,12 @@ export class ProjectWorkbenchConsoleReporter {
    */
   private gameNoticeWrite(severity: 'error' | 'warning', message: string): void {
     const consoleLog = this.logResolve();
+    const objectReference = gameNoticeObjectReferenceParse(message) ?? undefined;
     if (severity === 'error') {
-      consoleLog.entryAppendError(`Game: ${message}`);
+      consoleLog.entryAppendError(`Game: ${message}`, objectReference);
       return;
     }
-    consoleLog.entryAppendWarning(`Game: ${message}`);
+    consoleLog.entryAppendWarning(`Game: ${message}`, objectReference);
   }
 
   /**

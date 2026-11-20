@@ -34,3 +34,13 @@ export function consoleViewLineElementStyle(lineElement: HTMLElement, level: Con
   lineElement.style.whiteSpace = 'pre';
   lineElement.style.color = infoPanelSeverityColorRead(level);
 }
+
+/**
+ * Marks a console line as clickable with a pointer cursor and an underline.
+ *
+ * @param lineElement Line element that selects an object when clicked.
+ */
+export function consoleViewLineElementLinkStyle(lineElement: HTMLElement): void {
+  lineElement.style.cursor = 'pointer';
+  lineElement.style.textDecoration = 'underline';
+}

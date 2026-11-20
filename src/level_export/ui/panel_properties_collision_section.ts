@@ -9,6 +9,11 @@ import { findSolidModelRoot } from '@/solid/model/solid_group.js';
 import { InputSelect, type InputSelectChoice } from '@/ui/input/input_select.js';
 import type { PanelPropertiesSection, PanelPropertiesSectionChrome } from '@/ui/properties/panel_properties_section.js';
 import { panelPropertiesRowCreate } from '@/ui/properties/panel_properties_row.js';
+import {
+  panelPropertiesCollisionAppliesToElementCreate,
+  panelPropertiesCollisionAppliesToModelsList,
+  panelPropertiesCollisionAppliesToTextCompose,
+} from '@/level_export/ui/panel_properties_collision_applies_to.js';
 
 /** Select value of objects that take the kind their classes declare. */
 const PANEL_PROPERTIES_COLLISION_DECLARED = 'declared';
@@ -28,6 +33,8 @@ const PANEL_PROPERTIES_COLLISION_LABELS: Readonly<Record<CollisionKind, string>>
 export class PanelPropertiesCollisionSection implements PanelPropertiesSection {
   private readonly section: HTMLElement;
   private readonly select: InputSelect;
+  private readonly appliesToElement: HTMLElement;
+  private selectedObjects: readonly THREE.Object3D[] = [];
   private boundRoots: THREE.Object3D[] = [];
   private commandStack: CommandStack | null = null;
 
@@ -42,6 +49,8 @@ export class PanelPropertiesCollisionSection implements PanelPropertiesSection {
     this.section.appendChild(chrome.createSectionHeader('Collision'));
     this.select = new InputSelect([], 'Collision kind');
     this.select.bindCommit(() => this.kindCommit());
+    this.appliesToElement = panelPropertiesCollisionAppliesToElementCreate();
+    this.section.appendChild(this.appliesToElement);
     this.section.appendChild(panelPropertiesRowCreate('Kind', this.select));
   }
 
@@ -72,6 +81,7 @@ export class PanelPropertiesCollisionSection implements PanelPropertiesSection {
   updateFromObjects(objects: readonly THREE.Object3D[]): void {
     const roots = objects.map((object) => PanelPropertiesCollisionSection.collisionObjectOf(object));
     const isShown = roots.length > 0 && roots.every((root) => root !== null);
+    this.selectedObjects = objects;
     this.boundRoots = isShown ? [...new Set(roots.filter((root): root is THREE.Object3D => root !== null))] : [];
     this.section.style.display = isShown ? 'block' : 'none';
     if (isShown) {
@@ -108,6 +118,18 @@ export class PanelPropertiesCollisionSection implements PanelPropertiesSection {
     this.select.setSharedValues(
       this.boundRoots.map((root) => CollisionKindStore.overrideRead(root) ?? PANEL_PROPERTIES_COLLISION_DECLARED),
     );
+    this.appliesToWrite();
+  }
+
+  /**
+   * Shows which solid models the field changes when it writes to objects other
+   * than the selected ones, and hides the line otherwise.
+   */
+  private appliesToWrite(): void {
+    const modelRoots = panelPropertiesCollisionAppliesToModelsList(this.selectedObjects, this.boundRoots);
+    const isShown = modelRoots.length > 0;
+    this.appliesToElement.style.display = isShown ? 'block' : 'none';
+    this.appliesToElement.textContent = isShown ? panelPropertiesCollisionAppliesToTextCompose(modelRoots) : '';
   }
 
   /** Applies the chosen kind to every bound object as one undo step. */

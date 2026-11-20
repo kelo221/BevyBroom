@@ -1,4 +1,5 @@
 import type { InfoPanelSeverity } from '@/info_panel/info_panel_severity.js';
+import type { GameNoticeObjectReference } from '@/project/issues/game_notice_object_reference.js';
 
 /** Importance of one console line. */
 export type ConsoleLogLevel = InfoPanelSeverity;
@@ -13,6 +14,8 @@ export interface ConsoleLogEntry {
   readonly timestampMilliseconds: number;
   /** Message text. */
   readonly text: string;
+  /** Scene object the line is about; clicking the line selects it. */
+  readonly objectReference?: GameNoticeObjectReference;
 }
 
 /** A line was written; the oldest lines may have been dropped to stay capped. */

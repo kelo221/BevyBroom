@@ -11,7 +11,11 @@ import type { AddMenuActions } from '@/layout/setup/add_menu_entries.js';
 import type { EntityBrowserPlacementHost } from '@/entity_browser/placement/entity_browser_placement_at_client_point.js';
 import type { EntityBrowserSetupHost } from '@/entity_browser/setup/entity_browser_setup.js';
 import type { Issue } from '@/info_panel/issues/issue.js';
-import { shellIssueObjectSelect } from '@/layout/shell/actions/shell_issue_object_select.js';
+import {
+  shellGameNoticeObjectSelect,
+  shellIssueObjectSelect,
+} from '@/layout/shell/actions/shell_issue_object_select.js';
+import type { ConsoleLogEntry } from '@/info_panel/console/console_log_entry.js';
 import {
   LayoutShellPanels,
   type LayoutShellPanelsDocks,
@@ -196,6 +200,7 @@ function layoutShellDockPanelsOptionsCreate(source: LayoutShellPanelsSource): La
     worldGroup: source.worldObject,
     commandStack: source.commandStack,
     onIssueActivate: (issue) => layoutShellIssueActivate(source, issue),
+    onConsoleEntryActivate: (entry) => layoutShellConsoleEntryActivate(source, entry),
   };
 }
 
@@ -207,6 +212,21 @@ function layoutShellDockPanelsOptionsCreate(source: LayoutShellPanelsSource): La
  */
 function layoutShellIssueActivate(source: LayoutShellPanelsSource, issue: Issue): void {
   if (shellIssueObjectSelect(issue, source.worldObject, source.selectionManager)) {
+    source.selectionFrameAll();
+  }
+}
+
+/**
+ * Selects the object a clicked console line names and frames it in every view.
+ *
+ * @param source Editor parts with the selection and world.
+ * @param entry Activated console line.
+ */
+function layoutShellConsoleEntryActivate(source: LayoutShellPanelsSource, entry: ConsoleLogEntry): void {
+  if (
+    entry.objectReference !== undefined &&
+    shellGameNoticeObjectSelect(entry.objectReference, source.worldObject, source.selectionManager)
+  ) {
     source.selectionFrameAll();
   }
 }

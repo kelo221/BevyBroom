@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { CommandStack } from '@/commands/command_stack.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import { CollisionKindStore } from '@/level_export/kind/collision_kind_store.js';
+import { PANEL_PROPERTIES_COLLISION_APPLIES_TO_CLASS } from '@/level_export/ui/panel_properties_collision_applies_to.js';
 import { PanelPropertiesCollisionSection } from '@/level_export/ui/panel_properties_collision_section.js';
 import { PanelPropertiesSectionRegistry } from '@/ui/properties/panel_properties_section_registry.js';
 import { SolidOperation } from '@/solid/types/solid_operation.js';
@@ -97,5 +98,38 @@ describe('PanelPropertiesCollisionSection', () => {
     kindPick(section, 'volume');
     expect(CollisionKindStore.overrideRead(zoneBrush)).toBe('volume');
     expect(CollisionKindStore.overrideRead(model.root)).toBeNull();
+  });
+
+  /**
+   * Editing a brush writes to its whole model, so the section says which model
+   * and how many brushes the change reaches; objects that edit themselves get
+   * no such line.
+   */
+  it('says which whole model a selected brush edits and hides the line for objects that edit themselves', () => {
+    const model = collisionTestModelCreate([
+      { box, operation: SolidOperation.Additive },
+      { box, operation: SolidOperation.Additive },
+      { box, operation: SolidOperation.Additive },
+    ]);
+    model.root.name = 'Harbour';
+    const line = (section: PanelPropertiesCollisionSection): HTMLElement | null =>
+      section.getElement().querySelector<HTMLElement>(`.${PANEL_PROPERTIES_COLLISION_APPLIES_TO_CLASS}`);
+    const section = new PanelPropertiesCollisionSection(chrome);
+    section.updateFromObjects([model.findBrush('brush-0')?.mesh ?? model.root]);
+    expect(line(section)?.style.display).toBe('block');
+    expect(line(section)?.textContent).toBe(`Applies to the whole model Harbour: ${model.getBrushCount()} brushes`);
+    section.updateFromObjects([model.root]);
+    expect(line(section)?.style.display).toBe('none');
+  });
+
+  it('says so when the selected brushes belong to several models', () => {
+    const models = [
+      collisionTestModelCreate([{ box, operation: SolidOperation.Additive }]),
+      collisionTestModelCreate([{ box, operation: SolidOperation.Additive }]),
+    ];
+    const section = new PanelPropertiesCollisionSection(chrome);
+    section.updateFromObjects(models.map((model) => model.findBrush('brush-0')?.mesh ?? model.root));
+    const lineText = section.getElement().querySelector(`.${PANEL_PROPERTIES_COLLISION_APPLIES_TO_CLASS}`)?.textContent;
+    expect(lineText).toBe(`Applies to ${models.length} whole models: ${models.length} brushes in total`);
   });
 });

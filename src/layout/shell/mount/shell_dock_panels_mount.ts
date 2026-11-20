@@ -4,6 +4,7 @@ import { PanelLayers, type PanelLayersDependencies } from '@/layer/ui/panel_laye
 import { InfoPanelSources } from '@/info_panel/info_panel_sources.js';
 import type { InfoPanelView } from '@/info_panel/info_panel_view.js';
 import type { InfoPanelStripSummary } from '@/info_panel/strip/info_panel_strip_summary.js';
+import type { ConsoleLogEntry } from '@/info_panel/console/console_log_entry.js';
 import type { Issue } from '@/info_panel/issues/issue.js';
 import type { ShellInspector } from '@/layout/shell/inspector/shell_inspector.js';
 import type { ShellInfoPanel } from '@/layout/shell/info_panel/shell_info_panel.js';
@@ -22,6 +23,8 @@ export interface ShellDockPanelsMountOptions {
   commandStack: Pick<CommandStack, 'onStackChanged' | 'offStackChanged'>;
   /** Runs with the issue of a clicked issues row. */
   onIssueActivate: (issue: Issue) => void;
+  /** Runs with the entry of a clicked console line that names a scene object. */
+  onConsoleEntryActivate: (entry: ConsoleLogEntry) => void;
 }
 
 /**
@@ -47,7 +50,10 @@ export class ShellDockPanelsMount {
       commandStack: options.commandStack,
     });
     this.infoPanelViews = [
-      this.infoPanelViewMount(options.infoPanel.slotRead('console'), this.infoPanelSources.consoleViewCreate()),
+      this.infoPanelViewMount(
+        options.infoPanel.slotRead('console'),
+        this.infoPanelSources.consoleViewCreate((entry) => options.onConsoleEntryActivate(entry)),
+      ),
       this.infoPanelViewMount(
         options.infoPanel.slotRead('issues'),
         this.infoPanelSources.issuesViewCreate((issue) => options.onIssueActivate(issue)),
