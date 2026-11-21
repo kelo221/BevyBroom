@@ -13,6 +13,7 @@ import {
   type PreviewPlaceableVariantDetail,
 } from '@/preview/protocol/preview_protocol_placeable_types.js';
 import { gameEntityFieldValueFromUnknown } from '@/game_entity/component/game_entity_component_value.js';
+import { gameEntityVariantLightFromUnknown } from '@/game_entity/class/game_entity_class_variant_light.js';
 
 /** One placeable component type of the game, as the editor shows it. */
 export type GameEntityClass = PreviewPlaceableClass;
@@ -188,7 +189,7 @@ export function gameEntityMarkerBoxFromUnknown(value: unknown): GameEntityMarker
  * @param value Any value.
  * @returns The three numbers, or null when the value is not such a list.
  */
-function gameEntityVector3Read(value: unknown): [number, number, number] | null {
+export function gameEntityVector3Read(value: unknown): [number, number, number] | null {
   if (!Array.isArray(value) || value.length !== 3) {
     return null;
   }
@@ -303,10 +304,11 @@ function gameEntityFieldVariantDetailsRead(value: Record<string, unknown>, field
 }
 
 /**
- * Reads the label and group of one enum variant.
+ * Reads the label, group and light of one enum variant.
  *
  * @param value Untrusted variant detail.
- * @returns Detail with its filled texts, or null when it has none.
+ * @returns Detail with its filled texts and valid light, or null when it has
+ *   none.
  */
 function gameEntityVariantDetailFromUnknown(value: unknown): GameEntityVariantDetail | null {
   if (!gameEntityRecordIs(value)) {
@@ -318,6 +320,10 @@ function gameEntityVariantDetailFromUnknown(value: unknown): GameEntityVariantDe
   }
   if (gameEntityTextIsFilled(value['group'])) {
     detail.group = value['group'];
+  }
+  const light = gameEntityVariantLightFromUnknown(value['light']);
+  if (light !== null) {
+    detail.light = light;
   }
   return Object.keys(detail).length > 0 ? detail : null;
 }
@@ -384,7 +390,7 @@ export function gameEntityRecordIs(value: unknown): value is Record<string, unkn
  * @param value Any value.
  * @returns True for non-blank strings.
  */
-function gameEntityTextIsFilled(value: unknown): value is string {
+export function gameEntityTextIsFilled(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '';
 }
 

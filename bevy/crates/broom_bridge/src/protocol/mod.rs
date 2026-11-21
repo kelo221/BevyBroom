@@ -54,6 +54,8 @@ pub use placeable::{
     AuthoredComponents, AuthoredLogicOutput, PlaceableAssetType, PlaceableClass,
     PlaceableClassList, PlaceableCollisionKind, PlaceableField, PlaceableFieldKind,
     PlaceableIoParameterKind, PlaceableIoPin, PlaceableMarkerBox, PlaceablePlacement,
+    PlaceableVariantDetail, PlaceableVariantLight, PlaceableVariantLightFog,
+    PlaceableVariantLightKind,
 };
 pub use portal::{AuthoredPortal, AuthoredRoom};
 pub use revision::{RevisionGate, RevisionVerdict};

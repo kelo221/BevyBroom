@@ -79,15 +79,16 @@ export class LightDefinition extends EntityDefinition<LightSettings> {
   }
 
   /**
-   * Returns the settings with the radius, and with it the fog radius,
-   * multiplied by the scale factor.
+   * Returns the settings with the radius, and with it the fog radius, and the
+   * tube length multiplied by the scale factor.
    *
    * @param settings Current light settings.
    * @param factor Positive uniform scale factor.
-   * @returns Settings with the scaled radii.
+   * @returns Settings with the scaled radii and length.
    */
   override scaleAbsorb(settings: LightSettings, factor: number): LightSettings {
-    return lightSettingsRadiusWrite(settings, settings.radius * factor);
+    const scaledRadius = lightSettingsRadiusWrite(settings, settings.radius * factor);
+    return { ...scaledRadius, tubeLength: settings.tubeLength * factor };
   }
 
   /**

@@ -72,13 +72,63 @@ pub struct PlaceableField {
     pub hidden: bool,
 }
 
-/// The display name and group of one enum variant, such as "Big fridge" in "Fridges & freezers".
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
+/// The display name and group of one enum variant, such as "Big fridge" in "Fridges & freezers",
+/// and the light an entity holding the variant carries, such as a fluorescent fixture's tube.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 pub struct PlaceableVariantDetail {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
+    /// The light the editor adds as a child of an entity holding this variant.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub light: Option<PlaceableVariantLight>,
+}
+
+/// The shape of a variant's light.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PlaceableVariantLightKind {
+    /// A line of light from `from` to `to`.
+    Tube,
+    /// A point of light at `at`.
+    Point,
+}
+
+/// The light an entity holding an enum variant carries. Positions are metres in the entity's
+/// own space; the color is linear, 0 to 1 per channel.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct PlaceableVariantLight {
+    pub kind: PlaceableVariantLightKind,
+    /// Tube only: one end.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from: Option<[f32; 3]>,
+    /// Tube only: the other end.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub to: Option<[f32; 3]>,
+    /// Point only: where the light sits.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<[f32; 3]>,
+    pub color: [f32; 3],
+    pub intensity: f32,
+    /// Metres from the light where its light ends.
+    pub radius: f32,
+    /// A DynLight effect kind in snake case, such as `fluorescent_starter`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effect: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fog: Option<PlaceableVariantLightFog>,
+}
+
+/// Volumetric fog hanging from a variant's light down to the floor and `below_floor_m` more.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+pub struct PlaceableVariantLightFog {
+    pub intensity: f32,
+    pub thickness: f32,
+    /// Distance in metres within which objects inside the fog stay clearly visible.
+    pub visibility_m: f32,
+    /// How far below the floor the fog reaches, in metres.
+    pub below_floor_m: f32,
 }
 
 /// Where a placeable class may be attached.

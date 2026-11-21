@@ -104,6 +104,8 @@ export interface ObjectEntry {
   visGroupIds?: string[];
   /** Name of the sprinkle definition that created this entity (editor-only). */
   sprinkleDefinition?: string;
+  /** Variant key of the parent entity this light was made from (editor-only). */
+  fixtureLightOf?: string;
   /** Re-editable 2D Polygon outline extrusion recipe on this brush or group. */
   polygonOutline?: import('@/tools/polygon/polygon_outline_recipe.js').PolygonOutlineRecipe;
   /** Present for a modifier volume: its ordered modifier stack (schema 8). */

@@ -52,7 +52,7 @@ describe('createAddMenuEntries', () => {
     expect(getEntryLabels(getSubmenuChildren(entries[3]!))).toEqual(
       modifierVolumeTemplates.map((template) => template.label),
     );
-    expect(getEntryLabels(getSubmenuChildren(entries[4]!))).toEqual(['Point Light', 'Spot Light']);
+    expect(getEntryLabels(getSubmenuChildren(entries[4]!))).toEqual(['Point Light', 'Spot Light', 'Tube Light']);
     expect(getEntryLabels(getSubmenuChildren(entries[5]!))).toEqual(['Room', 'Portal']);
   });
 

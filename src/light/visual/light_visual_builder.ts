@@ -3,9 +3,16 @@ import { type EntityGuideLineStyle, EntityVisualBuilder } from '@/entity/visual/
 import { entitySelectedOnlyFlag } from '@/entity/selection/entity_selection_state.js';
 import { EntityVisualPointBox } from '@/entity/visual/entity_visual_point_box.js';
 import { EntityVisualShapes } from '@/entity/visual/entity_visual_shapes.js';
-import type { LightSettings } from '@/light/model/light_settings.js';
+import type { LightKind, LightSettings } from '@/light/model/light_settings.js';
 import { LightVisualFog } from '@/light/visual/light_visual_fog.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
+
+/** Icon of each light kind. */
+const LIGHT_KIND_ICONS: Readonly<Record<LightKind, IconName>> = {
+  point: 'lightbulb',
+  spot: 'spotlight-beam',
+  tube: 'lightbulb-fluorescent-tube',
+};
 
 /** Opacity of the box and icon of a disabled light. */
 const LIGHT_DISABLED_OPACITY = 0.35;
@@ -32,7 +39,7 @@ const LIGHT_AXIS_Z = new THREE.Vector3(0, 0, 1);
  * Builds and refreshes the editor-only visuals of a light owner: a clickable
  * box with a camera-facing icon tinted with the light color and, while the
  * light is selected, range circles, a spot cone along −Z and the outline of its
- * fog volume.
+ * fog volume. A tube always shows its line along local X.
  */
 export class LightVisualBuilder {
   /**
@@ -50,6 +57,24 @@ export class LightVisualBuilder {
       opacity: settings.enabled ? 1 : LIGHT_DISABLED_OPACITY,
     });
     LightVisualBuilder.guidesAdd(owner, settings);
+    LightVisualBuilder.tubeLineAddIfTube(owner, settings);
+  }
+
+  /**
+   * Adds the always drawn line of a tube light: its full length along the
+   * owner's local X axis, centred on the owner.
+   *
+   * @param owner Light owner group.
+   * @param settings Settings the line shows.
+   */
+  private static tubeLineAddIfTube(owner: THREE.Object3D, settings: LightSettings): void {
+    if (settings.kind !== 'tube') {
+      return;
+    }
+    const halfLength = settings.tubeLength / 2;
+    const points = [new THREE.Vector3(-halfLength, 0, 0), new THREE.Vector3(halfLength, 0, 0)];
+    const style: EntityGuideLineStyle = { colorHex: settings.colorHex, opacity: 1, dashed: false };
+    owner.add(EntityVisualBuilder.linesCreate(points, style, 'Light Tube'));
   }
 
   /**
@@ -74,13 +99,14 @@ export class LightVisualBuilder {
   }
 
   /**
-   * Returns the icon of a light: a bulb for point lights and a beam for spots.
+   * Returns the icon of a light: a bulb for point lights, a beam for spots and
+   * a fluorescent tube for tubes.
    *
    * @param settings Light settings.
    * @returns Icon name.
    */
   static iconNameOf(settings: LightSettings): IconName {
-    return settings.kind === 'spot' ? 'spotlight-beam' : 'lightbulb';
+    return LIGHT_KIND_ICONS[settings.kind];
   }
 
   /**

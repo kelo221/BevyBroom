@@ -1,5 +1,6 @@
 import type * as THREE from 'three';
 import type { UndoCommand } from '@/commands/command_undo.js';
+import { entityOwnerChildOwners } from '@/entity/model/entity_owner_keys.js';
 import { EntityOwnerRegistry } from '@/entity/registry/entity_owner_registry.js';
 import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
 
@@ -12,9 +13,10 @@ interface EntityDuplicatePlacement {
 
 /**
  * Undoable duplication of entity owners of any kind. Each copy keeps the source
- * transform, settings, visibility, parent and the data features store on it,
- * and is placed directly after its source. The same copies are reused across
- * undo and redo so their identifiers stay stable.
+ * transform, settings, visibility, parent, the data features store on it and
+ * copies of the entity owners nested under it, and is placed directly after its
+ * source. The same copies are reused across undo and redo so their identifiers
+ * stay stable.
  */
 export class CommandEntityDuplicate implements UndoCommand {
   private readonly placements: EntityDuplicatePlacement[];
@@ -66,10 +68,25 @@ export class CommandEntityDuplicate implements UndoCommand {
    */
   private placementAppend(sourceOwner: THREE.Object3D): void {
     const parent = sourceOwner.parent;
+    const clone = CommandEntityDuplicate.ownerCopyCreate(sourceOwner);
+    if (parent === null || clone === null) {
+      return;
+    }
+    this.placements.push({ clone, source: sourceOwner, parent });
+  }
+
+  /**
+   * Builds the copy of one owner with copies of the entity owners nested under
+   * it, such as the light of a store fixture.
+   *
+   * @param sourceOwner Entity owner to copy.
+   * @returns Detached copy, or null when the object is not an entity owner.
+   */
+  private static ownerCopyCreate(sourceOwner: THREE.Object3D): THREE.Group | null {
     const entityOwner = EntityOwnerRegistry.find(sourceOwner);
     const settings = entityOwner?.settingsRead(sourceOwner) ?? null;
-    if (parent === null || entityOwner === null || settings === null) {
-      return;
+    if (entityOwner === null || settings === null) {
+      return null;
     }
     const clone = entityOwner.create(sourceOwner.name, settings);
     clone.position.copy(sourceOwner.position);
@@ -77,7 +94,10 @@ export class CommandEntityDuplicate implements UndoCommand {
     clone.scale.copy(sourceOwner.scale);
     clone.visible = sourceOwner.visible;
     ObjectDataContributorRegistry.duplicateDataCopy(sourceOwner, clone);
-    this.placements.push({ clone, source: sourceOwner, parent });
+    entityOwnerChildOwners(sourceOwner)
+      .map((child) => CommandEntityDuplicate.ownerCopyCreate(child))
+      .forEach((childCopy) => childCopy && clone.add(childCopy));
+    return clone;
   }
 
   /**

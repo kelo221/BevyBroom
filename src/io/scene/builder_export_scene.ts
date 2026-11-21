@@ -4,7 +4,7 @@ import { SolidModel } from '@/solid/model/solid_model.js';
 import { CONTENT_METALNESS, CONTENT_ROUGHNESS } from '@/materials/factory_content_material.js';
 import { isContentViewLitMaterial } from '@/materials/factory_content_view_lit_material.js';
 import { isDefaultSurfaceTexture } from '@/texture/library/factory_debug_texture.js';
-import { entityOwnerIs } from '@/entity/model/entity_owner_keys.js';
+import { entityOwnerChildOwners, entityOwnerIs } from '@/entity/model/entity_owner_keys.js';
 import { shouldOmitFromExport } from '@/io/scene/export_object_omission.js';
 import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
 import { LightmapUvLayout } from '@/io/glb/lightmap/lightmap_uv_layout.js';
@@ -129,15 +129,21 @@ function cloneOmittedObjectForExport(object: THREE.Object3D, options: ExportScen
 
 /**
  * Clones an entity owner as a group holding the export children an object data
- * contributor builds for it.
+ * contributor builds for it and the exports of the entity owners nested under
+ * it.
  *
  * @param owner Entity owner.
  * @param options Export behavior switches.
- * @returns Export group, or null when no contributor exports the owner.
+ * @returns Export group, or null when neither a contributor nor a nested owner
+ *   exports anything.
  */
 function cloneEntityOwnerForExport(owner: THREE.Object3D, options: ExportSceneOptions): THREE.Group | null {
-  const children = ObjectDataContributorRegistry.exportEntityChildrenCreate(owner, options);
-  if (children === null) return null;
+  const nestedOwners = entityOwnerChildOwners(owner)
+    .map((child) => cloneObjectForExport(child, options))
+    .filter((clone): clone is THREE.Object3D => clone !== null);
+  const ownChildren = ObjectDataContributorRegistry.exportEntityChildrenCreate(owner, options);
+  if (ownChildren === null && nestedOwners.length === 0) return null;
+  const children = [...(ownChildren ?? []), ...nestedOwners];
   const group = new THREE.Group();
   copyObjectTransformAndIdentity(owner, group, options);
   group.name = owner.name;

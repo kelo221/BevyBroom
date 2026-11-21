@@ -19,6 +19,8 @@ pub enum AuthoredLightType {
     Point,
     /// A cone along the light's local −Z axis.
     Spot,
+    /// A line of light along the light's local +X axis, centred on it, `length` long.
+    Tube,
 }
 
 /// How a light casts shadows; mirrors DynLight's `ShadowMode`.
@@ -36,6 +38,9 @@ pub enum AuthoredShadowMode {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct AuthoredLight {
     pub light_type: AuthoredLightType,
+    /// Tube only: meters along the light's local +X axis, centred on it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub length: Option<f32>,
     /// sRGB color, 0 to 1 per channel.
     pub color: [f32; 3],
     pub intensity: f32,
@@ -94,6 +99,7 @@ impl Default for AuthoredLight {
     fn default() -> Self {
         Self {
             light_type: AuthoredLightType::Point,
+            length: None,
             color: [1.0, 1.0, 1.0],
             intensity: LIGHT_INTENSITY,
             radius: LIGHT_RADIUS,
@@ -141,10 +147,20 @@ impl AuthoredLight {
             return Err(format!("intensity {} must not be negative", self.intensity));
         }
         self.validate_features()?;
-        if self.light_type == AuthoredLightType::Spot {
-            return self.validate_cone();
+        match self.light_type {
+            AuthoredLightType::Spot => self.validate_cone(),
+            AuthoredLightType::Tube => self.validate_tube(),
+            AuthoredLightType::Point => Ok(()),
         }
-        Ok(())
+    }
+
+    /// Tubes need a finite `length` above zero.
+    fn validate_tube(&self) -> Result<(), String> {
+        match self.length {
+            Some(length) if length.is_finite() && length > 0.0 => Ok(()),
+            Some(length) => Err(format!("tube length {length} must be above zero")),
+            None => Err("a tube light needs a length".into()),
+        }
     }
 
     /// Explains the first invalid value of the effect, fog, shimmer or bounce.

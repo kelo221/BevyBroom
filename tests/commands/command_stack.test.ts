@@ -352,4 +352,36 @@ describe('CommandStack recording', () => {
     expect(stack.undoTrimmedTotalRead()).toBe(pushedCount - maxSize);
     expect(stack.getUndoCount()).toBe(maxSize);
   });
+
+  it('runs follow-ups after a command and undoes and redoes them with it as one entry', () => {
+    const stack = new CommandStack(10);
+    const order: string[] = [];
+    let followUpWanted = true;
+    stack.followUpProviderAdd(() => {
+      if (!followUpWanted) {
+        return null;
+      }
+      followUpWanted = false;
+      return { execute: () => order.push('follow-up'), undo: () => order.push('follow-up undone') };
+    });
+    stack.push({ execute: () => order.push('edit'), undo: () => order.push('edit undone') });
+    expect(order).toEqual(['edit', 'follow-up']);
+    expect(stack.getUndoCount()).toBe(1);
+    stack.undo();
+    expect(order.slice(2)).toEqual(['follow-up undone', 'edit undone']);
+    stack.redo();
+    expect(order.slice(4)).toEqual(['edit', 'follow-up']);
+  });
+
+  it('records a command alone when no follow-up is wanted and stops asking a removed provider', () => {
+    const stack = new CommandStack(10);
+    const provider = vi.fn(() => null);
+    const remove = stack.followUpProviderAdd(provider);
+    const command = new TestCommand('alone');
+    stack.push(command);
+    expect(stack.peekUndo()).toBe(command);
+    remove();
+    stack.push(new TestCommand('later'));
+    expect(provider).toHaveBeenCalledTimes(1);
+  });
 });

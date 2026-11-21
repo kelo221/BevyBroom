@@ -8,7 +8,7 @@ use crate::placeables::class_list;
 use crate::placeables::{BroomProperties, PlaceableAssetTypes, PlaceableClasses};
 use crate::protocol::{
     PlaceableClass, PlaceableClassList, PlaceableCollisionKind, PlaceableField, PlaceableFieldKind,
-    PlaceableMarkerBox, PlaceablePlacement,
+    PlaceableMarkerBox, PlaceablePlacement, PlaceableVariantLight, PlaceableVariantLightKind,
 };
 use crate::test_support::TemporaryDirectory;
 
@@ -287,6 +287,29 @@ fn class_list_fixture_reads_variant_details() {
             .keys()
             .all(|variant| detailed.variants.contains(variant))
     );
+}
+
+/// A variant may carry the light the editor adds to entities holding it; the shared fixture's
+/// glass door carries a fogged tube, and the light survives a round trip.
+#[test]
+fn class_list_fixture_reads_variant_lights() {
+    let json = include_str!("../../../../../fixtures/placeable_classes_sample.json");
+    let list: PlaceableClassList = serde_json::from_str(json).expect("the fixture parses");
+    let light = list
+        .classes
+        .iter()
+        .flat_map(|class| class.fields.iter())
+        .flat_map(|field| field.variant_details.values())
+        .find_map(|detail| detail.light.clone())
+        .expect("a variant with a light");
+    assert_eq!(light.kind, PlaceableVariantLightKind::Tube);
+    assert!(light.from.is_some() && light.to.is_some() && light.at.is_none());
+    assert_eq!(light.effect.as_deref(), Some("fluorescent_starter"));
+    let fog = light.fog.expect("the tube has fog");
+    assert!(fog.below_floor_m >= 0.0);
+    let round_trip: PlaceableVariantLight =
+        serde_json::from_value(serde_json::to_value(&light).expect("serializes")).expect("parses");
+    assert_eq!(round_trip, light);
 }
 
 /// A class may name the editor icon of its markers; the shared fixture's door does, and the

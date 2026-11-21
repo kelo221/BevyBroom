@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  LIGHT_KINDS,
+  LIGHT_MIN_TUBE_LENGTH,
   LIGHT_MAX_CUTOFF_DEGREES,
   LIGHT_MIN_RADIUS,
   lightSettingsClone,
@@ -14,8 +16,8 @@ import {
  * file and the game preview, so they must stay valid whatever the input.
  */
 describe('light settings', () => {
-  it('creates valid defaults for both kinds with the spot cone inside its outer angle', () => {
-    for (const kind of ['point', 'spot'] as const) {
+  it('creates valid defaults for every kind with the spot cone inside its outer angle', () => {
+    for (const kind of LIGHT_KINDS) {
       const settings = lightSettingsCreateDefault(kind);
       expect(settings.kind).toBe(kind);
       expect(settings.radius).toBeGreaterThanOrEqual(LIGHT_MIN_RADIUS);
@@ -57,5 +59,14 @@ describe('light settings', () => {
     expect(lightSettingsFromUnknown(stored)).toEqual(lightSettingsCreateDefault('spot'));
     expect(lightSettingsFromUnknown(null)).toBeNull();
     expect(lightSettingsFromUnknown('spot')).toBeNull();
+  });
+
+  it('keeps tubes as tubes with a length of at least the shortest tube and reads unknown kinds as points', () => {
+    const tube = lightSettingsCreateDefault('tube');
+    expect(tube.tubeLength).toBeGreaterThanOrEqual(LIGHT_MIN_TUBE_LENGTH);
+    expect(lightSettingsSanitize({ ...tube, tubeLength: 0 }).tubeLength).toBe(LIGHT_MIN_TUBE_LENGTH);
+    expect(lightSettingsSanitize({ ...tube, tubeLength: Number.NaN }).tubeLength).toBe(tube.tubeLength);
+    expect(lightSettingsFromUnknown({ kind: 'tube', tubeLength: 2.5 })?.tubeLength).toBe(2.5);
+    expect(lightSettingsFromUnknown({ kind: 'laser' })?.kind).toBe('point');
   });
 });

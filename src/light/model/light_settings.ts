@@ -25,8 +25,14 @@ import {
   lightSettingsShimmerSanitize,
 } from '@/light/model/features/light_settings_shimmer.js';
 
-/** Light shapes the editor authors. Spots shine along the owner's local −Z axis. */
-export type LightKind = 'point' | 'spot';
+/**
+ * Light shapes the editor authors. Spots shine along the owner's local −Z axis;
+ * tubes run along the owner's local +X axis, centred on it.
+ */
+export const LIGHT_KINDS = ['point', 'spot', 'tube'] as const;
+
+/** One light shape the editor authors. */
+export type LightKind = (typeof LIGHT_KINDS)[number];
 
 /** How a light casts shadows in the game's DynLight renderer. */
 export type LightShadowMode = 'raytraced' | 'realtime';
@@ -49,6 +55,8 @@ export interface LightSettingsCore {
   innerCutoffDegrees: number;
   /** Spot only: degrees from the axis where the light ends. */
   outerCutoffDegrees: number;
+  /** Tube only: meters along the owner's local +X axis, centred on the owner. */
+  tubeLength: number;
   /** Never baked: evaluated live so it can move freely. */
   realtime: boolean;
   /** Raytraced uses baked shadows; realtime adds a live shadow cubemap. */
@@ -77,10 +85,32 @@ export const LIGHT_MIN_OUTER_CUTOFF_DEGREES = 0.5;
 /** Smallest radius the editor allows, in meters. */
 export const LIGHT_MIN_RADIUS = 0.05;
 
+/** Shortest tube the editor allows, in meters. */
+export const LIGHT_MIN_TUBE_LENGTH = 0.01;
+
+/** Color, intensity and radius a new light of each kind starts with. */
+const LIGHT_KIND_LOOK_DEFAULTS: Readonly<
+  Record<LightKind, Pick<LightSettingsCore, 'colorHex' | 'intensity' | 'radius'>>
+> = {
+  point: { colorHex: 0xffe2b8, intensity: 2, radius: 5 },
+  spot: { colorHex: 0xfff2dd, intensity: 3, radius: 8 },
+  tube: { colorHex: 0xe8f4ff, intensity: 1, radius: 6 },
+};
+
+/**
+ * Reads a light kind from untrusted data.
+ *
+ * @param value Any value.
+ * @returns The kind it names, or point for anything else.
+ */
+export function lightKindRead(value: unknown): LightKind {
+  return LIGHT_KINDS.find((kind) => kind === value) ?? 'point';
+}
+
 /**
  * Returns default settings for a new light of the given kind.
  *
- * @param kind Point or spot.
+ * @param kind Point, spot or tube.
  * @returns Fresh settings object.
  */
 export function lightSettingsCreateDefault(kind: LightKind): LightSettings {
@@ -97,18 +127,17 @@ export function lightSettingsCreateDefault(kind: LightKind): LightSettings {
 /**
  * Returns the default core fields of a new light of the given kind.
  *
- * @param kind Point or spot.
+ * @param kind Point, spot or tube.
  * @returns Fresh core settings.
  */
 function lightSettingsCoreCreateDefault(kind: LightKind): LightSettingsCore {
   return {
     kind,
-    colorHex: kind === 'spot' ? 0xfff2dd : 0xffe2b8,
-    intensity: kind === 'spot' ? 3 : 2,
-    radius: kind === 'spot' ? 8 : 5,
+    ...LIGHT_KIND_LOOK_DEFAULTS[kind],
     falloff: 0,
     innerCutoffDegrees: 26,
     outerCutoffDegrees: 30,
+    tubeLength: 1.2,
     realtime: false,
     shadows: 'raytraced',
     enabled: true,
@@ -173,13 +202,14 @@ function lightSettingsCoreSanitize(settings: LightSettingsCore): LightSettingsCo
   );
   const innerFallback = Math.min(outer, defaults.innerCutoffDegrees);
   return {
-    kind: settings.kind === 'spot' ? 'spot' : 'point',
+    kind: lightKindRead(settings.kind),
     colorHex: Math.round(entityNumberClamp(settings.colorHex, 0, 0xffffff, defaults.colorHex)),
     intensity: entityNumberClamp(settings.intensity, 0, 1e6, defaults.intensity),
     radius: entityNumberClamp(settings.radius, LIGHT_MIN_RADIUS, 1e5, defaults.radius),
     falloff: entityNumberClamp(settings.falloff, 0, 1, defaults.falloff),
     innerCutoffDegrees: entityNumberClamp(settings.innerCutoffDegrees, 0, outer, innerFallback),
     outerCutoffDegrees: outer,
+    tubeLength: entityNumberClamp(settings.tubeLength, LIGHT_MIN_TUBE_LENGTH, 1e3, defaults.tubeLength),
     realtime: settings.realtime === true,
     shadows: settings.shadows === 'realtime' ? 'realtime' : 'raytraced',
     enabled: settings.enabled !== false,
@@ -197,6 +227,6 @@ export function lightSettingsFromUnknown(value: unknown): LightSettings | null {
     return null;
   }
   const source = value as Partial<LightSettings>;
-  const kind: LightKind = source.kind === 'spot' ? 'spot' : 'point';
+  const kind = lightKindRead(source.kind);
   return lightSettingsSanitize({ ...lightSettingsCreateDefault(kind), ...source, kind });
 }

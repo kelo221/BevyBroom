@@ -127,6 +127,9 @@ function addMenuSectionBrushes(actions: AddMenuActions): ToolbarMenuEntry {
   };
 }
 
+/** Radius in meters a new light keeps clear of other objects when placed. */
+const ADD_MENU_LIGHT_PLACEMENT_RADIUS = 0.25;
+
 /**
  * Builds the Lights submenu.
  *
@@ -141,6 +144,12 @@ function addMenuSectionLights(actions: AddMenuActions): ToolbarMenuEntry {
     children: [
       addMenuSectionLightEntry('Point Light', 'point', () => actions.onAddPointLight()),
       addMenuSectionLightEntry('Spot Light', 'spot', () => actions.onAddSpotLight()),
+      addMenuSectionLightEntry('Tube Light', 'tube', () =>
+        actions.onAddEntityPlaced(
+          () => LightOwner.createDefault('Tube Light', 'tube'),
+          ADD_MENU_LIGHT_PLACEMENT_RADIUS,
+        ),
+      ),
     ],
   };
 }
@@ -149,7 +158,7 @@ function addMenuSectionLights(actions: AddMenuActions): ToolbarMenuEntry {
  * Builds the entry that adds one kind of light.
  *
  * @param label Visible label.
- * @param lightKind Point or spot.
+ * @param lightKind Point, spot or tube.
  * @param onClick Creation callback.
  * @returns Menu action with catalog information.
  */

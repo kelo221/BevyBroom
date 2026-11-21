@@ -92,6 +92,43 @@ fn spot_cones_must_be_ordered_and_open() {
     assert!(state_with_light(no_radius).validate().is_err());
 }
 
+/// A tube needs a length above zero; the editor writes it only for tubes.
+#[test]
+fn tubes_need_a_positive_length() {
+    let tube = |length| AuthoredLight {
+        light_type: AuthoredLightType::Tube,
+        length,
+        ..default()
+    };
+    assert!(state_with_light(tube(Some(1.2))).validate().is_ok());
+    assert!(state_with_light(tube(Some(0.0))).validate().is_err());
+    assert!(state_with_light(tube(Some(f32::NAN))).validate().is_err());
+    assert!(state_with_light(tube(None)).validate().is_err());
+    let json = r#"{ "light_type": "tube", "length": 1.5, "color": [1, 1, 1], "intensity": 1, "radius": 6 }"#;
+    let parsed: AuthoredLight = serde_json::from_str(json).expect("the tube parses");
+    assert_eq!(parsed.light_type, AuthoredLightType::Tube);
+    assert_eq!(parsed.length, Some(1.5));
+    let point = serde_json::to_value(AuthoredLight::default()).expect("serializes");
+    assert!(point.get("length").is_none());
+}
+
+/// A tube becomes DynLight's tube: its length is the area size along local +X.
+#[cfg(feature = "dynlight")]
+#[test]
+fn tubes_become_dynlight_tubes_of_their_length() {
+    let length = 1.25;
+    let tube = AuthoredLight {
+        light_type: AuthoredLightType::Tube,
+        length: Some(length),
+        ..default()
+    };
+    let dynamic = tube.to_dynamic_light();
+    let preset = dynlight::light::DynamicLight::tube(length);
+    assert_eq!(dynamic.light_type, preset.light_type);
+    assert_eq!(dynamic.size, preset.size);
+    assert_eq!(AuthoredLight::default().to_dynamic_light().size, Vec2::ZERO);
+}
+
 #[cfg(feature = "dynlight")]
 #[test]
 fn authored_lights_become_valid_dynamic_lights() {

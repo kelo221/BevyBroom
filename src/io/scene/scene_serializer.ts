@@ -7,7 +7,7 @@ import { resolveGeometrySourceParams, resolveGeometrySourceType } from '@/textur
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { SolidModelCodec } from '@/solid/io/solid_model_codec.js';
 import { ModifierVolume } from '@/modifier/stack/modifier_volume.js';
-import { entityOwnerIs } from '@/entity/model/entity_owner_keys.js';
+import { entityOwnerChildOwners, entityOwnerIs } from '@/entity/model/entity_owner_keys.js';
 import { EntityOwnerRegistry } from '@/entity/registry/entity_owner_registry.js';
 import { documentIdentityEnsure } from '@/io/document/document_identity.js';
 import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
@@ -79,7 +79,8 @@ export class SceneSerializer {
 
   /**
    * Appends the entry of one content object and, for plain groups, the entries
-   * of its children. Solid models and entity owners store their own content.
+   * of its children. Solid models and entity owners store their own content;
+   * entity owners nested under an entity owner get entries of their own.
    *
    * @param object Object to serialize.
    * @param parentId UUID of the parent container, or null for a top-level
@@ -89,7 +90,11 @@ export class SceneSerializer {
   private entriesAppendForObject(object: THREE.Object3D, parentId: string | null, entries: ObjectEntry[]): void {
     if (!this.shouldSerializeChild(object)) return;
     entries.push(this.createEntryForChild(object, parentId));
-    if (SolidModel.isSolidModelObject(object) || entityOwnerIs(object)) {
+    if (entityOwnerIs(object)) {
+      entityOwnerChildOwners(object).forEach((child) => this.entriesAppendForObject(child, object.uuid, entries));
+      return;
+    }
+    if (SolidModel.isSolidModelObject(object)) {
       return;
     }
     if (object instanceof THREE.Group) {

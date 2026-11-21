@@ -28,6 +28,9 @@ export const LIGHT_EXPORT_SETTINGS_EXTRAS_KEY = 'broom_light';
 /** Node extras key holding the editor id of the light the node belongs to. */
 export const LIGHT_EXPORT_OWNER_EXTRAS_KEY = 'broom_light_of';
 
+/** Node extras key holding the size of an area light: `[length]` of a tube. */
+export const LIGHT_EXPORT_SIZE_EXTRAS_KEY = 'dynlight_size';
+
 /** The numeric and boolean light fields written as extras, by extras key. */
 const LIGHT_EXPORT_SCALAR_FIELDS: readonly (readonly [string, keyof PreviewAuthoredLight])[] = [
   ['dynlight_intensity', 'intensity'],
@@ -98,7 +101,7 @@ export class LightExportNodeBuilder {
   }
 
   /**
-   * Writes the effect, fog shape and shimmer extras the light uses.
+   * Writes the effect, fog shape, shimmer and tube size extras the light uses.
    *
    * @param light The light definition the game preview would receive.
    * @param extras The node extras to fill.
@@ -109,6 +112,9 @@ export class LightExportNodeBuilder {
     }
     if (light.fog !== undefined) {
       extras[LIGHT_EXPORT_FOG_EXTRAS_KEY] = light.fog.shape;
+    }
+    if (light.length !== undefined) {
+      extras[LIGHT_EXPORT_SIZE_EXTRAS_KEY] = [light.length];
     }
     if (light.shimmer.kind !== 'none') {
       extras[LIGHT_EXPORT_SHIMMER_EXTRAS_KEY] = light.shimmer.kind;
