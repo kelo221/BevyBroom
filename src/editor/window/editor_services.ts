@@ -673,6 +673,16 @@ export interface EditorServices {
   handleGlobalKeyDown(keyCode: string, event: KeyboardEvent): boolean;
 
   /**
+   * Returns whether a key is bound to the configured Move, Rotate, Scale or
+   * Bounds shortcut.
+   *
+   * @param keyCode Key code.
+   * @param event Original keyboard event.
+   * @returns True when the key selects a transform mode.
+   */
+  isTransformModeShortcut?(keyCode: string, event: KeyboardEvent): boolean;
+
+  /**
    * Returns whether camera navigation should suppress tool activation keys.
    *
    * @returns True while fly or pan owns the keyboard for continuous motion.

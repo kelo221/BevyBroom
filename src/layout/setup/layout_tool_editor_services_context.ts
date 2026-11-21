@@ -12,6 +12,7 @@ import type { LayoutToolEditorSetupDeps } from './layout_tool_editor_types.js';
 export interface LayoutToolEditorServicesContextArgs {
   deps: LayoutToolEditorSetupDeps;
   getGlobalKeyDown: () => ((event: KeyboardEvent) => boolean) | null;
+  getTransformModeShortcutMatcher: () => ((event: KeyboardEvent) => boolean) | null;
   getNavigationBlocks: () => (() => boolean) | null;
   getPointerOwnerDocument: () => Document | null;
   getLatchedModifierFlags: () => DomModifierKeyFlags | null;

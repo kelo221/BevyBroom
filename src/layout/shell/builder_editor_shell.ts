@@ -28,6 +28,7 @@ import { PanelCommandSearch } from '@/ui/command_search/panel_command_search.js'
 import { shellMenuBarNativeAttach } from '@/layout/shell/menubar/shell_menu_bar_native.js';
 import { ShellToolBarBuilder } from '@/layout/shell/toolbar/shell_tool_bar_builder.js';
 import type { ProjectWorkbench } from '@/project/workbench/project_workbench.js';
+import { prefabEditorActionsActive } from '@/prefab/actions/prefab_editor_actions_active.js';
 import type { ProjectLevelActions } from '@/project/level/project_level_actions.js';
 
 /** Outliner action callbacks accepted when building the shell. */
@@ -402,6 +403,7 @@ export class BuilderEditorShell {
     );
     outlinerPanel.setGroupCallback((objects) => outlinerActions.onGroupFromOutliner(objects));
     outlinerPanel.setUngroupCallback((group) => outlinerActions.onUngroupFromOutliner(group));
+    outlinerPanel.setPrefabMakeCallback(() => void prefabEditorActionsActive.read()?.makeFromSelection());
     outlinerPanel.setRenameCallback((obj, newName) => outlinerActions.onRenameFromOutliner(obj, newName));
     outlinerPanel.setVisibilityCallback((obj) => outlinerActions.onToggleVisibilityFromOutliner(obj));
     outlinerPanel.setLockCallback((obj) => outlinerActions.onToggleLockFromOutliner(obj));

@@ -341,6 +341,9 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
     this.windowShortcutsRegister();
     this.clipboardSystem = this.clipboardSystemCreate();
     this.toolEditorSystem.setGlobalKeyDownHandler((event) => this.keyboardShortcutHandler.handleGlobalKeyDown(event));
+    this.toolEditorSystem.setTransformModeShortcutMatcher((event) =>
+      this.keyboardShortcutHandler.matchesTransformModeShortcut(event),
+    );
     this.keyboardShortcutHandler.setOnToolEventRouterKeyDown((event) => this.toolEditorSystem!.handleKeyDown(event));
     this.transformHandler.setModalStatusTextCallback((text) => {
       if (text.length === 0) return;

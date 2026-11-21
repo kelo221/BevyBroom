@@ -198,4 +198,61 @@ describe('InputManager', () => {
     expect(manager.isShiftDown()).toBe(true);
     manager.dispose();
   });
+
+  /**
+   * A key released while a page element stops the keyup must still count as
+   * released, or the fly camera moves on its own on the next right-button
+   * look.
+   */
+  it('sees a key release that a page element stops from bubbling', () => {
+    const manager = new ManagerInput();
+    const field = document.createElement('input');
+    document.body.appendChild(field);
+    field.addEventListener('keyup', (event) => event.stopPropagation());
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', key: 'w' }));
+    expect(manager.isPhysicalKeyDown('KeyW')).toBe(true);
+    field.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW', key: 'w', bubbles: true }));
+    expect(manager.isPhysicalKeyDown('KeyW')).toBe(false);
+    field.remove();
+    manager.dispose();
+  });
+
+  /**
+   * Keys held when the window lost focus are not held anymore once it comes
+   * back.
+   */
+  it('forgets held keys when the window regains focus', () => {
+    const manager = new ManagerInput();
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyD', key: 'd' }));
+    expect(manager.isPhysicalKeyDown('KeyD')).toBe(true);
+    window.dispatchEvent(new FocusEvent('focus'));
+    expect(manager.isPhysicalKeyDown('KeyD')).toBe(false);
+    manager.dispose();
+  });
+
+  /**
+   * Command released in another app leaves no keyup here; the next right-button
+   * press reports Command up, which must release the letters pressed with it.
+   */
+  it('releases letters held with Command when a pointer press reports Command up', () => {
+    const manager = new ManagerInput();
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'MetaLeft', key: 'Meta', metaKey: true }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyS', key: 's', metaKey: true }));
+    expect(manager.isMetaDown()).toBe(true);
+    window.dispatchEvent(new PointerEvent('pointerdown', { button: 2, metaKey: false }));
+    expect(manager.isMetaDown()).toBe(false);
+    expect(manager.isPhysicalKeyDown('KeyS')).toBe(false);
+    expect(manager.isMouseButtonDown(2)).toBe(true);
+    manager.dispose();
+  });
+
+  /** A press that reports Command held keeps the letters held with it. */
+  it('keeps letters held with Command while pointer presses report Command down', () => {
+    const manager = new ManagerInput();
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'MetaLeft', key: 'Meta', metaKey: true }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyS', key: 's', metaKey: true }));
+    window.dispatchEvent(new PointerEvent('pointerdown', { button: 0, metaKey: true }));
+    expect(manager.isPhysicalKeyDown('KeyS')).toBe(true);
+    manager.dispose();
+  });
 });

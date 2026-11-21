@@ -4,14 +4,17 @@ import { CameraAnimationConfig } from './camera_animation_config.js';
 
 /**
  * Smoothly animates a perspective camera from its current position to a target
- * position and look-at point using ease-out cubic interpolation.
+ * position and look-at point using ease-out cubic interpolation: the position
+ * moves along a straight line and the orientation turns along the shortest
+ * arc.
  */
 export class PerspectiveCameraAnimator {
   private camera: THREE.PerspectiveCamera;
   private startPosition: THREE.Vector3;
-  private startLookAt: THREE.Vector3;
+  private startOrientation: THREE.Quaternion;
   private targetPosition: THREE.Vector3;
   private targetLookAt: THREE.Vector3;
+  private targetOrientation: THREE.Quaternion;
   private startTime: number;
   private duration: number;
   private animationActive: boolean;
@@ -20,9 +23,10 @@ export class PerspectiveCameraAnimator {
   constructor() {
     this.camera = null as unknown as THREE.PerspectiveCamera;
     this.startPosition = new THREE.Vector3();
-    this.startLookAt = new THREE.Vector3();
+    this.startOrientation = new THREE.Quaternion();
     this.targetPosition = new THREE.Vector3();
     this.targetLookAt = new THREE.Vector3();
+    this.targetOrientation = new THREE.Quaternion();
     this.startTime = 0;
     this.duration = 300;
     this.animationActive = false;
@@ -45,9 +49,10 @@ export class PerspectiveCameraAnimator {
   ): boolean {
     this.camera = camera;
     this.startPosition.copy(camera.position);
-    this.startLookAt = this.extractLookAt(camera);
+    this.startOrientation.copy(camera.quaternion);
     this.targetPosition.copy(targetPosition);
     this.targetLookAt.copy(targetLookAt);
+    this.targetOrientationCompute(camera);
     this.startTime = performance.now();
     this.duration = config.getDurationMs();
 
@@ -73,7 +78,7 @@ export class PerspectiveCameraAnimator {
     const rawT = Math.min(elapsed / this.duration, 1);
     const easedT = easeOutCubic(rawT);
     this.interpolateCameraPosition(easedT);
-    this.interpolateCameraLookAt(easedT);
+    this.interpolateCameraOrientation(easedT);
     if (rawT >= 1) {
       this.animationActive = false;
     }
@@ -91,7 +96,7 @@ export class PerspectiveCameraAnimator {
     const rawT = Math.min(elapsed / this.duration, 1);
     const easedT = easeOutCubic(rawT);
     this.interpolateCameraPosition(easedT);
-    this.interpolateCameraLookAt(easedT);
+    this.interpolateCameraOrientation(easedT);
     this.animationActive = false;
   }
 
@@ -114,31 +119,29 @@ export class PerspectiveCameraAnimator {
   }
 
   /**
-   * Interpolates the camera look-at direction using spherical interpolation.
+   * Turns the camera between the start and target orientation along the
+   * shortest arc, so the view never swings through a point it passes.
    *
    * @param t The normalized interpolation parameter.
    */
-  private interpolateCameraLookAt(t: number): void {
-    const interpolatedLookAt = new THREE.Vector3();
-    interpolatedLookAt.lerpVectors(this.startLookAt, this.targetLookAt, t);
-    this.camera.lookAt(interpolatedLookAt);
+  private interpolateCameraOrientation(t: number): void {
+    this.camera.quaternion.slerpQuaternions(this.startOrientation, this.targetOrientation, t);
+  }
+
+  /**
+   * Stores the orientation the camera has when it stands at the target position
+   * and looks at the target look-at point.
+   *
+   * @param camera The perspective camera, whose up vector is kept.
+   */
+  private targetOrientationCompute(camera: THREE.PerspectiveCamera): void {
+    const lookMatrix = new THREE.Matrix4().lookAt(this.targetPosition, this.targetLookAt, camera.up);
+    this.targetOrientation.setFromRotationMatrix(lookMatrix);
   }
 
   /** Immediately sets the camera to the target position and look-at. */
   private snapToTarget(): void {
     this.camera.position.copy(this.targetPosition);
     this.camera.lookAt(this.targetLookAt);
-  }
-
-  /**
-   * Extracts a look-at point one unit along the camera's forward direction.
-   *
-   * @param camera The perspective camera.
-   * @returns A point in front of the camera used for orientation blending.
-   */
-  private extractLookAt(camera: THREE.PerspectiveCamera): THREE.Vector3 {
-    const forward = new THREE.Vector3();
-    camera.getWorldDirection(forward);
-    return camera.position.clone().add(forward);
   }
 }

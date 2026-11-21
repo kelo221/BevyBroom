@@ -30,6 +30,9 @@ export type OutlinerGroupCallback = (objects: THREE.Object3D[]) => void;
  */
 export type OutlinerUngroupCallback = (group: THREE.Group) => void;
 
+/** Callback that makes a prefab from the current selection. */
+export type OutlinerPrefabMakeCallback = () => void;
+
 /**
  * Callback type for rename action from context menu.
  *
@@ -104,6 +107,7 @@ export class PanelOutliner {
   private deleteCallback: OutlinerContextCallback | null;
   private groupCallback: OutlinerGroupCallback | null;
   private ungroupCallback: OutlinerUngroupCallback | null;
+  private prefabMakeCallback: OutlinerPrefabMakeCallback | null;
   private renameCallback: OutlinerRenameCallback | null;
   private visibilityCallback: OutlinerVisibilityCallback | null;
   private lockCallback: OutlinerLockCallback | null;
@@ -131,6 +135,7 @@ export class PanelOutliner {
     this.deleteCallback = null;
     this.groupCallback = null;
     this.ungroupCallback = null;
+    this.prefabMakeCallback = null;
     this.renameCallback = null;
     this.visibilityCallback = null;
     this.lockCallback = null;
@@ -201,6 +206,15 @@ export class PanelOutliner {
    */
   setUngroupCallback(callback: OutlinerUngroupCallback | null): void {
     this.ungroupCallback = callback;
+  }
+
+  /**
+   * Registers the callback for the Make Prefab context menu action.
+   *
+   * @param callback The function that makes a prefab from the selection.
+   */
+  setPrefabMakeCallback(callback: OutlinerPrefabMakeCallback | null): void {
+    this.prefabMakeCallback = callback;
   }
 
   /**
@@ -723,7 +737,8 @@ export class PanelOutliner {
   }
 
   /**
-   * Builds the grouping section of context menu items.
+   * Builds the grouping section of context menu items: Group, Ungroup for a
+   * group, and Make Prefab, which keeps the selection for reuse.
    *
    * @param obj The object for which to build group menu items.
    * @returns An array of group-related menu items.
@@ -744,6 +759,10 @@ export class PanelOutliner {
         label: 'Ungroup',
         callback: () => ungroupCallback(obj),
       });
+    }
+    const prefabMakeCallback = this.prefabMakeCallback;
+    if (prefabMakeCallback) {
+      items.push({ kind: 'action', label: 'Make Prefab…', callback: () => prefabMakeCallback() });
     }
     return items;
   }

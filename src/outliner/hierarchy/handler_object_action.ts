@@ -17,6 +17,11 @@ import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { findSolidModelRoot, markAsSolidCsgGroup } from '@/solid/model/solid_group.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
+import { CommandClipboardPaste } from '@/clipboard/commands/command_clipboard_paste.js';
+import { ClipboardPayloadEncoder } from '@/clipboard/payload/clipboard_payload_encoder.js';
+import { clipboardPayloadIdentitiesRefresh } from '@/clipboard/payload/clipboard_payload_identity.js';
+import { selectionMeshesFromHierarchyCollect } from '@/selection/object/selection_hierarchy_meshes.js';
+import { OutlinerNamingGroupComposition } from '@/outliner/naming/outliner_naming_group_composition.js';
 import { entityPickMeshIs } from '@/entity/model/entity_owner_keys.js';
 import { CommandEntityDuplicate } from '@/entity/commands/command_entity_duplicate.js';
 import {
@@ -355,10 +360,11 @@ export class HandlerObjectAction {
       this.showMessage('Cannot duplicate locked object(s)');
       return;
     }
-    const { solidNodes, regularMeshes, entityOwners } = selectionRootsClassify(roots);
+    const { solidNodes, regularMeshes, entityOwners, plainGroups } = selectionRootsClassify(roots);
     const clones: HandlerObjectActionDuplicateClones = { meshes: [], inspectorObjects: [] };
     const solidClones = this.solidNodesDuplicate(solidNodes, clones);
     this.regularMeshesDuplicate(regularMeshes, clones);
+    this.plainGroupsDuplicate(plainGroups, clones);
     this.entityOwnersDuplicate(entityOwners, clones.meshes, clones.inspectorObjects);
     this.syncViewportsAndRefresh();
     this.duplicateClonesSelect(clones);
@@ -410,6 +416,25 @@ export class HandlerObjectAction {
     this.commandStack.push(regularCommand);
     clones.meshes.push(...regularCommand.getClonedMeshes());
     clones.inspectorObjects.push(...regularCommand.getClonedMeshes());
+  }
+
+  /**
+   * Duplicates plain groups in place with everything they hold as one history
+   * entry and records the copies.
+   *
+   * @param plainGroups Groups to duplicate.
+   * @param clones Accumulator receiving the copies.
+   */
+  private plainGroupsDuplicate(plainGroups: readonly THREE.Group[], clones: HandlerObjectActionDuplicateClones): void {
+    const payload = plainGroups.length === 0 ? null : ClipboardPayloadEncoder.encode(plainGroups);
+    if (payload === null) {
+      return;
+    }
+    const command = new CommandClipboardPaste(clipboardPayloadIdentitiesRefresh(payload), this.worldObject, null);
+    this.commandStack.push(command);
+    const groupClones = command.pastedRootsRead();
+    clones.inspectorObjects.push(...groupClones);
+    clones.meshes.push(...selectionMeshesFromHierarchyCollect(groupClones));
   }
 
   /**
@@ -566,7 +591,7 @@ export class HandlerObjectAction {
       this.showMessage('Solid brushes must stay under their solid model');
       return;
     }
-    const groupName = this.buildGroupName();
+    const groupName = this.buildGroupName(members);
     const parent = findCommonParent(members, this.worldObject);
     const command = new CommandObjectGroup(members, parent, groupName);
     this.commandStack.push(command);
@@ -697,12 +722,13 @@ export class HandlerObjectAction {
   }
 
   /**
-   * Builds the next unique group display name from the global allocator.
+   * Builds a unique group display name that tells what the members are.
    *
+   * @param members Objects that become the group's children.
    * @returns A formatted group name string.
    */
-  private buildGroupName(): string {
-    return hierarchyNameAllocator.allocate('Group');
+  private buildGroupName(members: readonly THREE.Object3D[]): string {
+    return hierarchyNameAllocator.allocate(OutlinerNamingGroupComposition.nameBaseFromMembers(members));
   }
 
   /**

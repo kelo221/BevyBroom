@@ -27,7 +27,6 @@ import {
   isShiftPressedOnDomFlags,
   type DomModifierKeyFlags,
 } from '@/input/modifier_keys_query.js';
-import { TransformMode } from '@/types/transform_mode.js';
 
 /**
  * Holds active tool and event-receiver focus, widgets, GUI windows, mouse
@@ -1237,8 +1236,9 @@ export class EditorWindow {
   }
 
   /**
-   * Dispatches key-down to the permanent-gizmo path, the focused receiver, GUI
-   * fallthrough, tool default shortcuts, or global handling until consumed.
+   * Dispatches key-down to the permanent-gizmo path, the busy receiver, the
+   * configured transform mode shortcuts, the focused receiver, GUI fallthrough,
+   * tool default shortcuts, or global handling until consumed.
    *
    * @param keyCode Key code string.
    * @param event Browser keyboard event.
@@ -1253,12 +1253,15 @@ export class EditorWindow {
       eventReceiver.onKeyDown(keyCode, event);
       return true;
     }
+    if (this.services?.isTransformModeShortcut?.(keyCode, event) === true) {
+      return this.services.handleGlobalKeyDown(keyCode, event);
+    }
     let used = eventReceiver.onKeyDown(keyCode, event);
     if (!used) {
       used = this.tryFallThroughFromGuiToTool(keyCode, event);
     }
     if (!used && this.activeEventReceiverIsTool) {
-      used = this.dispatchToolModeDefaultShortcuts(keyCode, event);
+      used = this.dispatchToolModeDefaultShortcuts(keyCode);
     }
     if (!used) {
       used = this.services?.handleGlobalKeyDown(keyCode, event) === true;
@@ -1305,61 +1308,17 @@ export class EditorWindow {
   }
 
   /**
-   * Handles Q/W/R/S tool-switch shortcuts, or edit-mode transform shortcuts
-   * when edit mode is active.
+   * Switches to the box select tool for Q outside Edit Mode.
    *
    * @param keyCode Key code string.
-   * @param event Browser keyboard event.
-   * @returns True when a shortcut handled the key.
+   * @returns True when the shortcut handled the key.
    */
-  private dispatchToolModeDefaultShortcuts(keyCode: string, event: KeyboardEvent): boolean {
-    if (this.services?.isEditModeActive()) {
-      return this.dispatchEditModeTransformModeShortcuts(keyCode, event);
+  private dispatchToolModeDefaultShortcuts(keyCode: string): boolean {
+    if (this.services?.isEditModeActive() || keyCode !== 'KeyQ') {
+      return false;
     }
-    if (keyCode === 'KeyQ') {
-      this.userSwitchToBoxSelectTool();
-      return true;
-    }
-    if (keyCode === 'KeyW') {
-      this.userSwitchToTranslateTool();
-      return true;
-    }
-    if (keyCode === 'KeyR') {
-      this.userSwitchToRotateTool();
-      return true;
-    }
-    if (keyCode === 'KeyS' && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
-      this.userSwitchToScaleTool();
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Sets translate, rotate, or scale widget mode for W/R/S when no ctrl, meta,
-   * or shift modifier is held on S.
-   *
-   * @param keyCode Key code string.
-   * @param event Browser keyboard event.
-   * @returns True when a transform mode shortcut was handled.
-   */
-  private dispatchEditModeTransformModeShortcuts(keyCode: string, event: KeyboardEvent): boolean {
-    if (keyCode === 'KeyW') {
-      this.services?.setWidgetMode(TransformMode.TRANSLATE);
-      this.services?.refreshGizmoPresentation();
-      return true;
-    }
-    if (keyCode === 'KeyR') {
-      this.services?.setWidgetMode(TransformMode.ROTATE);
-      this.services?.refreshGizmoPresentation();
-      return true;
-    }
-    if (keyCode === 'KeyS' && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
-      this.services?.setWidgetMode(TransformMode.SCALE);
-      this.services?.refreshGizmoPresentation();
-      return true;
-    }
-    return false;
+    this.userSwitchToBoxSelectTool();
+    return true;
   }
 
   /**

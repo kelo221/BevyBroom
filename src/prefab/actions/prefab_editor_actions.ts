@@ -15,6 +15,8 @@ import type { PrefabCatalogStore } from '@/prefab/prefab_catalog_store.js';
 import { PREFAB_CATEGORY_DEFAULT, type PrefabTemplate } from '@/prefab/prefab_types.js';
 import { PrefabEditorPrompts, type PrefabEditorPromptShow } from '@/prefab/actions/prefab_editor_prompts.js';
 import type { ProjectDataFileChangeResult } from '@/project/data/project_data_file_types.js';
+import { OutlinerNamingGroupComposition } from '@/outliner/naming/outliner_naming_group_composition.js';
+import { extractHierarchyNameBase } from '@/utils/utils_hierarchy_name_allocator.js';
 
 /**
  * Placement choices of a prefab: it rests on the surface under the aim in 3D
@@ -139,7 +141,7 @@ export class PrefabEditorActions {
       this.host.statusReport('Select objects to make a prefab from');
       return null;
     }
-    const answer = await this.prompts.makeAsk(this.categoryLastUsed);
+    const answer = await this.prompts.makeAsk(this.categoryLastUsed, PrefabEditorActions.nameSuggest(roots));
     const template = answer === null ? null : this.host.store.templateCapture(answer.name, answer.category, roots);
     if (template === null) {
       return null;
@@ -148,6 +150,21 @@ export class PrefabEditorActions {
     this.host.commandRun(new CommandPrefabTemplateAdd(this.host.store, template));
     this.host.statusReport(`Made prefab ${template.name}`);
     return template;
+  }
+
+  /**
+   * Suggests a prefab name from the selection: the name of a single selected
+   * object or group, or what several selected objects are.
+   *
+   * @param roots Selected hierarchy roots.
+   * @returns Name without the automatic id suffix.
+   */
+  private static nameSuggest(roots: readonly THREE.Object3D[]): string {
+    const soleRoot = roots.length === 1 ? roots[0] : undefined;
+    if (soleRoot !== undefined && soleRoot.name.trim() !== '') {
+      return extractHierarchyNameBase(soleRoot.name.trim());
+    }
+    return OutlinerNamingGroupComposition.nameBaseFromMembers(roots);
   }
 
   /**

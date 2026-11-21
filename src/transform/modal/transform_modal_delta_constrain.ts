@@ -71,5 +71,6 @@ function transformModalProjectDeltaOntoHandleAxis(
     const worldAxis = TransformProjectionMath.axisToWorldVector(handleAxis, orientation);
     return worldAxis.multiplyScalar(delta.dot(worldAxis));
   }
-  return TransformProjectionMath.constrainDelta(delta, handleAxis);
+  const planeNormal = TransformProjectionMath.axisToWorldVector(handleAxis, orientation);
+  return delta.clone().addScaledVector(planeNormal, -delta.dot(planeNormal));
 }

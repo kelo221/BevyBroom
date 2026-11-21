@@ -144,6 +144,32 @@ describe('TransformInteractionBridge', () => {
     expect(onPointerDown).toHaveBeenCalled();
   });
 
+  /**
+   * A selected group turns and scales about the middle of what it holds, the
+   * point the gizmo is drawn at, not about its own origin elsewhere.
+   */
+  it('starts a selected group drag at the center of its meshes, not at the group origin', () => {
+    const groupOffset = new THREE.Vector3(3, 0, 0);
+    const group = new THREE.Group();
+    group.position.copy(groupOffset);
+    group.add(mesh);
+    mesh.position.copy(groupOffset).negate();
+    group.updateMatrixWorld(true);
+    selectionManager.setSelection([mesh], [group]);
+    const meshCenter = meshWorldCenter();
+    expect(meshCenter.distanceTo(group.getWorldPosition(new THREE.Vector3()))).toBeGreaterThan(1);
+    const bridge = createBridge(() => true);
+    const onPointerDown = vi.spyOn(transformHandler, 'onPointerDown');
+    bridge.onTransformEvent(
+      new MouseEvent('pointerdown', { clientX: 400, clientY: 300 }),
+      viewport as unknown as Viewport3D,
+    );
+    const pivot = onPointerDown.mock.calls[0]?.[5];
+    expect(pivot).toBeInstanceOf(THREE.Vector3);
+    expect((pivot as THREE.Vector3).distanceTo(meshCenter)).toBeLessThan(1e-6);
+    window.dispatchEvent(new PointerEvent('pointerup', { button: 0 }));
+  });
+
   it('should end a bounds drag when pointerup fires on window outside the canvas', () => {
     const bridge = createBridge(() => true);
     const downEvent = new MouseEvent('pointerdown', { clientX: 400, clientY: 300 });

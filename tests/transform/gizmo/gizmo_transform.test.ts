@@ -51,9 +51,9 @@ describe('GizmoTransform', () => {
     expect(gizmo.getHandles()).toHaveLength(6);
   });
 
-  it('should produce three axis handles plus free-move center in TRANSLATE mode', () => {
+  it('should produce three axis handles, three plane handles and free-move center in TRANSLATE mode', () => {
     gizmo.setMode(TransformMode.TRANSLATE);
-    expect(gizmo.getHandles().length).toBe(4);
+    expect(gizmo.getHandles().length).toBe(7);
     expect(gizmo.getHandles().some((handle) => handle.getAxis() === GizmoAxis.VIEW)).toBe(true);
   });
 
@@ -144,7 +144,7 @@ describe('GizmoTransform', () => {
     gizmo.setMode(TransformMode.ROTATE);
     expect(gizmo.getHandles().length).toBe(4);
     gizmo.setMode(TransformMode.TRANSLATE);
-    expect(gizmo.getHandles().length).toBe(4);
+    expect(gizmo.getHandles().length).toBe(7);
     gizmo.setMode(TransformMode.SCALE);
     expect(gizmo.getHandles().length).toBe(4);
   });

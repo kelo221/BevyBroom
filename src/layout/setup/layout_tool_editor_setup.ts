@@ -41,6 +41,7 @@ type LayoutToolEditorSystemClipKeyHandles = Pick<
   LayoutToolEditorSystem,
   | 'handleKeyDown'
   | 'setGlobalKeyDownHandler'
+  | 'setTransformModeShortcutMatcher'
   | 'setNavigationBlocksActions'
   | 'registerClipTool'
   | 'switchToClipTool'
@@ -155,6 +156,7 @@ function layoutToolEditorSystemClipKeyHandlesCreate(
   return {
     handleKeyDown: (event) => layoutToolEditorKeyDownHandle(editorWindow, event),
     setGlobalKeyDownHandler: (handler) => session.setGlobalKeyDownHandler(handler),
+    setTransformModeShortcutMatcher: (matcher) => session.setTransformModeShortcutMatcher(matcher),
     setNavigationBlocksActions: (callback) => session.setNavigationBlocksActions(callback),
     registerClipTool: (placement, handler) => layoutToolEditorClipToolRegister(editorWindow, placement, handler),
     switchToClipTool: () => editorWindow.userSwitchToClipTool(),

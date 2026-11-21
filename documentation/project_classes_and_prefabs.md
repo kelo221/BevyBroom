@@ -108,9 +108,11 @@ category. The search finds prefabs by name or category, and the category filter
 shows only **Prefabs** (or any other category).
 
 - **Make a prefab:** select objects, then right-click a view and choose **Make
-  Prefab…** (also in the **Edit** menu, in command search, and `Ctrl+Alt+P`). Type
-  a name, optionally a category (the last one used is filled in), and press
-  `Enter`. The prefab keeps geometry, brushes, textures, game components and
+  Prefab…** (also in the **Edit** menu, in command search, `Ctrl+Alt+P`, and the
+  right-click menu of the hierarchy, which makes a whole group a prop). The name
+  starts as the selected object's or group's name, or what several objects are;
+  change it if you like, optionally set a category (the last one used is filled
+  in), and press `Enter`. The prefab keeps geometry, brushes, textures, game components and
   entity I/O. With a `prefab_directory` it is saved as
   `<prefab_directory>/<id>.json`, where the id comes from the name (`Shelf Row`
   becomes `shelf_row.json`). Its tile appears on the Place tab, selected.

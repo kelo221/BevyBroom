@@ -66,6 +66,56 @@ describe('HandlerObjectAction grouping selection', () => {
     expect(selectionManager.getAllSelectedObjectsAsArray()).toEqual([childMesh]);
   });
 
+  it('names a new group after what it holds', () => {
+    const boxA = createNamedMesh('Box.A01');
+    const boxB = createNamedMesh('Box.B02');
+    const light = createNamedMesh('Light.C03');
+    world.add(boxA, boxB, light);
+    selectionManager.setSelection([boxA, boxB, light], [boxA, boxB, light]);
+    handler.groupObjects([boxA, boxB, light]);
+    const createdGroup = boxA.parent;
+    expect(createdGroup).not.toBe(world);
+    expect(createdGroup?.name.startsWith('Box x2 + Light')).toBe(true);
+  });
+
+  /**
+   * Duplicating a selected group copies the whole group in place, selects the
+   * copy and is one undo step.
+   */
+  it('duplicates a selected group with everything in it, in place', () => {
+    const boxA = createNamedMesh('Box.A01');
+    const boxB = createNamedMesh('Box.B02');
+    boxA.position.set(3, 0, -2);
+    boxB.position.set(5, 1, -2);
+    world.add(boxA, boxB);
+    handler.groupObjects([boxA, boxB]);
+    const original = boxA.parent;
+    if (!(original instanceof THREE.Group)) throw new Error('boxes were not grouped');
+    selectionManager.setSelection([boxA, boxB], [original]);
+    const historyBefore = commandStack.getUndoCount();
+    handler.onDuplicateSelected();
+    const groups = world.children.filter((child) => child instanceof THREE.Group);
+    expect(groups).toHaveLength(2);
+    const copy = groups.find((group) => group !== original);
+    if (!copy) throw new Error('no group copy');
+    const copyMeshes = copy.children.filter((child) => child instanceof THREE.Mesh);
+    expect(copyMeshes).toHaveLength(2);
+    expect(copyMeshes.some((mesh) => mesh === boxA || mesh === boxB)).toBe(false);
+    const worldPoints = (meshes: readonly THREE.Object3D[]) =>
+      meshes.map((mesh) =>
+        mesh
+          .getWorldPosition(new THREE.Vector3())
+          .toArray()
+          .map((value) => value.toFixed(4))
+          .join(),
+      );
+    expect(worldPoints(copyMeshes).sort()).toEqual(worldPoints([boxA, boxB]).sort());
+    expect(selectionManager.getInspectorObjects()).toEqual([copy]);
+    expect(commandStack.getUndoCount()).toBeGreaterThan(historyBefore);
+    commandStack.undo();
+    expect(world.children.filter((child) => child instanceof THREE.Group)).toEqual([original]);
+  });
+
   it('should select the new group when grouping multiple meshes', () => {
     const meshA = createNamedMesh('MeshA');
     const meshB = createNamedMesh('MeshB');
