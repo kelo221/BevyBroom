@@ -16,6 +16,8 @@ import type { LayoutToolEditorSetupDeps } from './layout_tool_editor_types.js';
  *
  * @param deps Layout services.
  * @param getGlobalKeyDown Global keydown fallthrough getter.
+ * @param getTransformModeShortcutMatcher Getter of the check for transform mode
+ *   shortcut keys.
  * @param getNavigationBlocks Navigation block getter.
  * @param inputBridge Input bridge for exclusive viewport root.
  * @param getPointerOwnerDocument Document that owns the last pointer sample.
@@ -28,6 +30,7 @@ import type { LayoutToolEditorSetupDeps } from './layout_tool_editor_types.js';
 export function createEditorServices(
   deps: LayoutToolEditorSetupDeps,
   getGlobalKeyDown: () => ((event: KeyboardEvent) => boolean) | null,
+  getTransformModeShortcutMatcher: () => ((event: KeyboardEvent) => boolean) | null,
   getNavigationBlocks: () => (() => boolean) | null,
   inputBridge: EditorInputBridge,
   getPointerOwnerDocument: () => Document | null,
@@ -37,6 +40,7 @@ export function createEditorServices(
   const ctx = layoutToolEditorServicesContextCreate({
     deps,
     getGlobalKeyDown,
+    getTransformModeShortcutMatcher,
     getNavigationBlocks,
     getPointerOwnerDocument,
     getLatchedModifierFlags,

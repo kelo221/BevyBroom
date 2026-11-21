@@ -724,12 +724,30 @@ export class HandlerTransform {
     event: MouseEvent,
     pivot: THREE.Vector3,
   ): void {
-    const plane = TransformProjectionMath.buildCameraPlane(camera, pivot);
+    const plane = this.translateDragPlaneBuild(camera, pivot);
     this.session.initialMousePosition = this.gizmoRaycaster.projectMouseToPlane(camera, pickElement, event, plane);
   }
 
   /**
-   * Applies translation from drag start using camera-plane mouse delta.
+   * Builds the plane the pointer is projected onto while translating: the
+   * grabbed plane handle's plane, or the camera plane for arrows and the
+   * center.
+   *
+   * @param camera The viewport camera.
+   * @param pivot The transform pivot.
+   * @returns Plane through the pivot.
+   */
+  private translateDragPlaneBuild(camera: THREE.Camera, pivot: THREE.Vector3): THREE.Plane {
+    return TransformProjectionMath.buildTranslateDragPlane(
+      camera,
+      pivot,
+      this.session.activeAxis,
+      this.transformGizmo.getOrientation(),
+    );
+  }
+
+  /**
+   * Applies translation from drag start using the drag plane mouse delta.
    *
    * @param camera The viewport camera.
    * @param pickElement DOM pick target for NDC.
@@ -743,7 +761,7 @@ export class HandlerTransform {
     objects: THREE.Object3D[],
   ): void {
     if (!this.session.initialMousePosition) return;
-    const plane = TransformProjectionMath.buildCameraPlane(camera, this.session.dragPivot);
+    const plane = this.translateDragPlaneBuild(camera, this.session.dragPivot);
     const currentMouse = this.gizmoRaycaster.projectMouseToPlane(camera, pickElement, event, plane);
     if (!currentMouse) return;
     const totalDelta = currentMouse.clone().sub(this.session.initialMousePosition);

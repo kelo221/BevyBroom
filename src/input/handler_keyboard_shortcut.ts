@@ -41,6 +41,17 @@ export type {
 } from './handler_keyboard_shortcut_types.js';
 
 /**
+ * Shortcut actions that choose the Move, Rotate, Scale or Bounds transform
+ * mode.
+ */
+const HANDLER_KEYBOARD_SHORTCUT_TRANSFORM_MODE_ACTIONS: readonly (keyof KeyboardShortcutSettings)[] = [
+  'move',
+  'rotate',
+  'scale',
+  'bounds',
+];
+
+/**
  * Single editor keyboard entry point (Shape Editor OnGUI KeyDown / OnKeyDown).
  * All action shortcuts and tool keys flow through this handler only. Continuous
  * fly movement reads {@link ManagerInput.isKeyDown} separately and must never be
@@ -259,6 +270,17 @@ export class HandlerKeyboardShortcut {
    */
   setOnToolEventRouterKeyDown(callback: ((event: KeyboardEvent) => boolean) | null): void {
     this.onToolEventRouterKeyDown = callback;
+  }
+
+  /**
+   * Returns whether an event matches the configured Move, Rotate, Scale or
+   * Bounds transform mode shortcut.
+   *
+   * @param event Browser keyboard event.
+   * @returns True when the event selects a transform mode.
+   */
+  matchesTransformModeShortcut(event: KeyboardEvent): boolean {
+    return HANDLER_KEYBOARD_SHORTCUT_TRANSFORM_MODE_ACTIONS.some((action) => this.matchesShortcut(event, action));
   }
 
   /**

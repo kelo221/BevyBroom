@@ -66,6 +66,18 @@ describe('HandlerObjectAction grouping selection', () => {
     expect(selectionManager.getAllSelectedObjectsAsArray()).toEqual([childMesh]);
   });
 
+  it('names a new group after what it holds', () => {
+    const boxA = createNamedMesh('Box.A01');
+    const boxB = createNamedMesh('Box.B02');
+    const light = createNamedMesh('Light.C03');
+    world.add(boxA, boxB, light);
+    selectionManager.setSelection([boxA, boxB, light], [boxA, boxB, light]);
+    handler.groupObjects([boxA, boxB, light]);
+    const createdGroup = boxA.parent;
+    expect(createdGroup).not.toBe(world);
+    expect(createdGroup?.name.startsWith('Box x2 + Light')).toBe(true);
+  });
+
   it('should select the new group when grouping multiple meshes', () => {
     const meshA = createNamedMesh('MeshA');
     const meshB = createNamedMesh('MeshB');

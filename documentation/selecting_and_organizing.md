@@ -61,6 +61,12 @@ To remove a group while retaining its contents:
 1. Select the group.
 2. Choose **Edit > Ungroup** or press `Shift+U`.
 
+A new group is named after what it holds: `Box x4`, `Box x2 + Light`, or the
+two most common kinds and a count of the rest, such as `Box x3 + Light + 2 more`.
+
+To reuse a group as a prop, right-click it in the hierarchy and choose **Make
+Prefab…**; see [Prefabs](project_classes_and_prefabs.md#prefabs).
+
 Grouping is useful when several objects should move together or belong to one logical feature. Avoid grouping unrelated objects merely because they are currently near one another.
 
 ## Reparent with drag and drop

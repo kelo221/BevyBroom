@@ -246,6 +246,27 @@ describe('OutlinerPanel', () => {
     panel.dispose();
     expect(container.children.length).toBe(0);
   });
+
+  it('offers Make Prefab in the context menu of a group and runs it for the right-clicked group', () => {
+    const group = new THREE.Group();
+    group.name = 'Shelf Unit';
+    group.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial()));
+    root.add(group);
+    let prefabMakeCount = 0;
+    panel.setPrefabMakeCallback(() => {
+      prefabMakeCount += 1;
+    });
+    panel.refresh();
+    const groupRow = findOutlinerRowByName(container, 'Shelf Unit');
+    groupRow.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 10, clientY: 10 }));
+    expect(selectionManager.getInspectorObjects()).toEqual([group]);
+    const entry = Array.from(document.body.querySelectorAll('*')).find(
+      (element) => element.children.length === 0 && element.textContent === 'Make Prefab…',
+    );
+    expect(entry).toBeDefined();
+    entry?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(prefabMakeCount).toBe(1);
+  });
 });
 
 /**

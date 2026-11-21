@@ -235,6 +235,13 @@ export interface LayoutToolEditorSystem {
    */
   setGlobalKeyDownHandler: (handler: (event: KeyboardEvent) => boolean) => void;
   /**
+   * Sets the check for keys bound to a transform mode shortcut, which win over
+   * tool keys.
+   *
+   * @param matcher Returns true when the event selects a transform mode.
+   */
+  setTransformModeShortcutMatcher: (matcher: (event: KeyboardEvent) => boolean) => void;
+  /**
    * Sets whether camera navigation suppresses tool keys.
    *
    * @param callback Returns true while navigation blocks tools.

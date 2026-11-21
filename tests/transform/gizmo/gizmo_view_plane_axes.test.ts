@@ -16,4 +16,19 @@ describe('isGizmoAxisHiddenInViewPlane', () => {
     expect(isGizmoAxisHiddenInViewPlane(GizmoAxis.Y, 'xyz', true)).toBe(false);
     expect(isGizmoAxisHiddenInViewPlane(GizmoAxis.X, 'xyz', true)).toBe(false);
   });
+
+  it('keeps only the plane handle lying in the view plane of an orthographic view', () => {
+    const planeOfView = [
+      { viewPlane: 'xy', kept: GizmoAxis.XY_PLANE },
+      { viewPlane: 'yz', kept: GizmoAxis.YZ_PLANE },
+      { viewPlane: 'xz', kept: GizmoAxis.XZ_PLANE },
+    ] as const;
+    const planes = [GizmoAxis.XY_PLANE, GizmoAxis.YZ_PLANE, GizmoAxis.XZ_PLANE];
+    for (const { viewPlane, kept } of planeOfView) {
+      for (const plane of planes) {
+        expect(isGizmoAxisHiddenInViewPlane(plane, viewPlane, true)).toBe(plane !== kept);
+      }
+    }
+    planes.forEach((plane) => expect(isGizmoAxisHiddenInViewPlane(plane, 'xyz', true)).toBe(false));
+  });
 });

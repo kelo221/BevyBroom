@@ -14,6 +14,7 @@ import type { LayoutToolEditorSetupDeps } from './layout_tool_editor_types.js';
 /** Mutable global keydown and navigation-block callbacks. */
 interface LayoutToolEditorSystemKeyState {
   globalKeyDown: ((event: KeyboardEvent) => boolean) | null;
+  transformModeShortcutMatcher: ((event: KeyboardEvent) => boolean) | null;
   navigationBlocks: (() => boolean) | null;
 }
 
@@ -23,6 +24,7 @@ export interface LayoutToolEditorSystemSession {
   inputBridge: EditorInputBridge;
   refreshInteractiveViewportDomain: () => void;
   setGlobalKeyDownHandler: (handler: (event: KeyboardEvent) => boolean) => void;
+  setTransformModeShortcutMatcher: (matcher: (event: KeyboardEvent) => boolean) => void;
   setNavigationBlocksActions: (callback: () => boolean) => void;
 }
 
@@ -53,6 +55,7 @@ export function layoutToolEditorSystemSessionCreate(deps: LayoutToolEditorSetupD
 function layoutToolEditorSystemKeyStateCreate(deps: LayoutToolEditorSetupDeps): LayoutToolEditorSystemKeyState {
   return {
     globalKeyDown: deps.handleGlobalKeyDown ?? null,
+    transformModeShortcutMatcher: null,
     navigationBlocks: deps.isNavigationBlockingTools ?? null,
   };
 }
@@ -75,6 +78,7 @@ function layoutToolEditorSystemServicesCreate(
   return createEditorServices(
     deps,
     () => keyState.globalKeyDown,
+    () => keyState.transformModeShortcutMatcher,
     () => keyState.navigationBlocks,
     inputBridge,
     () => editorWindow.lastPointerOwnerDocument,
@@ -104,6 +108,9 @@ function layoutToolEditorSystemSessionAssemble(
     refreshInteractiveViewportDomain: () => layoutToolEditorInteractiveViewportDomainRefresh(deps, inputBridge),
     setGlobalKeyDownHandler: (handler) => {
       keyState.globalKeyDown = handler;
+    },
+    setTransformModeShortcutMatcher: (matcher) => {
+      keyState.transformModeShortcutMatcher = matcher;
     },
     setNavigationBlocksActions: (callback) => {
       keyState.navigationBlocks = callback;

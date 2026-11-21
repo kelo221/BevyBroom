@@ -3,8 +3,10 @@ import * as THREE from 'three';
 import { ProceduralPeopleMoverBuilderElevator } from '@/procedural/generator/people_mover/procedural_people_mover_builder_elevator.js';
 import { ProceduralPeopleMoverBuilderIncline } from '@/procedural/generator/people_mover/procedural_people_mover_builder_incline.js';
 import {
+  PROCEDURAL_PEOPLE_MOVER_BRUSH_SIZE,
   PROCEDURAL_PEOPLE_MOVER_PART_CAR,
   PROCEDURAL_PEOPLE_MOVER_SIZES,
+  PROCEDURAL_PEOPLE_MOVER_SIZES_OFF_GRID,
 } from '@/procedural/generator/people_mover/procedural_people_mover_dimensions.js';
 import { ProceduralPeopleMoverShapeResolver } from '@/procedural/generator/people_mover/procedural_people_mover_shape.js';
 import { proceduralPartBoundsOf } from '../../procedural_part_test_checks.js';
@@ -46,6 +48,37 @@ describe('people mover builders', () => {
     expect(carBounds.getSize(new THREE.Vector3()).x).toBeCloseTo(width, 9);
     for (const post of posts) {
       expect(proceduralPartBoundsOf(post).intersectsBox(carBounds.clone().expandByScalar(-1e-6))).toBe(false);
+    }
+  });
+
+  /** Whether a length is a whole number of brush sizes. */
+  const isOnBrushGrid = (length: number): boolean => {
+    const brushes = length / PROCEDURAL_PEOPLE_MOVER_BRUSH_SIZE;
+    return Math.abs(brushes - Math.round(brushes)) < 1e-6;
+  };
+
+  it('sizes every structural piece in whole brush sizes', () => {
+    const structural = Object.entries(PROCEDURAL_PEOPLE_MOVER_SIZES).filter(
+      ([name]) => !PROCEDURAL_PEOPLE_MOVER_SIZES_OFF_GRID.has(name as keyof typeof PROCEDURAL_PEOPLE_MOVER_SIZES),
+    );
+    expect(structural.length).toBeGreaterThan(0);
+    for (const [name, size] of structural) {
+      expect(isOnBrushGrid(size), `${name} is ${size} m`).toBe(true);
+    }
+  });
+
+  it('puts the level pieces of a mover with ends and width on the brush grid on that grid too', () => {
+    const gridStart = new THREE.Vector3(-2, 0.5, 3);
+    const gridEnd = new THREE.Vector3(-2, 4.5, -9);
+    const shape = ProceduralPeopleMoverShapeResolver.resolve(gridStart, gridEnd);
+    const parts = ProceduralPeopleMoverBuilderIncline.travelatorBuild(shape, 2);
+    const levelPieces = parts.filter((part) => part.name.startsWith('Landing'));
+    expect(levelPieces).toHaveLength(2);
+    for (const piece of levelPieces) {
+      const bounds = proceduralPartBoundsOf(piece);
+      for (const coordinate of [...bounds.min.toArray(), ...bounds.max.toArray()]) {
+        expect(isOnBrushGrid(coordinate), `${piece.name} reaches ${coordinate}`).toBe(true);
+      }
     }
   });
 });

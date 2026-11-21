@@ -17,6 +17,43 @@ export class TransformProjectionMath {
   }
 
   /**
+   * Builds the plane a translate drag projects the pointer onto: the handle's
+   * own plane for a plane handle that does not face the camera edge-on,
+   * otherwise the camera plane through the pivot.
+   *
+   * @param camera The viewport camera.
+   * @param pivot The point that lies on the resulting plane.
+   * @param axis Active gizmo axis or plane, or null.
+   * @param orientation Gizmo world orientation.
+   * @returns Plane through the pivot.
+   */
+  static buildTranslateDragPlane(
+    camera: THREE.Camera,
+    pivot: THREE.Vector3,
+    axis: GizmoAxis | null,
+    orientation: THREE.Quaternion,
+  ): THREE.Plane {
+    if (axis === null || !TransformProjectionMath.isPlaneAxis(axis)) {
+      return TransformProjectionMath.buildCameraPlane(camera, pivot);
+    }
+    const normal = TransformProjectionMath.axisToWorldVector(axis, orientation);
+    if (TransformProjectionMath.isAxisEdgeOn(camera, normal)) {
+      return TransformProjectionMath.buildCameraPlane(camera, pivot);
+    }
+    return new THREE.Plane().setFromNormalAndCoplanarPoint(normal, pivot);
+  }
+
+  /**
+   * Returns whether a gizmo axis value names a plane.
+   *
+   * @param axis Gizmo axis or plane.
+   * @returns True for the XY, YZ and XZ planes.
+   */
+  static isPlaneAxis(axis: GizmoAxis): boolean {
+    return axis === GizmoAxis.XY_PLANE || axis === GizmoAxis.YZ_PLANE || axis === GizmoAxis.XZ_PLANE;
+  }
+
+  /**
    * Computes the forward direction as (0, 0, -1) rotated by camera.quaternion.
    * Only the camera's own quaternion is applied; parent transforms are
    * ignored.

@@ -44,12 +44,12 @@ export class PrefabEditorPrompts {
    * Asks for the name and category of a new prefab.
    *
    * @param categoryDefault Category the prompt starts with.
+   * @param nameDefault Name the prompt starts with.
    * @returns Answer, or null when cancelled.
    */
-  async makeAsk(categoryDefault: string): Promise<PrefabEditorMakeAnswer | null> {
-    const answer = await this.promptShow(
-      this.optionsCreate('Make Prefab', 'Make', [this.nameFieldCreate(''), this.categoryFieldCreate(categoryDefault)]),
-    );
+  async makeAsk(categoryDefault: string, nameDefault: string): Promise<PrefabEditorMakeAnswer | null> {
+    const fields = [this.nameFieldCreate(nameDefault), this.categoryFieldCreate(categoryDefault)];
+    const answer = await this.promptShow(this.optionsCreate('Make Prefab', 'Make', fields));
     const name = answer?.[PREFAB_PROMPT_FIELD_NAME] ?? '';
     if (answer === null || name === '') {
       return null;

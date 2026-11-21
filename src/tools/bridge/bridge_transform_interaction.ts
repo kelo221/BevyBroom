@@ -747,12 +747,14 @@ export class BridgeTransformInteraction {
   }
 
   /**
-   * Computes the current pivot point from selected objects.
+   * Computes the current pivot point from the selected meshes, the same point
+   * the gizmo is drawn at, so a selected group turns about its geometric center
+   * rather than its own origin.
    *
    * @returns The pivot vector for transform operations.
    */
   private computeCurrentPivot(): THREE.Vector3 {
     const selected = filterUnlockedObjects(Array.from(this.deps.selectionManager.getSelectedObjects()));
-    return this.deps.transformExecutor.computePivot(this.resolveDragTargets(selected));
+    return this.deps.transformExecutor.computePivot(selected);
   }
 }

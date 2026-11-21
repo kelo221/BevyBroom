@@ -49,6 +49,7 @@ export class ManagerInput {
   private pointerUpListener: ((event: PointerEvent) => void) | null;
   private pointerMoveListener: ((event: PointerEvent) => void) | null;
   private blurListener: (() => void) | null;
+  private focusListener: (() => void) | null;
   private visibilityListener: (() => void) | null;
   private isDisposed: boolean;
   private lastPointerClientX: number;
@@ -72,6 +73,7 @@ export class ManagerInput {
     this.pointerUpListener = null;
     this.pointerMoveListener = null;
     this.blurListener = null;
+    this.focusListener = null;
     this.visibilityListener = null;
     this.isDisposed = false;
     this.lastPointerClientX = 0;
@@ -82,7 +84,11 @@ export class ManagerInput {
     this.setupFocusListeners();
   }
 
-  /** Registers window-level keyboard event listeners to track key states. */
+  /**
+   * Registers window-level keyboard event listeners to track key states. They
+   * listen in the capture phase so a page element that stops a key event cannot
+   * hide a release.
+   */
   private setupKeyboardListeners(): void {
     this.keyDownListener = (event) => {
       this.recordKeyState(event, true);
@@ -90,8 +96,8 @@ export class ManagerInput {
     this.keyUpListener = (event) => {
       this.recordKeyState(event, false);
     };
-    this.targetWindow.addEventListener('keydown', this.keyDownListener);
-    this.targetWindow.addEventListener('keyup', this.keyUpListener);
+    this.targetWindow.addEventListener('keydown', this.keyDownListener, true);
+    this.targetWindow.addEventListener('keyup', this.keyUpListener, true);
   }
 
   /**
@@ -101,11 +107,39 @@ export class ManagerInput {
    * @param isDown True on keydown, false on keyup.
    */
   private recordKeyState(event: KeyboardEvent, isDown: boolean): void {
+    this.commandReleaseMissedRecover(event);
     this.recordLayoutStableKeyState(event, isDown);
     this.recordPhysicalKeyState(event, isDown);
     if (!isDown && MANAGER_INPUT_META_KEY_CODES.has(event.code)) {
       this.keyStatesReleaseExceptModifiers();
     }
+  }
+
+  /**
+   * Treats Command as released when an event reports it up while it is still
+   * tracked as held, which happens when its keyup went to another window.
+   * Letters let go meanwhile are released with it.
+   *
+   * @param event Keyboard or pointer event carrying the modifier flags.
+   */
+  private commandReleaseMissedRecover(event: KeyboardEvent | PointerEvent): void {
+    if (event.metaKey || !this.isMetaDown()) {
+      return;
+    }
+    for (const metaKeyCode of MANAGER_INPUT_META_KEY_CODES) {
+      this.keyStates.delete(metaKeyCode);
+      this.physicalKeyStates.delete(metaKeyCode);
+    }
+    this.keyStatesReleaseExceptModifiers();
+  }
+
+  /**
+   * Checks whether either Command (Meta) key is tracked as held.
+   *
+   * @returns True while a Command key is held.
+   */
+  isMetaDown(): boolean {
+    return [...MANAGER_INPUT_META_KEY_CODES].some((keyCode) => this.keyStates.get(keyCode) === true);
   }
 
   /**
@@ -142,11 +176,12 @@ export class ManagerInput {
   }
 
   /**
-   * Registers window-level pointer listeners that track button held state and
-   * client position.
+   * Registers window-level capture-phase pointer listeners that track button
+   * held state and client position.
    */
   private setupMouseListeners(): void {
     this.pointerDownListener = (event) => {
+      this.commandReleaseMissedRecover(event);
       this.mouseButtonStates.set(event.button, true);
       this.recordPointerClientPosition(event.clientX, event.clientY);
     };
@@ -157,9 +192,9 @@ export class ManagerInput {
     this.pointerMoveListener = (event) => {
       this.recordPointerClientPosition(event.clientX, event.clientY);
     };
-    this.targetWindow.addEventListener('pointerdown', this.pointerDownListener);
-    this.targetWindow.addEventListener('pointerup', this.pointerUpListener);
-    this.targetWindow.addEventListener('pointermove', this.pointerMoveListener);
+    this.targetWindow.addEventListener('pointerdown', this.pointerDownListener, true);
+    this.targetWindow.addEventListener('pointerup', this.pointerUpListener, true);
+    this.targetWindow.addEventListener('pointermove', this.pointerMoveListener, true);
   }
 
   /**
@@ -186,15 +221,21 @@ export class ManagerInput {
     return { clientX: this.lastPointerClientX, clientY: this.lastPointerClientY };
   }
 
-  /** Registers blur and visibility listeners that clear all tracked input state. */
+  /**
+   * Registers blur, focus and visibility listeners that clear all tracked input
+   * state. Regaining focus clears too, because a window that lost focus without
+   * a blur event never received the releases of keys let go meanwhile.
+   */
   private setupFocusListeners(): void {
     this.blurListener = () => this.reset();
+    this.focusListener = () => this.reset();
     this.visibilityListener = () => {
       if (this.targetWindow.document.hidden) {
         this.reset();
       }
     };
     this.targetWindow.addEventListener('blur', this.blurListener);
+    this.targetWindow.addEventListener('focus', this.focusListener);
     this.targetWindow.document.addEventListener('visibilitychange', this.visibilityListener);
   }
 
@@ -287,11 +328,11 @@ export class ManagerInput {
   /** Unregisters keyboard window listeners. */
   private removeKeyboardListeners(): void {
     if (this.keyDownListener) {
-      this.targetWindow.removeEventListener('keydown', this.keyDownListener);
+      this.targetWindow.removeEventListener('keydown', this.keyDownListener, true);
       this.keyDownListener = null;
     }
     if (this.keyUpListener) {
-      this.targetWindow.removeEventListener('keyup', this.keyUpListener);
+      this.targetWindow.removeEventListener('keyup', this.keyUpListener, true);
       this.keyUpListener = null;
     }
   }
@@ -299,15 +340,15 @@ export class ManagerInput {
   /** Unregisters mouse window listeners. */
   private removeMouseListeners(): void {
     if (this.pointerDownListener) {
-      this.targetWindow.removeEventListener('pointerdown', this.pointerDownListener);
+      this.targetWindow.removeEventListener('pointerdown', this.pointerDownListener, true);
       this.pointerDownListener = null;
     }
     if (this.pointerUpListener) {
-      this.targetWindow.removeEventListener('pointerup', this.pointerUpListener);
+      this.targetWindow.removeEventListener('pointerup', this.pointerUpListener, true);
       this.pointerUpListener = null;
     }
     if (this.pointerMoveListener) {
-      this.targetWindow.removeEventListener('pointermove', this.pointerMoveListener);
+      this.targetWindow.removeEventListener('pointermove', this.pointerMoveListener, true);
       this.pointerMoveListener = null;
     }
   }
@@ -317,6 +358,10 @@ export class ManagerInput {
     if (this.blurListener) {
       this.targetWindow.removeEventListener('blur', this.blurListener);
       this.blurListener = null;
+    }
+    if (this.focusListener) {
+      this.targetWindow.removeEventListener('focus', this.focusListener);
+      this.focusListener = null;
     }
     if (this.visibilityListener) {
       this.targetWindow.document.removeEventListener('visibilitychange', this.visibilityListener);

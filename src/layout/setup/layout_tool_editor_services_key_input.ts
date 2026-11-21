@@ -21,6 +21,7 @@ export type LayoutToolEditorKeyInputServices = Pick<
   | 'isAltPressed'
   | 'isModifierPressed'
   | 'handleGlobalKeyDown'
+  | 'isTransformModeShortcut'
   | 'isNavigationBlockingTools'
 >;
 
@@ -38,6 +39,7 @@ type LayoutToolEditorKeyModifierServices = Pick<
   | 'isAltPressed'
   | 'isModifierPressed'
   | 'handleGlobalKeyDown'
+  | 'isTransformModeShortcut'
   | 'isNavigationBlockingTools'
 >;
 
@@ -89,6 +91,7 @@ function layoutToolEditorKeyModifierServicesCreate(
     isAltPressed: () => layoutToolEditorAltPressedResolve(ctx.deps, ctx.getLatchedModifierFlags),
     isModifierPressed: () => layoutToolEditorAnyModifierPressedResolve(ctx.deps, ctx.getLatchedModifierFlags),
     handleGlobalKeyDown: (_keyCode, event) => ctx.getGlobalKeyDown()?.(event) === true,
+    isTransformModeShortcut: (_keyCode, event) => ctx.getTransformModeShortcutMatcher()?.(event) === true,
     isNavigationBlockingTools: () => ctx.getNavigationBlocks()?.() === true,
   };
 }

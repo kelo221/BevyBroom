@@ -17,6 +17,7 @@ import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { findSolidModelRoot, markAsSolidCsgGroup } from '@/solid/model/solid_group.js';
 import { hierarchyNameAllocator } from '@/utils/utils_hierarchy_name_allocator.js';
+import { OutlinerNamingGroupComposition } from '@/outliner/naming/outliner_naming_group_composition.js';
 import { entityPickMeshIs } from '@/entity/model/entity_owner_keys.js';
 import { CommandEntityDuplicate } from '@/entity/commands/command_entity_duplicate.js';
 import {
@@ -566,7 +567,7 @@ export class HandlerObjectAction {
       this.showMessage('Solid brushes must stay under their solid model');
       return;
     }
-    const groupName = this.buildGroupName();
+    const groupName = this.buildGroupName(members);
     const parent = findCommonParent(members, this.worldObject);
     const command = new CommandObjectGroup(members, parent, groupName);
     this.commandStack.push(command);
@@ -697,12 +698,13 @@ export class HandlerObjectAction {
   }
 
   /**
-   * Builds the next unique group display name from the global allocator.
+   * Builds a unique group display name that tells what the members are.
    *
+   * @param members Objects that become the group's children.
    * @returns A formatted group name string.
    */
-  private buildGroupName(): string {
-    return hierarchyNameAllocator.allocate('Group');
+  private buildGroupName(members: readonly THREE.Object3D[]): string {
+    return hierarchyNameAllocator.allocate(OutlinerNamingGroupComposition.nameBaseFromMembers(members));
   }
 
   /**

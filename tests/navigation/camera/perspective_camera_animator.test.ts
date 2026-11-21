@@ -103,4 +103,44 @@ describe('PerspectiveCameraAnimator', () => {
     animator.update();
     expect(() => animator.update()).not.toThrow();
   });
+
+  /**
+   * Framing a point beside the camera while the camera moves past its old view
+   * line must turn the view smoothly: no frame may jump by a large angle.
+   */
+  it('turns without jumps when the camera moves through its old line of sight', () => {
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+    const forward = camera.getWorldDirection(new THREE.Vector3());
+    const targetLookAt = camera.position.clone().addScaledVector(right, 5);
+    const targetPosition = camera.position.clone().addScaledVector(right, 5).addScaledVector(forward, 5);
+    animator.animateToTarget(camera, targetPosition, targetLookAt, config);
+    const previousForward = forward.clone();
+    const currentForward = new THREE.Vector3();
+    let largestStep = 0;
+    for (let frame = 1; frame <= 100; frame += 1) {
+      mockTime = frame;
+      animator.update();
+      camera.getWorldDirection(currentForward);
+      largestStep = Math.max(largestStep, currentForward.angleTo(previousForward));
+      previousForward.copy(currentForward);
+    }
+    expect(largestStep).toBeLessThan(0.1);
+  });
+
+  /** The turn eases along the way and ends exactly on the target view. */
+  it('turns gradually and ends looking at the target look-at point', () => {
+    const targetPosition = new THREE.Vector3(10, 2, 0);
+    const targetLookAt = new THREE.Vector3(10, 2, -10);
+    const expectedForward = targetLookAt.clone().sub(targetPosition).normalize();
+    const startForward = camera.getWorldDirection(new THREE.Vector3());
+    animator.animateToTarget(camera, targetPosition, targetLookAt, config);
+    mockTime = 30;
+    animator.update();
+    const midForward = camera.getWorldDirection(new THREE.Vector3());
+    expect(midForward.angleTo(expectedForward)).toBeLessThan(startForward.angleTo(expectedForward) + 1e-6);
+    mockTime = 100;
+    animator.update();
+    expect(camera.getWorldDirection(new THREE.Vector3()).angleTo(expectedForward)).toBeLessThan(1e-4);
+    expect(camera.position.distanceTo(targetPosition)).toBeLessThan(1e-6);
+  });
 });

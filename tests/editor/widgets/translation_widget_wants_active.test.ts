@@ -205,4 +205,34 @@ describe('TranslationWidget wantsActive (Shape Editor gizmo latch)', () => {
     expect(editor.activeTool).toBeInstanceOf(RotateTool);
     expect(editor.activeTool?.isSingleUse).toBe(true);
   });
+
+  it('a key bound to a transform mode shortcut goes to that shortcut, not to a single-use launch', () => {
+    const editor = new EditorWindow();
+    const globalKeys: string[] = [];
+    const useToolSpy = vi.spyOn(editor, 'useTool');
+    editor.setServices(
+      createStubServices({
+        isTransformModeShortcut: (keyCode) => keyCode === 'KeyR',
+        handleGlobalKeyDown: (keyCode) => {
+          globalKeys.push(keyCode);
+          return true;
+        },
+      }),
+    );
+    editor.validateTools();
+    const toolBefore = editor.activeTool;
+    expect(editor.onKeyDown('KeyR', new KeyboardEvent('keydown', { code: 'KeyR' }))).toBe(true);
+    expect(globalKeys).toEqual(['KeyR']);
+    expect(useToolSpy).not.toHaveBeenCalled();
+    expect(editor.activeTool).toBe(toolBefore);
+  });
+
+  it('W and R no longer switch tools on their own when no transform shortcut uses them', () => {
+    const editor = new EditorWindow();
+    editor.setServices(createStubServices({ getSelectedCount: () => 0, isTransformModeShortcut: () => false }));
+    editor.validateTools();
+    const toolBefore = editor.activeTool;
+    editor.onKeyDown('KeyW', new KeyboardEvent('keydown', { code: 'KeyW' }));
+    expect(editor.activeTool).toBe(toolBefore);
+  });
 });

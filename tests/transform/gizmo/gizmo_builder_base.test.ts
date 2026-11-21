@@ -20,8 +20,8 @@ describe('GizmoBuilderBase', () => {
     const translate = new GizmoTranslate(Theme);
     const handles = translate.createHandles();
     const roots = translate.getAllSceneObjects();
-    expect(handles.length).toBe(4);
-    expect(roots.length).toBe(4);
+    expect(handles.length).toBe(7);
+    expect(roots.length).toBe(7);
     translate.dispose();
     expect(translate.getAllSceneObjects().length).toBe(0);
   });

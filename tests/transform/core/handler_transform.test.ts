@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import { Theme } from '@/theme.js';
 import { BoundsFace } from '@/types/bounds_face.js';
-import { TransformMode } from '@/types/transform_mode.js';
+import { GizmoAxis, TransformMode } from '@/types/transform_mode.js';
 import { GizmoTransform } from '@/transform/gizmo/gizmo_transform.js';
 import { GizmoRaycaster } from '@/transform/gizmo/gizmo_raycaster.js';
 import { TransformExecutor } from '@/transform/core/transform_executor.js';
@@ -168,6 +168,36 @@ describe('TransformHandler', () => {
     expect(managerMouseCursor.getAppliedCursorCss()).toBe('');
   });
 
+  /**
+   * Dragging the XZ plane handle from an oblique view keeps the object under
+   * the pointer on the ground plane and never lifts it.
+   */
+  it('moves an object in the grabbed plane, following the pointer on that plane', () => {
+    const setup = createTranslatePickSetup(gizmo);
+    const planeHandle = setup.handles.find((handle) => handle.getAxis() === GizmoAxis.XZ_PLANE);
+    if (!planeHandle) throw new Error('translate gizmo lacks an XZ plane handle');
+    const grabPoint = handleWorldCenter(setup.gizmoGroup, planeHandle.getHandleId());
+    const startPosition = setup.meshes[0]?.position.clone() ?? new THREE.Vector3();
+    const grabClient = pointerClientPointOfWorld(grabPoint, setup.camera, setup.pickElement);
+    handler.onPointerDown(
+      setup.camera,
+      setup.pickElement,
+      new MouseEvent('pointerdown', { clientX: grabClient.clientX, clientY: grabClient.clientY }),
+      setup.handles,
+      setup.meshes,
+      setup.pivot,
+      setup.gizmoGroup,
+    );
+    expect(handler.getActiveAxis()).toBe(GizmoAxis.XZ_PLANE);
+    const planeOffset = new THREE.Vector3(2, 0, -1);
+    const dropClient = pointerClientPointOfWorld(grabPoint.clone().add(planeOffset), setup.camera, setup.pickElement);
+    const moveEvent = new MouseEvent('pointermove', { clientX: dropClient.clientX, clientY: dropClient.clientY });
+    handler.onPointerMove(setup.camera, setup.pickElement, moveEvent, setup.pivot, setup.meshes);
+    const moved = (setup.meshes[0]?.position.clone() ?? new THREE.Vector3()).sub(startPosition);
+    expect(moved.distanceTo(planeOffset)).toBeLessThan(0.05);
+    handler.onPointerUp(setup.pivot, setup.meshes);
+  });
+
   it('starts a bounds resize from the handle facing the camera and ends it on pointer up', () => {
     const setup = createBoundsPickSetup(gizmo);
     const handlePoint = pointerClientPointOfWorld(boundsCenter(setup.meshes), setup.camera, setup.pickElement);
@@ -226,6 +256,57 @@ function createBoundsPickSetup(gizmo: GizmoTransform): {
     pivot: new THREE.Vector3(0, 0, 0),
     gizmoGroup,
   };
+}
+
+/**
+ * Builds a translate-mode pick environment with a mesh at the origin seen from
+ * above at an angle, so plane handles do not face the camera edge-on.
+ *
+ * @param gizmo The transform gizmo under test.
+ * @returns Camera, pick element, handles, meshes, pivot and gizmo clone.
+ */
+function createTranslatePickSetup(gizmo: GizmoTransform): ReturnType<typeof createBoundsPickSetup> {
+  gizmo.setMode(TransformMode.TRANSLATE);
+  gizmo.setVisible(true);
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial());
+  mesh.updateMatrixWorld(true);
+  const pivot = new THREE.Vector3(0, 0, 0);
+  gizmo.setPivot(pivot);
+  const camera = new THREE.PerspectiveCamera(60, 800 / 600, 0.1, 1000);
+  camera.position.set(4, 6, 8);
+  camera.lookAt(pivot);
+  camera.updateMatrixWorld(true);
+  gizmo.updateScaleForCamera(camera);
+  const gizmoGroup = gizmo.getHandleGroupClone();
+  gizmoGroup.visible = true;
+  gizmoGroup.updateMatrixWorld(true);
+  const canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+  return {
+    camera,
+    pickElement: canvas as unknown as HTMLElement,
+    handles: gizmo.getHandles(),
+    meshes: [mesh],
+    pivot,
+    gizmoGroup,
+  };
+}
+
+/**
+ * Returns the world center of the visible mesh of one handle in a gizmo clone.
+ *
+ * @param gizmoGroup Viewport gizmo clone.
+ * @param handleId Handle id to find.
+ * @returns World center of that handle's visual mesh.
+ */
+function handleWorldCenter(gizmoGroup: THREE.Group, handleId: number): THREE.Vector3 {
+  let center: THREE.Vector3 | null = null;
+  gizmoGroup.traverse((child) => {
+    if (center === null && child instanceof THREE.Mesh && child.userData['handleId'] === handleId) {
+      center = child.getWorldPosition(new THREE.Vector3());
+    }
+  });
+  if (center === null) throw new Error(`handle ${handleId} not in the gizmo clone`);
+  return center;
 }
 
 /**

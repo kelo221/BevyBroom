@@ -37,6 +37,15 @@ BevyBroom supports both direct manipulation and keyboard-driven editing. Most sh
 
 Drag a colored axis or plane handle to constrain the edit. The exact handles depend on Bounds, Move, Rotate, or Scale mode.
 
+- **Move** has an arrow per axis, a square between each pair of arrows that
+  moves in that plane only (colored like the axis it does not move along), and
+  a center cube that moves in the view plane. In a 2D view only the square of
+  that view's plane is shown.
+- A selected group moves, turns and scales about the middle of what it holds,
+  where its gizmo is drawn.
+- The **Move**, **Rotate**, **Scale** and **Bounds** keys (`W`, `E`, `R`, `T` by
+  default) always pick that mode, even while objects are selected.
+
 ## macOS
 
 On macOS the editor follows Mac conventions. Windows and Linux are unchanged.

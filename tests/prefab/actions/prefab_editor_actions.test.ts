@@ -77,6 +77,35 @@ describe('PrefabEditorActions', () => {
     expect(rig.store.templatesRead()).toHaveLength(0);
   });
 
+  /**
+   * A group of objects becomes a prop: the prompt suggests the group's name,
+   * and every placement adds its own copy of the whole group.
+   */
+  it('makes a prefab from a selected group, suggests its name and places separate copies', async () => {
+    const rig = prefabActionsTestRigCreate();
+    const group = new THREE.Group();
+    group.name = 'Shelf Unit.1A2';
+    rig.testWorld.world.add(group);
+    const size = new THREE.Vector3(1, 2, 1);
+    group.add(prefabActionsTestBoxAdd(rig.testWorld.world, 'Board', size, new THREE.Vector3(4, 0, 2)));
+    group.add(prefabActionsTestBoxAdd(rig.testWorld.world, 'Board', size, new THREE.Vector3(6, 0, 2)));
+    clipboardTestSelect(rig.testWorld, [group]);
+    rig.promptAnswers.push({ name: 'Shelf Unit', category: 'Props' });
+    const template = await rig.actions.makeFromSelection();
+    const nameField = rig.prompts[0]?.fields.find((field) => field.id === 'name');
+    expect(nameField?.value).toBe('Shelf Unit');
+    if (template === null) throw new Error('no prefab made from the group');
+    const first = rig.actions.placeAtViewCentre(template.id)?.roots ?? [];
+    const second = rig.actions.placeAtViewCentre(template.id)?.roots ?? [];
+    const placedGroups = [...first, ...second].filter((root) => root instanceof THREE.Group);
+    expect(placedGroups).toHaveLength(2);
+    expect(placedGroups[0]).not.toBe(placedGroups[1]);
+    placedGroups.forEach((placed) =>
+      expect(placed.children.filter((child) => child instanceof THREE.Mesh)).toHaveLength(2),
+    );
+    expect(placedGroups.every((placed) => placed !== group)).toBe(true);
+  });
+
   it('offers the category used last when making the next prefab', async () => {
     const rig = prefabActionsTestRigCreate();
     const box = prefabActionsTestBoxAdd(

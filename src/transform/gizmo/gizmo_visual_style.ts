@@ -44,6 +44,18 @@ export const GizmoVisualStyle = {
    * axis ring front meshes at {@link frontRenderOrder}).
    */
   rotateFreeBillboardRenderOrder: 998.5,
+  /** Edge length of the square plane handles on the translate gizmo. */
+  movePlaneHandleSize: 0.42,
+  /**
+   * Distance from the gizmo center to the near corner of a plane handle, along
+   * both of its axes.
+   */
+  movePlaneHandleOffset: 0.36,
+  /**
+   * Opacity of the square plane handles, which keeps the scene visible through
+   * them.
+   */
+  movePlaneHandleOpacity: 0.45,
   /** Edge length of the free-move center cube on the translate gizmo. */
   centerHandleSize: 0.28,
   /**

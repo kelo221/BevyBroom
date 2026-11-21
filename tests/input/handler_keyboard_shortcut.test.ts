@@ -29,6 +29,17 @@ describe('KeyboardShortcutHandler', () => {
     expect(onMode).toHaveBeenNthCalledWith(4, TransformMode.BOUNDS);
   });
 
+  it('reports the configured transform mode keys and nothing else as transform mode shortcuts', () => {
+    const shortcuts = createDefaultKeyboardShortcutSettings();
+    const transformCodes = [shortcuts.move, shortcuts.rotate, shortcuts.scale, shortcuts.bounds].map((s) => s.code);
+    for (const code of transformCodes) {
+      expect(handler.matchesTransformModeShortcut(new KeyboardEvent('keydown', { code }))).toBe(true);
+    }
+    expect(handler.matchesTransformModeShortcut(new KeyboardEvent('keydown', { code: 'F13' }))).toBe(false);
+    const scaleWithCtrl = new KeyboardEvent('keydown', { code: shortcuts.scale.code, ctrlKey: true, metaKey: true });
+    expect(handler.matchesTransformModeShortcut(scaleWithCtrl)).toBe(false);
+  });
+
   it('should not activate scale mode while right mouse fly is held', () => {
     const onMode = vi.fn();
     handler.setOnTransformMode(onMode);
