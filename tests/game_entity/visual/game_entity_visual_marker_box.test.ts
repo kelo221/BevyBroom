@@ -137,6 +137,27 @@ describe('GameEntityVisualMarkerBox', () => {
     expect(GameEntityVisualMarkerBox.boxOf(owner)).toEqual(DOOR_BOX_IRON);
   });
 
+  it('prefers the box that names a model over earlier boxes without one', () => {
+    const [firstClass, laterClass] = [testDoorClassCreate(), testSpinnerClassCreate()].sort((first, second) =>
+      first.type_path.localeCompare(second.type_path),
+    );
+    if (firstClass === undefined || laterClass === undefined) {
+      throw new Error('two test classes exist');
+    }
+    const modelBox: GameEntityMarkerBox = { ...DOOR_BOX_IRON, model: 'models/iron_door.glb' };
+    const list = testClassListCreate();
+    list.classes = [
+      { ...firstClass, marker_box: DOOR_BOX_PLAIN },
+      { ...laterClass, marker_box: modelBox },
+    ];
+    cleanups.push(testClassesInstall(list).uninstall);
+    const owner = gameEntityCreateForClass(firstClass);
+    GameEntityComponentStore.write(owner, { [firstClass.type_path]: {}, [laterClass.type_path]: {} });
+    expect(GameEntityVisualMarkerBox.boxOf(owner)).toEqual(modelBox);
+    GameEntityComponentStore.write(owner, { [firstClass.type_path]: {} });
+    expect(GameEntityVisualMarkerBox.boxOf(owner)).toEqual(DOOR_BOX_PLAIN);
+  });
+
   it('keeps the edge lines on the same box as the faces', () => {
     cleanups.push(doorClassWithBoxesInstall());
     const owner = gameEntityCreateForClass(doorClassWithBoxes());

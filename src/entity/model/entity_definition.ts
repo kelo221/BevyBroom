@@ -57,6 +57,19 @@ export abstract class EntityDefinition<TSettings extends object> {
   abstract iconName(settings: TSettings): IconName;
 
   /**
+   * Returns the icon one owner is shown with. Kinds whose icon depends on more
+   * than the settings override it; the default is the icon of the settings.
+   *
+   * @param owner Entity owner group.
+   * @param settings Valid settings.
+   * @returns Icon name.
+   */
+  iconNameOf(owner: THREE.Object3D, settings: TSettings): IconName {
+    void owner;
+    return this.iconName(settings);
+  }
+
+  /**
    * Returns the color the icon of an owner is drawn in. Kinds with their own
    * colors override it; the default is a neutral grey.
    *

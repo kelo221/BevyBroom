@@ -22,6 +22,8 @@ pub struct PlaceableOptions {
     pub category: String,
     pub placement: PlaceablePlacement,
     pub marker_color: Srgba,
+    /// The editor icon name drawn on markers and listed in menus.
+    pub icon: Option<String>,
     /// The editor marker box of entities whose box no field value picks.
     pub marker_box: Option<PlaceableMarkerBox>,
     /// The field path whose value picks a box from `marker_boxes`.
@@ -44,6 +46,7 @@ impl PlaceableOptions {
             category: "Game".into(),
             placement: PlaceablePlacement::Any,
             marker_color: DEFAULT_MARKER_COLOR,
+            icon: None,
             marker_box: None,
             marker_box_field: None,
             marker_boxes: BTreeMap::new(),
@@ -83,6 +86,12 @@ impl PlaceableOptions {
     /// Tints the editor marker of game entities carrying this component.
     pub fn marker_color(mut self, color: Srgba) -> Self {
         self.marker_color = color;
+        self
+    }
+
+    /// Shows the editor icon named `icon`, such as `lightbulb`, on markers and in menus.
+    pub fn icon(mut self, icon: impl Into<String>) -> Self {
+        self.icon = Some(icon.into());
         self
     }
 

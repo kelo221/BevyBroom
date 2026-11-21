@@ -3,6 +3,7 @@ import { EntityClassPoint } from '@/entity/class/entity_class.js';
 import type { EntityClassObjectState } from '@/entity/class/entity_class_object_state.js';
 import type { GameEntityClass } from '@/game_entity/class/game_entity_class_schema.js';
 import { gameEntityClassIsDataOnly } from '@/game_entity/class/game_entity_class_category_data.js';
+import { GameEntityVisualIcon } from '@/game_entity/visual/game_entity_visual_icon.js';
 import { GameEntityOwner, gameEntityCreateForClass } from '@/game_entity/owner/game_entity_owner.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 import { EntityClassGameClassParts } from './entity_class_game_class_parts.js';
@@ -96,12 +97,12 @@ export class EntityClassPointGame extends EntityClassPoint {
   }
 
   /**
-   * Returns the game entity icon.
+   * Returns the icon the game class names, or the default game entity icon.
    *
    * @returns Icon name.
    */
   iconName(): IconName {
-    return GameEntityOwner.definition.iconName({});
+    return GameEntityVisualIcon.classIconOf(this.parts.gameClass);
   }
 
   /**

@@ -1,4 +1,5 @@
 import type { GameEntityClass, GameEntityField } from '@/game_entity/class/game_entity_class_schema.js';
+import { GameEntityClassVariantNames } from '@/game_entity/class/game_entity_class_variant_names.js';
 import { GameEntityComponentResolver } from '@/game_entity/component/game_entity_component_resolver.js';
 import type { GameEntityComponents } from '@/game_entity/component/game_entity_component_store.js';
 import type { PreviewFieldValue } from '@/preview/protocol/preview_protocol_placeable_types.js';
@@ -36,25 +37,9 @@ export function gameEntityAddMenuVariantsOf(gameClass: GameEntityClass): GameEnt
       valueText,
       components: gameEntityAddMenuVariantComponents(gameClass, field, valueText),
       gameClass,
-      label: field.variant_details?.[valueText]?.label ?? gameEntityAddMenuVariantLabelFromValue(valueText),
-      group: field.variant_details?.[valueText]?.group ?? gameClass.label,
+      label: GameEntityClassVariantNames.labelOf(field, valueText),
+      group: GameEntityClassVariantNames.groupOf(field, valueText) ?? gameClass.label,
     }));
-}
-
-/**
- * Returns a readable name for a field value without a display name, such as
- * "Shelf tall 4" for `shelf-tall-4`.
- *
- * @param valueText Field value as text.
- * @returns Readable name.
- */
-export function gameEntityAddMenuVariantLabelFromValue(valueText: string): string {
-  const words = valueText
-    .replace(/[-_]+/g, ' ')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .trim()
-    .toLowerCase();
-  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 /**

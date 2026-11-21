@@ -9,6 +9,11 @@ export interface InputSelectChoice {
   label: string;
   /** Hover text. Empty when the entry has no extra explanation. */
   title?: string;
+  /**
+   * Caption of the option group the entry is listed under; ungrouped when
+   * unset.
+   */
+  group?: string;
 }
 
 /**

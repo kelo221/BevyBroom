@@ -22,5 +22,5 @@ export function entityIconOf(object: THREE.Object3D): EntityIcon | null {
     return null;
   }
   const definition = entityOwner.definition;
-  return { iconName: definition.iconName(settings), colorHex: definition.iconColorHex(object, settings) };
+  return { iconName: definition.iconNameOf(object, settings), colorHex: definition.iconColorHex(object, settings) };
 }

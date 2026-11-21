@@ -135,6 +135,26 @@ describe('game entity class schema', () => {
     });
   });
 
+  it('keeps the icon a class names and leaves out blank or malformed ones', () => {
+    expect(gameEntityClassFromUnknown({ type_path: 'game::store::Lamp', icon: 'lightbulb' })?.icon).toBe('lightbulb');
+    [' ', 7, null, undefined].forEach((icon) => {
+      const gameClass = gameEntityClassFromUnknown({ type_path: 'game::store::Lamp', icon });
+      expect(gameClass === null ? [] : Object.keys(gameClass)).not.toContain('icon');
+    });
+  });
+
+  it('keeps the icon of every class in the shared bridge fixture', () => {
+    const raw = JSON.parse(
+      readFileSync(resolve(FIXTURE_BRIDGE_DIRECTORY, 'placeable_classes_sample.json'), 'utf8'),
+    ) as { classes: Array<Record<string, unknown>> };
+    const list = gameEntityClassListFromUnknown(raw);
+    const rawWithIcons = raw.classes.filter((entry) => entry['icon'] !== undefined);
+    expect(rawWithIcons.length).toBeGreaterThan(0);
+    rawWithIcons.forEach((rawClass) => {
+      expect(list?.classes.find((entry) => entry.type_path === rawClass['type_path'])?.icon).toBe(rawClass['icon']);
+    });
+  });
+
   it('leaves marker box keys out of classes that declare none', () => {
     const gameClass = gameEntityClassFromUnknown({ type_path: 'game::store::Start', marker_boxes: {} });
     expect(gameClass === null ? [] : Object.keys(gameClass)).not.toEqual(

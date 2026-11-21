@@ -8,6 +8,8 @@ import { GameEntityClassRegistry } from '@/game_entity/class/game_entity_class_r
 import type { GameEntityClass, GameEntityMarkerBox } from '@/game_entity/class/game_entity_class_schema.js';
 import { GameEntityOwner } from '@/game_entity/owner/game_entity_owner.js';
 import { GameEntityVisualBuilder } from '@/game_entity/visual/game_entity_visual_builder.js';
+import { GameEntityVisualIcon } from '@/game_entity/visual/game_entity_visual_icon.js';
+import { EntityVisualBillboard } from '@/entity/visual/entity_visual_billboard.js';
 import { CommandGameEntityComponentsSet } from '@/game_entity/commands/command_game_entity_components_set.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
 import { GlbExporter } from '@/io/glb/glb_exporter.js';
@@ -282,6 +284,23 @@ describe.skipIf(!environment.isConfigured)('game components in the game preview 
         }),
       );
       expectMarkerMatches(doorMarkerBoundsRead(), plainBox);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    "draws the door marker with the icon the game's door class names",
+    () => {
+      const door = doorClass();
+      expect(door.icon).toBeDefined();
+      const iconName = GameEntityVisualIcon.classIconOf(door);
+      expect(iconName).toBe(door.icon);
+      const owner = parts.world.getObjectByProperty('uuid', doorEntityId);
+      if (owner === undefined) {
+        throw new Error('the door entity is in the scene');
+      }
+      GameEntityVisualBuilder.refresh(owner);
+      expect(EntityVisualBillboard.iconFind(owner)?.geometry).toBe(EntityVisualBillboard.geometryOf(iconName));
     },
     STEP_TIMEOUT_MILLISECONDS,
   );

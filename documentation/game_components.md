@@ -67,7 +67,7 @@ app.register_data_asset::<DoorStats>("door.ron")
     );
 ```
 
-- `register_placeable::<T>(options)` makes a component placeable. `PlaceableOptions::point()` offers it on new Game Entities; `PlaceableOptions::any()` also offers it on brushes, meshes, lights, rooms and portals. `category`, `label` and `marker_color` control how the editor lists and draws it.
+- `register_placeable::<T>(options)` makes a component placeable. `PlaceableOptions::point()` offers it on new Game Entities; `PlaceableOptions::any()` also offers it on brushes, meshes, lights, rooms and portals. `category`, `label`, `marker_color` and `icon` (an editor icon name such as `"door-closed"`) control how the editor lists and draws it.
 - `marker_box(size, offset)` draws the marker as a box; `marker_box_field("kind")` with `marker_box_for("Iron", size, offset)` picks the box by a field's value, and the editor offers one Add menu entry per boxed value. `marker_model_for("Iron", "models/iron_door.glb")` makes the editor draw that model (a `.glb` path relative to the project's asset root) at the entity's origin while the field holds that value.
 - Field attributes: `FieldRange::new(min, max)`, `FieldStep(step)`, `FieldLabel("text")` and `FieldHidden` (the editor does not show the field).
 - `register_placeable_asset::<A>(&["ext"])` lets `Handle<A>` fields pick files with those extensions.

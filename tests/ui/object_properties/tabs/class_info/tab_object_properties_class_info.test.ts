@@ -134,6 +134,25 @@ describe('TabObjectPropertiesClassInfo', () => {
     expect(helpBox.textContent?.split('Door (Doors)').length).toBe(2);
   });
 
+  it('names the box size a game class gives the object in the help box', () => {
+    uninstall();
+    const list = testClassListCreate();
+    const door = list.classes.find((entry) => entry.type_path === TEST_DOOR_TYPE_PATH);
+    const boxSize: [number, number, number] = [1.25, 2.5, 0.25];
+    if (door) {
+      door.marker_box = { size: boxSize, offset: [0, boxSize[1] / 2, 0] };
+    }
+    uninstall = testClassesInstall(list).uninstall;
+    const { container } = classInfoMount([doorCreate('door')]);
+    const boxLine = objectPropertiesTestQuery(container, `[data-help-game-class-box="${TEST_DOOR_TYPE_PATH}"]`);
+    expect(boxLine.textContent).toBe(`Box: ${boxSize.join(' × ')} m`);
+  });
+
+  it('names no box for a game class that declares none', () => {
+    const { container } = classInfoMount([doorCreate('door')]);
+    expect(container.querySelector('[data-help-game-class-box]')).toBeNull();
+  });
+
   it('wraps long help text instead of scrolling sideways', () => {
     const { container } = classInfoMount([doorCreate('door')]);
     const helpBox = objectPropertiesTestQuery<HTMLElement>(container, '.object-properties-class-help');

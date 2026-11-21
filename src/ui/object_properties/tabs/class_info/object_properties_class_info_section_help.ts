@@ -6,6 +6,7 @@ import { gameEntityClassIdOf } from '@/game_entity/class/game_entity_class_id.js
 import { GameEntityClassRegistry } from '@/game_entity/class/game_entity_class_registry.js';
 import type { GameEntityClass } from '@/game_entity/class/game_entity_class_schema.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
+import { GameEntityComponentBoxInfo } from '@/game_entity/ui/game_entity_component_box_info.js';
 import type { PreviewPlaceableIoPin } from '@/preview/protocol/preview_protocol_placeable_types.js';
 import type { ObjectPropertiesTabContext } from '@/ui/object_properties/registry/registry_object_properties_tab.js';
 import { ObjectPropertiesTabSection } from '@/ui/object_properties/tabs/object_properties_tab_section.js';
@@ -137,9 +138,29 @@ export class ObjectPropertiesClassInfoSectionHelp extends ObjectPropertiesTabSec
     entry.append(
       this.titleCreate(`${entityClass.label} (${entityClass.category})`),
       this.lineCreate(entityClass.helpText),
+      ...this.gameClassBoxLinesCreate(classTypePath),
       ...this.gameClassPinLinesCreate(classTypePath),
     );
     return [entry];
+  }
+
+  /**
+   * Builds the line naming the box size a game class gives the edited objects.
+   *
+   * @param typePath Component type path, or undefined for none.
+   * @returns One line, or none for unknown classes and classes without a box.
+   */
+  private gameClassBoxLinesCreate(typePath: string | undefined): HTMLElement[] {
+    const gameClass = typePath === undefined ? null : GameEntityClassRegistry.classFind(typePath);
+    const componentsList = this.objects.map((object) => GameEntityComponentStore.read(object));
+    const boxRow = GameEntityComponentBoxInfo.rowOf(gameClass, componentsList);
+    if (boxRow === null) {
+      return [];
+    }
+    const line = this.lineCreate(`${boxRow.label}: ${boxRow.valueText}`);
+    line.title = boxRow.helpText;
+    line.dataset['helpGameClassBox'] = typePath ?? '';
+    return [line];
   }
 
   /**
@@ -188,6 +209,7 @@ export class ObjectPropertiesClassInfoSectionHelp extends ObjectPropertiesTabSec
     entry.append(
       this.titleCreate(`${gameClass.label} (${gameClass.category})`),
       this.lineCreate(typePath),
+      ...this.gameClassBoxLinesCreate(typePath),
       ...this.gameClassPinLinesCreate(typePath),
     );
     return entry;

@@ -171,6 +171,10 @@ pub struct PlaceableClass {
     pub placement: PlaceablePlacement,
     /// sRGB color of the editor marker.
     pub marker_color: [f32; 3],
+    /// The name of the editor icon drawn on markers and listed in menus, such as
+    /// `lightbulb`; the editor shows its default game entity icon for unknown names.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     /// The marker box of entities whose box is not picked by a field value.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub marker_box: Option<PlaceableMarkerBox>,

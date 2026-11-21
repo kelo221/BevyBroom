@@ -81,6 +81,20 @@ The class file uses the same format the game bridge reports its classes in:
   models again whenever the editor window gains focus, so a model exported
   again shows up without reopening the project.
 
+- An enum field can name and group its values with `"variant_details"`, keyed
+  by value: `{ "freezer": { "label": "Freezer", "group": "Fridges & freezers" } }`.
+  The Add menu and the Place browser list each boxed value under its group, and
+  the field's dropdown in the Properties panel shows the labels under their
+  groups. Values without details show a readable form of the value itself.
+- A class can name the editor icon of its entities with `"icon"`, one of the
+  names in `src/ui/icons/icon_name.ts` such as `"lightbulb"` or `"door-closed"`.
+  Markers, the outliner, the Add menu and the Place tiles show it; an unknown
+  name or none shows the puzzle piece.
+- When an entity carries several classes that give a marker box, a box that
+  names a model wins; otherwise the class first in type path order wins.
+- The box size a class gives the selected objects is listed in the Help box of
+  Object Properties (Class Info tab), not in the Properties panel.
+- Every key above is optional: a class file without them works as before.
 - A class can declare `"collision": "solid"`, `"volume"` or `"none"`: the
   collision kind solid models carrying it take in exported levels, such as
   `"volume"` for a finish zone. See

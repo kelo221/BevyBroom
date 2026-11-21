@@ -85,10 +85,23 @@ export function gameEntityClassFromUnknown(value: unknown): GameEntityClass | nu
     marker_color: gameEntityColorRead(value['marker_color']),
     fields: gameEntityArrayRead(value['fields'], gameEntityFieldFromUnknown),
   };
+  gameEntityClassIconRead(value, gameClass);
   gameEntityClassPinsRead(value, gameClass);
   gameEntityClassMarkerBoxesRead(value, gameClass);
   gameEntityClassCollisionRead(value, gameClass);
   return gameClass;
+}
+
+/**
+ * Copies the icon name of an untrusted class when it is filled text.
+ *
+ * @param value Untrusted class record.
+ * @param gameClass Class being built.
+ */
+function gameEntityClassIconRead(value: Record<string, unknown>, gameClass: GameEntityClass): void {
+  if (gameEntityTextIsFilled(value['icon'])) {
+    gameClass.icon = value['icon'];
+  }
 }
 
 /**

@@ -11,26 +11,36 @@ import type { PreviewFieldValue } from '@/preview/protocol/preview_protocol_plac
 /**
  * Picks the box a game entity's marker is drawn as from the classes of its
  * components: the box chosen by the class's marker box field, otherwise the
- * class's own marker box.
+ * class's own marker box. When several classes give a box, one that names a
+ * model wins.
  */
 export class GameEntityVisualMarkerBox {
   /**
    * Returns the marker box of an object's components.
    *
    * @param owner Object carrying game components.
-   * @returns Box of the first attached known class that declares one, in type
-   *   path order, or null when none does.
+   * @returns The first box, in type path order of the attached known classes,
+   *   that names a model; otherwise the first box; null when no class declares
+   *   one.
    */
   static boxOf(owner: THREE.Object3D): GameEntityMarkerBox | null {
+    const markerBoxes = GameEntityVisualMarkerBox.boxesOf(owner);
+    return markerBoxes.find((markerBox) => markerBox.model !== undefined) ?? markerBoxes[0] ?? null;
+  }
+
+  /**
+   * Returns the marker boxes the attached known classes give an object.
+   *
+   * @param owner Object carrying game components.
+   * @returns One box per class that declares one, in type path order.
+   */
+  private static boxesOf(owner: THREE.Object3D): GameEntityMarkerBox[] {
     const components = GameEntityComponentStore.read(owner);
-    for (const typePath of Object.keys(components).sort()) {
-      const gameClass = GameEntityClassRegistry.classFind(typePath);
-      const markerBox = gameClass === null ? null : GameEntityVisualMarkerBox.classBoxOf(gameClass, components);
-      if (markerBox !== null) {
-        return markerBox;
-      }
-    }
-    return null;
+    return Object.keys(components)
+      .sort()
+      .map((typePath) => GameEntityClassRegistry.classFind(typePath))
+      .map((gameClass) => (gameClass === null ? null : GameEntityVisualMarkerBox.classBoxOf(gameClass, components)))
+      .filter((markerBox): markerBox is GameEntityMarkerBox => markerBox !== null);
   }
 
   /**

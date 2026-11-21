@@ -96,7 +96,7 @@ export class EditorApiProjectLevels {
     if (level === null) {
       return failResult(`The open project has no level ${key}; call list_project_levels`);
     }
-    const result = await actions.levelOpen(level.document, true);
+    const result = await actions.levelOpen(level.document, false);
     return result.ok
       ? okResult(`Opened level ${result.level.name}`, { level: result.level })
       : failResult(result.message);

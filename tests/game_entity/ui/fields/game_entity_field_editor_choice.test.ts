@@ -27,6 +27,28 @@ describe('GameEntityFieldEditorChoice', () => {
     expect(edits.map((edit) => edit(field.default))).toEqual([field.variants?.[2]]);
   });
 
+  it('shows enum variants by their display names under their groups, ungrouped ones first', () => {
+    const field = testDoorField('kind');
+    const [wooden, iron, glass] = field.variants ?? [];
+    field.variant_details = {
+      [iron ?? '']: { label: 'Iron door', group: 'Metal doors' },
+      [glass ?? '']: { label: 'Glass door', group: 'See-through doors' },
+    };
+    const editor = new GameEntityFieldEditorChoice(field, field.variants ?? []);
+    editor.valuesShow([field.default]);
+    const select = editor.getElement() as HTMLSelectElement;
+    const groups = [...select.querySelectorAll('optgroup')].map((group) => [
+      group.label,
+      [...group.querySelectorAll('option')].map((option) => [option.value, option.textContent]),
+    ]);
+    expect(groups).toEqual([
+      ['Metal doors', [[iron, 'Iron door']]],
+      ['See-through doors', [[glass, 'Glass door']]],
+    ]);
+    expect(optionValues(select)).toEqual([wooden, iron, glass]);
+    expect([...select.options].find((option) => option.value === wooden)?.parentElement).toBe(select);
+  });
+
   it('offers no asset, the listed files and a file still in use', () => {
     const paths = ['data/a.door.ron', 'data/b.door.ron'];
     const editor = new GameEntityFieldEditorChoice(testDoorField('stats'), paths);
