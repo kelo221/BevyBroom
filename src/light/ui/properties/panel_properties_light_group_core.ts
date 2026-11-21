@@ -9,6 +9,7 @@ import type { InputSelectChoice } from '@/ui/input/input_select.js';
 const LIGHT_KIND_CHOICES: readonly InputSelectChoice[] = [
   { value: 'point', label: 'Point' },
   { value: 'spot', label: 'Spot' },
+  { value: 'tube', label: 'Tube', title: 'A line of light along the local X axis' },
 ];
 
 /** Shadow mode choices. */
@@ -17,7 +18,10 @@ const LIGHT_SHADOW_CHOICES: readonly InputSelectChoice[] = [
   { value: 'realtime', label: 'Realtime', title: 'Shadow cubemaps rendered every frame' },
 ];
 
-/** The always open fields every light has: type, color, range, cone and shadows. */
+/**
+ * The always open fields every light has: type, color, range, cone, tube length
+ * and shadows.
+ */
 export class PanelPropertiesLightGroupCore extends PanelPropertiesLightGroup {
   /**
    * Creates the group and its rows.
@@ -35,6 +39,8 @@ export class PanelPropertiesLightGroupCore extends PanelPropertiesLightGroup {
     const isSpot = (settings: { kind: string }): boolean => settings.kind === 'spot';
     this.rowShownWhen(this.numberRowAppend('Inner', 'innerCutoffDegrees', 1, 'Spot inner angle'), isSpot);
     this.rowShownWhen(this.numberRowAppend('Outer', 'outerCutoffDegrees', 1, 'Spot outer angle'), isSpot);
+    const isTube = (settings: { kind: string }): boolean => settings.kind === 'tube';
+    this.rowShownWhen(this.numberRowAppend('Length', 'tubeLength', 0.1, 'Tube length'), isTube);
     this.switchRowAppend('Realtime', 'realtime', 'Light realtime');
     this.choiceRowAppend('Shadows', 'shadows', LIGHT_SHADOW_CHOICES, 'Light shadows');
   }

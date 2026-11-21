@@ -26,7 +26,7 @@ function mcpLightSettingsChoicesFormat(choices: readonly string[]): string {
  */
 function mcpLightSettingsDescriptionBuild(): string {
   return [
-    'Light settings: kind ("point" | "spot"), colorHex (0xRRGGBB number), intensity, radius (m), falloff, innerCutoffDegrees, outerCutoffDegrees, realtime (bool), shadows ("raytraced" | "realtime"), enabled (bool).',
+    'Light settings: kind ("point" | "spot" | "tube"), colorHex (0xRRGGBB number), intensity, radius (m), falloff, innerCutoffDegrees, outerCutoffDegrees, tubeLength (m, tube only, along local +X, centred), realtime (bool), shadows ("raytraced" | "realtime"), enabled (bool).',
     `Effect: effectKind (${mcpLightSettingsChoicesFormat(LIGHT_EFFECT_KINDS)}), effectPulseSpeed, effectPulseModifier (0-1 minimum brightness), effectPulseOffset, effectTimestep (s).`,
     `Cookie (spot only, outer cutoff ${LIGHT_COOKIE_MAX_OUTER_DEGREES} degrees or less): cookieTexture (image path inside the game's assets folder, "" for none).`,
     `Fog: fogEnabled (bool), fogShape (${mcpLightSettingsChoicesFormat(LIGHT_FOG_SHAPES)}), fogRadius (m; set_light_settings scales it with a new radius sent without it), fogThickness (>= 1), fogIntensity (0-1), fogVisibility (m).`,

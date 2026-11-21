@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { shouldOmitFromExport } from '@/io/scene/export_object_omission.js';
-import { entityKindRead } from '@/entity/model/entity_owner_keys.js';
+import { entityKindRead, entityOwnerChildOwners } from '@/entity/model/entity_owner_keys.js';
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { CLIP_PREVIEW_USERDATA_KEY } from '@/tools/clip_plane/clip_plane_preview.js';
 import {
@@ -50,10 +50,8 @@ export class PreviewStateObjectCollector {
       return;
     }
     objects.push(PreviewStateObjectCollector.objectCreate(object, parentIdentifier, kind));
-    if (kind !== 'group' && kind !== 'mesh') {
-      return;
-    }
-    for (const child of object.children) {
+    const children = kind === 'group' || kind === 'mesh' ? object.children : entityOwnerChildOwners(object);
+    for (const child of children) {
       PreviewStateObjectCollector.collectInto(child, object.uuid, objects);
     }
   }

@@ -19,6 +19,14 @@ use super::light_features::{
 use super::portal::{AuthoredPortal, AuthoredRoom};
 
 impl AuthoredLight {
+    /// DynLight's area size: `[length, 0]` for a tube, nothing for other kinds.
+    fn dynlight_size(&self) -> Vec2 {
+        match (self.light_type, self.length) {
+            (AuthoredLightType::Tube, Some(length)) => Vec2::new(length, 0.0),
+            _ => Vec2::ZERO,
+        }
+    }
+
     /// The DynLight component for this definition.
     pub fn to_dynamic_light(&self) -> DynamicLight {
         DynamicLight {
@@ -30,7 +38,9 @@ impl AuthoredLight {
             light_type: match self.light_type {
                 AuthoredLightType::Point => LightType::Point,
                 AuthoredLightType::Spot => LightType::Spot,
+                AuthoredLightType::Tube => LightType::Tube,
             },
+            size: self.dynlight_size(),
             inner_cutoff: self.inner_cutoff,
             outer_cutoff: self.outer_cutoff,
             shadows: match self.shadows {

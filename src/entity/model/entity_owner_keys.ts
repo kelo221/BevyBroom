@@ -55,6 +55,17 @@ export function entityOwnerIs(object: THREE.Object3D): boolean {
 }
 
 /**
+ * Returns the entity owners nested directly under an entity owner, such as the
+ * light a store fixture carries.
+ *
+ * @param owner Entity owner.
+ * @returns Child entity owners in child order; its visuals are left out.
+ */
+export function entityOwnerChildOwners(owner: THREE.Object3D): THREE.Object3D[] {
+  return owner.children.filter((child) => entityOwnerIs(child));
+}
+
+/**
  * Returns whether the object is an editor-only visual of an entity.
  *
  * @param object Candidate object.

@@ -22,5 +22,16 @@ export function previewLightFromSettings(settings: LightSettings): PreviewAuthor
     shadows: settings.shadows,
     enabled: settings.enabled,
     ...previewLightFeaturesFromSettings(settings),
+    ...previewLightTubeLengthOf(settings),
   };
+}
+
+/**
+ * Returns the length field of a tube light.
+ *
+ * @param settings Editor light settings.
+ * @returns The tube length for tubes, nothing for other kinds.
+ */
+function previewLightTubeLengthOf(settings: LightSettings): Pick<PreviewAuthoredLight, 'length'> {
+  return settings.kind === 'tube' ? { length: settings.tubeLength } : {};
 }

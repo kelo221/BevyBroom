@@ -11,6 +11,7 @@ export const ICON_NAMES = [
   'floor-plan',
   'image-outline',
   'lightbulb',
+  'lightbulb-fluorescent-tube',
   'puzzle',
   'rounded-corner',
   'shape-arch',

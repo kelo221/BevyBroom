@@ -87,6 +87,43 @@ export interface PreviewPlaceableField {
 export interface PreviewPlaceableVariantDetail {
   label?: string;
   group?: string;
+  /** Light the editor adds as a child of an entity holding the variant. */
+  light?: PreviewPlaceableVariantLight;
+}
+
+/**
+ * Light an entity holding an enum variant carries, such as the tube of a
+ * fluorescent fixture. Positions are meters in the entity's own space; the
+ * color is linear, 0 to 1 per channel.
+ */
+export interface PreviewPlaceableVariantLight {
+  kind: 'tube' | 'point';
+  /** Tube only: one end. */
+  from?: [number, number, number];
+  /** Tube only: the other end. */
+  to?: [number, number, number];
+  /** Point only: where the light sits. */
+  at?: [number, number, number];
+  color: [number, number, number];
+  intensity: number;
+  /** Meters from the light where its light ends. */
+  radius: number;
+  /** DynLight effect kind in snake case, such as `fluorescent_starter`. */
+  effect?: string;
+  fog?: PreviewPlaceableVariantLightFog;
+}
+
+/**
+ * Fog hanging from a variant's light down to the floor and `below_floor_m`
+ * more.
+ */
+export interface PreviewPlaceableVariantLightFog {
+  intensity: number;
+  thickness: number;
+  /** Meters within which objects inside the fog stay clearly visible. */
+  visibility_m: number;
+  /** How far below the floor the fog reaches, in meters. */
+  below_floor_m: number;
 }
 
 /**

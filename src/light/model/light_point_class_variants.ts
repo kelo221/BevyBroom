@@ -8,7 +8,7 @@ const LIGHT_POINT_CLASS_CATEGORY = 'Lights';
  * Builds the point class of one light kind. Changing a light between kinds
  * keeps its color, range and every other setting.
  *
- * @param kind Point or spot.
+ * @param kind Point, spot or tube.
  * @param label Visible class name.
  * @param helpText Help box text.
  * @returns Point class variant.
@@ -31,7 +31,7 @@ function lightPointClassVariantCreate(
 /**
  * Returns the point classes of authored lights.
  *
- * @returns Point light and spot light classes.
+ * @returns Point light, spot light and tube light classes.
  */
 export function lightPointClassVariantsCreate(): readonly EntityClassPointVariant<LightSettings>[] {
   return [
@@ -44,6 +44,11 @@ export function lightPointClassVariantsCreate(): readonly EntityClassPointVarian
       'spot',
       'Spot Light',
       'A DynLight spot light. It shines along its forward direction inside its outer cone, up to its radius.',
+    ),
+    lightPointClassVariantCreate(
+      'tube',
+      'Tube Light',
+      'A DynLight tube light, such as a fluorescent tube. It shines from a line along its local X axis, centred on it, up to its radius.',
     ),
   ];
 }

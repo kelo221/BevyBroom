@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GameEntityFixtureLightFollower } from '@/game_entity/fixture_light/game_entity_fixture_light_follower.js';
 import { Theme } from '@/theme.js';
 import { ManagerInput } from '@/input/manager_input.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
@@ -82,6 +83,7 @@ export function createLayoutCoreSystems(): LayoutCoreSystems {
     ),
   );
   const sceneRoot = createSceneRootServices(worldObject, snapBundle.commandStack);
+  new GameEntityFixtureLightFollower(worldObject).follow(snapBundle.commandStack);
   return {
     ...createRuntimeState(),
     ...sceneRoot,

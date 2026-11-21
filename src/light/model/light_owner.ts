@@ -12,7 +12,7 @@ export class EntityOwnerLight extends EntityOwner<LightSettings> {
    * Creates a light owner with default settings for a kind.
    *
    * @param name Display name.
-   * @param kind Point or spot; point when omitted.
+   * @param kind Point, spot or tube; point when omitted.
    * @returns New owner group.
    */
   override createDefault(name: string, kind: LightKind = 'point'): THREE.Group {

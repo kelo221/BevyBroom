@@ -30,9 +30,10 @@ import {
  * End-to-end acceptance of DynLight light features authored in the editor: the
  * effect, cookie, fog and shimmer of a spot light reach the game as DynLight
  * components, scaling a light or dragging its radius and cone balls changes the
- * game's radius, cone and fog radius, and only bake-relevant settings mark a
- * bake stale. Skipped unless BROOM_E2E_PREVIEW_EXE and BROOM_E2E_PROJECT_DIR
- * are set; its game listens five ports above BROOM_E2E_PORT.
+ * game's radius, cone and fog radius, only bake-relevant settings mark a bake
+ * stale, and a tube reaches the game as a DynLight tube of its length. Skipped
+ * unless BROOM_E2E_PREVIEW_EXE and BROOM_E2E_PROJECT_DIR are set; its game
+ * listens five ports above BROOM_E2E_PORT.
  */
 const environment = previewE2eEnvironmentRead(5);
 const STEP_TIMEOUT_MILLISECONDS = 60000;
@@ -420,5 +421,18 @@ describe.skipIf(!environment.isConfigured)('light features in the game preview e
       await caughtUpBakeUntil('a stale bake', 'needs_bake', STEP_TIMEOUT_MILLISECONDS);
     },
     BAKE_TIMEOUT_MILLISECONDS * 2,
+  );
+
+  it(
+    'turns the light into a DynLight tube of the authored length',
+    async () => {
+      const tubeLength = 1.75;
+      spotSettingsChange({ kind: 'tube', tubeLength });
+      const gameLight = await gameLightUntil('the tube light', ({ light }) => light['light_type'] === 'Tube');
+      const size = gameLight.light['size'] as number[] | undefined;
+      expect(numberMatches(size?.[0], tubeLength)).toBe(true);
+      expect(size?.[1]).toBe(0);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
   );
 });

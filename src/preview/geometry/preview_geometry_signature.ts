@@ -4,7 +4,7 @@ import { exportContentMaterialResolve } from '@/io/scene/export_content_material
 import { SolidModel } from '@/solid/model/solid_model.js';
 import { CLIP_PREVIEW_USERDATA_KEY } from '@/tools/clip_plane/clip_plane_preview.js';
 import { objectInOmittedLayerIs } from '@/layer/model/layer_membership.js';
-import { entityOwnerIs } from '@/entity/model/entity_owner_keys.js';
+import { entityOwnerChildOwners, entityOwnerIs } from '@/entity/model/entity_owner_keys.js';
 import { ObjectDataContributorRegistry } from '@/object_data/object_data_contributor_registry.js';
 import { displacementSurfaceMeshIs } from '@/displacement/mesh/displacement_surface_mesh_keys.js';
 import { DisplacementExportCollisionExtrasBuilder } from '@/displacement/export/displacement_export_collision_extras.js';
@@ -66,7 +66,7 @@ export class PreviewGeometrySignature {
 
   /**
    * Appends what the export geometry of an entity owner is built from, when the
-   * owner exports any.
+   * owner exports any, followed by the entity owners nested under it.
    *
    * @param owner Entity owner.
    * @param parts Output signature parts.
@@ -76,6 +76,7 @@ export class PreviewGeometrySignature {
     if (description !== '') {
       parts.push(`e:${owner.uuid}:${description}`);
     }
+    entityOwnerChildOwners(owner).forEach((child) => PreviewGeometrySignature.objectAppend(child, parts));
   }
 
   /**

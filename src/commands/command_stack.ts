@@ -1,4 +1,5 @@
 import { UndoCommand } from './command_undo.js';
+import { CommandUndoBatch } from './command_undo_batch.js';
 
 /**
  * Callback invoked when the command stack state changes.
@@ -17,6 +18,14 @@ export type CommandStackChangedCallback = (undoCount: number, redoCount: number)
 export type CommandStackRecordBeforeListener = (command: UndoCommand) => void;
 
 /**
+ * Callback asked, right after a command executed and before it is recorded, for
+ * a further edit that belongs to the same undo entry.
+ *
+ * @returns A command not yet executed, or null when nothing more is needed.
+ */
+export type CommandStackFollowUpProvider = () => UndoCommand | null;
+
+/**
  * Manages the history of undoable commands. Supports undo, redo, stack size
  * limiting, and an undo delegate that takes over undo and redo while set.
  */
@@ -26,6 +35,7 @@ export class CommandStack {
   private maxSize: number;
   private changedCallbacks: CommandStackChangedCallback[];
   private recordBeforeListeners: CommandStackRecordBeforeListener[];
+  private followUpProviders: CommandStackFollowUpProvider[];
   private undoDelegate: CommandStack | null;
   private readonly undoDelegateChangedForward: CommandStackChangedCallback;
   private undoTrimmedTotal: number;
@@ -41,6 +51,7 @@ export class CommandStack {
     this.maxSize = maxSize;
     this.changedCallbacks = [];
     this.recordBeforeListeners = [];
+    this.followUpProviders = [];
     this.undoDelegate = null;
     this.undoDelegateChangedForward = () => this.notifyChanged();
     this.undoTrimmedTotal = 0;
@@ -98,6 +109,21 @@ export class CommandStack {
     this.recordBeforeListeners.push(listener);
     return () => {
       this.recordBeforeListeners = this.recordBeforeListeners.filter((candidate) => candidate !== listener);
+    };
+  }
+
+  /**
+   * Registers a provider asked after every executed command for a follow-up
+   * edit. A follow-up runs at once and is undone and redone together with the
+   * command, as one undo entry.
+   *
+   * @param provider Provider of follow-up commands.
+   * @returns Function that removes the provider.
+   */
+  followUpProviderAdd(provider: CommandStackFollowUpProvider): () => void {
+    this.followUpProviders.push(provider);
+    return () => {
+      this.followUpProviders = this.followUpProviders.filter((candidate) => candidate !== provider);
     };
   }
 
@@ -298,19 +324,42 @@ export class CommandStack {
     this.redoStack = [];
     this.changedCallbacks = [];
     this.recordBeforeListeners = [];
+    this.followUpProviders = [];
   }
 
   /**
-   * Tells the record listeners about a command, adds it as the newest undo
-   * entry, applies the size limit and notifies the change callbacks.
+   * Joins a command with its follow-ups, tells the record listeners about the
+   * entry, adds it as the newest undo entry, applies the size limit and
+   * notifies the change callbacks.
    *
    * @param command Executed command to record.
    */
   private undoEntryAppend(command: UndoCommand): void {
-    this.recordBeforeListeners.slice().forEach((listener) => listener(command));
-    this.undoStack.push(command);
+    const entry = this.followUpsAttach(command);
+    this.recordBeforeListeners.slice().forEach((listener) => listener(entry));
+    this.undoStack.push(entry);
     this.undoStackTrimToMaxSize();
     this.notifyChanged();
+  }
+
+  /**
+   * Runs the follow-ups the providers ask for after a command and joins them
+   * with it.
+   *
+   * @param command Executed command.
+   * @returns The command itself when no follow-up is needed, otherwise one
+   *   batch of the command and its executed follow-ups.
+   */
+  private followUpsAttach(command: UndoCommand): UndoCommand {
+    const followUps: UndoCommand[] = [];
+    for (const provider of this.followUpProviders.slice()) {
+      const followUp = provider();
+      followUp?.execute();
+      if (followUp) {
+        followUps.push(followUp);
+      }
+    }
+    return followUps.length === 0 ? command : CommandUndoBatch.fromExecuted([command, ...followUps]);
   }
 
   /** Drops and disposes every pending redo entry. */

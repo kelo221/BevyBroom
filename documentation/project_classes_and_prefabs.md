@@ -86,6 +86,30 @@ The class file uses the same format the game bridge reports its classes in:
   The Add menu and the Place browser list each boxed value under its group, and
   the field's dropdown in the Properties panel shows the labels under their
   groups. Values without details show a readable form of the value itself.
+- A variant's details may also declare the light an entity holding the
+  variant carries, such as a fluorescent fixture's tube:
+
+  ```json
+  "light": {
+    "kind": "tube", "from": [-0.5, 0, 0.04], "to": [0.5, 0, 0.04],
+    "color": [0.88, 0.96, 1.0], "intensity": 0.4, "radius": 9,
+    "effect": "fluorescent_starter",
+    "fog": { "intensity": 0.04, "thickness": 1, "visibility_m": 2, "below_floor_m": 0.5 }
+  }
+  ```
+
+  `kind` is `"tube"` (with `from` and `to`) or `"point"` (with `at`); positions
+  are meters in the entity's own space and the color is linear. Placing the
+  entity, or switching it to the variant, adds a child light: a tube centred
+  between the ends with its local X axis running from `from` to `to`, or a
+  point at `at`. Its color is stored in sRGB like every light. Fog becomes a
+  frustum reaching from the light down to the first surface below it plus
+  `below_floor_m`, measured once when the light is made. The light is an
+  ordinary light you can edit; your edits stay until the variant changes,
+  which makes the light again (or removes it when the new variant has none).
+  Lights you add yourself under the entity are never touched. The whole
+  change is one undo step with the edit that caused it.
+
 - A class can name the editor icon of its entities with `"icon"`, one of the
   names in `src/ui/icons/icon_name.ts` such as `"lightbulb"` or `"door-closed"`.
   Markers, the outliner, the Add menu and the Place tiles show it; an unknown

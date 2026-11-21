@@ -75,7 +75,10 @@ export function previewObjectKindIs(kind: string): kind is PreviewObjectKind {
 
 /** One authored light in game units. */
 export interface PreviewAuthoredLight {
-  light_type: 'point' | 'spot';
+  /** Spots shine along local −Z; tubes run along local +X, centred. */
+  light_type: 'point' | 'spot' | 'tube';
+  /** Tube only: length in meters along local +X; omitted for other kinds. */
+  length?: number;
   color: [number, number, number];
   intensity: number;
   radius: number;

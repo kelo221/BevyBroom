@@ -11,6 +11,7 @@ import { ObjectDataContributorProcedural } from '@/procedural/export/object_data
 import { ObjectDataContributorPreviewEntitySettings } from '@/preview/state/object_data_contributor_preview_entity_settings.js';
 import { ObjectDataContributorProjectLink } from '@/project/document/object_data_contributor_project_link.js';
 import { ObjectDataContributorPolygonOutline } from '@/tools/polygon/object_data_contributor_polygon_outline.js';
+import { ObjectDataContributorFixtureLightMark } from '@/game_entity/fixture_light/object_data_contributor_fixture_light_mark.js';
 import { ObjectDataContributorSprinkleMark } from '@/tools/sprinkle/mark/object_data_contributor_sprinkle_mark.js';
 
 /**
@@ -31,6 +32,7 @@ export function objectDataContributorsBuiltinCreate(): readonly ObjectDataContri
     new ObjectDataContributorGameLogic(),
     new ObjectDataContributorPolygonOutline(),
     new ObjectDataContributorSprinkleMark(),
+    new ObjectDataContributorFixtureLightMark(),
     new ObjectDataContributorLayers(),
     new ObjectDataContributorProjectLink(),
     new ObjectDataContributorDisplacementCollision(),

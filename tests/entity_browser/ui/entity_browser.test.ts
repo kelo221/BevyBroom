@@ -213,7 +213,7 @@ describe('EntityBrowser', () => {
     if (!search) throw new Error('missing search field');
     search.value = 'LIGHT';
     search.dispatchEvent(new Event('input', { bubbles: true }));
-    expect(shownIds(browser).sort()).toEqual(['lights.point', 'lights.spot']);
+    expect(shownIds(browser).sort()).toEqual(['lights.point', 'lights.spot', 'lights.tube']);
   });
 
   it('sorts by name when chosen in the sort dropdown', () => {
