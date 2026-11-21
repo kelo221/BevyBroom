@@ -101,8 +101,8 @@ The class file uses the same format the game bridge reports its classes in:
   `kind` is `"tube"` (with `from` and `to`) or `"point"` (with `at`); positions
   are meters in the entity's own space and the color is linear. Placing the
   entity, or switching it to the variant, adds a child light: a tube centred
-  between the ends with its local X axis running from `from` to `to`, or a
-  point at `at`. Its color is stored in sRGB like every light. Fog becomes a
+  between the ends with its local X axis running from `from` to `to` and its
+  local −Z axis rolled as far down as the tube allows, or a point at `at`. Its color is stored in sRGB like every light. Fog becomes a
   frustum reaching from the light down to the first surface below it plus
   `below_floor_m`, measured once when the light is made. The light is an
   ordinary light you can edit; your edits stay until the variant changes,

@@ -17,6 +17,12 @@ const GAME_ENTITY_FIXTURE_FOG_MIN_RADIUS = 0.1;
 /** Axis a tube light runs along in its own space; never modified. */
 const GAME_ENTITY_FIXTURE_TUBE_AXIS = new THREE.Vector3(1, 0, 0);
 
+/** Down in the entity's space; never modified. */
+const GAME_ENTITY_FIXTURE_DOWN = new THREE.Vector3(0, -1, 0);
+
+/** Squared length below which down runs along the tube, so no roll is chosen. */
+const GAME_ENTITY_FIXTURE_VERTICAL_TUBE_EPSILON = 1e-10;
+
 /** Where a fixture light sits in its entity's space and how it is turned. */
 interface GameEntityFixtureLightPlacement {
   readonly position: THREE.Vector3;
@@ -27,7 +33,8 @@ interface GameEntityFixtureLightPlacement {
 /**
  * Builds the light an entity's variant declares as a light owner placed in the
  * entity's own space: a tube centred between its ends with its local X axis
- * running from one end to the other, or a point at its place.
+ * running from one end to the other and its local −Z axis rolled downward, or a
+ * point at its place.
  */
 export class GameEntityFixtureLightBuilder {
   /**
@@ -73,11 +80,27 @@ export class GameEntityFixtureLightBuilder {
     const from = new THREE.Vector3(...light.from);
     const to = new THREE.Vector3(...light.to);
     const direction = to.clone().sub(from);
-    const quaternion = new THREE.Quaternion().setFromUnitVectors(
-      GAME_ENTITY_FIXTURE_TUBE_AXIS,
-      direction.clone().normalize(),
-    );
+    const quaternion = GameEntityFixtureLightBuilder.tubeTurnOf(direction.clone().normalize());
     return { position: from.clone().add(to).multiplyScalar(0.5), quaternion, tubeLength: direction.length() };
+  }
+
+  /**
+   * Returns the turn of a tube: its local X axis along the tube and, rolled
+   * about it, its local −Z axis pointing as far down as the tube allows, so a
+   * fog frustum along −Z hangs towards the floor.
+   *
+   * @param tubeDirection Unit direction from one end to the other.
+   * @returns Turn of the tube light.
+   */
+  private static tubeTurnOf(tubeDirection: THREE.Vector3): THREE.Quaternion {
+    const down = GAME_ENTITY_FIXTURE_DOWN.clone().projectOnPlane(tubeDirection);
+    if (down.lengthSq() < GAME_ENTITY_FIXTURE_VERTICAL_TUBE_EPSILON) {
+      return new THREE.Quaternion().setFromUnitVectors(GAME_ENTITY_FIXTURE_TUBE_AXIS, tubeDirection);
+    }
+    const localZ = down.normalize().negate();
+    const localY = localZ.clone().cross(tubeDirection);
+    const basis = new THREE.Matrix4().makeBasis(tubeDirection, localY, localZ);
+    return new THREE.Quaternion().setFromRotationMatrix(basis);
   }
 
   /**

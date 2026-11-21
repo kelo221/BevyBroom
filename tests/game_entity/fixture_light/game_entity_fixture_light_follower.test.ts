@@ -139,7 +139,7 @@ describe('GameEntityFixtureLightFollower', () => {
     cleanups.splice(0).forEach((cleanup) => cleanup());
   });
 
-  it('gives a placed fixture its tube, centred between the ends with local X along them', () => {
+  it('gives a placed fixture its tube, centred between the ends with local X along them and −Z rolled down', () => {
     const rig = rigCreate(cleanups);
     const owner = doorPlace(rig, 'Glass', new THREE.Vector3(3, 0, -2));
     const light = onlyLightOf(owner);
@@ -151,6 +151,10 @@ describe('GameEntityFixtureLightFollower', () => {
     expect(light.position.distanceTo(from.clone().add(to).multiplyScalar(0.5))).toBeLessThan(1e-6);
     const axis = new THREE.Vector3(1, 0, 0).applyQuaternion(light.quaternion);
     expect(axis.distanceTo(to.clone().sub(from).normalize())).toBeLessThan(1e-6);
+    const backward = new THREE.Vector3(0, 0, -1).applyQuaternion(light.quaternion);
+    expect(backward.dot(axis)).toBeCloseTo(0, 6);
+    expect(backward.y).toBeLessThan(-0.8);
+    expect(new THREE.Vector3(0, -1, 0).projectOnPlane(axis).normalize().distanceTo(backward)).toBeLessThan(1e-6);
     expect(settings?.effectKind).toBe(GLASS_TUBE.effect);
     expect(settings?.realtime).toBe(true);
   });
