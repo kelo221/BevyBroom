@@ -48,13 +48,12 @@ describe('GameEntityComponentBoxInfo', () => {
     expect(GameEntityComponentBoxInfo.rowOf(null, [{ [door.type_path]: {} }])).toBeNull();
   });
 
-  it('adds a read-only row beside the field rows of the component block', () => {
+  it('leaves the box out of the component block, whose rows are only fields', () => {
     const door = doorClassWithBoxes();
     const block = new GameEntityComponentBlock(door.type_path, [{ [door.type_path]: {} }], () => {}, {
       gameClass: door,
     });
-    const boxRow = block.getElement().querySelector<HTMLElement>('[data-read-only="true"]');
-    expect(boxRow?.textContent).toContain(door.marker_box?.size.join(' × '));
-    expect(boxRow?.querySelector('input')).toBeNull();
+    expect(block.getElement().querySelector('[data-read-only="true"]')).toBeNull();
+    expect(block.getElement().textContent).not.toContain(door.marker_box?.size.join(' × ') ?? '');
   });
 });

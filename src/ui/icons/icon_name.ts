@@ -1,5 +1,6 @@
 /** Every icon name the editor can draw. */
 export const ICON_NAMES = [
+  'bookshelf',
   'crosshairs',
   'cube-outline',
   'cylinder',

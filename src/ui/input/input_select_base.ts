@@ -48,16 +48,46 @@ export abstract class InputSelectBase {
   }
 
   /**
-   * Replaces the selectable entries.
+   * Replaces the selectable entries. Entries naming a group are listed under
+   * one option group per group caption, placed where its first entry is.
    *
    * @param choices Selectable entries.
    */
   setChoices(choices: readonly InputSelectChoice[]): void {
     this.element.replaceChildren();
+    const optionGroups = new Map<string, HTMLOptGroupElement>();
     for (const choice of choices) {
-      this.element.appendChild(this.createOption(choice.value, choice.label, choice.title ?? ''));
+      const option = this.createOption(choice.value, choice.label, choice.title ?? '');
+      this.optionParentOf(choice.group, optionGroups).appendChild(option);
     }
     this.refreshTitle();
+  }
+
+  /**
+   * Returns the element an entry's option goes into: the select itself, or the
+   * option group of its caption, created and appended on first use.
+   *
+   * @param groupCaption Caption of the entry's group, or undefined when
+   *   ungrouped.
+   * @param optionGroups Option groups created so far, by caption.
+   * @returns Parent element of the option.
+   */
+  private optionParentOf(
+    groupCaption: string | undefined,
+    optionGroups: Map<string, HTMLOptGroupElement>,
+  ): HTMLElement {
+    if (groupCaption === undefined) {
+      return this.element;
+    }
+    const existingGroup = optionGroups.get(groupCaption);
+    if (existingGroup !== undefined) {
+      return existingGroup;
+    }
+    const optionGroup = document.createElement('optgroup');
+    optionGroup.label = groupCaption;
+    optionGroups.set(groupCaption, optionGroup);
+    this.element.appendChild(optionGroup);
+    return optionGroup;
   }
 
   /**

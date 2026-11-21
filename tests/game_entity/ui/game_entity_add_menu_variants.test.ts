@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GameEntityClass } from '@/game_entity/class/game_entity_class_schema.js';
-import {
-  gameEntityAddMenuVariantLabelFromValue,
-  gameEntityAddMenuVariantsOf,
-} from '@/game_entity/ui/game_entity_add_menu_variants.js';
+import { gameEntityAddMenuVariantsOf } from '@/game_entity/ui/game_entity_add_menu_variants.js';
 import { testDoorClassCreate } from '../game_entity_test_classes.js';
 
 /** Marker box every test variant uses. */
@@ -63,10 +60,5 @@ describe('gameEntityAddMenuVariantsOf', () => {
       ['Glass', 'Glass', door.label],
       ['Iron', 'Iron door', 'Metal'],
     ]);
-  });
-
-  it('turns field values into readable names', () => {
-    expect(gameEntityAddMenuVariantLabelFromValue('shelf-tall-4')).toBe('Shelf tall 4');
-    expect(gameEntityAddMenuVariantLabelFromValue('BigFridge')).toBe('Big fridge');
   });
 });

@@ -1,7 +1,8 @@
 import type * as THREE from 'three';
 import { EntityDefinition } from '@/entity/model/entity_definition.js';
 import type { EntityKind } from '@/entity/model/entity_owner_keys.js';
-import { GAME_ENTITY_ICON_NAME, GameEntityVisualBuilder } from '@/game_entity/visual/game_entity_visual_builder.js';
+import { GameEntityVisualBuilder } from '@/game_entity/visual/game_entity_visual_builder.js';
+import { GAME_ENTITY_ICON_NAME, GameEntityVisualIcon } from '@/game_entity/visual/game_entity_visual_icon.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 
 /**
@@ -53,13 +54,25 @@ export class GameEntityDefinition extends EntityDefinition<GameEntitySettings> {
   }
 
   /**
-   * Returns the puzzle piece icon every game entity uses.
+   * Returns the default game entity icon, the puzzle piece.
    *
    * @param _settings Game entity settings.
    * @returns Icon name.
    */
   iconName(_settings: GameEntitySettings): IconName {
     return GAME_ENTITY_ICON_NAME;
+  }
+
+  /**
+   * Returns the icon the classes of an entity's components name, or the default
+   * game entity icon.
+   *
+   * @param owner Game entity owner group.
+   * @param _settings Game entity settings.
+   * @returns Icon name.
+   */
+  override iconNameOf(owner: THREE.Object3D, _settings: GameEntitySettings): IconName {
+    return GameEntityVisualIcon.ownerIconOf(owner);
   }
 
   /**

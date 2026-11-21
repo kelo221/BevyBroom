@@ -41,6 +41,19 @@ const billboardSize = new THREE.Vector3();
  */
 export class EntityVisualBillboard {
   /**
+   * Draws the owner's icon, when it has one, as another icon.
+   *
+   * @param owner Entity owner group.
+   * @param iconName Icon to draw.
+   */
+  static iconNameApply(owner: THREE.Object3D, iconName: IconName): void {
+    const icon = EntityVisualBillboard.iconFind(owner);
+    if (icon !== null) {
+      icon.geometry = EntityVisualBillboard.geometryOf(iconName);
+    }
+  }
+
+  /**
    * Returns the owner's icon billboard, creating it when missing and switching
    * its icon when the icon changed.
    *

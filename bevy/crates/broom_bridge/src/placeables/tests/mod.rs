@@ -111,6 +111,7 @@ pub(super) fn placeables_app() -> App {
         .register_placeable::<TestDoor>(
             PlaceableOptions::point()
                 .category("Doors")
+                .icon("door-closed")
                 .marker_box(Vec3::new(1.0, 2.0, 0.2), Vec3::new(0.0, 1.0, 0.0))
                 .marker_box_field("kind")
                 .marker_box_for("Iron", Vec3::new(3.0, 2.5, 0.4), Vec3::new(1.5, 1.25, 0.0))

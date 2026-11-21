@@ -119,6 +119,11 @@ export interface PreviewPlaceableClass {
   category: string;
   placement: PreviewPlaceablePlacement;
   marker_color: [number, number, number];
+  /**
+   * Name of the editor icon drawn on markers and listed in menus, such as
+   * `lightbulb`. Unknown names show the default game entity icon.
+   */
+  icon?: string;
   /** Marker box of entities whose box is not picked by a field value. */
   marker_box?: PreviewPlaceableMarkerBox;
   /** Field path whose value, as text, picks the marker box from `marker_boxes`. */

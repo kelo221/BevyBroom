@@ -57,8 +57,10 @@ fn registered_classes_are_described_with_their_options() {
     assert_eq!(door.category, "Doors");
     assert_eq!(door.placement, PlaceablePlacement::Point);
     assert_eq!(door.label, TestDoor::short_type_path());
+    assert_eq!(door.icon.as_deref(), Some("door-closed"));
     let weight = class_of::<TestWeight>(&list);
     assert_eq!(weight.placement, PlaceablePlacement::Any);
+    assert_eq!(weight.icon, None);
     let properties = class_of::<BroomProperties>(&list);
     assert_eq!(
         field_at(&properties.fields, "values").kind,
@@ -285,6 +287,27 @@ fn class_list_fixture_reads_variant_details() {
             .keys()
             .all(|variant| detailed.variants.contains(variant))
     );
+}
+
+/// A class may name the editor icon of its markers; the shared fixture's door does, and the
+/// name survives a round trip while classes without one serialize without the key.
+#[test]
+fn class_list_fixture_reads_icon() {
+    let json = include_str!("../../../../../fixtures/placeable_classes_sample.json");
+    let list: PlaceableClassList = serde_json::from_str(json).expect("the fixture parses");
+    let with_icon = list
+        .classes
+        .iter()
+        .find(|class| class.icon.is_some())
+        .expect("a class with an icon");
+    assert_eq!(with_icon.icon.as_deref(), Some("door-closed"));
+    let without_icon = list
+        .classes
+        .iter()
+        .find(|class| class.icon.is_none())
+        .expect("a class without an icon");
+    let serialized = serde_json::to_value(without_icon).expect("serializes");
+    assert!(serialized.get("icon").is_none());
 }
 
 /// A brush entity class that marks an area, such as a finish zone.

@@ -69,6 +69,25 @@ describe('InputSelect', () => {
     expect(onCommit).toHaveBeenCalledTimes(1);
   });
 
+  it('lists grouped entries under one option group per caption and wheels across groups', () => {
+    const { select, onCommit } = selectTestCreate();
+    const [first, second, third] = SELECT_TEST_CHOICES.map((choice) => choice.value);
+    select.setChoices([
+      { value: first ?? '', label: 'First' },
+      { value: second ?? '', label: 'Second', group: 'Pair' },
+      { value: third ?? '', label: 'Third', group: 'Pair' },
+    ]);
+    const optionGroups = [...select.getElement().querySelectorAll('optgroup')];
+    expect(optionGroups.map((group) => group.label)).toEqual(['Pair']);
+    expect([...(optionGroups[0]?.querySelectorAll('option') ?? [])].map((option) => option.value)).toEqual([
+      second,
+      third,
+    ]);
+    select.setSharedValues([first ?? '']);
+    inputWheelTestDispatch(select.getElement(), INPUT_WHEEL_TEST_NOTCH_DOWN);
+    expect(onCommit).toHaveLastReturnedWith(second);
+  });
+
   it('leaves the value alone while the select is disabled and after dispose', () => {
     const { select, onCommit } = selectTestCreate();
     select.setSharedValues([selectTestValueRead(0)]);

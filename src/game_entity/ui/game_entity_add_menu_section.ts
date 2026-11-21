@@ -7,6 +7,7 @@ import { GameEntityOwner, gameEntityCreateForClass } from '@/game_entity/owner/g
 import type { AddMenuActions } from '@/layout/setup/add_menu_entries.js';
 import { addMenuCatalogActionCreate } from '@/layout/setup/add_menu_catalog.js';
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
+import { GameEntityVisualIcon } from '@/game_entity/visual/game_entity_visual_icon.js';
 import { GameEntityVisualBuilder } from '@/game_entity/visual/game_entity_visual_builder.js';
 import type { IconName } from '@/ui/icons/icon_name.js';
 import { hexToRgb } from '@/utils/utils_color.js';
@@ -172,7 +173,7 @@ function gameEntityAddMenuVariantEntry(
   return addMenuCatalogActionCreate(
     {
       label: variant.label,
-      icon: GAME_ENTITY_MENU_ICON,
+      icon: GameEntityVisualIcon.classIconOf(gameClass),
       iconColor: hexToRgb(GameEntityVisualBuilder.classColorOf(gameClass)),
       tooltip: `${variant.label} (${gameClass.label})`,
       onClick: () => actions.onAddEntityPlaced(create, GAME_ENTITY_PLACEMENT_RADIUS),
@@ -219,7 +220,7 @@ function gameEntityAddMenuClassEntry(actions: AddMenuActions, gameClass: GameEnt
   return addMenuCatalogActionCreate(
     {
       label: gameClass.label,
-      icon: GAME_ENTITY_MENU_ICON,
+      icon: GameEntityVisualIcon.classIconOf(gameClass),
       iconColor: hexToRgb(GameEntityVisualBuilder.classColorOf(gameClass)),
       tooltip: gameClass.type_path,
       onClick: () => actions.onAddEntityPlaced(() => gameEntityCreateForClass(gameClass), GAME_ENTITY_PLACEMENT_RADIUS),

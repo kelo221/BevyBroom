@@ -75,11 +75,11 @@ describe('EditorApiProjectLevels', () => {
     expect(fake.actions.serviceRead().refresh).toHaveBeenCalled();
   });
 
-  it('opens a level by id or document and refuses unknown levels', async () => {
+  it('opens a level by id or document without asking and refuses unknown levels', async () => {
     const fake = levelActionsFakeCreate(true);
     const api = levelApiCreate(fake.actions);
     expect((await api.invokeToolAsync('open_project_level', { levelId: 'cellar' })).ok).toBe(true);
-    expect(fake.actions.levelOpen).toHaveBeenCalledWith('cellar.json', true);
+    expect(fake.actions.levelOpen).toHaveBeenCalledWith('cellar.json', false);
     expect((await api.invokeToolAsync('open_project_level', { document: 'hall.json' })).ok).toBe(true);
     expect((await api.invokeToolAsync('open_project_level', { levelId: 'attic' })).ok).toBe(false);
     expect((await api.invokeToolAsync('open_project_level', {})).ok).toBe(false);
