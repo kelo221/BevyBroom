@@ -18,6 +18,12 @@ export const ENTITY_VISUAL_PART_USERDATA_KEY = 'isEntityVisualPart';
 /** UserData flag on the clickable marker mesh of an entity owner. */
 export const ENTITY_PICK_MESH_USERDATA_KEY = 'isEntityPickMesh';
 
+/**
+ * UserData flag on an entity marker that stands for the space its entity fills,
+ * such as a store fixture's box, so placed content may rest on it.
+ */
+export const ENTITY_MARKER_SOLID_USERDATA_KEY = 'isEntityMarkerSolid';
+
 /** UserData flag on visual parts that keep their identity across refreshes. */
 export const ENTITY_VISUAL_PERSISTENT_USERDATA_KEY = 'isEntityVisualPersistent';
 

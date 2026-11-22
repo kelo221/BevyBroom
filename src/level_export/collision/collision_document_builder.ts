@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GameEntityComponentNormalizer } from '@/game_entity/migration/game_entity_component_normalizer.js';
 import { GameEntityClassRegistry } from '@/game_entity/class/game_entity_class_registry.js';
 import { GameEntityComponentResolver } from '@/game_entity/component/game_entity_component_resolver.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
@@ -64,8 +65,9 @@ export class CollisionDocumentBuilder {
       object_id: object.uuid,
       object_name: object.name,
       kind: CollisionKindStore.resolve(object),
-      components: GameEntityComponentResolver.componentsEffective(GameEntityComponentStore.read(object), (typePath) =>
-        GameEntityClassRegistry.classFind(typePath),
+      components: GameEntityComponentResolver.componentsEffective(
+        GameEntityComponentNormalizer.current().normalize(GameEntityComponentStore.read(object)).components,
+        (typePath) => GameEntityClassRegistry.classFind(typePath),
       ),
     };
     return {

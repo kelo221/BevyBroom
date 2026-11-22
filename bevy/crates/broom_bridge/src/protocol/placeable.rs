@@ -61,6 +61,10 @@ pub struct PlaceableField {
     /// How the editor names and groups each variant of an enum field, by variant name.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub variant_details: BTreeMap<String, PlaceableVariantDetail>,
+    /// Enum values the field used to hold, by old value: the value each means now. The editor
+    /// rewrites old values in levels, so the game never sees them.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub renamed_variants: BTreeMap<String, String>,
     /// The asset type path of asset fields.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub asset_type: Option<String>,
@@ -70,6 +74,33 @@ pub struct PlaceableField {
     /// Hidden fields keep their default and are not shown.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub hidden: bool,
+}
+
+/// A type path a class had before: the bare path, or the path with the values the old class
+/// gave fields a component left out, so an old `{}` keeps the meaning it had.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum PlaceableClassRename {
+    /// Only the old type path.
+    TypePath(String),
+    /// The old type path with its old defaults.
+    WithDefaults {
+        type_path: String,
+        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        defaults: BTreeMap<String, serde_json::Value>,
+    },
+}
+
+/// Components of the class `from` whose enum field `field` holds one of `variants` move into
+/// the absorbing class, keeping their values. `default` is the value an old component without
+/// the field held.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct PlaceableClassAbsorb {
+    pub from: String,
+    pub field: String,
+    pub variants: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<String>,
 }
 
 /// The display name and group of one enum variant, such as "Big fridge" in "Fridges & freezers",
@@ -234,6 +265,14 @@ pub struct PlaceableClass {
     /// Marker boxes by the text value of `marker_box_field`.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub marker_boxes: BTreeMap<String, PlaceableMarkerBox>,
+    /// Type paths this class had before, with what an old component left out meant. The
+    /// editor rewrites components of these type paths into this class.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub renamed_from: Vec<PlaceableClassRename>,
+    /// Components of other classes this class takes over by the value of one of their enum
+    /// fields, such as a store prop holding a freezer becoming a stock fixture.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub absorbs: Vec<PlaceableClassAbsorb>,
     /// The collision kind brush entities carrying this class take unless they override it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub collision: Option<PlaceableCollisionKind>,

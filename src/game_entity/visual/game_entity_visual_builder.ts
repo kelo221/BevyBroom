@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ENTITY_MARKER_SOLID_USERDATA_KEY } from '@/entity/model/entity_owner_keys.js';
 import { EntityVisualPointBox } from '@/entity/visual/entity_visual_point_box.js';
 import {
   ENTITY_POINT_BOX_SHAPE_DEFAULT,
@@ -27,9 +28,9 @@ const GAME_ENTITY_MARKER_NAME = 'Game Entity Marker';
  * Builds the editor-only marker of a game entity: a box with a camera-facing
  * icon its classes name, tinted with the marker color of its first known
  * component class and sized by the marker box its classes declare, with the
- * model that box names drawn at the entity's origin once it is loaded. Tint,
- * box and model follow class, component and model changes when the marker is
- * next drawn; so does the icon.
+ * model that box names stretched to fill the box once it is loaded. Tint, box
+ * and model follow class, component and model changes when the marker is next
+ * drawn; so does the icon.
  */
 export class GameEntityVisualBuilder {
   /**
@@ -91,9 +92,11 @@ export class GameEntityVisualBuilder {
     }
     marker.userData[GAME_ENTITY_MARKER_LOOK_KEY] = lookKey;
     EntityVisualPointBox.shapeApply(owner, markerBox ?? ENTITY_POINT_BOX_SHAPE_DEFAULT, GAME_ENTITY_MARKER_NAME);
+    marker.userData[ENTITY_MARKER_SOLID_USERDATA_KEY] = markerBox !== null;
     EntityVisualPointBox.tint(owner, GameEntityVisualBuilder.colorOf(owner), 1);
     EntityVisualBillboard.iconNameApply(owner, GameEntityVisualIcon.ownerIconOf(owner));
     GameEntityVisualMarkerModel.apply(owner, markerBox?.model ?? null);
+    GameEntityVisualMarkerModel.fit(owner, markerBox);
   }
 
   /**

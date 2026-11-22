@@ -1,6 +1,7 @@
 import type { GameEntityClassProvider } from '@/game_entity/class/game_entity_class_provider.js';
 import { gameEntityClassProvidersBuiltin } from '@/game_entity/class/game_entity_class_registry_builtin.js';
 import type { GameEntityAssetType, GameEntityClass } from '@/game_entity/class/game_entity_class_schema.js';
+import { gameEntityClassRenameNormalize } from '@/game_entity/class/game_entity_class_migration_schema.js';
 import { RegistryExtensible } from '@/utils/registry/registry_extensible.js';
 
 /**
@@ -35,12 +36,19 @@ export class GameEntityClassRegistry {
   }
 
   /**
-   * Returns every known class, sorted by category and label.
+   * Returns every known class, sorted by category and label. A class another
+   * class was renamed from is left out: the renamed class replaces it.
    *
    * @returns Merged classes.
    */
   static classesList(): GameEntityClass[] {
-    const classes = GameEntityClassRegistry.mergedByTypePath((provider) => provider.listRead().classes);
+    const merged = GameEntityClassRegistry.mergedByTypePath((provider) => provider.listRead().classes);
+    const renamedAway = new Set(
+      merged.flatMap((gameClass) =>
+        (gameClass.renamed_from ?? []).map((rename) => gameEntityClassRenameNormalize(rename).type_path),
+      ),
+    );
+    const classes = merged.filter((gameClass) => !renamedAway.has(gameClass.type_path));
     return classes.sort((first, second) =>
       `${first.category}\u0000${first.label}`.localeCompare(`${second.category}\u0000${second.label}`),
     );

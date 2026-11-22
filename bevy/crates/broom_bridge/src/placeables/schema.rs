@@ -3,6 +3,8 @@
 
 use std::path::Path;
 
+use std::collections::BTreeMap;
+
 use bevy::prelude::*;
 use bevy::reflect::attributes::CustomAttributes;
 use bevy::reflect::{GetPath, TypeInfo, TypeRegistry};
@@ -71,11 +73,31 @@ pub(crate) fn class_describe(
         marker_box: options.marker_box.clone(),
         marker_box_field: options.marker_box_field.clone(),
         marker_boxes: options.marker_boxes.clone(),
+        renamed_from: options.renamed_from.clone(),
+        absorbs: options.absorbs.clone(),
         collision: options.collision,
-        fields: type_fields_describe(registry, type_path, assets)?,
+        fields: fields_with_renamed_variants(
+            type_fields_describe(registry, type_path, assets)?,
+            &options.renamed_variants,
+        ),
         inputs: options.inputs.clone(),
         outputs: options.outputs.clone(),
     })
+}
+
+/// `fields` with the old enum values `renamed_variants` gives each field path, groups included.
+fn fields_with_renamed_variants(
+    mut fields: Vec<PlaceableField>,
+    renamed_variants: &BTreeMap<String, BTreeMap<String, String>>,
+) -> Vec<PlaceableField> {
+    for field in &mut fields {
+        if let Some(renames) = renamed_variants.get(&field.path) {
+            field.renamed_variants = renames.clone();
+        }
+        field.children =
+            fields_with_renamed_variants(std::mem::take(&mut field.children), renamed_variants);
+    }
+    fields
 }
 
 /// The fields of the type at `type_path` with its defaults, or `None` when it is not reflected
@@ -158,6 +180,7 @@ fn field_describe(
         step: None,
         variants: Vec::new(),
         variant_details: std::collections::BTreeMap::new(),
+        renamed_variants: std::collections::BTreeMap::new(),
         asset_type: None,
         children: Vec::new(),
         hidden: false,

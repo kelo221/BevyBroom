@@ -19,6 +19,8 @@
       "placement": "point",
       "marker_color": [0.9, 0.5, 0.1],
       "icon": "door-closed",
+      "renamed_from": ["broom_preview::placeables::OldDoor", { "type_path": "broom_preview::placeables::Gate", "defaults": { "kind": "Iron" } }],
+      "absorbs": [{ "from": "broom_preview::placeables::Hatch", "field": "style", "variants": ["Glass"], "default": "Glass" }],
       "marker_box": { "size": [1.0, 2.0, 0.2], "offset": [0.0, 1.0, 0.0] },
       "marker_box_field": "kind",
       "marker_boxes": { "Iron": { "size": [3.0, 2.5, 0.4], "offset": [1.5, 1.25, 0.0], "model": "models/iron_door.glb" } },
@@ -27,7 +29,7 @@
         { "path": "locked", "label": "locked", "kind": "bool", "default": false },
         { "path": "key_name", "label": "key_name", "kind": "text", "default": "" },
         { "path": "uses", "label": "uses", "kind": "integer", "default": 3, "minimum": 0.0, "maximum": 4294967295.0, "step": 1.0 },
-        { "path": "kind", "label": "kind", "kind": "enum", "default": "Wooden", "variants": ["Wooden", "Iron", "Glass"], "variant_details": { "Iron": { "label": "Iron door", "group": "Metal doors" }, "Glass": { "label": "Glass door", "light": { "kind": "tube", "from": [-0.4, 2.1, 0.0], "to": [0.4, 2.1, 0.0], "color": [0.88, 0.96, 1.0], "intensity": 0.4, "radius": 6.0, "effect": "fluorescent_starter", "fog": { "intensity": 0.04, "thickness": 1.0, "visibility_m": 2.0, "below_floor_m": 0.5 } } } } },
+        { "path": "kind", "label": "kind", "kind": "enum", "default": "Wooden", "variants": ["Wooden", "Iron", "Glass"], "renamed_variants": { "Steel": "Iron" }, "variant_details": { "Iron": { "label": "Iron door", "group": "Metal doors" }, "Glass": { "label": "Glass door", "light": { "kind": "tube", "from": [-0.4, 2.1, 0.0], "to": [0.4, 2.1, 0.0], "color": [0.88, 0.96, 1.0], "intensity": 0.4, "radius": 6.0, "effect": "fluorescent_starter", "fog": { "intensity": 0.04, "thickness": 1.0, "visibility_m": 2.0, "below_floor_m": 0.5 } } } } },
         { "path": "open_offset", "label": "open_offset", "kind": "vector3", "default": [0.0, 2.5, 0.0] },
         { "path": "tint", "label": "tint", "kind": "color", "default": [1.0, 1.0, 1.0, 1.0] },
         {

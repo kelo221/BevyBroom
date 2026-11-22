@@ -53,13 +53,13 @@ export function clipboardPlacementOffset3dCompute(input: ClipboardPlacement3dInp
   if (restingHit === null) {
     const target = input.ray.at(input.fallbackDistance, new THREE.Vector3());
     const offset = target.sub(input.bounds.getCenter(new THREE.Vector3()));
-    return clipboardPlacementOffsetSnap(offset, input.gridInterval, null);
+    return clipboardPlacementOffsetSnap(offset, input.bounds, input.gridInterval, null);
   }
   const normal = clipboardPlacementNormalFacingRay(restingHit.normal, input.ray);
   const restingDistance = clipboardPlacementRestingDistance(input.bounds, normal);
   const target = restingHit.point.clone().addScaledVector(normal, restingDistance);
   const offset = target.sub(input.bounds.getCenter(new THREE.Vector3()));
-  return clipboardPlacementOffsetSnap(offset, input.gridInterval, clipboardPlacementDominantAxis(normal));
+  return clipboardPlacementOffsetSnap(offset, input.bounds, input.gridInterval, clipboardPlacementDominantAxis(normal));
 }
 
 /**
@@ -72,7 +72,7 @@ export function clipboardPlacementOffset3dCompute(input: ClipboardPlacement3dInp
 export function clipboardPlacementOffset2dCompute(input: ClipboardPlacement2dInput): THREE.Vector3 {
   const offset = input.cursorPoint.clone().sub(input.bounds.getCenter(new THREE.Vector3()));
   const depthAxis = clipboardPlacementDominantAxis(input.viewDirection);
-  const snapped = clipboardPlacementOffsetSnap(offset, input.gridInterval, null);
+  const snapped = clipboardPlacementOffsetSnap(offset, input.bounds, input.gridInterval, null);
   snapped.setComponent(depthAxis, 0);
   return snapped;
 }
@@ -129,24 +129,31 @@ function clipboardPlacementDominantAxis(direction: THREE.Vector3): number {
 }
 
 /**
- * Rounds offset components to whole grid steps.
+ * Rounds offset components so the moved bounds start on a grid line, so content
+ * whose size is an odd number of half steps still lands with its edges on the
+ * grid.
  *
  * @param offset Offset changed in place.
+ * @param bounds Bounds the offset moves; empty bounds snap the offset itself.
  * @param gridInterval Grid step; zero or less leaves the offset unchanged.
  * @param exactAxis Axis left unsnapped, or null to snap every axis.
  * @returns The same offset.
  */
 function clipboardPlacementOffsetSnap(
   offset: THREE.Vector3,
+  bounds: THREE.Box3,
   gridInterval: number,
   exactAxis: number | null,
 ): THREE.Vector3 {
   if (!(gridInterval > 0)) {
     return offset;
   }
+  const minimum = bounds.isEmpty() ? new THREE.Vector3() : bounds.min;
   for (let axis = 0; axis < 3; axis++) {
     if (axis !== exactAxis) {
-      offset.setComponent(axis, Math.round(offset.getComponent(axis) / gridInterval) * gridInterval);
+      const movedMinimum = minimum.getComponent(axis) + offset.getComponent(axis);
+      const snappedMinimum = Math.round(movedMinimum / gridInterval) * gridInterval;
+      offset.setComponent(axis, snappedMinimum - minimum.getComponent(axis));
     }
   }
   return offset;

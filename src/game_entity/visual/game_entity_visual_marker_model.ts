@@ -1,7 +1,14 @@
 import * as THREE from 'three';
 import { EntityVisualBuilder } from '@/entity/visual/entity_visual_builder.js';
+import type { GameEntityMarkerBox } from '@/game_entity/class/game_entity_class_schema.js';
 import { GameEntityModelLibrary } from '@/game_entity/model/game_entity_model_library.js';
 import { shadingExemptFlag } from '@/viewports/shading/shading_exempt.js';
+
+/**
+ * Shortest model edge stretched, in meters, so flat models never divide by
+ * zero.
+ */
+const GAME_ENTITY_MARKER_MODEL_MIN_EDGE = new THREE.Vector3(1e-4, 1e-4, 1e-4);
 
 /** Name of the model a game entity marker draws. */
 export const GAME_ENTITY_MARKER_MODEL_NAME = 'Game Entity Model';
@@ -16,10 +23,58 @@ const GAME_ENTITY_MARKER_MODEL_PATH_KEY = 'gameEntityModelPath';
 const GAME_ENTITY_MARKER_MODEL_EPOCH_KEY = 'gameEntityModelEpoch';
 
 /**
- * Draws the model a game entity's marker box names at the entity's origin, as
- * an editor-only part that is never picked, saved or exported.
+ * UserData key on the drawn model holding the bounds the model has at its own
+ * size, as min and max corners.
+ */
+const GAME_ENTITY_MARKER_MODEL_NATURAL_BOUNDS_KEY = 'gameEntityModelNaturalBounds';
+
+/**
+ * Draws the model a game entity's marker box names, stretched per axis to fill
+ * its box exactly, as an editor-only part that is never picked, saved or
+ * exported.
  */
 export class GameEntityVisualMarkerModel {
+  /**
+   * Stretches the drawn model, per axis, so its bounds fill a marker box
+   * exactly; the game fills the box the same way.
+   *
+   * @param owner Game entity owner group.
+   * @param markerBox Box the model fills, or null to leave the model at its own
+   *   size and place.
+   */
+  static fit(owner: THREE.Object3D, markerBox: GameEntityMarkerBox | null): void {
+    const model = GameEntityVisualMarkerModel.find(owner);
+    const natural = model === null ? null : GameEntityVisualMarkerModel.naturalBoundsRead(model);
+    if (model === null || natural === null) {
+      return;
+    }
+    if (markerBox === null) {
+      model.scale.set(1, 1, 1);
+      model.position.set(0, 0, 0);
+      return;
+    }
+    const naturalSize = natural.getSize(new THREE.Vector3());
+    const scale = new THREE.Vector3(...markerBox.size).divide(naturalSize.max(GAME_ENTITY_MARKER_MODEL_MIN_EDGE));
+    const naturalCenter = natural.getCenter(new THREE.Vector3()).multiply(scale);
+    model.scale.copy(scale);
+    model.position.copy(new THREE.Vector3(...markerBox.offset).sub(naturalCenter));
+  }
+
+  /**
+   * Returns the bounds a drawn model has at its own size.
+   *
+   * @param model Drawn model.
+   * @returns Bounds, or null when the model has no geometry.
+   */
+  private static naturalBoundsRead(model: THREE.Object3D): THREE.Box3 | null {
+    const corners: unknown = model.userData[GAME_ENTITY_MARKER_MODEL_NATURAL_BOUNDS_KEY];
+    if (!Array.isArray(corners) || corners.length !== 6) {
+      return null;
+    }
+    const [minX, minY, minZ, maxX, maxY, maxZ] = corners as number[];
+    return new THREE.Box3(new THREE.Vector3(minX, minY, minZ), new THREE.Vector3(maxX, maxY, maxZ));
+  }
+
   /**
    * Makes the owner draw the model of a path, or no model. A model of the same
    * path loaded through an older reader stays drawn until the new one is
@@ -79,6 +134,14 @@ export class GameEntityVisualMarkerModel {
     };
     EntityVisualBuilder.partPersistentFlag(instance);
     instance.traverse((part) => GameEntityVisualMarkerModel.partPrepare(part));
+    instance.updateMatrixWorld(true);
+    const natural = new THREE.Box3().setFromObject(instance);
+    if (!natural.isEmpty()) {
+      instance.userData[GAME_ENTITY_MARKER_MODEL_NATURAL_BOUNDS_KEY] = [
+        ...natural.min.toArray(),
+        ...natural.max.toArray(),
+      ];
+    }
     return instance;
   }
 

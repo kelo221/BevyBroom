@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import type { ClipboardPlacementAim } from '@/clipboard/placement/clipboard_placement_cursor.js';
+import { ENTITY_MARKER_SOLID_USERDATA_KEY } from '@/entity/model/entity_owner_keys.js';
 import { EntityVisualBuilder } from '@/entity/visual/entity_visual_builder.js';
 import { EntityVisualPointBox } from '@/entity/visual/entity_visual_point_box.js';
 import type { EntityPointBoxShape } from '@/entity/visual/entity_visual_point_box_geometry.js';
@@ -108,6 +109,46 @@ describe('entityPlacementSurfaceRestingApply', () => {
     entityPlacementSurfaceRestingApply(owner, aim, world, GRID_INTERVAL);
     world.add(owner);
     expect(markerWorldBoundsRead(owner).min.y).toBeCloseTo(floorTop, 6);
+  });
+
+  it('lands a box an odd number of half steps wide with its edges on the grid', () => {
+    const floorTop = 0;
+    const { world } = worldWithFloorCreate(floorTop);
+    const oddShape: EntityPointBoxShape = { size: [0.875, 1.625, 1.125], offset: [0, 0.8125, 0] };
+    const owner = gameEntityWithShapeCreate(oddShape);
+    entityPlacementSurfaceRestingApply(
+      owner,
+      aimAtPointCreate(new THREE.Vector3(1.37, floorTop, -2.61), new THREE.Vector3(-3, 6, 4)),
+      world,
+      GRID_INTERVAL,
+    );
+    world.add(owner);
+    const bounds = markerWorldBoundsRead(owner);
+    expect(bounds.min.y).toBeCloseTo(floorTop, 6);
+    for (const edge of [bounds.min.x, bounds.min.z]) {
+      expect(Math.abs(edge / GRID_INTERVAL - Math.round(edge / GRID_INTERVAL))).toBeLessThan(1e-6);
+    }
+  });
+
+  it('stacks a box on the top of an entity whose marker stands for the space it fills', () => {
+    const floorTop = 0;
+    const { world } = worldWithFloorCreate(floorTop);
+    const lowerShape: EntityPointBoxShape = { size: [2, 1.25, 1], offset: [0, 0.625, 0] };
+    const lower = gameEntityWithShapeCreate(lowerShape);
+    const lowerMarker = EntityVisualBuilder.markerFind(lower);
+    if (lowerMarker === null) throw new Error('the lower entity has a marker');
+    lowerMarker.userData[ENTITY_MARKER_SOLID_USERDATA_KEY] = true;
+    world.add(lower);
+    world.updateMatrixWorld(true);
+    const owner = gameEntityWithShapeCreate(lowerShape);
+    entityPlacementSurfaceRestingApply(
+      owner,
+      aimAtPointCreate(new THREE.Vector3(0.1, lowerShape.size[1], 0.05), new THREE.Vector3(-2, 6, 3)),
+      world,
+      GRID_INTERVAL,
+    );
+    world.add(owner);
+    expect(markerWorldBoundsRead(owner).min.y).toBeCloseTo(markerWorldBoundsRead(lower).max.y, 6);
   });
 
   it('places the origin in the local space of a moved world root', () => {

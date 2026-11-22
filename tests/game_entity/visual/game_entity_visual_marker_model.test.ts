@@ -77,6 +77,31 @@ async function doorWithModelCreate(kind: string): Promise<THREE.Group> {
 }
 
 /**
+ * Expects a drawn model to fill a marker box exactly in its owner's space.
+ *
+ * @param owner Game entity owner.
+ * @param model Drawn model.
+ * @param markerBox Box the model should fill.
+ */
+function expectModelFillsBox(
+  owner: THREE.Object3D,
+  model: THREE.Object3D,
+  markerBox: { size: [number, number, number]; offset: [number, number, number] } | undefined,
+): void {
+  if (markerBox === undefined) {
+    throw new Error('the marker box exists');
+  }
+  owner.updateMatrixWorld(true);
+  const bounds = new THREE.Box3().setFromObject(model).applyMatrix4(owner.matrixWorld.clone().invert());
+  const expected = new THREE.Box3().setFromCenterAndSize(
+    new THREE.Vector3(...markerBox.offset),
+    new THREE.Vector3(...markerBox.size),
+  );
+  expect(bounds.min.distanceTo(expected.min)).toBeLessThan(1e-5);
+  expect(bounds.max.distanceTo(expected.max)).toBeLessThan(1e-5);
+}
+
+/**
  * A game entity whose marker box names a model draws that model at its origin
  * as an editor-only part, and follows the field that picks the box.
  */
@@ -95,7 +120,7 @@ describe('GameEntityVisualMarkerModel', () => {
     cleanups.push(testClassesInstall(list).uninstall);
   }
 
-  it('draws the model of the picked box at the entity origin once it is loaded', async () => {
+  it('draws the model of the picked box filling its box once it is loaded', async () => {
     doorClassInstall();
     await sharedLibraryServe();
     const owner = await doorWithModelCreate('Iron');
@@ -103,8 +128,27 @@ describe('GameEntityVisualMarkerModel', () => {
     if (model === null) {
       throw new Error('the iron door draws its model');
     }
-    expect(model.position.length()).toBe(0);
     expect(gameEntityModelTestSizeOf(model).distanceTo(IRON_MODEL_SIZE)).toBeLessThan(1e-5);
+    expectModelFillsBox(owner, model, doorClassWithModels().marker_boxes?.['Iron']);
+  });
+
+  it('stretches a model per axis to fill a box of another size, footprint centred and bottom on the floor', async () => {
+    const door = doorClassWithModels();
+    const gridBox = {
+      size: [3.25, 2.625, 0.5] as [number, number, number],
+      offset: [0, 1.3125, 0] as [number, number, number],
+    };
+    door.marker_boxes = { ...door.marker_boxes, Iron: { ...gridBox, model: IRON_MODEL_PATH } };
+    const list = testClassListCreate();
+    list.classes = [door];
+    cleanups.push(testClassesInstall(list).uninstall);
+    await sharedLibraryServe();
+    const owner = await doorWithModelCreate('Iron');
+    const model = GameEntityVisualMarkerModel.find(owner);
+    if (model === null) {
+      throw new Error('the iron door draws its model');
+    }
+    expectModelFillsBox(owner, model, gridBox);
   });
 
   it('keeps the model out of picking, saving and export', async () => {
