@@ -77,12 +77,18 @@ export class CommandEntityDuplicate implements UndoCommand {
 
   /**
    * Builds the copy of one owner with copies of the entity owners nested under
-   * it, such as the light of a store fixture.
+   * it, such as the light of a store fixture. The copy keeps the source's local
+   * transform, settings, visibility and feature data.
    *
    * @param sourceOwner Entity owner to copy.
+   * @param childOwnerKeep Decides which nested entity owners are copied along;
+   *   every one when omitted. It is asked at every depth.
    * @returns Detached copy, or null when the object is not an entity owner.
    */
-  private static ownerCopyCreate(sourceOwner: THREE.Object3D): THREE.Group | null {
+  static ownerCopyCreate(
+    sourceOwner: THREE.Object3D,
+    childOwnerKeep: (childOwner: THREE.Object3D) => boolean = () => true,
+  ): THREE.Group | null {
     const entityOwner = EntityOwnerRegistry.find(sourceOwner);
     const settings = entityOwner?.settingsRead(sourceOwner) ?? null;
     if (entityOwner === null || settings === null) {
@@ -95,7 +101,8 @@ export class CommandEntityDuplicate implements UndoCommand {
     clone.visible = sourceOwner.visible;
     ObjectDataContributorRegistry.duplicateDataCopy(sourceOwner, clone);
     entityOwnerChildOwners(sourceOwner)
-      .map((child) => CommandEntityDuplicate.ownerCopyCreate(child))
+      .filter(childOwnerKeep)
+      .map((child) => CommandEntityDuplicate.ownerCopyCreate(child, childOwnerKeep))
       .forEach((childCopy) => childCopy && clone.add(childCopy));
     return clone;
   }

@@ -95,6 +95,8 @@ export type McpToolName =
   | 'add_procedural'
   | 'set_procedural_settings'
   | 'get_entity_handles'
+  | 'set_entity_array'
+  | 'bake_entity_array'
   | 'preview_connect'
   | 'preview_status'
   | 'get_scene_document'

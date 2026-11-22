@@ -1,10 +1,5 @@
 import { Theme } from '@/theme.js';
-
-/** FNV-1a 32-bit offset basis. */
-const FNV_OFFSET_BASIS = 0x811c9dc5;
-
-/** FNV-1a 32-bit prime. */
-const FNV_PRIME = 0x01000193;
+import { hashFnv1a32 } from '@/utils/utils_hash_fnv.js';
 
 /**
  * Stable per-object wireframe colors of the 2D views: every object id maps to
@@ -19,12 +14,7 @@ export class ViewportObjectWireColor {
    * @returns Unsigned 32-bit hash.
    */
   static idHash(id: string): number {
-    let hash = FNV_OFFSET_BASIS;
-    for (let index = 0; index < id.length; index += 1) {
-      hash ^= id.charCodeAt(index);
-      hash = Math.imul(hash, FNV_PRIME);
-    }
-    return hash >>> 0;
+    return hashFnv1a32(id);
   }
 
   /**

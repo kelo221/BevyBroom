@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GameEntityComponentNormalizeFollower } from '@/game_entity/migration/game_entity_component_normalize_follower.js';
 import { GameEntityFixtureLightFollower } from '@/game_entity/fixture_light/game_entity_fixture_light_follower.js';
+import { EntityArrayFollower } from '@/entity_array/sync/entity_array_follower.js';
 import { Theme } from '@/theme.js';
 import { ManagerInput } from '@/input/manager_input.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
@@ -86,6 +87,7 @@ export function createLayoutCoreSystems(): LayoutCoreSystems {
   const sceneRoot = createSceneRootServices(worldObject, snapBundle.commandStack);
   new GameEntityComponentNormalizeFollower(worldObject).follow(snapBundle.commandStack);
   new GameEntityFixtureLightFollower(worldObject).follow(snapBundle.commandStack);
+  new EntityArrayFollower(worldObject).follow(snapBundle.commandStack);
   return {
     ...createRuntimeState(),
     ...sceneRoot,
