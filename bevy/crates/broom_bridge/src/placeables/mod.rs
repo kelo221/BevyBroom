@@ -42,7 +42,7 @@ use crate::project::ProjectPaths;
 use crate::status::BridgeStatus;
 
 pub use assets::{AppPlaceableAssetExt, PlaceableAssetRegistration, PlaceableAssetTypes};
-pub use attributes::{FieldHidden, FieldLabel, FieldRange, FieldStep};
+pub use attributes::{FieldHidden, FieldLabel, FieldMarkerDimmedWhenFalse, FieldRange, FieldStep};
 pub use data_asset_files::DataAssetWrites;
 pub use data_assets::{
     AppDataAssetExt, DataAssetLoader, data_asset_values_format, data_asset_values_parse,

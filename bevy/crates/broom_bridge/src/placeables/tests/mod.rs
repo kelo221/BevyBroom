@@ -13,8 +13,8 @@ mod sync;
 use bevy::prelude::*;
 
 use super::{
-    AppPlaceableAssetExt, AppPlaceableExt, FieldHidden, FieldLabel, FieldRange, FieldStep,
-    PlaceableOptions, PlaceablesPlugin,
+    AppPlaceableAssetExt, AppPlaceableExt, FieldHidden, FieldLabel, FieldMarkerDimmedWhenFalse,
+    FieldRange, FieldStep, PlaceableOptions, PlaceablesPlugin,
 };
 use crate::authoring::AuthoringPlugin;
 use crate::status::BridgeStatus;
@@ -56,6 +56,7 @@ pub(super) struct TestDoorStats {
 pub(super) struct TestDoor {
     #[reflect(@FieldRange::new(0.0, 10.0), @FieldStep(0.5))]
     pub speed: f32,
+    #[reflect(@FieldMarkerDimmedWhenFalse)]
     pub locked: bool,
     #[reflect(@FieldLabel("Key"))]
     pub key_name: String,

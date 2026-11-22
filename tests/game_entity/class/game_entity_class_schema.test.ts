@@ -155,6 +155,37 @@ describe('game entity class schema', () => {
     });
   });
 
+  it('keeps the marker dimming flag on bool fields only', () => {
+    const gameClass = gameEntityClassFromUnknown({
+      type_path: 'game::store::Shelf',
+      fields: [
+        { path: 'stocked', kind: 'bool', default: true, marker_dimmed_when_false: true },
+        { path: 'count', kind: 'integer', default: 1, marker_dimmed_when_false: true },
+        { path: 'lit', kind: 'bool', default: true, marker_dimmed_when_false: 'yes' },
+      ],
+    });
+    const flags = gameClass?.fields.map((field) => field.marker_dimmed_when_false === true);
+    expect(flags).toEqual([true, false, false]);
+  });
+
+  it('keeps the marker dimming flag of every field in the shared bridge fixture', () => {
+    const raw = JSON.parse(
+      readFileSync(resolve(FIXTURE_BRIDGE_DIRECTORY, 'placeable_classes_sample.json'), 'utf8'),
+    ) as { classes: Array<{ type_path: string; fields: Array<Record<string, unknown>> }> };
+    const list = gameEntityClassListFromUnknown(raw);
+    const flagged = raw.classes.flatMap((rawClass) =>
+      rawClass.fields
+        .filter((field) => field['marker_dimmed_when_false'] === true)
+        .map((field) => [rawClass, field] as const),
+    );
+    expect(flagged.length).toBeGreaterThan(0);
+    flagged.forEach(([rawClass, rawField]) => {
+      const gameClass = list?.classes.find((entry) => entry.type_path === rawClass.type_path);
+      const field = gameClass?.fields.find((entry) => entry.path === rawField['path']);
+      expect(field?.marker_dimmed_when_false).toBe(true);
+    });
+  });
+
   it('leaves marker box keys out of classes that declare none', () => {
     const gameClass = gameEntityClassFromUnknown({ type_path: 'game::store::Start', marker_boxes: {} });
     expect(gameClass === null ? [] : Object.keys(gameClass)).not.toEqual(

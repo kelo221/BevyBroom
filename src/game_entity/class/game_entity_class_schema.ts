@@ -281,8 +281,22 @@ function gameEntityFieldOptionalsRead(value: Record<string, unknown>, field: Gam
   if (Array.isArray(value['children'])) {
     field.children = gameEntityArrayRead(value['children'], gameEntityFieldFromUnknown);
   }
+  gameEntityFieldFlagsRead(value, field);
+}
+
+/**
+ * Copies the true flags of an untrusted field: hidden, and marker dimming for
+ * bool fields.
+ *
+ * @param value Untrusted field record.
+ * @param field Field being built.
+ */
+function gameEntityFieldFlagsRead(value: Record<string, unknown>, field: GameEntityField): void {
   if (value['hidden'] === true) {
     field.hidden = true;
+  }
+  if (value['marker_dimmed_when_false'] === true && field.kind === 'bool') {
+    field.marker_dimmed_when_false = true;
   }
 }
 

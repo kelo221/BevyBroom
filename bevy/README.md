@@ -108,7 +108,7 @@ app.register_data_asset::<DoorStats>("door.ron")
     .register_placeable::<Door>(PlaceableOptions::point().category("Doors"));
 ```
 
-- `register_placeable::<T>` needs `Component + Reflect + Default`. `PlaceableOptions::point()` places it on empty Game Entities; `any()` on every object. Field attributes `FieldRange`, `FieldStep`, `FieldLabel` and `FieldHidden` tune the editor's controls.
+- `register_placeable::<T>` needs `Component + Reflect + Default`. `PlaceableOptions::point()` places it on empty Game Entities; `any()` on every object. Field attributes `FieldRange`, `FieldStep`, `FieldLabel` and `FieldHidden` tune the editor's controls; `FieldMarkerDimmedWhenFalse` on a bool field dims the marker of placements where it is false.
 - `register_placeable_asset::<A>(&["ext"])` lets `Handle<A>` fields pick asset files by path. `register_data_asset::<A>("ext")` adds a loader for RON files holding the fields that differ from `A::default()` (`{ "health": 400.0, }`) and lets the editor edit them through `broom.data_asset_write`.
 - `BroomProperties` is a built-in placeable with named text, number and bool values.
 - The editor sends only overridden fields (`components` on each authored object, `{type_path: {field_path: value}}` in a normalized JSON form). The `placeables` slice composes each component from `Default` plus the overrides, inserts, updates or removes it, and puts it back after a geometry swap. Unknown classes and bad fields are reported through `broom.status`; the other components still apply.

@@ -83,6 +83,11 @@ export interface PreviewPlaceableField {
   asset_type?: string;
   children?: PreviewPlaceableField[];
   hidden?: boolean;
+  /**
+   * Bool fields only: the editor dims the marker of a placement whose value is
+   * false.
+   */
+  marker_dimmed_when_false?: boolean;
 }
 
 /**

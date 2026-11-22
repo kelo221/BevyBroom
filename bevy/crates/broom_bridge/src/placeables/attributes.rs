@@ -10,6 +10,8 @@
 //!     key_name: String,
 //!     #[reflect(@FieldHidden)]
 //!     runtime_timer: f32,
+//!     #[reflect(@FieldMarkerDimmedWhenFalse)]
+//!     powered: bool,
 //! }
 //! ```
 
@@ -40,3 +42,8 @@ pub struct FieldLabel(pub &'static str);
 /// Keeps a field out of the editor; it always has its default value.
 #[derive(Reflect, Clone, Copy, Debug, PartialEq)]
 pub struct FieldHidden;
+
+/// Dims the editor marker of a placement whose bool field is `false`, such as a shelf that is
+/// switched off.
+#[derive(Reflect, Clone, Copy, Debug, PartialEq)]
+pub struct FieldMarkerDimmedWhenFalse;
