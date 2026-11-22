@@ -26,8 +26,8 @@ export interface EntityArrayTestRig {
 }
 
 /**
- * Returns a store shelf class whose marker fills a box and whose fixture is
- * picked by an enum.
+ * Returns a store shelf class whose fixture enum picks the box its marker
+ * fills, the way store fixture classes declare their models.
  *
  * @returns Shelf class.
  */
@@ -38,7 +38,11 @@ export function entityArrayTestShelfClassCreate(): GameEntityClass {
     category: 'Fixtures',
     placement: 'point',
     marker_color: [0.4, 0.7, 0.3],
-    marker_box: { size: [...ENTITY_ARRAY_TEST_SHELF_BOX.size], offset: [...ENTITY_ARRAY_TEST_SHELF_BOX.offset] },
+    marker_box_field: 'fixture',
+    marker_boxes: {
+      tall: { size: [...ENTITY_ARRAY_TEST_SHELF_BOX.size], offset: [...ENTITY_ARRAY_TEST_SHELF_BOX.offset] },
+      low: { size: [ENTITY_ARRAY_TEST_SHELF_BOX.size[0], 0.75, 0.5], offset: [0, 0.375, 0] },
+    },
     fields: [{ path: 'fixture', label: 'Fixture', kind: 'enum', default: 'tall', variants: ['tall', 'low'] }],
   };
 }

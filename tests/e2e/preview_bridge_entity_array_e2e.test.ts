@@ -176,6 +176,28 @@ describe.skipIf(!environment.isConfigured)('entity arrays in the game preview en
     return source === undefined ? [] : EntityArrayCopyMark.copiesOf(source).map((copy) => copy.uuid);
   }
 
+  /**
+   * Checks that each copy stands one marker box the door class declares plus
+   * one gap from the source along its cell, in the source's own space.
+   *
+   * @param gap Gap between neighbours along X, Y and Z.
+   */
+  function expectCopiesSpacedByMarkerBox(gap: readonly [number, number, number]): void {
+    const box = GameEntityClassRegistry.classFind(PREVIEW_E2E_DOOR_COMPONENT)?.marker_box;
+    const source = parts.world.getObjectByProperty('uuid', sourceId);
+    expect(box).toBeDefined();
+    if (box === undefined || source === undefined) {
+      return;
+    }
+    for (const copy of EntityArrayCopyMark.copiesOf(source)) {
+      const cell = EntityArrayCopyMark.read(copy)?.cell ?? [0, 0, 0];
+      const expected = new THREE.Vector3(
+        ...cell.map((index, axis) => index * ((box.size[axis] ?? 0) + (gap[axis] ?? 0))),
+      );
+      expect(copy.position.distanceTo(expected)).toBeLessThan(1e-6);
+    }
+  }
+
   it(
     'spawns one game entity per copy where the editor draws it',
     async () => {
@@ -184,6 +206,7 @@ describe.skipIf(!environment.isConfigured)('entity arrays in the game preview en
         (view) => rig.isCaughtUp(view) && GameEntityClassRegistry.classFind(PREVIEW_E2E_DOOR_COMPONENT) !== null,
         STEP_TIMEOUT_MILLISECONDS,
       );
+      const gap: [number, number, number] = [0.5, 0, 1];
       sourceId = toolData<{ id: string }>(
         api.invokeTool('add_game_entity', {
           class: PREVIEW_E2E_DOOR_COMPONENT,
@@ -192,9 +215,10 @@ describe.skipIf(!environment.isConfigured)('entity arrays in the game preview en
         }),
       ).id;
       const result = toolData<{ copyIds: string[] }>(
-        api.invokeTool('set_entity_array', { id: sourceId, array: { count_x: 3, count_z: 2, gap: [0.5, 0, 1] } }),
+        api.invokeTool('set_entity_array', { id: sourceId, array: { count_x: 3, count_z: 2, gap } }),
       );
       expect(result.copyIds).toHaveLength(3 * 2 - 1);
+      expectCopiesSpacedByMarkerBox(gap);
       await gameDoorsUntil('a door per copy', [sourceId, ...result.copyIds]);
     },
     STEP_TIMEOUT_MILLISECONDS * 2,

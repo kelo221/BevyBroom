@@ -36,7 +36,9 @@ const GAME_ENTITY_MARKER_NAME = 'Game Entity Marker';
  */
 export class GameEntityVisualBuilder {
   /**
-   * Ensures the marker exists and is tinted.
+   * Ensures the marker exists and gives it the box, tint, icon and model its
+   * classes and components ask for. Ensuring the marker puts back the plain box
+   * and tint, so the look is always applied again afterwards.
    *
    * @param owner Game entity owner group.
    */
@@ -48,6 +50,7 @@ export class GameEntityVisualBuilder {
       opacity: 1,
       beforeRender: () => GameEntityVisualBuilder.lookIfStale(owner, marker),
     });
+    delete marker.userData[GAME_ENTITY_MARKER_LOOK_KEY];
     GameEntityVisualBuilder.lookIfStale(owner, marker);
   }
 
