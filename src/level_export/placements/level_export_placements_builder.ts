@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GameEntityComponentNormalizer } from '@/game_entity/migration/game_entity_component_normalizer.js';
 import { GameEntityClassRegistry } from '@/game_entity/class/game_entity_class_registry.js';
 import { GameEntityComponentResolver } from '@/game_entity/component/game_entity_component_resolver.js';
 import { GameEntityComponentStore } from '@/game_entity/component/game_entity_component_store.js';
@@ -88,15 +89,16 @@ export class LevelExportPlacementsBuilder {
   }
 
   /**
-   * Returns the components of an object with class defaults filled in, a
-   * procedural object's `BroomProceduralProp` included.
+   * Returns the components of an object brought up to the current classes with
+   * class defaults filled in, a procedural object's `BroomProceduralProp`
+   * included.
    *
    * @param object Scene object.
    * @returns Effective components.
    */
   private static componentsOf(object: THREE.Object3D): PlacementRecord['components'] {
     const settings = ProceduralOwner.settingsRead(object);
-    const stored = GameEntityComponentStore.read(object);
+    const stored = GameEntityComponentNormalizer.current().normalize(GameEntityComponentStore.read(object)).components;
     const components = settings === null ? stored : ProceduralExportComponent.componentsMerge(stored, settings);
     return GameEntityComponentResolver.componentsEffective(components, (typePath) =>
       GameEntityClassRegistry.classFind(typePath),

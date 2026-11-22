@@ -12,7 +12,7 @@ import type { PreviewFieldValue } from '@/preview/protocol/preview_protocol_plac
  * Picks the box a game entity's marker is drawn as from the classes of its
  * components: the box chosen by the class's marker box field, otherwise the
  * class's own marker box. When several classes give a box, one that names a
- * model wins.
+ * model wins. A value the enum field does not list gets the plain marker.
  */
 export class GameEntityVisualMarkerBox {
   /**
@@ -49,8 +49,13 @@ export class GameEntityVisualMarkerBox {
    * @param gameClass Component class.
    * @param components Component overrides of the object.
    * @returns Box picked by the field value, otherwise the class box, or null.
+   *   An enum value the field does not list gets no box, so the plain marker
+   *   shows instead of another variant's model.
    */
   static classBoxOf(gameClass: GameEntityClass, components: GameEntityComponents): GameEntityMarkerBox | null {
+    if (GameEntityVisualMarkerBox.unknownVariantOf(gameClass, components) !== null) {
+      return null;
+    }
     const fieldValueText = GameEntityVisualMarkerBox.fieldValueTextOf(gameClass, components);
     const pickedBox = fieldValueText === null ? undefined : gameClass.marker_boxes?.[fieldValueText];
     return pickedBox ?? gameClass.marker_box ?? null;
@@ -73,6 +78,25 @@ export class GameEntityVisualMarkerBox {
     return GameEntityVisualMarkerBox.valueText(
       GameEntityComponentResolver.valueEffective(components, gameClass.type_path, field),
     );
+  }
+
+  /**
+   * Returns the value of a class's marker box field when the field is an enum
+   * that does not list it, such as a fixture id the game has renamed.
+   *
+   * @param gameClass Component class.
+   * @param components Component overrides of the object.
+   * @returns The unlisted value as text, or null when the field is no enum with
+   *   variants or lists the value.
+   */
+  static unknownVariantOf(gameClass: GameEntityClass, components: GameEntityComponents): string | null {
+    const fieldPath = gameClass.marker_box_field;
+    const field = fieldPath === undefined ? null : GameEntityComponentResolver.fieldFind(gameClass, fieldPath);
+    if (field === null || field.kind !== 'enum' || (field.variants ?? []).length === 0) {
+      return null;
+    }
+    const valueText = GameEntityVisualMarkerBox.fieldValueTextOf(gameClass, components);
+    return valueText === null || field.variants?.includes(valueText) === true ? null : valueText;
   }
 
   /**

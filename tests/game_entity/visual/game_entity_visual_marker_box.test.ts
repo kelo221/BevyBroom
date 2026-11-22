@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
+import { ENTITY_MARKER_SOLID_USERDATA_KEY } from '@/entity/model/entity_owner_keys.js';
 import { EntityVisualBillboard } from '@/entity/visual/entity_visual_billboard.js';
 import { ENTITY_POINT_BOX_SIZE } from '@/entity/visual/entity_visual_point_box_geometry.js';
 import type { GameEntityClass, GameEntityMarkerBox } from '@/game_entity/class/game_entity_class_schema.js';
@@ -128,6 +129,24 @@ describe('GameEntityVisualMarkerBox', () => {
     expectBoxesMatch(markerBoundsRead(owner), boundsOfMarkerBox(DOOR_BOX_PLAIN));
   });
 
+  it("gives a kind the field no longer lists no box, never the class box or another kind's model", () => {
+    cleanups.push(doorClassWithBoxesInstall());
+    const door = doorClassWithBoxes();
+    const owner = gameEntityCreateForClass(door);
+    const removedKind = `Bronze${Math.floor(Math.random() * 1000)}`;
+    GameEntityComponentStore.write(owner, { [door.type_path]: { kind: removedKind } });
+    expect(GameEntityVisualMarkerBox.unknownVariantOf(door, GameEntityComponentStore.read(owner))).toBe(removedKind);
+    expect(GameEntityVisualMarkerBox.boxOf(owner)).toBeNull();
+    const pointBounds = new THREE.Box3().setFromCenterAndSize(
+      new THREE.Vector3(),
+      new THREE.Vector3().setScalar(ENTITY_POINT_BOX_SIZE),
+    );
+    expectBoxesMatch(markerBoundsRead(owner), pointBounds);
+    GameEntityComponentStore.write(owner, { [door.type_path]: { kind: 'Glass' } });
+    expect(GameEntityVisualMarkerBox.unknownVariantOf(door, GameEntityComponentStore.read(owner))).toBeNull();
+    expect(GameEntityVisualMarkerBox.boxOf(owner)).toEqual(DOOR_BOX_PLAIN);
+  });
+
   it('picks the box of the field default', () => {
     const door: GameEntityClass = { ...doorClassWithBoxes(), marker_boxes: { Wooden: DOOR_BOX_IRON } };
     const list = testClassListCreate();
@@ -156,6 +175,16 @@ describe('GameEntityVisualMarkerBox', () => {
     expect(GameEntityVisualMarkerBox.boxOf(owner)).toEqual(modelBox);
     GameEntityComponentStore.write(owner, { [firstClass.type_path]: {} });
     expect(GameEntityVisualMarkerBox.boxOf(owner)).toEqual(DOOR_BOX_PLAIN);
+  });
+
+  it('marks a marker drawn as a declared box as solid, so content can rest on it, and a point marker not', () => {
+    cleanups.push(doorClassWithBoxesInstall());
+    const boxed = gameEntityCreateForClass(doorClassWithBoxes());
+    GameEntityVisualBuilder.refresh(boxed);
+    expect(GameEntityOwner.markerOf(boxed)?.userData[ENTITY_MARKER_SOLID_USERDATA_KEY]).toBe(true);
+    const point = gameEntityCreateForClass(testSpinnerClassCreate());
+    GameEntityVisualBuilder.refresh(point);
+    expect(GameEntityOwner.markerOf(point)?.userData[ENTITY_MARKER_SOLID_USERDATA_KEY]).toBe(false);
   });
 
   it('keeps the edge lines on the same box as the faces', () => {

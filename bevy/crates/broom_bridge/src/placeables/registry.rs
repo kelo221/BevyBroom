@@ -7,7 +7,8 @@ use bevy::prelude::*;
 use bevy::reflect::{GetTypeRegistration, TypePath};
 
 use crate::protocol::{
-    PlaceableCollisionKind, PlaceableIoPin, PlaceableMarkerBox, PlaceablePlacement,
+    PlaceableClassAbsorb, PlaceableClassRename, PlaceableCollisionKind, PlaceableIoPin,
+    PlaceableMarkerBox, PlaceablePlacement,
 };
 
 /// The default sRGB color of editor markers.
@@ -30,6 +31,12 @@ pub struct PlaceableOptions {
     pub marker_box_field: Option<String>,
     /// Editor marker boxes by the text value of `marker_box_field`.
     pub marker_boxes: BTreeMap<String, PlaceableMarkerBox>,
+    /// Type paths this class had before; the editor rewrites old components into it.
+    pub renamed_from: Vec<PlaceableClassRename>,
+    /// Components of other classes this class takes over by an enum value.
+    pub absorbs: Vec<PlaceableClassAbsorb>,
+    /// Old enum values by field path, each mapped to the value it means now.
+    pub renamed_variants: BTreeMap<String, BTreeMap<String, String>>,
     /// The collision kind brush entities carrying this class take; solid when unset.
     pub collision: Option<PlaceableCollisionKind>,
     /// Declared entity I/O inputs on this class.
@@ -50,6 +57,9 @@ impl PlaceableOptions {
             marker_box: None,
             marker_box_field: None,
             marker_boxes: BTreeMap::new(),
+            renamed_from: Vec::new(),
+            absorbs: Vec::new(),
+            renamed_variants: BTreeMap::new(),
             collision: None,
             inputs: Vec::new(),
             outputs: Vec::new(),
@@ -124,6 +134,34 @@ impl PlaceableOptions {
         if let Some(marker_box) = self.marker_boxes.get_mut(value) {
             marker_box.model = Some(model.into());
         }
+        self
+    }
+
+    /// Records that this class was called `type_path` before, so the editor rewrites levels
+    /// holding the old name.
+    pub fn renamed_from(mut self, type_path: impl Into<String>) -> Self {
+        self.renamed_from
+            .push(PlaceableClassRename::TypePath(type_path.into()));
+        self
+    }
+
+    /// Takes over components of another class whose enum field holds one of the given values.
+    pub fn absorbs(mut self, absorb: PlaceableClassAbsorb) -> Self {
+        self.absorbs.push(absorb);
+        self
+    }
+
+    /// Records that the enum field at `field_path` used to hold `old`, which is `new` now.
+    pub fn variant_renamed(
+        mut self,
+        field_path: impl Into<String>,
+        old: impl Into<String>,
+        new: impl Into<String>,
+    ) -> Self {
+        self.renamed_variants
+            .entry(field_path.into())
+            .or_default()
+            .insert(old.into(), new.into());
         self
     }
 

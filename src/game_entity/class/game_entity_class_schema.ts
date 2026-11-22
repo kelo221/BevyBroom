@@ -14,6 +14,10 @@ import {
 } from '@/preview/protocol/preview_protocol_placeable_types.js';
 import { gameEntityFieldValueFromUnknown } from '@/game_entity/component/game_entity_component_value.js';
 import { gameEntityVariantLightFromUnknown } from '@/game_entity/class/game_entity_class_variant_light.js';
+import {
+  gameEntityClassMigrationRead,
+  gameEntityFieldRenamedVariantsRead,
+} from '@/game_entity/class/game_entity_class_migration_schema.js';
 
 /** One placeable component type of the game, as the editor shows it. */
 export type GameEntityClass = PreviewPlaceableClass;
@@ -87,6 +91,7 @@ export function gameEntityClassFromUnknown(value: unknown): GameEntityClass | nu
     fields: gameEntityArrayRead(value['fields'], gameEntityFieldFromUnknown),
   };
   gameEntityClassIconRead(value, gameClass);
+  gameEntityClassMigrationRead(value, gameClass);
   gameEntityClassPinsRead(value, gameClass);
   gameEntityClassMarkerBoxesRead(value, gameClass);
   gameEntityClassCollisionRead(value, gameClass);
@@ -269,6 +274,7 @@ function gameEntityFieldOptionalsRead(value: Record<string, unknown>, field: Gam
     field.variants = value['variants'].filter((variant): variant is string => typeof variant === 'string');
   }
   gameEntityFieldVariantDetailsRead(value, field);
+  gameEntityFieldRenamedVariantsRead(value, field);
   if (typeof value['asset_type'] === 'string') {
     field.asset_type = value['asset_type'];
   }

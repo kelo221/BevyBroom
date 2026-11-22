@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { DEFAULT_SPAWN_DISTANCE, isSpawnRaycastMesh } from '@/navigation/placement/object_spawn_placement.js';
-import { ENTITY_PICK_MESH_USERDATA_KEY } from '@/entity/model/entity_owner_keys.js';
+import { ENTITY_MARKER_SOLID_USERDATA_KEY, entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
 import {
   clipboardPlacementOffset2dCompute,
   clipboardPlacementOffset3dCompute,
@@ -37,7 +37,10 @@ export interface ClipboardPlacementAimOptions {
    * surface or ground plane under the aim instead of keeping its depth.
    */
   readonly isRestingInDownwardViews: boolean;
-  /** When true, the markers of entities never stop the aim ray. */
+  /**
+   * When true, entity visuals never stop the aim ray, except markers standing
+   * for the space their entity fills.
+   */
   readonly isIgnoringEntityMarkers?: boolean;
 }
 
@@ -184,10 +187,23 @@ function clipboardPlacementSurfaceHitFind(
 }
 
 /**
+ * Returns whether an aim ray that ignores entity markers passes through an
+ * object: every entity visual, such as markers and drawn models, except a
+ * marker standing for the space its entity fills, which content rests on.
+ *
+ * @param object Candidate object.
+ * @returns True when the ray passes through it.
+ */
+function clipboardPlacementEntityPartSkippedIs(object: THREE.Object3D): boolean {
+  return entityVisualPartIs(object) && object.userData[ENTITY_MARKER_SOLID_USERDATA_KEY] !== true;
+}
+
+/**
  * Collects the visible content meshes an aim ray may rest content on.
  *
  * @param worldObject World root whose content meshes are collected.
- * @param isIgnoringEntityMarkers True to leave out the markers of entities.
+ * @param isIgnoringEntityMarkers True to leave out entity visuals other than
+ *   markers standing for the space their entity fills.
  * @returns Meshes the ray may hit.
  */
 function clipboardPlacementSurfaceTargetsCollect(
@@ -196,7 +212,7 @@ function clipboardPlacementSurfaceTargetsCollect(
 ): THREE.Mesh[] {
   const targets: THREE.Mesh[] = [];
   worldObject.traverseVisible((object) => {
-    const isSkippedMarker = isIgnoringEntityMarkers && object.userData[ENTITY_PICK_MESH_USERDATA_KEY] === true;
+    const isSkippedMarker = isIgnoringEntityMarkers && clipboardPlacementEntityPartSkippedIs(object);
     if (!isSkippedMarker && isSpawnRaycastMesh(object, true)) targets.push(object);
   });
   return targets;

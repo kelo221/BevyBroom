@@ -76,6 +76,11 @@ The class file uses the same format the game bridge reports its classes in:
   }
   ```
 
+  The model is stretched per axis to fill its box exactly, so a box sized on
+  the grid draws its model on the grid even when the model's own size is
+  slightly off; the game fills the box the same way. Placing an entity with a
+  box lands the box's edges on the grid, even for sizes that are an odd number
+  of half steps, and aiming at the top of another entity's box stacks it there.
   The model is an editor-only drawing: it is never picked, saved or exported,
   and the game spawns whatever it wants for the entity. BevyBroom reads the
   models again whenever the editor window gains focus, so a model exported
@@ -114,10 +119,57 @@ The class file uses the same format the game bridge reports its classes in:
   names in `src/ui/icons/icon_name.ts` such as `"lightbulb"` or `"door-closed"`.
   Markers, the outliner, the Add menu and the Place tiles show it; an unknown
   name or none shows the puzzle piece.
+- An entity whose marker field holds a value the enum no longer lists, such as
+  a fixture id the game renamed, shows a plain marker box, never another
+  variant's model, and the Issues list warns about it with the object and the
+  value.
 - When an entity carries several classes that give a marker box, a box that
   names a model wins; otherwise the class first in type path order wins.
 - The box size a class gives the selected objects is listed in the Help box of
   Object Properties (Class Info tab), not in the Properties panel.
+- **Renames are data.** When a class or a value is renamed, say so in the class
+  file and every level follows on its own:
+
+  ```json
+  {
+    "type_path": "cart_crashers::level::StockFixture",
+    "renamed_from": [
+      "cart_crashers::level::Shelf",
+      { "type_path": "cart_crashers::level::Rack", "defaults": { "fixture": "shelf-tall-4" } }
+    ],
+    "absorbs": [
+      {
+        "from": "cart_crashers::level::StoreProp",
+        "field": "fixture",
+        "variants": ["big-fridge", "freezer", "shop-shelf"],
+        "default": "big-fridge"
+      }
+    ],
+    "fields": [{ "path": "fixture", "kind": "enum", "renamed_variants": { "shop-shelf": "shop-shelf-4" } }]
+  }
+  ```
+
+  - `renamed_from` lists old type paths. A component stored under one becomes
+    this class. The long form names `defaults`: what a field the old component
+    left out meant; without it the old class's defaults from the level's own
+    copy are used.
+  - `absorbs` moves components of another class (`from`) whose enum `field`
+    holds one of `variants` into this class, with all their values. `default`
+    is the value an old component without the field held.
+  - `renamed_variants` on an enum field maps old values to new ones.
+  - The editor rewrites levels when they are loaded or pasted and whenever the
+    class file changes, and the Issues list shows one line per rewrite. Saved
+    files, the game preview and every export use the new names, so the game
+    never sees an old one.
+
+- **Values never depend on a default.** The editor writes every enum field's
+  value into the level, so changing a default in the class file never changes
+  an object already placed. A component loaded without a value gets the
+  current default written in, with an Issues line saying so.
+- **The project's class file always wins** over the copy of the classes a level
+  carries. When the copy differs, is replaced by a renamed class, or declares a
+  class the file does not, the Issues list says so; the copy is refreshed when
+  the level is saved.
 - Every key above is optional: a class file without them works as before.
 - A class can declare `"collision": "solid"`, `"volume"` or `"none"`: the
   collision kind solid models carrying it take in exported levels, such as

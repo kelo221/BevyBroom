@@ -7,8 +7,9 @@ use super::*;
 use crate::placeables::class_list;
 use crate::placeables::{BroomProperties, PlaceableAssetTypes, PlaceableClasses};
 use crate::protocol::{
-    PlaceableClass, PlaceableClassList, PlaceableCollisionKind, PlaceableField, PlaceableFieldKind,
-    PlaceableMarkerBox, PlaceablePlacement, PlaceableVariantLight, PlaceableVariantLightKind,
+    PlaceableClass, PlaceableClassList, PlaceableClassRename, PlaceableCollisionKind,
+    PlaceableField, PlaceableFieldKind, PlaceableMarkerBox, PlaceablePlacement,
+    PlaceableVariantLight, PlaceableVariantLightKind,
 };
 use crate::test_support::TemporaryDirectory;
 
@@ -310,6 +311,63 @@ fn class_list_fixture_reads_variant_lights() {
     let round_trip: PlaceableVariantLight =
         serde_json::from_value(serde_json::to_value(&light).expect("serializes")).expect("parses");
     assert_eq!(round_trip, light);
+}
+
+/// Classes may record their old type paths, with or without the defaults of the old class, the
+/// components of other classes they take over, and old enum values; the shared fixture's door
+/// does all three, and they survive a round trip.
+#[test]
+fn class_list_fixture_reads_migration_rules() {
+    let json = include_str!("../../../../../fixtures/placeable_classes_sample.json");
+    let list: PlaceableClassList = serde_json::from_str(json).expect("the fixture parses");
+    let door = list
+        .classes
+        .iter()
+        .find(|class| !class.renamed_from.is_empty())
+        .expect("a renamed class");
+    assert!(
+        door.renamed_from
+            .iter()
+            .any(|rename| matches!(rename, PlaceableClassRename::TypePath(_)))
+    );
+    assert!(door.renamed_from.iter().any(
+        |rename| matches!(rename, PlaceableClassRename::WithDefaults { defaults, .. } if !defaults.is_empty())
+    ));
+    let absorb = door.absorbs.first().expect("an absorbed class");
+    assert!(!absorb.variants.is_empty());
+    assert!(
+        door.fields
+            .iter()
+            .any(|field| !field.renamed_variants.is_empty())
+    );
+    let round_trip: PlaceableClass =
+        serde_json::from_value(serde_json::to_value(door).expect("serializes")).expect("parses");
+    assert_eq!(&round_trip, door);
+}
+
+/// Old type paths, absorbed classes and old enum values a game registers reach the editor.
+#[test]
+fn migration_rules_are_described_with_their_options() {
+    let mut app = placeables_app();
+    app.register_placeable::<TestDoor>(
+        PlaceableOptions::point()
+            .renamed_from("test::OldDoor")
+            .variant_renamed("kind", "Steel", "Iron"),
+    );
+    let directory = TemporaryDirectory::new("placeable_migration_rules");
+    let list = classes_of(&app, directory.path());
+    let door = class_of::<TestDoor>(&list);
+    assert_eq!(
+        door.renamed_from,
+        vec![PlaceableClassRename::TypePath("test::OldDoor".into())]
+    );
+    let kind = field_at(&door.fields, "kind");
+    assert_eq!(
+        kind.renamed_variants.get("Steel").map(String::as_str),
+        Some("Iron")
+    );
+    let weight = class_of::<TestWeight>(&list);
+    assert!(weight.renamed_from.is_empty() && weight.absorbs.is_empty());
 }
 
 /// A class may name the editor icon of its markers; the shared fixture's door does, and the

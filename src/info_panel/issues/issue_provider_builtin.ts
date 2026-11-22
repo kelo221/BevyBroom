@@ -1,6 +1,9 @@
 import type { IssueProvider } from '@/info_panel/issues/issue_provider.js';
 import { IssueProviderSolidBrushInvalid } from '@/info_panel/issues/providers/issue_provider_solid_brush_invalid.js';
 import { IssueProviderSolidModelWarnings } from '@/info_panel/issues/providers/issue_provider_solid_model_warnings.js';
+import { IssueProviderGameComponentRewrites } from '@/info_panel/issues/providers/issue_provider_game_component_rewrites.js';
+import { IssueProviderLevelClassCopy } from '@/info_panel/issues/providers/issue_provider_level_class_copy.js';
+import { IssueProviderGameEntityVariantUnknown } from '@/info_panel/issues/providers/issue_provider_game_entity_variant_unknown.js';
 import { IssueProviderGameComponentUnknown } from '@/info_panel/issues/providers/issue_provider_game_component_unknown.js';
 import { IssueProviderGameComponentOnBrush } from '@/info_panel/issues/providers/issue_provider_game_component_on_brush.js';
 import { IssueProviderCollisionVolumeUndeclared } from '@/info_panel/issues/providers/issue_provider_collision_volume_undeclared.js';
@@ -21,6 +24,9 @@ export function issueProvidersBuiltin(): readonly IssueProvider[] {
     new IssueProviderSolidModelWarnings(),
     new IssueProviderGridConformance(),
     new IssueProviderGameComponentUnknown(),
+    new IssueProviderGameEntityVariantUnknown(),
+    new IssueProviderGameComponentRewrites(),
+    new IssueProviderLevelClassCopy(),
     new IssueProviderGameComponentOnBrush(),
     new IssueProviderCollisionVolumeUndeclared(),
     new IssueProviderFaceUvScale(),

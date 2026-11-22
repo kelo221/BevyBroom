@@ -75,6 +75,11 @@ export interface PreviewPlaceableField {
   variants?: string[];
   /** How the editor names and groups each variant of an enum field, by variant. */
   variant_details?: Record<string, PreviewPlaceableVariantDetail>;
+  /**
+   * Values the enum field used to hold, by old value: the value each means now.
+   * The editor rewrites old values, so the game never sees them.
+   */
+  renamed_variants?: Record<string, string>;
   asset_type?: string;
   children?: PreviewPlaceableField[];
   hidden?: boolean;
@@ -172,6 +177,13 @@ export interface PreviewPlaceableClass {
    * it.
    */
   collision?: PreviewPlaceableCollisionKind;
+  /**
+   * Type paths the class had before, as bare paths or with the values the old
+   * class gave fields a component left out. The editor rewrites them.
+   */
+  renamed_from?: (string | PreviewPlaceableClassRename)[];
+  /** Components of other classes the class takes over by an enum value. */
+  absorbs?: PreviewPlaceableClassAbsorb[];
   fields: PreviewPlaceableField[];
   inputs?: PreviewPlaceableIoPin[];
   outputs?: PreviewPlaceableIoPin[];
@@ -194,4 +206,25 @@ export interface PreviewPlaceableClassList {
   asset_generation: number;
   classes: PreviewPlaceableClass[];
   asset_types: PreviewPlaceableAssetType[];
+}
+
+/**
+ * An old type path of a class with the values the old class gave fields a
+ * component left out, so an old `{}` keeps the meaning it had.
+ */
+export interface PreviewPlaceableClassRename {
+  type_path: string;
+  defaults?: Record<string, PreviewFieldValue>;
+}
+
+/**
+ * Components of the class `from` whose enum field `field` holds one of
+ * `variants` move into the absorbing class with their values. `default` is the
+ * value an old component without the field held.
+ */
+export interface PreviewPlaceableClassAbsorb {
+  from: string;
+  field: string;
+  variants: string[];
+  default?: string;
 }

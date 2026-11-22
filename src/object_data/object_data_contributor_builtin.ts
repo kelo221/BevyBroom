@@ -1,4 +1,5 @@
 import { ObjectDataContributorDisplacementCollision } from '@/displacement/export/object_data_contributor_displacement_collision.js';
+import { ObjectDataContributorComponentNormalize } from '@/game_entity/migration/object_data_contributor_component_normalize.js';
 import { ObjectDataContributorGameComponents } from '@/game_entity/contributors/object_data_contributor_game_components.js';
 import { ObjectDataContributorCollisionExtras } from '@/level_export/collision/object_data_contributor_collision_extras.js';
 import { ObjectDataContributorCollisionKind } from '@/level_export/kind/object_data_contributor_collision_kind.js';
@@ -26,6 +27,7 @@ export function objectDataContributorsBuiltinCreate(): readonly ObjectDataContri
     new ObjectDataContributorPortalCells(),
     new ObjectDataContributorLightNodes(),
     new ObjectDataContributorGameComponents(),
+    new ObjectDataContributorComponentNormalize(),
     new ObjectDataContributorCollisionKind(),
     new ObjectDataContributorCollisionExtras(),
     new ObjectDataContributorProcedural(),
