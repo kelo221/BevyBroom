@@ -3,8 +3,8 @@ import { ContentProgramMaterial } from './content_program_material.js';
 import { ShaderProgramContentSceneLit } from './shader/program/shader_program_content_scene_lit.js';
 
 /**
- * Content material lit by the scene's authored point and spot lights with the
- * game renderer's attenuation and cone formulas, plus the projected grid.
+ * Content material lit by the scene's authored point, spot and tube lights with
+ * the game renderer's attenuation and cone formulas, plus the projected grid.
  */
 export class ContentSceneLitMaterial extends ContentProgramMaterial {
   /**

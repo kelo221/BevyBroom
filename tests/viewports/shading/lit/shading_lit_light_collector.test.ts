@@ -7,6 +7,7 @@ import {
   SHADING_LIT_POINT_CONE_COSINE,
   shadingLitCosineFromDegrees,
   shadingLitFalloffPacked,
+  shadingLitReach,
 } from '@/viewports/shading/lit/shading_lit_light_math.js';
 
 /**
@@ -49,6 +50,8 @@ describe('ShadingLitLightCollector', () => {
     expect(record.colorLinear.r).toBeLessThan(0x80 / 255);
     expect(record.falloffPacked).toBeCloseTo(shadingLitFalloffPacked(settings.radius, settings.falloff));
     expect(record.innerCosine).toBe(SHADING_LIT_POINT_CONE_COSINE);
+    expect(record.tubeHalfLength).toBe(0);
+    expect(record.reach).toBe(record.radius);
   });
 
   it('points a spot axis back along the owner +Z and converts cutoffs to cosines', () => {
@@ -60,9 +63,26 @@ describe('ShadingLitLightCollector', () => {
     expect(record).toBeDefined();
     if (!record) return;
     const expectedAxis = new THREE.Vector3(0, 0, 1).applyEuler(owner.rotation);
-    expect(record.axisTowardsLight.distanceTo(expectedAxis)).toBeLessThan(1e-6);
+    expect(record.axis.distanceTo(expectedAxis)).toBeLessThan(1e-6);
     expect(record.innerCosine).toBeCloseTo(shadingLitCosineFromDegrees(15));
     expect(record.outerCosine).toBeCloseTo(shadingLitCosineFromDegrees(25));
+  });
+
+  it('reads a tube along the owner +X with its half length and the reach past its shape', () => {
+    const scene = new THREE.Scene();
+    const tubeLength = 3;
+    const owner = lightOwnerCreate('tube', { tubeLength, radius: 10, falloff: 0.5 });
+    owner.rotation.set(0, Math.PI / 3, 0);
+    scene.add(owner);
+    const record = ShadingLitLightCollector.collect(scene)[0];
+    expect(record).toBeDefined();
+    if (!record) return;
+    const expectedAxis = new THREE.Vector3(1, 0, 0).applyEuler(owner.rotation);
+    expect(record.axis.distanceTo(expectedAxis)).toBeLessThan(1e-6);
+    expect(record.tubeHalfLength).toBeCloseTo(tubeLength / 2);
+    expect(record.reach).toBeCloseTo(shadingLitReach(record.radius, tubeLength / 2));
+    expect(record.falloffPacked).toBeCloseTo(shadingLitFalloffPacked(record.reach, 0.5));
+    expect(record.innerCosine).toBe(SHADING_LIT_POINT_CONE_COSINE);
   });
 
   it('skips disabled, dark and hidden lights', () => {

@@ -30,10 +30,13 @@ describe('ContentSceneLitMaterial', () => {
     texture.dispose();
   });
 
-  it('declares light arrays sized to the maximum and evaluates attenuation, cone and Lambert', () => {
+  it('loops over the light texture up to the maximum and evaluates attenuation, cone, tube and Lambert', () => {
     const material = new ContentSceneLitMaterial(0xffffff, null, THREE.FrontSide);
     const shader = material.fragmentShader;
-    expect(shader).toContain(`${SCENE_LIT_UNIFORM_NAMES.positionRadiusSquared}[${SCENE_LIT_MAXIMUM_LIGHT_COUNT}]`);
+    expect(shader).toContain(`sampler2D ${SCENE_LIT_UNIFORM_NAMES.texture}`);
+    expect(shader).toContain(`index < ${SCENE_LIT_MAXIMUM_LIGHT_COUNT}`);
+    expect(shader).toContain('sceneLitTubeCosine');
+    expect(shader).toContain('sceneLitTubeNearestPoint');
     expect(shader).toContain('sceneLitAttenuation');
     expect(shader).toContain('sceneLitCone');
     expect(shader).toContain('max(dot(normalUnit, direction), 0.0)');

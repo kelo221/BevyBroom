@@ -182,12 +182,13 @@ the label to open the view menu, which holds every viewport control:
 The shading shortcuts `1` to `5` still change the shading of the view under the
 pointer, 2D views included; 2D views start in wireframe.
 
-**3D Lit** lights the level only with the point and spot lights you placed, as
-an approximation of the game. It uses the game's formulas for color,
-intensity, radius, falloff and spot cone angles, plus the game's default
-ambient light. It leaves out shadows, bounce light, cookies, fog, effects,
-shimmer and the game's tone mapping. It draws the 32 lights whose reach is
-closest to the camera, and it skips disabled and hidden lights. Use the Game
+**3D Lit** lights the level only with the point, spot and tube lights you
+placed, as an approximation of the game. It uses the game's formulas for
+color, intensity, radius, falloff, spot cone angles and tube length, plus the
+game's default ambient light. It leaves out shadows, bounce light, cookies,
+fog, effects, shimmer and the game's tone mapping. It draws up to 1024 lights,
+keeping the ones whose reach is closest to the camera, and it skips disabled
+and hidden lights. Use the Game
 Preview to see the real result.
 
 Shading changes how you inspect the scene; it does not change exported material
