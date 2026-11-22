@@ -26,6 +26,7 @@ const VIEWPORT_VIEW_CHOICE_3D_SHADINGS: ReadonlyArray<{ readonly word: string; r
   { word: 'Wireframe Overlay', mode: ShadingMode.WIREFRAME_OVERLAY },
   { word: 'Flat', mode: ShadingMode.FLAT },
   { word: 'Textured', mode: ShadingMode.SOLID },
+  { word: 'Lit', mode: ShadingMode.LIT },
 ];
 
 /**

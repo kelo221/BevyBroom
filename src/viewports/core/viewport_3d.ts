@@ -340,7 +340,7 @@ export class Viewport3D extends ViewportBase {
    * for the shared multi-view pass.
    */
   prepareRender(): void {
-    this.shadingController.applyForRenderPass();
+    this.shadingController.applyForRenderPass(this.camera);
     this.gridRoot.visible = true;
     this.cameraHeadlight.getLight().visible = true;
     showGizmoForRenderPass(this.gizmoGroup);

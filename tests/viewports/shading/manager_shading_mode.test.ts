@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import { ManagerShadingMode } from '@/viewports/shading/manager_shading_mode.js';
 import { ShadingMode } from '@/types/shading_mode.js';
+import { ContentSceneLitMaterial } from '@/materials/factory_content_scene_lit_material.js';
 import { clearSharedContentMaterialStoreForTests } from '@/viewports/shared/shared_content_material_store.js';
 
 describe('ShadingModeManager', () => {
@@ -134,6 +135,35 @@ describe('ShadingModeManager', () => {
       const materialB = meshB.material as THREE.MeshBasicMaterial;
       (meshA.material as THREE.Material).dispose();
       expect(materialB.color.getHex()).toBe(0x00ff00);
+    });
+  });
+
+  describe('LIT mode', () => {
+    beforeEach(() => {
+      scene.add(meshA);
+      scene.add(meshB);
+      manager.snapshotMaterials();
+    });
+
+    it('replaces content materials with scene-lit materials keeping color, map and side', () => {
+      const texture = new THREE.Texture();
+      materialA.map = texture;
+      materialA.side = THREE.DoubleSide;
+      manager.setMode(ShadingMode.LIT);
+      const litMaterial = meshA.material as ContentSceneLitMaterial;
+      expect(litMaterial).toBeInstanceOf(ContentSceneLitMaterial);
+      expect(litMaterial.color.getHex()).toBe(materialA.color.getHex());
+      expect(litMaterial.map).toBe(texture);
+      expect(litMaterial.side).toBe(THREE.DoubleSide);
+      expect(meshB.material).toBeInstanceOf(ContentSceneLitMaterial);
+      texture.dispose();
+    });
+
+    it('restores the content materials when leaving LIT mode', () => {
+      manager.setMode(ShadingMode.LIT);
+      manager.setMode(ShadingMode.SOLID);
+      expect(meshA.material).toBe(materialA);
+      expect(meshB.material).toBe(materialB);
     });
   });
 

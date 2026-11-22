@@ -2,6 +2,14 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import { ControllerViewportShading } from '@/viewports/shading/controller_viewport_shading.js';
 import { ShadingMode } from '@/types/shading_mode.js';
+import { LightOwner } from '@/light/model/light_owner.js';
+import { lightSettingsCreateDefault } from '@/light/model/light_settings.js';
+import { ContentSceneLitMaterial } from '@/materials/factory_content_scene_lit_material.js';
+import {
+  SCENE_LIT_UNIFORM_NAMES,
+  uniformSceneLitSharedGet,
+  uniformSceneLitSharedWrite,
+} from '@/materials/shader/uniform/uniform_scene_lit_lights_shared.js';
 import { ShadableViewport } from '@/viewports/shading/controller_viewport_shading.js';
 import { disposeSharedShadingPass } from '@/viewports/shared/shared_shading_pass.js';
 import { clearSharedContentMaterialStoreForTests } from '@/viewports/shared/shared_content_material_store.js';
@@ -172,6 +180,37 @@ describe('ViewportShadingController', () => {
       controller.setProjectedGridVisible(false);
       expect(controller.areContentWireframesVisible()).toBe(false);
       expect(controller.isProjectedGridVisible()).toBe(false);
+    });
+  });
+
+  describe('LIT mode scene lights', () => {
+    /**
+     * Reads the number of lights loaded into the shared Lit uniforms.
+     *
+     * @returns Light count.
+     */
+    function sceneLitLightCountRead(): unknown {
+      return uniformSceneLitSharedGet()[SCENE_LIT_UNIFORM_NAMES.count]?.value;
+    }
+
+    it('loads the authored lights into the shared uniforms on each Lit render pass', () => {
+      uniformSceneLitSharedWrite([]);
+      const owner = LightOwner.create('lit_test_light', lightSettingsCreateDefault('point'));
+      viewport.getScene().add(owner);
+      controller.setShadingMode(ShadingMode.LIT);
+      expect(meshA.material).toBeInstanceOf(ContentSceneLitMaterial);
+      expect(sceneLitLightCountRead()).toBe(1);
+      viewport.getScene().add(LightOwner.create('lit_test_light_second', lightSettingsCreateDefault('spot')));
+      controller.applyForRenderPass(new THREE.PerspectiveCamera());
+      expect(sceneLitLightCountRead()).toBe(2);
+    });
+
+    it('leaves the shared light uniforms alone in other modes', () => {
+      uniformSceneLitSharedWrite([]);
+      viewport.getScene().add(LightOwner.create('unlit_test_light', lightSettingsCreateDefault('point')));
+      controller.setShadingMode(ShadingMode.SOLID);
+      controller.applyForRenderPass(new THREE.PerspectiveCamera());
+      expect(sceneLitLightCountRead()).toBe(0);
     });
   });
 });

@@ -320,7 +320,7 @@ export class Viewport2D extends ViewportBase {
    * without depth darkening, and updates orthographic depth range.
    */
   prepareRender(): void {
-    this.shadingController.applyForRenderPass();
+    this.shadingController.applyForRenderPass(this.camera);
     this.gridRoot.visible = true;
     showGizmoForRenderPass(this.gizmoGroup);
     if (this.worldGroup) {
