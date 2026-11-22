@@ -3,6 +3,7 @@ import { GizmoAxis } from '@/types/transform_mode.js';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
 import { NotificationGlobal } from '@/audio/notification/notification_global.js';
 import { TransformConstraint } from './transform_constraint.js';
+import { TransformParentSpace } from './transform_parent_space.js';
 
 /**
  * Applies transform operations to selected objects. Handles translation,
@@ -46,25 +47,26 @@ export class TransformExecutor {
   }
 
   /**
-   * Translates all objects by the same snapped delta. Grid snap rounds the
-   * movement vector, never each object's absolute position, so relative offsets
-   * and off-grid placements stay intact.
+   * Translates all objects by the same snapped world delta, also when an object
+   * sits under a rotated or scaled parent. Grid snap rounds the movement
+   * vector, never each object's absolute position, so relative offsets and
+   * off-grid placements stay intact.
    *
    * @param objects The objects to translate.
-   * @param delta The unsnapped translation delta vector.
+   * @param delta The unsnapped world-space translation delta vector.
    */
   executeTranslation(objects: THREE.Object3D[], delta: THREE.Vector3): void {
     const snappedDelta = this.snapTranslationDelta(delta);
     objects.forEach((object) => {
-      object.position.add(snappedDelta);
+      object.position.add(TransformParentSpace.worldOffsetToParentLocal(object, snappedDelta));
     });
     this.raiseSelectionMovedWithSnappingIfStepped(snappedDelta);
   }
 
   /**
-   * Sets each object to its initial position plus one shared snapped delta.
-   * Snapping applies to the movement only, so multi-selection keeps internal
-   * spacing and off-grid offsets.
+   * Sets each object to its initial position moved by one shared snapped world
+   * delta. Snapping applies to the movement only, so multi-selection keeps
+   * internal spacing and off-grid offsets.
    *
    * @param objects The objects to position.
    * @param initialPositions Map of object to pre-drag position.
@@ -128,11 +130,12 @@ export class TransformExecutor {
   }
 
   /**
-   * Writes one object's local position from its start plus a shared delta.
+   * Writes one object's local position from its start moved by a shared world
+   * delta, converted into the space of the object's parent.
    *
    * @param object The object to update.
-   * @param initialPositions Map of object to pre-drag position.
-   * @param snappedDelta Grid-snapped translation applied to every target.
+   * @param initialPositions Map of object to pre-drag local position.
+   * @param snappedDelta Grid-snapped world translation applied to every target.
    */
   private applySnappedTranslationToObject(
     object: THREE.Object3D,
@@ -143,7 +146,7 @@ export class TransformExecutor {
     if (!start) {
       return;
     }
-    object.position.copy(start).add(snappedDelta);
+    object.position.copy(start).add(TransformParentSpace.worldOffsetToParentLocal(object, snappedDelta));
   }
 
   /**
