@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { EntityVisualBuilder } from '@/entity/visual/entity_visual_builder.js';
 import type { GameEntityMarkerBox } from '@/game_entity/class/game_entity_class_schema.js';
 import { GameEntityModelLibrary } from '@/game_entity/model/game_entity_model_library.js';
-import { shadingExemptFlag } from '@/viewports/shading/shading_exempt.js';
+import { shadingExemptFlag, shadingLitIncludedFlag } from '@/viewports/shading/shading_exempt.js';
+import { invalidateSharedShadingPass } from '@/viewports/shared/shared_shading_pass.js';
 
 /**
  * Shortest model edge stretched, in meters, so flat models never divide by
@@ -103,6 +104,7 @@ export class GameEntityVisualMarkerModel {
     }
     if (modelPath !== null && template !== null) {
       owner.add(GameEntityVisualMarkerModel.instanceCreate(template, modelPath, library.readerEpoch()));
+      invalidateSharedShadingPass();
     }
   }
 
@@ -147,13 +149,14 @@ export class GameEntityVisualMarkerModel {
 
   /**
    * Flags one object of a model copy as a visual part that keeps its own
-   * material, giving meshes materials of their own.
+   * material except in the Lit mode, giving meshes materials of their own.
    *
    * @param part Object of the model copy.
    */
   private static partPrepare(part: THREE.Object3D): void {
     EntityVisualBuilder.partFlag(part);
     shadingExemptFlag(part);
+    shadingLitIncludedFlag(part);
     if (part instanceof THREE.Mesh) {
       part.material = Array.isArray(part.material)
         ? part.material.map((material: THREE.Material) => material.clone())

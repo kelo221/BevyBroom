@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { ManagerShadingMode } from '@/viewports/shading/manager_shading_mode.js';
 import { ShadingMode } from '@/types/shading_mode.js';
 import { ContentSceneLitMaterial } from '@/materials/factory_content_scene_lit_material.js';
+import { shadingExemptFlag, shadingLitIncludedFlag } from '@/viewports/shading/shading_exempt.js';
 import { clearSharedContentMaterialStoreForTests } from '@/viewports/shared/shared_content_material_store.js';
 
 describe('ShadingModeManager', () => {
@@ -243,6 +244,30 @@ describe('ShadingModeManager', () => {
       manager.setMode(ShadingMode.FLAT);
       expect(meshA.material instanceof THREE.MeshBasicMaterial).toBe(true);
       expect((meshA.material as THREE.MeshBasicMaterial).color.getHex()).toBe(0xff0000);
+    });
+  });
+
+  describe('Lit-included exempt meshes', () => {
+    it('lights a flagged exempt mesh only in LIT mode and leaves plain exempt meshes alone', () => {
+      const includedMaterial = new THREE.MeshStandardMaterial({ color: 0x884422 });
+      const included = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), includedMaterial);
+      const helperMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+      const helper = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), helperMaterial);
+      shadingExemptFlag(included);
+      shadingLitIncludedFlag(included);
+      shadingExemptFlag(helper);
+      scene.add(included, helper);
+      manager.snapshotMaterials();
+      manager.setMode(ShadingMode.WIREFRAME);
+      expect(included.material).toBe(includedMaterial);
+      manager.setMode(ShadingMode.LIT);
+      expect(included.material).toBeInstanceOf(ContentSceneLitMaterial);
+      expect((included.material as THREE.Material as ContentSceneLitMaterial).color.getHex()).toBe(
+        includedMaterial.color.getHex(),
+      );
+      expect(helper.material).toBe(helperMaterial);
+      manager.setMode(ShadingMode.FLAT);
+      expect(included.material).toBe(includedMaterial);
     });
   });
 

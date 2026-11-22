@@ -5,7 +5,7 @@ import { ShadingMode } from '@/types/shading_mode.js';
 import { SELECTION_HIGHLIGHT_USERDATA_KEY } from '@/selection/object/selection_highlight.js';
 import { BOUNDS_FACE_USERDATA_KEY } from '@/types/bounds_face.js';
 import { SOLID_BRUSH_USERDATA_KEY } from '@/solid/model/solid_brush_visual.js';
-import { shadingExemptIs } from '@/viewports/shading/shading_exempt.js';
+import { shadingExemptIs, shadingLitIncludedIs } from '@/viewports/shading/shading_exempt.js';
 import {
   captureSharedContentMaterials,
   markShadingOverrideMaterial,
@@ -38,7 +38,7 @@ export class ManagerShadingMode {
    * temporary shading overrides.
    */
   snapshotMaterials(): void {
-    this.collectContentMeshes().forEach((mesh) => captureSharedContentMaterials(mesh));
+    this.collectContentMeshes(ShadingMode.LIT).forEach((mesh) => captureSharedContentMaterials(mesh));
   }
 
   /**
@@ -91,18 +91,35 @@ export class ManagerShadingMode {
   }
 
   /**
-   * Collects content meshes only, excluding editor helpers and gizmos.
+   * Collects the meshes a shading mode restyles: content meshes, plus exempt
+   * meshes flagged to take the scene lights when the mode is Lit.
    *
-   * @returns An array of meshes that participate in shading modes.
+   * @param mode Shading mode the meshes are collected for.
+   * @returns An array of meshes that participate in the mode.
    */
-  private collectContentMeshes(): THREE.Mesh[] {
+  private collectContentMeshes(mode: ShadingMode): THREE.Mesh[] {
     const meshes: THREE.Mesh[] = [];
     this.viewportScene.traverse((child) => {
-      if (child instanceof THREE.Mesh && !this.isShadingExempt(child)) {
+      if (child instanceof THREE.Mesh && this.isMeshRestyledInMode(child, mode)) {
         meshes.push(child);
       }
     });
     return meshes;
+  }
+
+  /**
+   * Returns whether a shading mode restyles a mesh.
+   *
+   * @param mesh Candidate mesh.
+   * @param mode Shading mode.
+   * @returns True for content meshes, and for Lit-included meshes in the Lit
+   *   mode.
+   */
+  private isMeshRestyledInMode(mesh: THREE.Mesh, mode: ShadingMode): boolean {
+    if (!this.isShadingExempt(mesh)) {
+      return true;
+    }
+    return mode === ShadingMode.LIT && shadingLitIncludedIs(mesh);
   }
 
   /**
@@ -159,7 +176,7 @@ export class ManagerShadingMode {
   /** Restores every content mesh from the shared content material store. */
   private restoreContentMaterials(): void {
     this.disposeOwnedOverrideMaterials();
-    this.collectContentMeshes().forEach((mesh) => {
+    this.collectContentMeshes(this.activeMode).forEach((mesh) => {
       restoreSharedContentMaterials(mesh);
     });
   }
@@ -179,7 +196,7 @@ export class ManagerShadingMode {
    * @param overrideCreate Builds the override of one content material.
    */
   private applyOverrideMaterials(overrideCreate: (source: THREE.Material) => THREE.Material): void {
-    this.collectContentMeshes().forEach((mesh) => {
+    this.collectContentMeshes(this.activeMode).forEach((mesh) => {
       const contentMaterials = resolveSharedContentMaterialList(mesh);
       if (contentMaterials.length === 0) return;
       const overrideMaterials = contentMaterials.map((source) => overrideCreate(source));

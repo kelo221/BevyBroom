@@ -9,6 +9,10 @@ import { GameEntityVisualMarkerModel } from '@/game_entity/visual/game_entity_vi
 import { entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
 import { shouldOmitFromExport } from '@/io/scene/export_object_omission.js';
 import { isEditorHelperObject } from '@/utils/mesh_edge_sync.js';
+import { ContentSceneLitMaterial } from '@/materials/factory_content_scene_lit_material.js';
+import { ShadingMode } from '@/types/shading_mode.js';
+import { ManagerShadingMode } from '@/viewports/shading/manager_shading_mode.js';
+import { shadingLitIncludedIs } from '@/viewports/shading/shading_exempt.js';
 import { testClassesInstall, testClassListCreate, testDoorClassCreate } from '../game_entity_test_classes.js';
 import {
   gameEntityModelTestBase64,
@@ -163,6 +167,30 @@ describe('GameEntityVisualMarkerModel', () => {
       expect(isEditorHelperObject(part)).toBe(true);
       expect(shouldOmitFromExport(part)).toBe(true);
     });
+  });
+
+  it('keeps its own materials in the Flat mode but takes the scene lights in the Lit mode', async () => {
+    doorClassInstall();
+    await sharedLibraryServe();
+    const owner = await doorWithModelCreate('Iron');
+    const scene = new THREE.Scene();
+    scene.add(owner);
+    const meshes: THREE.Mesh[] = [];
+    GameEntityVisualMarkerModel.find(owner)?.traverse((part) => {
+      if (part instanceof THREE.Mesh) meshes.push(part);
+    });
+    const ownMaterials = meshes.map((mesh) => mesh.material);
+    expect(meshes.length).toBeGreaterThan(0);
+    meshes.forEach((mesh) => expect(shadingLitIncludedIs(mesh)).toBe(true));
+    const manager = new ManagerShadingMode(scene);
+    manager.snapshotMaterials();
+    manager.setMode(ShadingMode.FLAT);
+    expect(meshes.map((mesh) => mesh.material)).toEqual(ownMaterials);
+    manager.setMode(ShadingMode.LIT);
+    meshes.forEach((mesh) => expect(mesh.material).toBeInstanceOf(ContentSceneLitMaterial));
+    manager.setMode(ShadingMode.SOLID);
+    expect(meshes.map((mesh) => mesh.material)).toEqual(ownMaterials);
+    manager.dispose();
   });
 
   it('swaps the model when the field picks another box and drops it for a box without one', async () => {
