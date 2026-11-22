@@ -77,9 +77,9 @@ function selectionQueryTestIds(...brushes: SolidBrushInstance[]): string[] {
 }
 
 describe('selection queries', () => {
-  it('lists six queries with unique ids and labels', () => {
+  it('lists seven queries with unique ids and labels', () => {
     const queries = selectionQueriesList();
-    expect(queries).toHaveLength(6);
+    expect(queries).toHaveLength(7);
     expect(new Set(queries.map((query) => query.id)).size).toBe(queries.length);
     expect(new Set(queries.map((query) => query.label)).size).toBe(queries.length);
   });

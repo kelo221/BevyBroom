@@ -9,9 +9,9 @@ import { desktopE2eWaitUntil } from './desktop_e2e_wait.js';
 /**
  * End-to-end acceptance of the brush editing MCP tools in the built desktop
  * app: hollow, flip, shear, vertex snap and convex merge each edit real brushes
- * as one undo step, select_by_query picks touching brushes and
- * set_selection_visibility hides, isolates and shows brushes. Skipped unless
- * BROOM_E2E_DESKTOP_EXE names the app launcher.
+ * as one undo step, select_by_query picks touching brushes and copies of a
+ * brush, and set_selection_visibility hides, isolates and shows brushes.
+ * Skipped unless BROOM_E2E_DESKTOP_EXE names the app launcher.
  */
 const desktopExecutable = process.env['BROOM_E2E_DESKTOP_EXE'] ? resolve(process.env['BROOM_E2E_DESKTOP_EXE']) : '';
 e2eRequiredConfigurationAssert(desktopExecutable !== '', ['BROOM_E2E_DESKTOP_EXE']);
@@ -254,6 +254,27 @@ describe.skipIf(desktopExecutable === '')('desktop app brush tools end to end', 
       await client.toolCallExpectOk('select', { brushIds: [anchorId] });
       const result = await client.toolCallExpectOk('select_by_query', { query: 'touching' });
       expect(toolDataRead<{ brushIds: string[] }>(result).brushIds).toEqual([touchingId]);
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'selects every copy of a selected brush through select_by_query similar',
+    async () => {
+      const modelId = await modelCreate('BrushToolsSimilarE2e');
+      const pillarIds = [
+        await cubeAdd(modelId, 1, { x: 60, y: 0.5, z: 0 }),
+        await cubeAdd(modelId, 1, { x: 62, y: 0.5, z: 0 }),
+        await cubeAdd(modelId, 1, { x: 64, y: 0.5, z: 0 }),
+      ];
+      const crateId = await cubeAdd(modelId, 1, { x: 66, y: 0.5, z: 0 });
+      for (const [index, pillarId] of pillarIds.entries()) {
+        await client.toolCallExpectOk('rename_brush', { brushId: pillarId, name: `SimilarPillar.A0${index}` });
+      }
+      await client.toolCallExpectOk('rename_brush', { brushId: crateId, name: 'SimilarCrate.B00' });
+      await client.toolCallExpectOk('select', { brushIds: [pillarIds[0]] });
+      const result = await client.toolCallExpectOk('select_by_query', { query: 'similar' });
+      expect([...toolDataRead<{ brushIds: string[] }>(result).brushIds].sort()).toEqual([...pillarIds].sort());
     },
     STEP_TIMEOUT_MILLISECONDS,
   );

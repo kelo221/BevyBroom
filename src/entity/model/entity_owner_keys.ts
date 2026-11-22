@@ -124,6 +124,16 @@ export function entityPickDisabledSet(owner: THREE.Object3D, isDisabled: boolean
 }
 
 /**
+ * Returns whether an object itself turned clicking its markers off.
+ *
+ * @param object Candidate object.
+ * @returns True when the object carries the pick-disabled flag.
+ */
+export function entityPickDisabledIs(object: THREE.Object3D): boolean {
+  return object.userData[ENTITY_PICK_DISABLED_USERDATA_KEY] === true;
+}
+
+/**
  * Returns whether an object is an entity marker the user may click: a pick mesh
  * none of whose owners turned clicking off.
  *
@@ -136,7 +146,7 @@ export function entityPickMeshSelectableIs(object: THREE.Object3D): boolean {
   }
   let current: THREE.Object3D | null = object.parent;
   while (current) {
-    if (current.userData[ENTITY_PICK_DISABLED_USERDATA_KEY] === true) {
+    if (entityPickDisabledIs(current)) {
       return false;
     }
     current = current.parent;

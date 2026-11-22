@@ -5,7 +5,11 @@ import { entityIconOf } from '@/entity/icon/entity_icon.js';
 import type { EntityOwner } from '@/entity/model/entity_owner.js';
 import type { InputNumeric } from '@/ui/input/input_numeric.js';
 import { InputSelect, type InputSelectChoice } from '@/ui/input/input_select.js';
-import { panelPropertiesSectionHeaderIconWrite } from '@/ui/properties/panel_properties_chrome.js';
+import {
+  panelPropertiesSectionHeaderCountWrite,
+  panelPropertiesSectionHeaderIconWrite,
+} from '@/ui/properties/panel_properties_chrome.js';
+import { entityOwnerDescendantsCollect } from '@/entity/model/entity_owner_descendants.js';
 import { hexToRgb } from '@/utils/utils_color.js';
 import { panelPropertiesRowCreate, type PanelPropertiesRowField } from '@/ui/properties/panel_properties_row.js';
 
@@ -17,8 +21,9 @@ const PANEL_PROPERTIES_ENTITY_SWITCH_OFF = 'off';
 
 /**
  * Inspector section for entities of one kind. It shows itself when every
- * selected object is an owner of that kind and turns every committed field into
- * one undoable settings edit of all of them.
+ * selected object is an owner of that kind or a group holding at least one, and
+ * turns every committed field into one undoable settings edit of all those
+ * owners.
  */
 export abstract class PanelPropertiesEntitySection<TSettings extends object> {
   protected readonly section: HTMLElement;
@@ -81,19 +86,32 @@ export abstract class PanelPropertiesEntitySection<TSettings extends object> {
   }
 
   /**
-   * Shows the section when every selected object is an owner of this kind and
-   * fills it with the shared values.
+   * Shows the section when every selected object is an owner of this kind or
+   * holds one below it, binds all those owners and fills the section with their
+   * shared values.
    *
    * @param objects Current inspector selection.
    */
   updateFromObjects(objects: readonly THREE.Object3D[]): void {
-    this.boundOwners = objects.filter((object) => this.entityOwner.isOwner(object));
-    const onlyOwners = objects.length > 0 && this.boundOwners.length === objects.length;
-    this.section.style.display = onlyOwners ? 'block' : 'none';
-    if (onlyOwners) {
+    const ownersPerObject = objects.map((object) => this.ownersWithinCollect(object));
+    const everyObjectHoldsOwners = objects.length > 0 && ownersPerObject.every((owners) => owners.length > 0);
+    this.boundOwners = Array.from(new Set(ownersPerObject.flat()));
+    this.section.style.display = everyObjectHoldsOwners ? 'block' : 'none';
+    if (everyObjectHoldsOwners) {
       this.headerIconWrite();
+      panelPropertiesSectionHeaderCountWrite(this.header, this.boundOwners.length);
       this.fieldsWrite();
     }
+  }
+
+  /**
+   * Returns the owners of this kind at or below one selected object.
+   *
+   * @param object Selected object.
+   * @returns Owners in scene order.
+   */
+  private ownersWithinCollect(object: THREE.Object3D): THREE.Object3D[] {
+    return entityOwnerDescendantsCollect(object, (candidate) => this.entityOwner.isOwner(candidate));
   }
 
   /** Shows the icon of the first bound owner in the section header. */

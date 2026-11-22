@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { CommandStack } from '@/commands/command_stack.js';
 import { LightOwner } from '@/light/model/light_owner.js';
+import { EntityArrayCopyMark } from '@/entity_array/model/entity_array_copy_mark.js';
 import { lightSettingsCreateDefault } from '@/light/model/light_settings.js';
 import { IconRegistry } from '@/ui/icons/icon_registry.js';
 import { PanelPropertiesLightSection } from '@/ui/properties/panel_properties_light_section.js';
@@ -63,6 +64,34 @@ function fieldRowShown(section: PanelPropertiesLightSection, ariaLabel: string):
 }
 
 /**
+ * Creates fixture groups that each hold a fixture mesh and one light, like
+ * copies of a lamp prefab.
+ *
+ * @param fixtureCount Number of fixtures.
+ * @returns Fixture groups.
+ */
+function fixturesCreate(fixtureCount: number): THREE.Group[] {
+  return Array.from({ length: fixtureCount }, (_unused, index) => {
+    const fixture = new THREE.Group();
+    fixture.name = `Fixture.${index}`;
+    fixture.add(new THREE.Mesh(), LightOwner.createDefault('Lamp', 'point'));
+    return fixture;
+  });
+}
+
+/**
+ * Returns the light inside a fixture group.
+ *
+ * @param fixture Fixture group.
+ * @returns The fixture's light.
+ */
+function fixtureLightRead(fixture: THREE.Group): THREE.Object3D {
+  const light = fixture.children.find((child) => LightOwner.isOwner(child));
+  if (!light) throw new Error('fixture without light');
+  return light;
+}
+
+/**
  * The light inspector edits authored lights with undo and hides itself for
  * other objects.
  */
@@ -73,6 +102,53 @@ describe('light inspector section', () => {
     expect(section.getElement().style.display).toBe('block');
     section.updateFromObjects([LightOwner.createDefault('Lamp', 'point'), new THREE.Group()]);
     expect(section.getElement().style.display).toBe('none');
+  });
+
+  it('edits the lights inside every selected fixture group as one undo step', () => {
+    const stack = new CommandStack(8);
+    const section = createSection();
+    const fixtures = fixturesCreate(4);
+    const lights = fixtures.map(fixtureLightRead);
+    const originalIntensity = LightOwner.settingsRead(lights[0] ?? new THREE.Group())?.intensity;
+    const editedIntensity = (originalIntensity ?? 0) + 3;
+    section.setCommandStack(stack);
+    section.updateFromObjects(fixtures);
+    expect(section.getElement().style.display).toBe('block');
+    expect(section.getElement().querySelector('h3')?.textContent).toContain(`(${fixtures.length})`);
+    fieldCommit(section, 'Light intensity', String(editedIntensity));
+    expect(lights.map((light) => LightOwner.settingsRead(light)?.intensity)).toEqual(lights.map(() => editedIntensity));
+    stack.undo();
+    expect(lights.map((light) => LightOwner.settingsRead(light)?.intensity)).toEqual(
+      lights.map(() => originalIntensity),
+    );
+  });
+
+  it('hides when one selected group holds no light', () => {
+    const section = createSection();
+    const emptyGroup = new THREE.Group();
+    emptyGroup.add(new THREE.Mesh());
+    section.updateFromObjects([...fixturesCreate(2), emptyGroup]);
+    expect(section.getElement().style.display).toBe('none');
+  });
+
+  it('edits the light of an array source and leaves its copies to the source', () => {
+    const section = createSection();
+    const [source, copy] = fixturesCreate(2);
+    if (!source || !copy) throw new Error('fixtures missing');
+    EntityArrayCopyMark.write(copy, { cell: [1, 0, 0], signature: 'copy-signature' });
+    source.add(copy);
+    const copyIntensity = LightOwner.settingsRead(fixtureLightRead(copy))?.intensity;
+    section.updateFromObjects([source]);
+    expect(section.getElement().querySelector('h3')?.textContent).toBe('Light');
+    fieldCommit(section, 'Light intensity', String((copyIntensity ?? 0) + 5));
+    expect(LightOwner.settingsRead(fixtureLightRead(source))?.intensity).toBe((copyIntensity ?? 0) + 5);
+    expect(LightOwner.settingsRead(fixtureLightRead(copy))?.intensity).toBe(copyIntensity);
+  });
+
+  it('shows no count for a single light', () => {
+    const section = createSection();
+    section.updateFromObjects(fixturesCreate(1));
+    expect(section.getElement().querySelector('h3')?.textContent).toBe('Light');
   });
 
   it('shows the cone angles only for spot lights', () => {
