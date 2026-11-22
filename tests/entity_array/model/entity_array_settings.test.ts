@@ -10,7 +10,10 @@ import {
   EntityArraySettingsRules,
 } from '@/entity_array/model/entity_array_settings.js';
 
-/** Array settings are read from untrusted data into whole counts and bounded gaps. */
+/**
+ * Array settings are read from untrusted data into whole counts and bounded
+ * gaps.
+ */
 describe('EntityArraySettingsRules', () => {
   it('defaults to a row of two without a gap', () => {
     const settings = EntityArraySettingsRules.createDefault();
@@ -44,7 +47,9 @@ describe('EntityArraySettingsRules', () => {
     });
     expect(settings?.counts).toEqual({ x: 3, y: 1, z: 1 });
     expect(settings?.gap).toEqual({ x: 0, y: ENTITY_ARRAY_GAP_MAX, z: 0.5 });
-    const huge = EntityArraySettingsRules.fromUnknown({ [ENTITY_ARRAY_FIELD_COUNT_X]: ENTITY_ARRAY_COUNT_MAX_PER_AXIS * 3 });
+    const huge = EntityArraySettingsRules.fromUnknown({
+      [ENTITY_ARRAY_FIELD_COUNT_X]: ENTITY_ARRAY_COUNT_MAX_PER_AXIS * 3,
+    });
     expect(huge?.counts.x).toBe(ENTITY_ARRAY_COUNT_MAX_PER_AXIS);
   });
 
@@ -60,7 +65,9 @@ describe('EntityArraySettingsRules', () => {
     }
     const total = EntityArraySettingsRules.totalOf(settings);
     expect(total).toBeLessThanOrEqual(ENTITY_ARRAY_COUNT_MAX_TOTAL);
-    expect(Math.max(settings.counts.x, settings.counts.y, settings.counts.z)).toBeLessThan(ENTITY_ARRAY_COUNT_MAX_PER_AXIS);
+    expect(Math.max(settings.counts.x, settings.counts.y, settings.counts.z)).toBeLessThan(
+      ENTITY_ARRAY_COUNT_MAX_PER_AXIS,
+    );
   });
 
   it('refuses data that is not an object', () => {

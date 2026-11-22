@@ -46,7 +46,9 @@ describe('CommandEntityArrayBake', () => {
     for (const copy of copies) {
       expect(copy.parent).toBe(rig.world);
       expect(EntityArrayCopyMark.is(copy)).toBe(false);
-      expect(copy.getWorldPosition(new THREE.Vector3()).distanceTo(before.get(copy.uuid) ?? new THREE.Vector3())).toBeCloseTo(0, 9);
+      expect(
+        copy.getWorldPosition(new THREE.Vector3()).distanceTo(before.get(copy.uuid) ?? new THREE.Vector3()),
+      ).toBeCloseTo(0, 9);
       entityArrayTestPickMeshesOf(copy).forEach((marker) => expect(entityPickMeshSelectableIs(marker)).toBe(true));
     }
     rig.stack.undo();

@@ -98,6 +98,11 @@ Camera synchronization, shared selection and Play / Pause / Exit hooks all need 
 
 Reusable instances with overrides, stable entity references, richer reflected field types and transactional data-asset writes are all open. Linked groups were left out of the editor work for the same reason: they should be built on the instance model this milestone defines.
 
+Done outside the milestone plan:
+
+- **Entity arrays.** Any entity can repeat along its own axes. Properties has an **Array** section with counts and gaps, and the AI tools are `set_entity_array` and `bake_entity_array`. The copies are rebuilt from the source in the same undo step, cannot be clicked, and reach the game as ordinary entities. **Bake Copies** turns them into separate entities. The code is in `src/entity_array/`, the unit tests in `tests/entity_array/`, and the end-to-end step is `tests/e2e/preview_bridge_entity_array_e2e.test.ts`.
+- **Stretchable procedural generators.** Girder, Railing and Window use a shared repeat layout (`src/procedural/layout/`). The end-to-end step is `tests/e2e/preview_bridge_procedural_stretch_e2e.test.ts`.
+
 ## M09 Environment lighting and spatial tools (#11): started
 
 Done:

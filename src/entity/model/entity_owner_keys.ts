@@ -124,8 +124,8 @@ export function entityPickDisabledSet(owner: THREE.Object3D, isDisabled: boolean
 }
 
 /**
- * Returns whether an object is an entity marker the user may click: a pick
- * mesh none of whose owners turned clicking off.
+ * Returns whether an object is an entity marker the user may click: a pick mesh
+ * none of whose owners turned clicking off.
  *
  * @param object Candidate object.
  * @returns True for clickable entity pick meshes.

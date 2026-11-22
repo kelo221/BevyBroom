@@ -58,8 +58,8 @@ export class EntityArraySignature {
   }
 
   /**
-   * Returns the data features store on an entity, as they write it into a
-   * scene file entry.
+   * Returns the data features store on an entity, as they write it into a scene
+   * file entry.
    *
    * @param owner Entity owner.
    * @returns Entry holding only feature data.

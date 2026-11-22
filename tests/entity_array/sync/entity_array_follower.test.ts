@@ -24,7 +24,12 @@ import {
  * @returns Valid settings.
  */
 function settingsOf(counts: [number, number, number], gap: [number, number, number]): EntityArraySettings {
-  const settings = EntityArraySettingsRules.fromUnknown({ count_x: counts[0], count_y: counts[1], count_z: counts[2], gap });
+  const settings = EntityArraySettingsRules.fromUnknown({
+    count_x: counts[0],
+    count_y: counts[1],
+    count_z: counts[2],
+    gap,
+  });
   if (settings === null) {
     throw new Error('array settings are an object');
   }

@@ -13,10 +13,10 @@ import {
 } from '@/entity_array/sync/command_entity_array_copies_sync.js';
 
 /**
- * Keeps the copies of every array in step with its source and settings, as
- * part of every recorded edit: an array whose copies were built from other
- * content, settings or footprint gets new copies, and the copies of an entity
- * that stopped repeating go.
+ * Keeps the copies of every array in step with its source and settings, as part
+ * of every recorded edit: an array whose copies were built from other content,
+ * settings or footprint gets new copies, and the copies of an entity that
+ * stopped repeating go.
  */
 export class EntityArrayFollower {
   private readonly worldObject: THREE.Object3D;

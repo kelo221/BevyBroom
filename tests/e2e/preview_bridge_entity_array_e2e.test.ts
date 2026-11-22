@@ -15,9 +15,9 @@ import { PREVIEW_E2E_DOOR_COMPONENT, PREVIEW_E2E_GAME_ENTITY_COMPONENT } from '.
 
 /**
  * End-to-end acceptance of entity arrays: a game entity made to repeat through
- * the editor's MCP tools shows up in the game as one entity per copy, each where
- * the editor draws it and with the source's component values; changing the
- * count, the source or baking the copies is followed by the game. Skipped
+ * the editor's MCP tools shows up in the game as one entity per copy, each
+ * where the editor draws it and with the source's component values; changing
+ * the count, the source or baking the copies is followed by the game. Skipped
  * unless BROOM_E2E_PREVIEW_EXE and BROOM_E2E_PROJECT_DIR are set; its game
  * listens 33 ports above BROOM_E2E_PORT.
  */

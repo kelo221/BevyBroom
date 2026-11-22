@@ -11,14 +11,22 @@ import { EntityArraySettingsRules } from '@/entity_array/model/entity_array_sett
  * @returns Valid settings.
  */
 function settingsOf(counts: [number, number, number], gap: [number, number, number]) {
-  const settings = EntityArraySettingsRules.fromUnknown({ count_x: counts[0], count_y: counts[1], count_z: counts[2], gap });
+  const settings = EntityArraySettingsRules.fromUnknown({
+    count_x: counts[0],
+    count_y: counts[1],
+    count_z: counts[2],
+    gap,
+  });
   if (settings === null) {
     throw new Error('array settings are an object');
   }
   return settings;
 }
 
-/** The layout fills every cell but the source's own, one footprint plus one gap apart. */
+/**
+ * The layout fills every cell but the source's own, one footprint plus one gap
+ * apart.
+ */
 describe('EntityArrayLayout', () => {
   it('leaves out the source cell and fills every other cell once', () => {
     const counts: [number, number, number] = [3, 2, 4];

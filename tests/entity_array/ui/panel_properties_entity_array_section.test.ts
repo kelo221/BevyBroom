@@ -5,7 +5,11 @@ import { ENTITY_ARRAY_FIELDS, ENTITY_ARRAY_FIELD_COUNT_X } from '@/entity_array/
 import { EntityArrayStore } from '@/entity_array/model/entity_array_store.js';
 import { PanelPropertiesEntityArraySection } from '@/entity_array/ui/panel_properties_entity_array_section.js';
 import { PanelPropertiesSectionRegistry } from '@/ui/properties/panel_properties_section_registry.js';
-import { entityArrayTestRigCreate, entityArrayTestShelfPlace, type EntityArrayTestRig } from '../entity_array_test_rig.js';
+import {
+  entityArrayTestRigCreate,
+  entityArrayTestShelfPlace,
+  type EntityArrayTestRig,
+} from '../entity_array_test_rig.js';
 
 const chrome = {
   createSectionContainer: (): HTMLElement => document.createElement('div'),

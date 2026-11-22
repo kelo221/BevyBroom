@@ -5,8 +5,8 @@ import { entityPickDisabledSet } from '@/entity/model/entity_owner_keys.js';
 export const ENTITY_ARRAY_COPY_USERDATA_KEY = 'entityArrayCopy';
 
 /**
- * What an array copy remembers about how it was made: its cell in the array
- * and the signature of the source and settings it was built from.
+ * What an array copy remembers about how it was made: its cell in the array and
+ * the signature of the source and settings it was built from.
  */
 export interface EntityArrayCopyMarkData {
   readonly cell: readonly [number, number, number];

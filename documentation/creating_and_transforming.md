@@ -18,6 +18,28 @@ After creation, the object appears in all relevant views and in the hierarchy. S
 
 Choose **Add > Terrain > Terrain** to create a procedural landscape. Terrain uses configurable dimensions, subdivisions, height scale, and a deterministic seed. A repeated seed with the same settings gives a repeatable shape.
 
+## Create stretchable procedural objects
+
+**Add > Procedural** places objects whose mesh a generator builds from parameters. Drag their handles to resize them: fixed-size pieces keep their size and repeated pieces are spaced again, never scaled.
+
+- **Girder**: drag the start and end. The profile (I-beam, C-channel, box or angle) keeps its height, flange and web sizes and only gets longer. The run may slope.
+- **Railing**: drag the start and end. Posts repeat at most **Max Post Spacing** apart, with the first and last posts flush with the ends. The top and mid rails stretch and follow a slope, such as a staircase.
+- **Window**: drag the faces. The frame and mullion widths stay fixed. The panes split the opening into the chosen columns and rows, with each pane as a separate glass part.
+
+Each part is convex, and pieces stay on the grid when the handles are on it. The game receives the parts as level geometry and the parameters as the `BroomProceduralProp` component.
+
+## Repeat entities in an array
+
+Select an entity, such as a store fixture, a light or a procedural object. In Properties, set **Array > Repeat** to **On**. The entity then repeats along its own X, Y and Z axes:
+
+- **Count X / Y / Z** is the number of objects on each axis, the entity itself included.
+- **Gap** is the space between neighbours on each axis, in meters. Copies stand one footprint plus one gap apart. The footprint is the box the entity fills, such as a fixture's model box. Use a gap of 0 to place them flush.
+- Turn or move the entity to aim and move the whole array.
+
+The copies are rebuilt from the entity whenever it changes. A change such as another fixture variant reaches every copy in the same undo step. You cannot click a copy; edit the source entity instead. **Bake Copies** turns the copies into ordinary entities beside the source, each editable on its own. The game receives every copy as an ordinary entity with the source's components.
+
+AI tools use `set_entity_array` and `bake_entity_array`.
+
 ## Create solid models
 
 Choose **Add > Brushes > Solid Model** to create brush-based architecture.

@@ -31,7 +31,8 @@ const PANEL_PROPERTIES_ENTITY_ARRAY_ON = panelPropertiesEntitySwitchValue(true);
 
 /**
  * Inspector section that makes the selected entities repeat along their own
- * axes, edits the counts and gaps, and bakes the copies into ordinary entities.
+ * axes, edits the counts and gaps, and bakes the copies into ordinary
+ * entities.
  */
 export class PanelPropertiesEntityArraySection implements PanelPropertiesSection {
   private readonly section: HTMLElement;
@@ -88,8 +89,7 @@ export class PanelPropertiesEntityArraySection implements PanelPropertiesSection
    */
   updateFromObjects(objects: readonly THREE.Object3D[]): void {
     const owners = objects.map((object) => entityBoundsOwnerOf(object));
-    const isShown =
-      owners.length > 0 && owners.every((owner) => owner !== null && !EntityArrayCopyMark.is(owner));
+    const isShown = owners.length > 0 && owners.every((owner) => owner !== null && !EntityArrayCopyMark.is(owner));
     this.boundOwners = isShown ? [...new Set(owners.filter((owner): owner is THREE.Object3D => owner !== null))] : [];
     this.section.style.display = isShown ? 'block' : 'none';
     if (isShown) {
@@ -156,8 +156,8 @@ export class PanelPropertiesEntityArraySection implements PanelPropertiesSection
   }
 
   /**
-   * Makes every bound entity repeat with its settings or default ones, or
-   * stops them repeating, as one undo step.
+   * Makes every bound entity repeat with its settings or default ones, or stops
+   * them repeating, as one undo step.
    *
    * @param isRepeating True to repeat, false to stop.
    */
