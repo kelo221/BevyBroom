@@ -10,6 +10,7 @@ import {
 import { ProjectToolTexturesParser } from '@/project/model/project_tool_textures_parser.js';
 import type { ProjectDefinition } from '@/project/model/project_definition.js';
 import { ProjectBuildCommandResolver } from '@/project/build/project_build_command_resolver.js';
+import { RunConfigurationParser } from '@/project/run_configuration/model/run_configuration_parser.js';
 import { ProjectLevelEntriesParser } from '@/project/model/project_level_entries_parser.js';
 import { ProjectDataFieldsParser } from '@/project/model/project_data_fields_parser.js';
 
@@ -63,6 +64,7 @@ export class ProjectDefinitionParser {
         preview === null || launch === null
           ? null
           : ProjectBuildCommandResolver.resolve(preview, launch, projectDirectory),
+      runConfigurations: RunConfigurationParser.projectRead(project),
     };
   }
 

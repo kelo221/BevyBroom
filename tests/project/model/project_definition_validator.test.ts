@@ -35,6 +35,7 @@ function definitionCreate(root: string): ProjectDefinition {
     textureDirectories: [],
     sprinkleDirectories: [],
     toolTextures: { nodraw: [] },
+    runConfigurations: [],
     entityClassesFile: null,
     prefabDirectory: null,
     launch: { program: 'bin/game.exe', arguments: [], workingDirectory: root, endpoint: 'http://127.0.0.1:15702' },

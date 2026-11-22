@@ -1,4 +1,8 @@
 import type { ProjectProblem } from '@/project/model/project_definition.js';
+import type {
+  GameProcessCommandStatus,
+  RunConfiguration,
+} from '@/project/run_configuration/model/run_configuration_types.js';
 import type { ProjectToolTextures } from '@/project/model/project_tool_textures_parser.js';
 import type { ProjectBuildDiagnostic } from '@/project/build/project_build_diagnostics_parser.js';
 
@@ -36,6 +40,8 @@ export interface ProjectSummary {
   problems: ProjectProblem[];
   /** Textures the project marks for the level export, such as nodraw. */
   toolTextures: ProjectToolTextures;
+  /** Run configurations stored in the project file, in file order. */
+  runConfigurations: RunConfiguration[];
 }
 
 /** Everything the editor shows about the managed game. */
@@ -59,6 +65,16 @@ export interface GameProcessStatus {
   message: string;
   /** Increases with every action, so callers can tell a newer status apart. */
   generation: number;
+  /**
+   * True while the desktop app still has scheduled game actions or commands to
+   * run.
+   */
+  isBusy: boolean;
+  /**
+   * Last command a run configuration asked for, or null when none was asked
+   * for.
+   */
+  command: GameProcessCommandStatus | null;
 }
 
 /** Actions on the managed game. */

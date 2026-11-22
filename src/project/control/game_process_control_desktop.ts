@@ -1,3 +1,9 @@
+import type {
+  GameProcessCommandStartResult,
+  RunConfiguration,
+  RunConfigurationCommandSection,
+  RunConfigurationsWriteResult,
+} from '@/project/run_configuration/model/run_configuration_types.js';
 import type { ProjectFileReadResult } from '@/project/files/project_file_read_result.js';
 import type {
   ProjectDataFileChangeResult,
@@ -91,6 +97,30 @@ export class GameProcessControlDesktop extends GameProcessControl {
    */
   statusRead(): Promise<GameProcessStatus> {
     return this.rpc.request.gameProcessStatus();
+  }
+
+  /**
+   * Schedules a command in the desktop app.
+   *
+   * @param command Program, arguments and folder of the command.
+   * @param level Open level for level placeholders, or null for none.
+   * @returns Identifier of the command, or null with the reason in the status.
+   */
+  commandStart(
+    command: RunConfigurationCommandSection,
+    level: GameProcessLevelTarget | null,
+  ): Promise<GameProcessCommandStartResult> {
+    return this.rpc.request.gameProcessCommandStart({ command, level });
+  }
+
+  /**
+   * Stores run configurations in the open project's file.
+   *
+   * @param configurations Configurations to store.
+   * @returns The stored configurations, or why they were not stored.
+   */
+  runConfigurationsWrite(configurations: RunConfiguration[]): Promise<RunConfigurationsWriteResult> {
+    return this.rpc.request.runConfigurationsWrite({ configurations });
   }
 
   /**

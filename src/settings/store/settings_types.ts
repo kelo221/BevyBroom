@@ -200,6 +200,7 @@ export type KeyboardShortcutAction =
   | 'view_maximize'
   | 'play_start'
   | 'game_play_level'
+  | 'run_configurations_edit'
   | 'inspector_map'
   | 'info_panel_toggle'
   | 'info_panel_collapse_toggle'

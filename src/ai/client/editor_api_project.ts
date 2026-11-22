@@ -8,6 +8,10 @@ import { documentProjectLinkRead } from '@/project/document/document_project_lin
 import { EDITOR_API_PROJECT_LEVEL_TOOL_NAMES, EditorApiProjectLevels } from './editor_api_project_levels.js';
 import { EDITOR_API_PROJECT_CLASS_TOOL_NAMES, EditorApiProjectClasses } from './editor_api_project_classes.js';
 import { EDITOR_API_PROJECT_PREFAB_TOOL_NAMES, EditorApiProjectPrefabs } from './editor_api_project_prefabs.js';
+import {
+  EDITOR_API_PROJECT_RUN_CONFIGURATION_TOOL_NAMES,
+  EditorApiProjectRunConfigurations,
+} from './editor_api_project_run_configurations.js';
 
 /** Game actions by the name of the tool that starts them. */
 const EDITOR_API_PROJECT_ACTION_TOOLS: Readonly<Record<string, GameProcessAction>> = {
@@ -26,6 +30,7 @@ export class EditorApiProject {
   private readonly levels: EditorApiProjectLevels;
   private readonly classes: EditorApiProjectClasses;
   private readonly prefabs: EditorApiProjectPrefabs;
+  private readonly runConfigurations: EditorApiProjectRunConfigurations;
 
   /**
    * Creates the project tools.
@@ -37,6 +42,7 @@ export class EditorApiProject {
     this.levels = new EditorApiProjectLevels(host);
     this.classes = new EditorApiProjectClasses();
     this.prefabs = new EditorApiProjectPrefabs(host);
+    this.runConfigurations = new EditorApiProjectRunConfigurations(host);
   }
 
   /**
@@ -59,17 +65,31 @@ export class EditorApiProject {
     if (name === EDITOR_API_PROJECT_LEVEL_PLAY_TOOL) {
       return this.levelPlayRun();
     }
-    const levelResult =
-      this.levels.levelToolDispatchAsync(name, args) ?? this.classes.classToolDispatchAsync(name, args);
-    if (levelResult !== null) {
-      return levelResult;
-    }
-    const prefabResult = this.prefabs.prefabToolDispatch(name, args);
-    if (prefabResult !== null) {
-      return Promise.resolve(prefabResult);
+    const groupResult = this.toolGroupDispatchAsync(name, args);
+    if (groupResult !== null) {
+      return groupResult;
     }
     const action = EDITOR_API_PROJECT_ACTION_TOOLS[name];
     return action === undefined ? null : this.gameActionRun(action);
+  }
+
+  /**
+   * Runs a tool of the level, class, run configuration or prefab groups.
+   *
+   * @param name Tool name.
+   * @param args Argument object.
+   * @returns Pending result, or null when no group has the tool.
+   */
+  private toolGroupDispatchAsync(name: string, args: Record<string, unknown>): Promise<McpToolResult> | null {
+    const groupResult =
+      this.levels.levelToolDispatchAsync(name, args) ??
+      this.classes.classToolDispatchAsync(name, args) ??
+      this.runConfigurations.runConfigurationToolDispatchAsync(name, args);
+    if (groupResult !== null) {
+      return groupResult;
+    }
+    const prefabResult = this.prefabs.prefabToolDispatch(name, args);
+    return prefabResult === null ? null : Promise.resolve(prefabResult);
   }
 
   /**
@@ -89,6 +109,7 @@ export class EditorApiProject {
       EDITOR_API_PROJECT_LEVEL_TOOL_NAMES.includes(name) ||
       EDITOR_API_PROJECT_CLASS_TOOL_NAMES.includes(name) ||
       EDITOR_API_PROJECT_PREFAB_TOOL_NAMES.includes(name) ||
+      EDITOR_API_PROJECT_RUN_CONFIGURATION_TOOL_NAMES.includes(name) ||
       EDITOR_API_PROJECT_ACTION_TOOLS[name] !== undefined;
     return isProjectTool ? failResult(`${name} waits for the desktop app; call it through invokeToolAsync`) : null;
   }

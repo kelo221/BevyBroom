@@ -1,4 +1,11 @@
 import type { ProjectFileReadResult } from '@/project/files/project_file_read_result.js';
+import { gameProcessStatusEmptyCreate } from '@/project/process/game_process_status_empty.js';
+import type {
+  GameProcessCommandStartResult,
+  RunConfiguration,
+  RunConfigurationCommandSection,
+  RunConfigurationsWriteResult,
+} from '@/project/run_configuration/model/run_configuration_types.js';
 import type {
   ProjectDataFileChangeResult,
   ProjectDataFileKind,
@@ -74,6 +81,26 @@ export abstract class GameProcessControl {
    * @returns Status snapshot.
    */
   abstract statusRead(): Promise<GameProcessStatus>;
+
+  /**
+   * Schedules a command a run configuration asked for in the desktop app.
+   *
+   * @param command Program, arguments and folder of the command.
+   * @param level Open level for level placeholders, or null for none.
+   * @returns Identifier of the command, or null with the reason in the status.
+   */
+  abstract commandStart(
+    command: RunConfigurationCommandSection,
+    level: GameProcessLevelTarget | null,
+  ): Promise<GameProcessCommandStartResult>;
+
+  /**
+   * Stores run configurations in the open project's file.
+   *
+   * @param configurations Configurations to store.
+   * @returns The stored configurations, or why they were not stored.
+   */
+  abstract runConfigurationsWrite(configurations: RunConfiguration[]): Promise<RunConfigurationsWriteResult>;
 
   /**
    * Writes a built level into the open project's level directory.
@@ -240,6 +267,24 @@ export class GameProcessControlUnavailable extends GameProcessControl {
   }
 
   /**
+   * Refuses commands, which need the desktop app.
+   *
+   * @returns No identifier and the desktop-only status.
+   */
+  async commandStart(): Promise<GameProcessCommandStartResult> {
+    return { identifier: null, status: this.statusUnavailableCreate() };
+  }
+
+  /**
+   * Explains that storing run configurations needs the desktop app.
+   *
+   * @returns Failure.
+   */
+  async runConfigurationsWrite(): Promise<RunConfigurationsWriteResult> {
+    return { ok: false, message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE };
+  }
+
+  /**
    * Explains that writing level packages needs the desktop app.
    *
    * @returns Failure result.
@@ -380,16 +425,6 @@ export class GameProcessControlUnavailable extends GameProcessControl {
    * @returns Idle status.
    */
   private statusUnavailableCreate(): GameProcessStatus {
-    return {
-      project: null,
-      phase: 'idle',
-      processId: null,
-      exitCode: null,
-      diagnostics: [],
-      gameNotices: [],
-      logTail: [],
-      message: GAME_PROCESS_DESKTOP_ONLY_MESSAGE,
-      generation: 0,
-    };
+    return gameProcessStatusEmptyCreate(GAME_PROCESS_DESKTOP_ONLY_MESSAGE);
   }
 }

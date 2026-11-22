@@ -338,11 +338,11 @@ function styleSettingsButton(button: HTMLButtonElement): void {
 }
 
 /**
- * Styles a text input using editor input tokens.
+ * Styles a text input or text area using editor input tokens.
  *
- * @param input Text input element.
+ * @param input Text input or text area element.
  */
-export function styleSettingsTextInput(input: HTMLInputElement): void {
+export function styleSettingsTextInput(input: HTMLInputElement | HTMLTextAreaElement): void {
   input.style.width = '100%';
   input.style.boxSizing = 'border-box';
   input.style.padding = '4px 6px';

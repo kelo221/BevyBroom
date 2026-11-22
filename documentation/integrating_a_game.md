@@ -99,7 +99,37 @@ A placeholder can be a whole argument or part of one (`--level={level_id}`). For
 
 When the arguments use a placeholder, **Launch**, **Rebuild** and **Restart** (in the Run menu, the Game Preview panel and the MCP `game_launch`, `game_rebuild` and `game_restart` tools) first save the open level into its document. When the arguments name `{level_id}` or `{level_export_directory}`, they also build the level like **Run > Build Level**; a game that names only `{level_document}` reads the saved document, so nothing is built. If the save or the build fails, the game is not started and the panel says why. With no project level open, the start is refused with a message; open or save the scene as a project level first. The Game Preview panel shows which level the game starts in.
 
-**Run > Play Level in Game** (F9, also the **Play Level** button of the Game Preview panel and the MCP `game_play_level` tool) is the one-key way to try the level: it saves the open level and starts the game in it, or, when the game already runs, builds and starts it again so it shows the level as it is now (it restarts without building when the project names no build).
+The **Play Level** button of the Game Preview panel (and the MCP `game_play_level` tool) is the one-key way to try the level: it saves the open level and starts the game in it, or, when the game already runs, builds and starts it again so it shows the level as it is now (it restarts without building when the project names no build).
+
+### Run configurations (F9)
+
+F9 runs the **active run configuration**: a named list of steps such as "Play", "Bake Lighting" or "Bake + Play". A project that stores none gets one "Play" that does what Play Level does. Edit them in **Run > Edit Run Configurations…** (Shift+F9); **Run > Run Configuration** runs any of them once and **Run > Active Configuration** picks the one F9 runs. The configurations are stored in the project file under `run_configurations`, so the whole team shares them; which one is active is remembered on each computer.
+
+| Step kind             | What it does                                                                                                                     |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `level_save`          | Saves the open level.                                                                                                            |
+| `level_package_build` | Builds the open level's package like **Run > Build Level**.                                                                      |
+| `command`             | Runs `program` with `arguments` in `working_directory` (relative to the project) to its end; a non-zero exit code fails the run. |
+| `game_play`           | Starts the game with `preview`, or builds and starts it again when it runs.                                                      |
+| `game_stop`           | Stops the game the editor started.                                                                                               |
+
+Steps run from top to bottom and the first failing step stops the run; its reason shows in the Console. A step with `"enabled": false` is kept but skipped. Command arguments may use the level placeholders above and `{project_directory}`. A light bake, for example:
+
+```json
+"run_configurations": [
+  {
+    "id": "bake",
+    "name": "Bake Lighting",
+    "steps": [
+      { "kind": "level_save" },
+      { "kind": "level_package_build" },
+      { "kind": "command", "program": "cargo", "arguments": ["run", "-p", "game", "--", "--bake-level", "{level_export_directory}"] }
+    ]
+  }
+]
+```
+
+The MCP tools `list_run_configurations`, `set_run_configurations` and `run_configuration` list, store and run them.
 
 A placeholder the editor does not know, such as `{level_name}`, is a project error, so a typo cannot start the game with a literal `{…}` argument. Arguments without placeholders start the game exactly as written. `bun run preview:game` refuses a project whose arguments use a placeholder, because only the editor knows the open level.
 

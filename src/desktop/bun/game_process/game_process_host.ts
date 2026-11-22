@@ -1,4 +1,13 @@
-import type { PreviewLaunchCommand } from '@/preview/launch/preview_launch_command.js';
+import { type PreviewLaunchCommand, previewLaunchCommandFromSection } from '@/preview/launch/preview_launch_command.js';
+import { RunConfigurationParser } from '@/project/run_configuration/model/run_configuration_parser.js';
+import type {
+  GameProcessCommandStartResult,
+  GameProcessCommandStatus,
+  RunConfiguration,
+  RunConfigurationCommandSection,
+  RunConfigurationsWriteResult,
+} from '@/project/run_configuration/model/run_configuration_types.js';
+import { RunConfigurationProjectFileWriter } from '@/desktop/bun/run_configuration/run_configuration_project_file_writer.js';
 import type { ProjectDefinition } from '@/project/model/project_definition.js';
 import { ProjectDefinitionParser } from '@/project/model/project_definition_parser.js';
 import { ProjectDefinitionValidator } from '@/project/model/project_definition_validator.js';
@@ -23,6 +32,10 @@ export const GAME_PROCESS_NO_PREVIEW_REFUSAL =
 export const GAME_PROCESS_NO_LEVEL_REFUSAL =
   'The game starts in the open level ({level_id} in its arguments), so open or save a project level first.';
 
+/** Why a command whose arguments name the open level cannot run without one. */
+export const GAME_PROCESS_COMMAND_NO_LEVEL_REFUSAL =
+  'The command names the open level ({level_id} or another level placeholder), so open or save a project level first.';
+
 /** Open project with everything the host needs to run it. */
 interface GameProcessOpenProject {
   definition: ProjectDefinition;
@@ -44,16 +57,26 @@ export class GameProcessHost {
   private message = 'No project is open.';
   private generation = 0;
   private queue: Promise<void> = Promise.resolve();
+  private pendingWorkCount = 0;
+  private command: GameProcessCommandStatus | null = null;
+  private commandIdentifierNext = 1;
+  private readonly runConfigurationWriter: RunConfigurationProjectFileWriter;
 
   /**
    * Creates a host without a project.
    *
    * @param spawner Starts programs.
    * @param reader Reads project files.
+   * @param runConfigurationWriter Stores run configurations in project files.
    */
-  constructor(spawner: GameProcessSpawner, reader: GameProcessProjectReader) {
+  constructor(
+    spawner: GameProcessSpawner,
+    reader: GameProcessProjectReader,
+    runConfigurationWriter: RunConfigurationProjectFileWriter = new RunConfigurationProjectFileWriter(),
+  ) {
     this.spawner = spawner;
     this.reader = reader;
+    this.runConfigurationWriter = runConfigurationWriter;
   }
 
   /**
@@ -130,7 +153,55 @@ export class GameProcessHost {
       logTail: this.log.tailRead(),
       message: this.message,
       generation: this.generation,
+      isBusy: this.pendingWorkCount > 0,
+      command: this.command === null ? null : { ...this.command },
     };
+  }
+
+  /**
+   * Schedules a command a run configuration asked for; it runs to its end after
+   * everything scheduled before it.
+   *
+   * @param section Program, arguments and folder of the command.
+   * @param level Open level for level placeholders, or null for none.
+   * @returns Identifier of the command, or null with the reason in the status.
+   */
+  commandStart(
+    section: RunConfigurationCommandSection,
+    level: GameProcessLevelTarget | null,
+  ): GameProcessCommandStartResult {
+    const resolved = this.commandResolve(section, level);
+    if (typeof resolved === 'string') {
+      this.message = resolved;
+      return { identifier: null, status: this.statusRead() };
+    }
+    const identifier = this.commandIdentifierNext;
+    this.commandIdentifierNext += 1;
+    this.command = { identifier, state: 'queued', exitCode: null };
+    void this.enqueue(() => this.commandRun(identifier, resolved));
+    return { identifier, status: this.statusRead() };
+  }
+
+  /**
+   * Stores run configurations in the open project's file and uses them at once.
+   *
+   * @param configurations Configurations to store.
+   * @returns The stored configurations, or why they were not stored.
+   */
+  runConfigurationsWrite(configurations: readonly RunConfiguration[]): RunConfigurationsWriteResult {
+    const project = this.project;
+    if (project === null) {
+      return { ok: false, message: 'Open a project first.' };
+    }
+    try {
+      const normalized = RunConfigurationParser.listRead(RunConfigurationParser.listWrite(configurations));
+      this.runConfigurationWriter.write(project.definition.projectFile, normalized);
+      project.definition = { ...project.definition, runConfigurations: normalized };
+      project.summary = { ...project.summary, runConfigurations: normalized };
+      return { ok: true, configurations: normalized };
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : String(error) };
+    }
   }
 
   /** Stops the managed game, for example when the editor closes. */
@@ -327,6 +398,70 @@ export class GameProcessHost {
   }
 
   /**
+   * Turns a command section into the command to run, with placeholders
+   * replaced.
+   *
+   * @param section Program, arguments and folder of the command.
+   * @param level Open level for level placeholders, or null for none.
+   * @returns Command, or why it cannot run.
+   */
+  private commandResolve(
+    section: RunConfigurationCommandSection,
+    level: GameProcessLevelTarget | null,
+  ): PreviewLaunchCommand | string {
+    const definition = this.project?.definition ?? null;
+    if (definition === null) {
+      return 'Open a project first.';
+    }
+    try {
+      const command = previewLaunchCommandFromSection({ ...section }, definition.projectDirectory, 'command');
+      if (level === null && GameProcessLaunchPlaceholders.isLevelNeeded(command)) {
+        return GAME_PROCESS_COMMAND_NO_LEVEL_REFUSAL;
+      }
+      const values =
+        level === null
+          ? GameProcessLaunchPlaceholders.projectValuesCreate(definition)
+          : GameProcessLaunchPlaceholders.valuesCreate(definition, level);
+      return GameProcessLaunchPlaceholders.commandResolve(command, values);
+    } catch (error) {
+      return `The command cannot run: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  }
+
+  /**
+   * Runs a scheduled command to its end and records how it ended.
+   *
+   * @param identifier Identifier of the command.
+   * @param command Command with placeholders replaced.
+   */
+  private async commandRun(identifier: number, command: PreviewLaunchCommand): Promise<void> {
+    this.commandStateWrite(identifier, 'running', null);
+    this.phaseWrite(this.phase, `Running ${command.program} ${command.arguments.join(' ')}.`);
+    const exitCode = await this.commandRunToEnd(command);
+    this.commandStateWrite(identifier, exitCode === 0 ? 'succeeded' : 'failed', exitCode);
+    const lastLine = exitCode === 0 ? null : this.log.programLineNewestRead();
+    const ending = exitCode === 0 ? 'finished' : `failed with exit code ${exitCode}`;
+    this.phaseWrite(this.phase, `${command.program} ${ending}${lastLine === null ? '.' : `: ${lastLine}`}`);
+  }
+
+  /**
+   * Records the state of a command when it is still the last one asked for.
+   *
+   * @param identifier Identifier of the command.
+   * @param state New state.
+   * @param exitCode Exit code once it ended, or null before.
+   */
+  private commandStateWrite(
+    identifier: number,
+    state: GameProcessCommandStatus['state'],
+    exitCode: number | null,
+  ): void {
+    if (this.command?.identifier === identifier) {
+      this.command = { identifier, state, exitCode };
+    }
+  }
+
+  /**
    * Builds the summary of a project, including its problems.
    *
    * @param definition Parsed project.
@@ -343,6 +478,7 @@ export class GameProcessHost {
       isLevelLaunch: GameProcessLaunchPlaceholders.isLevelNeeded(definition.launch),
       isLevelExportLaunch: GameProcessLaunchPlaceholders.isLevelExportNeeded(definition.launch),
       toolTextures: definition.toolTextures,
+      runConfigurations: definition.runConfigurations,
       problems: ProjectDefinitionValidator.validate(definition, this.reader),
     };
   }
@@ -367,9 +503,15 @@ export class GameProcessHost {
    * @returns Promise settling after the work.
    */
   private enqueue(work: () => Promise<void>): Promise<void> {
-    const next = this.queue.then(work).catch((error: unknown) => {
-      this.phaseWrite(this.phase, `Unexpected failure: ${error instanceof Error ? error.message : String(error)}`);
-    });
+    this.pendingWorkCount += 1;
+    const next = this.queue
+      .then(work)
+      .catch((error: unknown) => {
+        this.phaseWrite(this.phase, `Unexpected failure: ${error instanceof Error ? error.message : String(error)}`);
+      })
+      .finally(() => {
+        this.pendingWorkCount -= 1;
+      });
     this.queue = next;
     return next;
   }

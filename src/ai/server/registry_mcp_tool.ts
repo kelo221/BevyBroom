@@ -11,6 +11,7 @@ import { MCP_FACE_UV_TOOL_DEFINITIONS } from './registry_mcp_tool_face_uv.js';
 import { MCP_DISPLACEMENT_TOOL_DEFINITIONS } from './registry_mcp_tool_displacement.js';
 import { MCP_FACE_EDIT_TOOL_DEFINITIONS } from './registry_mcp_tool_face_edit.js';
 import { MCP_PROJECT_TOOL_DEFINITIONS } from './registry_mcp_tool_project.js';
+import { MCP_RUN_CONFIGURATION_TOOL_DEFINITIONS } from './registry_mcp_tool_run_configurations.js';
 import { MCP_TEXTURE_TOOL_DEFINITIONS } from './registry_mcp_tool_textures.js';
 import { MCP_SPRINKLE_TOOL_DEFINITIONS } from './registry_mcp_tool_sprinkle.js';
 import { MCP_MODIFIER_VOLUME_TOOL_DEFINITIONS } from './registry_mcp_tool_modifier_volumes.js';
@@ -831,6 +832,7 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ...MCP_VIEWPORT_INPUT_TOOL_DEFINITIONS,
   ...MCP_UI_INPUT_TOOL_DEFINITIONS,
   ...MCP_PROJECT_TOOL_DEFINITIONS,
+  ...MCP_RUN_CONFIGURATION_TOOL_DEFINITIONS,
   ...MCP_TEXTURE_TOOL_DEFINITIONS,
   ...MCP_SPRINKLE_TOOL_DEFINITIONS,
   ...MCP_MODIFIER_VOLUME_TOOL_DEFINITIONS,
