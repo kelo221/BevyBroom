@@ -2,9 +2,13 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import {
   SCENE_LIT_MAXIMUM_LIGHT_COUNT,
+  SCENE_LIT_TEXEL_COLUMNS,
+  SCENE_LIT_TEXELS_PER_LIGHT,
   SCENE_LIT_UNIFORM_NAMES,
   uniformSceneLitSharedAttach,
   uniformSceneLitSharedGet,
+  uniformSceneLitSharedTexelRead,
+  uniformSceneLitSharedTexture,
   uniformSceneLitSharedWrite,
 } from '@/materials/shader/uniform/uniform_scene_lit_lights_shared.js';
 import type { ShadingLitLightRecord } from '@/viewports/shading/lit/shading_lit_light_record.js';
@@ -19,50 +23,71 @@ import { SHADING_LIT_AMBIENT_LINEAR } from '@/viewports/shading/lit/shading_lit_
 function recordCreate(seed: number): ShadingLitLightRecord {
   return {
     position: new THREE.Vector3(seed, seed + 1, seed + 2),
-    axisTowardsLight: new THREE.Vector3(0, 1, 0),
+    axis: new THREE.Vector3(0, 1, 0),
     colorLinear: new THREE.Color(0.5, 0.25, 0.125),
     intensity: seed + 1,
-    radius: seed + 3,
+    radius: seed + 4,
+    reach: seed + 3,
     falloffPacked: seed * 0.5,
-    innerCosine: 0.9,
-    outerCosine: 0.8,
+    innerCosine: 0.875,
+    outerCosine: 0.75,
+    tubeHalfLength: 0.5,
   };
 }
 
 /**
- * Reads one vec4 slot of a shared array uniform.
+ * Reads the light count the shared uniforms hold.
  *
- * @param name Uniform name.
- * @param index Slot index.
- * @returns The stored vector.
+ * @returns Light count.
  */
-function slotRead(name: string, index: number): THREE.Vector4 | undefined {
-  return (uniformSceneLitSharedGet()[name]?.value as THREE.Vector4[])[index];
+function countRead(): unknown {
+  return uniformSceneLitSharedGet()[SCENE_LIT_UNIFORM_NAMES.count]?.value;
 }
 
-/** The shared uniforms carry the scene lights to every Lit material at once. */
+/**
+ * The shared light texture carries the scene lights to every Lit material at
+ * once, one row of texels per light.
+ */
 describe('uniform_scene_lit_lights_shared', () => {
-  it('packs position with radius squared and color times intensity with falloff', () => {
+  it('packs every field of a record into its row of the light texture', () => {
     const record = recordCreate(2);
-    uniformSceneLitSharedWrite([record]);
-    const positionSlot = slotRead(SCENE_LIT_UNIFORM_NAMES.positionRadiusSquared, 0);
-    const colorSlot = slotRead(SCENE_LIT_UNIFORM_NAMES.colorFalloff, 0);
-    const axisSlot = slotRead(SCENE_LIT_UNIFORM_NAMES.axisInnerCosine, 0);
-    const outer = uniformSceneLitSharedGet()[SCENE_LIT_UNIFORM_NAMES.outerCosine]?.value as number[];
-    expect(positionSlot?.toArray()).toEqual([...record.position.toArray(), record.radius * record.radius]);
-    expect(colorSlot?.x).toBeCloseTo(record.colorLinear.r * record.intensity);
-    expect(colorSlot?.w).toBe(record.falloffPacked);
-    expect(axisSlot?.toArray()).toEqual([...record.axisTowardsLight.toArray(), record.innerCosine]);
-    expect(outer[0]).toBe(record.outerCosine);
-    expect(uniformSceneLitSharedGet()[SCENE_LIT_UNIFORM_NAMES.count]?.value).toBe(1);
+    const columns = SCENE_LIT_TEXEL_COLUMNS;
+    uniformSceneLitSharedWrite([recordCreate(1), record]);
+    expect(uniformSceneLitSharedTexelRead(1, columns.positionReachSquared)).toEqual([
+      ...record.position.toArray(),
+      record.reach * record.reach,
+    ]);
+    const colorTexel = uniformSceneLitSharedTexelRead(1, columns.colorFalloff);
+    expect(colorTexel[0]).toBeCloseTo(record.colorLinear.r * record.intensity);
+    expect(colorTexel[3]).toBeCloseTo(record.falloffPacked);
+    expect(uniformSceneLitSharedTexelRead(1, columns.axisInnerCosine)).toEqual([
+      ...record.axis.toArray(),
+      record.innerCosine,
+    ]);
+    expect(uniformSceneLitSharedTexelRead(1, columns.outerCosineTubeHalfLength).slice(0, 2)).toEqual([
+      record.outerCosine,
+      record.tubeHalfLength,
+    ]);
+    expect(countRead()).toBe(2);
   });
 
-  it('caps the light count at the maximum the shader holds', () => {
+  it('sizes the float texture to hold the maximum light count with nearest sampling', () => {
+    const texture = uniformSceneLitSharedTexture();
+    expect(texture.image.width).toBe(SCENE_LIT_TEXELS_PER_LIGHT);
+    expect(texture.image.height).toBe(SCENE_LIT_MAXIMUM_LIGHT_COUNT);
+    expect(texture.type).toBe(THREE.FloatType);
+    expect(texture.magFilter).toBe(THREE.NearestFilter);
+  });
+
+  it('caps the light count at the maximum the texture holds and flags an upload', () => {
+    const texture = uniformSceneLitSharedTexture();
+    const versionBefore = texture.version;
     const records = Array.from({ length: SCENE_LIT_MAXIMUM_LIGHT_COUNT + 5 }, (_, index) => recordCreate(index));
     uniformSceneLitSharedWrite(records);
-    expect(uniformSceneLitSharedGet()[SCENE_LIT_UNIFORM_NAMES.count]?.value).toBe(SCENE_LIT_MAXIMUM_LIGHT_COUNT);
+    expect(countRead()).toBe(SCENE_LIT_MAXIMUM_LIGHT_COUNT);
+    expect(texture.version).toBeGreaterThan(versionBefore);
     uniformSceneLitSharedWrite([]);
-    expect(uniformSceneLitSharedGet()[SCENE_LIT_UNIFORM_NAMES.count]?.value).toBe(0);
+    expect(countRead()).toBe(0);
   });
 
   it('attaches the same uniform objects to every material map with the default ambient', () => {
@@ -70,7 +95,7 @@ describe('uniform_scene_lit_lights_shared', () => {
     const second: Record<string, THREE.IUniform> = {};
     uniformSceneLitSharedAttach(first);
     uniformSceneLitSharedAttach(second);
-    expect(first[SCENE_LIT_UNIFORM_NAMES.count]).toBe(second[SCENE_LIT_UNIFORM_NAMES.count]);
+    expect(first[SCENE_LIT_UNIFORM_NAMES.texture]).toBe(second[SCENE_LIT_UNIFORM_NAMES.texture]);
     expect(first[SCENE_LIT_UNIFORM_NAMES.ambient]?.value).toBeCloseTo(SHADING_LIT_AMBIENT_LINEAR);
   });
 });

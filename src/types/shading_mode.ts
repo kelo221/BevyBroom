@@ -3,8 +3,8 @@
  * with colors. WIREFRAME: Hides surface fill so only decorative edge outlines
  * remain. FLAT: Renders all meshes with unlit full-brightness albedo.
  * WIREFRAME_OVERLAY: Solid rendering with an orange wireframe edge overlay.
- * LIT: Content lit only by the authored point and spot lights, approximating
- * the game renderer.
+ * LIT: Content lit only by the authored point, spot and tube lights,
+ * approximating the game renderer.
  */
 export enum ShadingMode {
   SOLID = 'Solid',

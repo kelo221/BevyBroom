@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import * as THREE from 'three';
 import {
   SHADING_LIT_AMBIENT_LINEAR,
+  SHADING_LIT_MIN_REACH,
   SHADING_LIT_POINT_CONE_COSINE,
   shadingLitAttenuation,
   shadingLitCone,
   shadingLitCosineFromDegrees,
   shadingLitFalloffPacked,
+  shadingLitReach,
+  shadingLitTubeCosine,
+  shadingLitTubeNearestPoint,
 } from '@/viewports/shading/lit/shading_lit_light_math.js';
 
 /**
@@ -71,5 +76,69 @@ describe('shading_lit_light_math', () => {
 
   it('uses the game renderer default ambient (alpha 32/255, squared)', () => {
     expect(SHADING_LIT_AMBIENT_LINEAR).toBeCloseTo((32 / 255) ** 2);
+  });
+});
+
+/**
+ * Tube lights follow the game renderer's area light math: distance is measured
+ * to the nearest point of the tube, the reach shrinks by the half length, and
+ * diffuse light is the mean cosine over the tube above the surface's horizon.
+ */
+describe('shading_lit_light_math tubes', () => {
+  const center = new THREE.Vector3(2, 3, -1);
+  const axis = new THREE.Vector3(1, 0, 0);
+  const halfLength = 1.5;
+  const up = new THREE.Vector3(0, 1, 0);
+
+  it('shrinks the reach by the half length but never below the minimum', () => {
+    expect(shadingLitReach(10, halfLength)).toBeCloseTo(10 - halfLength);
+    expect(shadingLitReach(10, 0)).toBe(10);
+    expect(shadingLitReach(1, 5)).toBe(SHADING_LIT_MIN_REACH);
+  });
+
+  it('measures to the nearest point on the tube segment', () => {
+    const beside = center
+      .clone()
+      .addScaledVector(axis, 0.5)
+      .add(new THREE.Vector3(0, -2, 0));
+    const pastEnd = center.clone().addScaledVector(axis, halfLength + 4);
+    expect(shadingLitTubeNearestPoint(center, axis, halfLength, beside).distanceTo(beside)).toBeCloseTo(2);
+    expect(
+      shadingLitTubeNearestPoint(center, axis, halfLength, pastEnd).distanceTo(
+        center.clone().addScaledVector(axis, halfLength),
+      ),
+    ).toBeCloseTo(0);
+  });
+
+  it('acts like a point light when the tube is tiny and gives nothing below the horizon', () => {
+    const below = center.clone().add(new THREE.Vector3(0, -2, 0));
+    const tinyTube = shadingLitTubeCosine(center, axis, 1e-9, below, up);
+    expect(tinyTube).toBeCloseTo(1);
+    const facingAway = up.clone().negate();
+    expect(shadingLitTubeCosine(center, axis, halfLength, below, facingAway)).toBe(0);
+  });
+
+  it('gives a surface under a long tube less than full light, more when the tube shortens', () => {
+    const below = center.clone().add(new THREE.Vector3(0, -1, 0));
+    const longTube = shadingLitTubeCosine(center, axis, 10, below, up);
+    const shortTube = shadingLitTubeCosine(center, axis, 0.25, below, up);
+    expect(longTube).toBeGreaterThan(0);
+    expect(longTube).toBeLessThan(shortTube);
+    expect(shortTube).toBeLessThanOrEqual(1);
+  });
+
+  it('counts only the part of a tube above a tilted surface horizon', () => {
+    const surface = center.clone().add(new THREE.Vector3(0, -1, 0));
+    const tiltedNormal = new THREE.Vector3(1, 0.2, 0).normalize();
+    const tilted = shadingLitTubeCosine(center, axis, halfLength, surface, tiltedNormal);
+    const mirrored = shadingLitTubeCosine(
+      center,
+      axis,
+      halfLength,
+      surface,
+      tiltedNormal.clone().setX(-tiltedNormal.x),
+    );
+    expect(tilted).toBeGreaterThan(0);
+    expect(tilted).toBeCloseTo(mirrored);
   });
 });
