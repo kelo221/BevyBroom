@@ -10,11 +10,13 @@ use bevy::reflect::attributes::CustomAttributes;
 use bevy::reflect::{GetPath, TypeInfo, TypeRegistry};
 
 use super::assets::PlaceableAssetTypes;
-use super::attributes::{FieldHidden, FieldLabel, FieldRange, FieldStep};
+use super::attributes::{
+    FieldHidden, FieldLabel, FieldMarkerDimmedWhenFalse, FieldRange, FieldStep,
+};
 use super::registry::{PlaceableClasses, PlaceableOptions};
 use super::value_read::value_read;
 use super::value_shape::{ValueShape, shape_of};
-use crate::protocol::{PlaceableClass, PlaceableClassList, PlaceableField};
+use crate::protocol::{PlaceableClass, PlaceableClassList, PlaceableField, PlaceableFieldKind};
 
 /// One field being described: where it is, what it is and how it is tuned.
 struct FieldSource<'a> {
@@ -184,6 +186,7 @@ fn field_describe(
         asset_type: None,
         children: Vec::new(),
         hidden: false,
+        marker_dimmed_when_false: false,
     };
     shape_details_apply(&mut field, &shape, source, root, assets);
     attributes_apply(&mut field, source.attributes);
@@ -232,4 +235,6 @@ fn attributes_apply(field: &mut PlaceableField, attributes: &CustomAttributes) {
         field.label = label.0.to_owned();
     }
     field.hidden = attributes.contains::<FieldHidden>();
+    field.marker_dimmed_when_false = field.kind == PlaceableFieldKind::Bool
+        && attributes.contains::<FieldMarkerDimmedWhenFalse>();
 }

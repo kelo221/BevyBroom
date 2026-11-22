@@ -162,7 +162,7 @@ fn fields_carry_kinds_and_the_component_defaults() {
     assert_eq!(field_at(fields, "kind").variants, variants);
 }
 
-/// Range, step, label and hidden attributes reach the field, and integer fields are bounded
+/// Range, step, label, hidden and marker dimming attributes reach the field, and integer fields are bounded
 /// by their type.
 #[test]
 fn attributes_and_integer_bounds_are_described() {
@@ -179,6 +179,8 @@ fn attributes_and_integer_bounds_are_described() {
     assert_eq!(field_at(fields, "locked").label, "locked");
     assert!(field_at(fields, "secret").hidden);
     assert!(!field_at(fields, "speed").hidden);
+    assert!(field_at(fields, "locked").marker_dimmed_when_false);
+    assert!(!field_at(fields, "key_name").marker_dimmed_when_false);
     let uses = field_at(fields, "uses");
     assert_eq!(
         (uses.minimum, uses.maximum),

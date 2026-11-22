@@ -74,6 +74,9 @@ pub struct PlaceableField {
     /// Hidden fields keep their default and are not shown.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub hidden: bool,
+    /// Bool fields only: the editor dims the marker of a placement whose value is `false`.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub marker_dimmed_when_false: bool,
 }
 
 /// A type path a class had before: the bare path, or the path with the values the old class

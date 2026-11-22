@@ -12,6 +12,7 @@ import { GameEntityVisualIcon } from '@/game_entity/visual/game_entity_visual_ic
 import { GameEntityVisualMarkerBox } from '@/game_entity/visual/game_entity_visual_marker_box.js';
 import { EntityVisualBillboard } from '@/entity/visual/entity_visual_billboard.js';
 import { GameEntityVisualMarkerModel } from '@/game_entity/visual/game_entity_visual_marker_model.js';
+import { GameEntityVisualMarkerDim } from '@/game_entity/visual/game_entity_visual_marker_dim.js';
 import { GameEntityModelLibrary } from '@/game_entity/model/game_entity_model_library.js';
 import { Theme } from '@/theme.js';
 
@@ -28,9 +29,10 @@ const GAME_ENTITY_MARKER_NAME = 'Game Entity Marker';
  * Builds the editor-only marker of a game entity: a box with a camera-facing
  * icon its classes name, tinted with the marker color of its first known
  * component class and sized by the marker box its classes declare, with the
- * model that box names stretched to fill the box once it is loaded. Tint, box
- * and model follow class, component and model changes when the marker is next
- * drawn; so does the icon.
+ * model that box names stretched to fill the box once it is loaded. Marker,
+ * icon and model are dimmed while a dimming bool field of a class is false.
+ * Tint, box, dimming and model follow class, component and model changes when
+ * the marker is next drawn; so does the icon.
  */
 export class GameEntityVisualBuilder {
   /**
@@ -93,15 +95,29 @@ export class GameEntityVisualBuilder {
     marker.userData[GAME_ENTITY_MARKER_LOOK_KEY] = lookKey;
     EntityVisualPointBox.shapeApply(owner, markerBox ?? ENTITY_POINT_BOX_SHAPE_DEFAULT, GAME_ENTITY_MARKER_NAME);
     marker.userData[ENTITY_MARKER_SOLID_USERDATA_KEY] = markerBox !== null;
-    EntityVisualPointBox.tint(owner, GameEntityVisualBuilder.colorOf(owner), 1);
+    GameEntityVisualBuilder.lookTintAndModelApply(owner, markerBox);
+  }
+
+  /**
+   * Tints the marker and icon, gives the owner the model its box names and fits
+   * it, all at the dimmed or normal opacity.
+   *
+   * @param owner Game entity owner group.
+   * @param markerBox Chosen marker box, or null for the plain point marker.
+   */
+  private static lookTintAndModelApply(owner: THREE.Object3D, markerBox: GameEntityMarkerBox | null): void {
+    const opacity = GameEntityVisualMarkerDim.opacityOf(owner);
+    EntityVisualPointBox.tint(owner, GameEntityVisualBuilder.colorOf(owner), opacity);
     EntityVisualBillboard.iconNameApply(owner, GameEntityVisualIcon.ownerIconOf(owner));
     GameEntityVisualMarkerModel.apply(owner, markerBox?.model ?? null);
     GameEntityVisualMarkerModel.fit(owner, markerBox);
+    GameEntityVisualMarkerDim.modelOpacityApply(owner, opacity);
   }
 
   /**
    * Returns a text key that changes whenever the classes, the attached
-   * components, the chosen marker box or the loaded models change.
+   * components, the chosen marker box, the dimming or the loaded models
+   * change.
    *
    * @param owner Game entity owner group.
    * @param markerBox Chosen marker box, or null for the plain point marker.
@@ -111,6 +127,7 @@ export class GameEntityVisualBuilder {
     const typePaths = Object.keys(GameEntityComponentStore.read(owner)).join('|');
     const shapeKey = EntityVisualPointBoxGeometry.shapeKeyOf(markerBox ?? ENTITY_POINT_BOX_SHAPE_DEFAULT);
     const modelKey = `${GameEntityModelLibrary.shared.generation()}:${markerBox?.model ?? ''}`;
-    return `${GameEntityClassRegistry.generation()}:${typePaths}:${shapeKey}:${modelKey}`;
+    const dimKey = GameEntityVisualMarkerDim.isDimmed(owner) ? 'dim' : 'lit';
+    return `${GameEntityClassRegistry.generation()}:${typePaths}:${shapeKey}:${modelKey}:${dimKey}`;
   }
 }
