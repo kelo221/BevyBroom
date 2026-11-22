@@ -1,6 +1,9 @@
 import { ProceduralGeneratorBox } from '@/procedural/generator/box/procedural_generator_box.js';
+import { ProceduralGeneratorGirder } from '@/procedural/generator/girder/procedural_generator_girder.js';
 import { ProceduralGeneratorPeopleMover } from '@/procedural/generator/people_mover/procedural_generator_people_mover.js';
 import type { ProceduralGenerator } from '@/procedural/generator/procedural_generator.js';
+import { ProceduralGeneratorRailing } from '@/procedural/generator/railing/procedural_generator_railing.js';
+import { ProceduralGeneratorWindow } from '@/procedural/generator/window/procedural_generator_window.js';
 import { RegistryExtensible } from '@/utils/registry/registry_extensible.js';
 
 /**
@@ -9,7 +12,13 @@ import { RegistryExtensible } from '@/utils/registry/registry_extensible.js';
  * @returns Generators in menu order.
  */
 function proceduralGeneratorsBuiltinCreate(): readonly ProceduralGenerator[] {
-  return [new ProceduralGeneratorBox(), new ProceduralGeneratorPeopleMover()];
+  return [
+    new ProceduralGeneratorBox(),
+    new ProceduralGeneratorPeopleMover(),
+    new ProceduralGeneratorGirder(),
+    new ProceduralGeneratorRailing(),
+    new ProceduralGeneratorWindow(),
+  ];
 }
 
 /**

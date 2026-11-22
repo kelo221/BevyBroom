@@ -18,6 +18,9 @@ export const PROCEDURAL_PART_ROLE_CAR = 'car';
 /** Role of an elevator shaft post. */
 export const PROCEDURAL_PART_ROLE_SHAFT = 'shaft';
 
+/** Role of a thin pane of glass, such as a window pane. */
+export const PROCEDURAL_PART_ROLE_GLASS = 'glass';
+
 /**
  * Returns a part with a role.
  *
