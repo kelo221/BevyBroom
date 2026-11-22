@@ -106,6 +106,10 @@ export interface ObjectEntry {
   sprinkleDefinition?: string;
   /** Variant key of the parent entity this light was made from (editor-only). */
   fixtureLightOf?: string;
+  /** Array settings of an entity that repeats, as field values by path. */
+  entityArray?: Record<string, unknown>;
+  /** Cell and signature of an entity an array made (editor-only). */
+  entityArrayCopy?: { cell: number[]; signature: string };
   /** Re-editable 2D Polygon outline extrusion recipe on this brush or group. */
   polygonOutline?: import('@/tools/polygon/polygon_outline_recipe.js').PolygonOutlineRecipe;
   /** Present for a modifier volume: its ordered modifier stack (schema 8). */

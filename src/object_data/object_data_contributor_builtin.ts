@@ -14,6 +14,7 @@ import { ObjectDataContributorProjectLink } from '@/project/document/object_data
 import { ObjectDataContributorPolygonOutline } from '@/tools/polygon/object_data_contributor_polygon_outline.js';
 import { ObjectDataContributorFixtureLightMark } from '@/game_entity/fixture_light/object_data_contributor_fixture_light_mark.js';
 import { ObjectDataContributorSprinkleMark } from '@/tools/sprinkle/mark/object_data_contributor_sprinkle_mark.js';
+import { ObjectDataContributorEntityArray } from '@/entity_array/persistence/object_data_contributor_entity_array.js';
 
 /**
  * Creates the object data contributors the editor ships with, in the order they
@@ -35,6 +36,7 @@ export function objectDataContributorsBuiltinCreate(): readonly ObjectDataContri
     new ObjectDataContributorPolygonOutline(),
     new ObjectDataContributorSprinkleMark(),
     new ObjectDataContributorFixtureLightMark(),
+    new ObjectDataContributorEntityArray(),
     new ObjectDataContributorLayers(),
     new ObjectDataContributorProjectLink(),
     new ObjectDataContributorDisplacementCollision(),

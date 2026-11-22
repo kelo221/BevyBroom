@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { GameEntityField } from '@/game_entity/class/game_entity_class_schema.js';
 import type { ProceduralPart } from '@/procedural/build/procedural_part.js';
 import { ProceduralPartBox } from '@/procedural/build/procedural_part_box.js';
+import { ProceduralCornerConstrain } from '@/procedural/generator/procedural_corner_constrain.js';
 import {
   ProceduralGenerator,
   proceduralHandleBoxFacesOf,
@@ -112,14 +113,12 @@ export class ProceduralGeneratorBox extends ProceduralGenerator {
    * @returns Parameters of a box with a volume.
    */
   protected override parametersConstrain(parameters: ProceduralParameters): ProceduralParameters {
-    const cornerA = ProceduralParametersRead.vector3(parameters, PROCEDURAL_GENERATOR_BOX_CORNER_A);
-    const cornerB = ProceduralParametersRead.vector3(parameters, PROCEDURAL_GENERATOR_BOX_CORNER_B);
-    for (const axis of ['x', 'y', 'z'] as const) {
-      if (Math.abs(cornerB[axis] - cornerA[axis]) < PROCEDURAL_GENERATOR_BOX_MIN_SIZE) {
-        cornerB[axis] = cornerA[axis] + PROCEDURAL_GENERATOR_BOX_MIN_SIZE;
-      }
-    }
-    return { ...parameters, [PROCEDURAL_GENERATOR_BOX_CORNER_B]: ProceduralParametersRead.vector3Value(cornerB) };
+    return ProceduralCornerConstrain.minimumSizeKeep(
+      parameters,
+      PROCEDURAL_GENERATOR_BOX_CORNER_A,
+      PROCEDURAL_GENERATOR_BOX_CORNER_B,
+      PROCEDURAL_GENERATOR_BOX_MIN_SIZE,
+    );
   }
 
   /**

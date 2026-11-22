@@ -6,6 +6,7 @@ import { PanelPropertiesLightSection } from '@/ui/properties/panel_properties_li
 import { PanelPropertiesPortalSection } from '@/ui/properties/panel_properties_portal_section.js';
 import { PanelPropertiesRoomSection } from '@/ui/properties/panel_properties_room_section.js';
 import { PanelPropertiesProceduralSection } from '@/procedural/ui/panel_properties_procedural_section.js';
+import { PanelPropertiesEntityArraySection } from '@/entity_array/ui/panel_properties_entity_array_section.js';
 
 /**
  * Returns the factories of the inspector sections the editor ships with, in
@@ -21,6 +22,7 @@ export function panelPropertiesSectionFactoriesBuiltin(): readonly PanelProperti
     (chrome) => new PanelPropertiesPortalSection(chrome.createSectionContainer, chrome.createSectionHeader),
     (chrome) => new PanelPropertiesProceduralSection(chrome.createSectionContainer, chrome.createSectionHeader),
     (chrome) => new PanelPropertiesGameComponentsSection(chrome),
+    (chrome) => new PanelPropertiesEntityArraySection(chrome),
     (chrome) => new PanelPropertiesCollisionSection(chrome),
   ];
 }

@@ -27,6 +27,13 @@ export const ENTITY_MARKER_SOLID_USERDATA_KEY = 'isEntityMarkerSolid';
 /** UserData flag on visual parts that keep their identity across refreshes. */
 export const ENTITY_VISUAL_PERSISTENT_USERDATA_KEY = 'isEntityVisualPersistent';
 
+/**
+ * UserData flag on an entity owner whose markers, and the markers of every
+ * entity owner nested under it, cannot be clicked, such as a generated copy
+ * that is edited through its source.
+ */
+export const ENTITY_PICK_DISABLED_USERDATA_KEY = 'isEntityPickDisabled';
+
 /** Every kind an owner helper exists for. */
 const ENTITY_KINDS_KNOWN = new Set<EntityKind>();
 
@@ -100,6 +107,41 @@ export function entityVisualPersistentIs(object: THREE.Object3D): boolean {
  */
 export function entityPickMeshIs(object: THREE.Object3D): boolean {
   return object.userData[ENTITY_PICK_MESH_USERDATA_KEY] === true;
+}
+
+/**
+ * Turns clicking an entity owner's markers off or back on.
+ *
+ * @param owner Entity owner.
+ * @param isDisabled True to keep its markers from being clicked.
+ */
+export function entityPickDisabledSet(owner: THREE.Object3D, isDisabled: boolean): void {
+  if (isDisabled) {
+    owner.userData[ENTITY_PICK_DISABLED_USERDATA_KEY] = true;
+  } else {
+    delete owner.userData[ENTITY_PICK_DISABLED_USERDATA_KEY];
+  }
+}
+
+/**
+ * Returns whether an object is an entity marker the user may click: a pick mesh
+ * none of whose owners turned clicking off.
+ *
+ * @param object Candidate object.
+ * @returns True for clickable entity pick meshes.
+ */
+export function entityPickMeshSelectableIs(object: THREE.Object3D): boolean {
+  if (!entityPickMeshIs(object)) {
+    return false;
+  }
+  let current: THREE.Object3D | null = object.parent;
+  while (current) {
+    if (current.userData[ENTITY_PICK_DISABLED_USERDATA_KEY] === true) {
+      return false;
+    }
+    current = current.parent;
+  }
+  return true;
 }
 
 /**

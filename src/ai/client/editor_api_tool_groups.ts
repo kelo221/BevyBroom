@@ -21,6 +21,7 @@ import { EditorApiSprinkle } from './editor_api_sprinkle.js';
 import { EditorApiModifierVolumes } from './editor_api_modifier_volumes.js';
 import { EditorApiProcedural } from './editor_api_procedural.js';
 import { EditorApiEntityHandles } from './editor_api_entity_handles.js';
+import { EditorApiEntityArray } from './editor_api_entity_array.js';
 import { editorApiVisibleViewportFind } from './editor_api_viewport_locate.js';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 
@@ -30,7 +31,7 @@ import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
  * face edit state, viewport input, keyboard input, open menus, the entity
  * browser, outliner row clicks, selection queries, selection visibility,
  * material replacement, the texture browser, Entity Sprinkle, modifier volumes,
- * procedural objects and entity handles.
+ * procedural objects, entity handles and entity arrays.
  */
 export class EditorApiToolGroups {
   private readonly layers: EditorApiLayers;
@@ -55,6 +56,7 @@ export class EditorApiToolGroups {
   private readonly modifierVolumes: EditorApiModifierVolumes;
   private readonly procedural: EditorApiProcedural;
   private readonly entityHandles: EditorApiEntityHandles;
+  private readonly entityArray: EditorApiEntityArray;
 
   /**
    * Creates every tool group over the editor host.
@@ -86,6 +88,7 @@ export class EditorApiToolGroups {
     this.modifierVolumes = new EditorApiModifierVolumes(host);
     this.procedural = new EditorApiProcedural(host);
     this.entityHandles = new EditorApiEntityHandles(host, (view) => editorApiVisibleViewportFind(host, view));
+    this.entityArray = new EditorApiEntityArray(host);
   }
 
   /**
@@ -118,7 +121,8 @@ export class EditorApiToolGroups {
       this.sprinkle.sprinkleToolDispatch(name, args) ??
       this.modifierVolumes.modifierVolumeToolDispatch(name, args) ??
       this.procedural.proceduralToolDispatch(name, args) ??
-      this.entityHandles.entityHandlesToolDispatch(name, args)
+      this.entityHandles.entityHandlesToolDispatch(name, args) ??
+      this.entityArray.entityArrayToolDispatch(name, args)
     );
   }
 }
