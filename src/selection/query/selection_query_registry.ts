@@ -1,5 +1,6 @@
 import type { SelectionQuery, SelectionQueryId } from './selection_query.js';
 import { SelectionQueryInverse } from './selection_query_inverse.js';
+import { SelectionQuerySimilar } from './selection_query_similar.js';
 import { SelectionQuerySiblings } from './selection_query_siblings.js';
 import { SelectionQueryTouching } from './selection_query_touching.js';
 import { SelectionQueryInside } from './selection_query_inside.js';
@@ -9,6 +10,7 @@ import { SelectionQueryByMaterial } from './selection_query_by_material.js';
 /** Every selection query in menu order. */
 const SELECTION_QUERIES: readonly SelectionQuery[] = [
   new SelectionQueryInverse(),
+  new SelectionQuerySimilar(),
   new SelectionQuerySiblings(),
   new SelectionQueryTouching(),
   new SelectionQueryInside(),

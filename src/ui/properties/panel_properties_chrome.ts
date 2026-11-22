@@ -80,3 +80,24 @@ export function panelPropertiesSectionHeaderIconWrite(header: HTMLElement, iconN
   icon.style.marginRight = '6px';
   header.prepend(icon);
 }
+
+/** Class name of the count element at the end of a section header. */
+const PANEL_PROPERTIES_HEADER_COUNT_CLASS = 'panel-properties-header-count';
+
+/**
+ * Shows how many objects a section edits at the end of its header, replacing
+ * the count it showed before. A single object shows no count.
+ *
+ * @param header Section header element.
+ * @param editedCount Number of edited objects.
+ */
+export function panelPropertiesSectionHeaderCountWrite(header: HTMLElement, editedCount: number): void {
+  header.querySelector(`.${PANEL_PROPERTIES_HEADER_COUNT_CLASS}`)?.remove();
+  if (editedCount <= 1) {
+    return;
+  }
+  const countElement = document.createElement('span');
+  countElement.classList.add(PANEL_PROPERTIES_HEADER_COUNT_CLASS);
+  countElement.textContent = ` (${editedCount})`;
+  header.appendChild(countElement);
+}

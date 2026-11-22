@@ -1,7 +1,15 @@
 import * as THREE from 'three';
 
 /** Identifiers of the selection queries in menu order. */
-export const SELECTION_QUERY_IDS = ['inverse', 'siblings', 'touching', 'inside', 'tall', 'by_material'] as const;
+export const SELECTION_QUERY_IDS = [
+  'inverse',
+  'similar',
+  'siblings',
+  'touching',
+  'inside',
+  'tall',
+  'by_material',
+] as const;
 
 /** Identifier of one selection query. */
 export type SelectionQueryId = (typeof SELECTION_QUERY_IDS)[number];

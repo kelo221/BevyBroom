@@ -74,7 +74,7 @@ export const MCP_BRUSH_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ),
   tool(
     'select_by_query',
-    'Replace the object selection like the Edit > Select menu: inverse (every unselected object), siblings (objects sharing a parent with the selection), touching (bounds touch or overlap the selection), inside (bounds inside a selected object), tall (floor footprint inside a selected object at any height), by_material (brushes using a texture of a selected brush). Every query but inverse needs a selection. Returns { count, brushIds, objectIds }.',
+    'Replace the object selection like the Edit > Select menu: inverse (every unselected object), similar (copies of the selected objects: same name apart from the copy suffix and same hierarchy shape, compared as groups in Groups mode), siblings (objects sharing a parent with the selection), touching (bounds touch or overlap the selection), inside (bounds inside a selected object), tall (floor footprint inside a selected object at any height), by_material (brushes using a texture of a selected brush). Every query but inverse needs a selection. Returns { count, brushIds, objectIds }.',
     {
       type: 'object',
       properties: {
