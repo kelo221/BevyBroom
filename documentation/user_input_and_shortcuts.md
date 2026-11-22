@@ -165,6 +165,7 @@ These are listed under **Brush Operations** in **Settings > Keyboard**.
 | `2`       | Wireframe shading                |
 | `3`       | Flat shading                     |
 | `4`       | Solid with wireframe overlay     |
+| `5`       | Lit by the placed lights         |
 
 `Space` and `Ctrl+Space` act on the view under the pointer.
 

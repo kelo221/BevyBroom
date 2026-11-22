@@ -47,6 +47,7 @@ describe('VIEWPORT_VIEW_CHOICES_3D', () => {
       ['3D Wireframe Overlay', ShadingMode.WIREFRAME_OVERLAY],
       ['3D Flat', ShadingMode.FLAT],
       ['3D Textured', ShadingMode.SOLID],
+      ['3D Lit', ShadingMode.LIT],
     ]);
   });
 });

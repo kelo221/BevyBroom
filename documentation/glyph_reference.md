@@ -55,7 +55,8 @@ wireframe.
 | 19  | Fit selection | **Fit to Selection** frames the current selection in that viewport, like pressing `F` while working in a view. |
 
 The menu also offers **3D Wireframe Overlay** (shaded surfaces with their wire
-edges, also on the `4` shortcut), the **2D Top (x/z)**, **2D Front (x/y)**, and
+edges, also on the `4` shortcut), **3D Lit** (surfaces lit only by the placed
+lights, also on the `5` shortcut), the **2D Top (x/z)**, **2D Front (x/y)**, and
 **2D Side (z/y)** views, the wireframe and projected grid toggles, **Maximize
 Viewport**, and, in 3D views, **Play from here**.
 

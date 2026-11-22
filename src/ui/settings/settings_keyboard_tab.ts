@@ -55,6 +55,7 @@ const SHADING_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, str
   ['shading_wireframe', 'Wireframe'],
   ['shading_flat', 'Flat'],
   ['shading_wireframe_overlay', 'Wireframe Overlay'],
+  ['shading_lit', 'Lit'],
 ];
 
 /** Clip plane tool shortcuts. */

@@ -4,6 +4,7 @@ import { RendererWireframeOverlay } from './renderer_wireframe_overlay.js';
 import { applySharedShadingPass, invalidateSharedShadingPass } from '@/viewports/shared/shared_shading_pass.js';
 import { applyContentWireframeVisibilityForRenderPass } from './content_wireframe_visibility.js';
 import { ManagerProjectedGrid } from '@/viewports/grid/projected/manager_projected_grid.js';
+import { shadingLitLightsRefresh } from '@/viewports/shading/lit/shading_lit_light_refresher.js';
 
 /** Base interface for viewports that support shading mode control. */
 export interface ShadableViewport {
@@ -59,16 +60,37 @@ export class ControllerViewportShading {
    */
   refreshShadingMode(): void {
     applySharedShadingPass(this.scene, this.currentMode, true);
+    this.sceneLightsRefreshWhenLit(null);
     this.updateOverlayVisibility(this.currentMode);
   }
 
   /**
    * Applies this viewport's shading for one multi-view pass. No-ops when the
    * shared scene already uses this mode (avoids full-editor material thrash).
+   * In the Lit mode it also loads the scene's authored lights for this pass.
+   *
+   * @param viewerCamera Camera drawing the pass; null when unknown.
    */
-  applyForRenderPass(): void {
+  applyForRenderPass(viewerCamera: THREE.Camera | null = null): void {
     applySharedShadingPass(this.scene, this.currentMode, false);
+    this.sceneLightsRefreshWhenLit(viewerCamera);
     this.updateOverlayVisibility(this.currentMode);
+  }
+
+  /**
+   * Loads the scene's authored lights into the Lit shading uniforms when this
+   * viewport uses the Lit mode.
+   *
+   * @param viewerCamera Camera whose nearest lights are kept; null for the
+   *   world origin.
+   */
+  private sceneLightsRefreshWhenLit(viewerCamera: THREE.Camera | null): void {
+    if (this.currentMode !== ShadingMode.LIT) {
+      return;
+    }
+    const viewerPosition = new THREE.Vector3();
+    viewerCamera?.getWorldPosition(viewerPosition);
+    shadingLitLightsRefresh(this.scene, viewerPosition);
   }
 
   /**

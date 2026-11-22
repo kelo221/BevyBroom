@@ -3,6 +3,7 @@ import { ManagerInput } from '@/input/manager_input.js';
 import { HandlerKeyboardShortcut } from '@/input/handler_keyboard_shortcut.js';
 import { createDefaultKeyboardShortcutSettings } from '@/settings/store/settings_defaults.js';
 import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
+import { ShadingMode } from '@/types/shading_mode.js';
 
 /**
  * Dispatches the configured default shortcut of one action on the window.
@@ -38,6 +39,24 @@ describe('HandlerKeyboardShortcut registered action callbacks', () => {
 
   afterEach(() => {
     handler.unregister();
+  });
+
+  it('selects each shading mode, including Lit, from its default shortcut', () => {
+    const onShadingMode = vi.fn();
+    handler.setOnShadingMode(onShadingMode);
+    const shadingActions: ReadonlyArray<readonly [KeyboardShortcutAction, ShadingMode]> = [
+      ['shading_solid', ShadingMode.SOLID],
+      ['shading_wireframe', ShadingMode.WIREFRAME],
+      ['shading_flat', ShadingMode.FLAT],
+      ['shading_wireframe_overlay', ShadingMode.WIREFRAME_OVERLAY],
+      ['shading_lit', ShadingMode.LIT],
+    ];
+    shadingActions.forEach(([action, mode]) => {
+      const event = defaultShortcutPress(action);
+      expect(onShadingMode).toHaveBeenLastCalledWith(mode);
+      expect(event.defaultPrevented).toBe(true);
+    });
+    expect(onShadingMode).toHaveBeenCalledTimes(shadingActions.length);
   });
 
   it('runs the callback of the action whose default shortcut is pressed and prevents the default', () => {
