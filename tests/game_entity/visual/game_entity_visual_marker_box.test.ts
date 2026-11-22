@@ -128,6 +128,24 @@ describe('GameEntityVisualMarkerBox', () => {
     expectBoxesMatch(markerBoundsRead(owner), boundsOfMarkerBox(DOOR_BOX_PLAIN));
   });
 
+  it("gives a kind the field no longer lists no box, never the class box or another kind's model", () => {
+    cleanups.push(doorClassWithBoxesInstall());
+    const door = doorClassWithBoxes();
+    const owner = gameEntityCreateForClass(door);
+    const removedKind = `Bronze${Math.floor(Math.random() * 1000)}`;
+    GameEntityComponentStore.write(owner, { [door.type_path]: { kind: removedKind } });
+    expect(GameEntityVisualMarkerBox.unknownVariantOf(door, GameEntityComponentStore.read(owner))).toBe(removedKind);
+    expect(GameEntityVisualMarkerBox.boxOf(owner)).toBeNull();
+    const pointBounds = new THREE.Box3().setFromCenterAndSize(
+      new THREE.Vector3(),
+      new THREE.Vector3().setScalar(ENTITY_POINT_BOX_SIZE),
+    );
+    expectBoxesMatch(markerBoundsRead(owner), pointBounds);
+    GameEntityComponentStore.write(owner, { [door.type_path]: { kind: 'Glass' } });
+    expect(GameEntityVisualMarkerBox.unknownVariantOf(door, GameEntityComponentStore.read(owner))).toBeNull();
+    expect(GameEntityVisualMarkerBox.boxOf(owner)).toEqual(DOOR_BOX_PLAIN);
+  });
+
   it('picks the box of the field default', () => {
     const door: GameEntityClass = { ...doorClassWithBoxes(), marker_boxes: { Wooden: DOOR_BOX_IRON } };
     const list = testClassListCreate();

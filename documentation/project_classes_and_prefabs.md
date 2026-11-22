@@ -114,6 +114,10 @@ The class file uses the same format the game bridge reports its classes in:
   names in `src/ui/icons/icon_name.ts` such as `"lightbulb"` or `"door-closed"`.
   Markers, the outliner, the Add menu and the Place tiles show it; an unknown
   name or none shows the puzzle piece.
+- An entity whose marker field holds a value the enum no longer lists, such as
+  a fixture id the game renamed, shows a plain marker box, never another
+  variant's model, and the Issues list warns about it with the object and the
+  value.
 - When an entity carries several classes that give a marker box, a box that
   names a model wins; otherwise the class first in type path order wins.
 - The box size a class gives the selected objects is listed in the Help box of
