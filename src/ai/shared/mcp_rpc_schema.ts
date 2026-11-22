@@ -12,6 +12,12 @@ import type {
   ProjectOpenResult,
 } from '@/project/process/game_process_types.js';
 import type {
+  GameProcessCommandStartResult,
+  RunConfiguration,
+  RunConfigurationCommandSection,
+  RunConfigurationsWriteResult,
+} from '@/project/run_configuration/model/run_configuration_types.js';
+import type {
   ProjectLevelCreateRequest,
   ProjectLevelListResult,
   ProjectLevelReadResult,
@@ -63,6 +69,14 @@ export interface ElectrobunDesktopRpcSchema {
         response: GameProcessStatus;
       };
       gameProcessStatus: { params: undefined; response: GameProcessStatus };
+      gameProcessCommandStart: {
+        params: { command: RunConfigurationCommandSection; level?: GameProcessLevelTarget | null };
+        response: GameProcessCommandStartResult;
+      };
+      runConfigurationsWrite: {
+        params: { configurations: RunConfiguration[] };
+        response: RunConfigurationsWriteResult;
+      };
       levelPackagePublish: { params: LevelBuildPublishRequest; response: LevelBuildPublishResult };
       projectTextureList: { params: undefined; response: TextureProjectListResult };
       projectTextureRead: { params: { path: string }; response: TextureProjectReadResult };
@@ -110,6 +124,11 @@ export interface ElectrobunDesktopBunRpcClient {
       level?: GameProcessLevelTarget | null;
     }) => Promise<GameProcessStatus>;
     gameProcessStatus: () => Promise<GameProcessStatus>;
+    gameProcessCommandStart: (params: {
+      command: RunConfigurationCommandSection;
+      level?: GameProcessLevelTarget | null;
+    }) => Promise<GameProcessCommandStartResult>;
+    runConfigurationsWrite: (params: { configurations: RunConfiguration[] }) => Promise<RunConfigurationsWriteResult>;
     levelPackagePublish: (params: LevelBuildPublishRequest) => Promise<LevelBuildPublishResult>;
     projectTextureList: () => Promise<TextureProjectListResult>;
     projectTextureRead: (params: { path: string }) => Promise<TextureProjectReadResult>;

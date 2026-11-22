@@ -13,11 +13,20 @@ export const GAME_PROCESS_LAUNCH_PLACEHOLDER_LEVEL_DOCUMENT = 'level_document';
 /** Placeholder replaced by the absolute directory the open level is exported to. */
 export const GAME_PROCESS_LAUNCH_PLACEHOLDER_LEVEL_EXPORT_DIRECTORY = 'level_export_directory';
 
-/** Every placeholder the game's arguments may name. */
-export const GAME_PROCESS_LAUNCH_PLACEHOLDER_NAMES: readonly string[] = [
+/** Placeholder replaced by the absolute folder of the project file. */
+export const GAME_PROCESS_LAUNCH_PLACEHOLDER_PROJECT_DIRECTORY = 'project_directory';
+
+/** Placeholders that need an open level. */
+export const GAME_PROCESS_LAUNCH_PLACEHOLDER_LEVEL_NAMES: readonly string[] = [
   GAME_PROCESS_LAUNCH_PLACEHOLDER_LEVEL_ID,
   GAME_PROCESS_LAUNCH_PLACEHOLDER_LEVEL_DOCUMENT,
   GAME_PROCESS_LAUNCH_PLACEHOLDER_LEVEL_EXPORT_DIRECTORY,
+];
+
+/** Every placeholder the game's arguments may name. */
+export const GAME_PROCESS_LAUNCH_PLACEHOLDER_NAMES: readonly string[] = [
+  ...GAME_PROCESS_LAUNCH_PLACEHOLDER_LEVEL_NAMES,
+  GAME_PROCESS_LAUNCH_PLACEHOLDER_PROJECT_DIRECTORY,
 ];
 
 /** Pattern of one placeholder: a lowercase name in curly braces. */
@@ -59,14 +68,14 @@ export class GameProcessLaunchPlaceholders {
    * Returns true when the command needs an open level to start.
    *
    * @param command Command that starts the game, or null.
-   * @returns True when the arguments name a known placeholder.
+   * @returns True when the arguments name a placeholder of the open level.
    */
   static isLevelNeeded(command: PreviewLaunchCommand | null): boolean {
     if (command === null) {
       return false;
     }
     return GameProcessLaunchPlaceholders.namesRead(command.arguments).some((name) =>
-      GAME_PROCESS_LAUNCH_PLACEHOLDER_NAMES.includes(name),
+      GAME_PROCESS_LAUNCH_PLACEHOLDER_LEVEL_NAMES.includes(name),
     );
   }
 
@@ -96,6 +105,7 @@ export class GameProcessLaunchPlaceholders {
    */
   static valuesCreate(definition: ProjectDefinition, target: GameProcessLevelTarget): Map<string, string> {
     return new Map([
+      ...GameProcessLaunchPlaceholders.projectValuesCreate(definition),
       [GAME_PROCESS_LAUNCH_PLACEHOLDER_LEVEL_ID, levelBuildNameSanitize(target.levelId)],
       [GAME_PROCESS_LAUNCH_PLACEHOLDER_LEVEL_DOCUMENT, `${definition.documentDirectory}/${target.levelDocument}`],
       [
@@ -103,6 +113,16 @@ export class GameProcessLaunchPlaceholders {
         levelBuildPublishDirectoryRead(definition.levelDirectory, target.levelId),
       ],
     ]);
+  }
+
+  /**
+   * Builds the value of every placeholder that needs no open level.
+   *
+   * @param definition Open project.
+   * @returns Values by placeholder name.
+   */
+  static projectValuesCreate(definition: ProjectDefinition): Map<string, string> {
+    return new Map([[GAME_PROCESS_LAUNCH_PLACEHOLDER_PROJECT_DIRECTORY, definition.projectDirectory]]);
   }
 
   /**

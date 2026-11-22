@@ -1,3 +1,9 @@
+import type {
+  GameProcessCommandStartResult,
+  RunConfiguration,
+  RunConfigurationCommandSection,
+  RunConfigurationsWriteResult,
+} from '@/project/run_configuration/model/run_configuration_types.js';
 import * as THREE from 'three';
 import { ConsoleLog } from '@/info_panel/console/console_log.js';
 import { GameProcessControl } from '@/project/control/game_process_control.js';
@@ -83,6 +89,10 @@ export class GameProcessControlFake extends GameProcessControl {
   readonly projectDataFiles = new Map<ProjectDataFileKind, Map<string, string>>();
   /** Only file name each kind kept in one file may write. */
   readonly projectDataFixedFileNames = new Map<ProjectDataFileKind, string>();
+  readonly commands: { command: RunConfigurationCommandSection; level: GameProcessLevelTarget | null }[] = [];
+  readonly commandExitCodes: number[] = [];
+  commandRefusal: string | null = null;
+  readonly writtenRunConfigurations: RunConfiguration[][] = [];
 
   /** @inheritdoc */
   async projectChooseFile(): Promise<string | null> {
@@ -108,6 +118,46 @@ export class GameProcessControlFake extends GameProcessControl {
   /** @inheritdoc */
   async statusRead(): Promise<GameProcessStatus> {
     return this.nextStatus ?? gameStatusCreate(null, 'idle');
+  }
+
+  /**
+   * Records a command and reports it finished with the scripted exit code at
+   * once, or refuses it when commandRefusal is set.
+   *
+   * @param command Command asked for.
+   * @param level Level passed with it.
+   * @returns Identifier and status.
+   */
+  async commandStart(
+    command: RunConfigurationCommandSection,
+    level: GameProcessLevelTarget | null,
+  ): Promise<GameProcessCommandStartResult> {
+    const status = await this.statusRead();
+    if (this.commandRefusal !== null) {
+      return { identifier: null, status: { ...status, message: this.commandRefusal } };
+    }
+    this.commands.push({ command, level });
+    const identifier = this.commands.length;
+    const exitCode = this.commandExitCodes.shift() ?? 0;
+    const state = exitCode === 0 ? 'succeeded' : 'failed';
+    this.nextStatus = { ...status, isBusy: false, command: { identifier, state, exitCode } };
+    return { identifier, status: this.nextStatus };
+  }
+
+  /**
+   * Stores run configurations in the fake project summary.
+   *
+   * @param configurations Configurations to store.
+   * @returns The stored configurations.
+   */
+  async runConfigurationsWrite(configurations: RunConfiguration[]): Promise<RunConfigurationsWriteResult> {
+    const status = await this.statusRead();
+    if (status.project === null) {
+      return { ok: false, message: 'Open a project first.' };
+    }
+    this.writtenRunConfigurations.push(configurations);
+    this.nextStatus = { ...status, project: { ...status.project, runConfigurations: configurations } };
+    return { ok: true, configurations };
   }
 
   /** @inheritdoc */
@@ -316,6 +366,7 @@ export function projectSummaryCreate(projectFile: string): ProjectSummary {
     isLevelLaunch: false,
     isLevelExportLaunch: false,
     toolTextures: { nodraw: [] },
+    runConfigurations: [],
     problems: [],
   };
 }
@@ -338,6 +389,8 @@ export function gameStatusCreate(project: ProjectSummary | null, phase: GameProc
     logTail: [],
     message: phase,
     generation: 1,
+    isBusy: false,
+    command: null,
   };
 }
 

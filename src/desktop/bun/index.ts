@@ -16,6 +16,7 @@ import { gameProcessRpcHandlersCreate } from '@/desktop/bun/game_process/game_pr
 import { projectTextureRpcHandlersCreate } from '@/desktop/bun/project_textures/project_texture_rpc_handlers.js';
 import { projectModelRpcHandlersCreate } from '@/desktop/bun/project_models/project_model_rpc_handlers.js';
 import { projectDataRpcHandlersCreate } from '@/desktop/bun/project_data/project_data_rpc_handlers.js';
+import { runConfigurationRpcHandlersCreate } from '@/desktop/bun/run_configuration/run_configuration_rpc_handlers.js';
 import { projectSprinkleRpcHandlersCreate } from '@/desktop/bun/project_sprinkle/project_sprinkle_rpc_handlers.js';
 import { projectLevelRpcHandlersCreate } from '@/desktop/bun/project_levels/project_level_rpc_handlers.js';
 import { NativeMenuHost } from '@/desktop/bun/native_menu/native_menu_host.js';
@@ -60,6 +61,7 @@ const desktopRpcBinding = BrowserView.defineRPC<ElectrobunDesktopRpcSchema>({
       ...projectSprinkleRpcHandlersCreate(gameProcessHost),
       ...projectLevelRpcHandlersCreate(gameProcessHost),
       ...projectDataRpcHandlersCreate(gameProcessHost),
+      ...runConfigurationRpcHandlersCreate(gameProcessHost),
       nativeMenuBarSet: nativeMenuBarSet,
       ...textFileRpcHandlersCreate(
         textFileRpcServicesDiskCreate({

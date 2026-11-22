@@ -1,3 +1,4 @@
+import { runConfigurationsDialogOpen } from '@/project/run_configuration/ui/run_configurations_dialog_open.js';
 import type { HandlerKeyboardShortcut } from '@/input/handler_keyboard_shortcut.js';
 import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
 import type { ShellWindowActions } from '@/layout/shell/actions/shell_window_actions.js';
@@ -105,6 +106,8 @@ export function layoutWindowShortcutsCommandsCreate(
     csg_intersect: () => actions.onCsgIntersect(),
     csg_hollow: () => brushToolsRead()?.hollow(),
     csg_convex_merge: () => brushToolsRead()?.convexMerge(),
-    game_play_level: () => void actions.gameProjectWorkbenchRead().levelPlay(),
+    game_play_level: () => void actions.gameProjectWorkbenchRead().runConfigurationsRead().runActive(),
+    run_configurations_edit: () =>
+      void runConfigurationsDialogOpen(actions.gameProjectWorkbenchRead().runConfigurationsRead()),
   };
 }

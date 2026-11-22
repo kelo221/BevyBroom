@@ -1,4 +1,5 @@
 import type { PreviewLaunchCommand } from '@/preview/launch/preview_launch_command.js';
+import type { RunConfiguration } from '@/project/run_configuration/model/run_configuration_types.js';
 import type { ProjectLevelEntry } from '@/project/model/project_level_entry.js';
 import type { ProjectToolTextures } from '@/project/model/project_tool_textures_parser.js';
 
@@ -61,6 +62,8 @@ export interface ProjectDefinition {
    * the editor.
    */
   build: PreviewLaunchCommand | null;
+  /** Run configurations the Run menu offers, in file order. */
+  runConfigurations: RunConfiguration[];
 }
 
 /** How serious a project problem is; errors stop the game from being started. */

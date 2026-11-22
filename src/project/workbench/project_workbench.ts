@@ -14,6 +14,14 @@ import { ProjectIssueBoard } from '@/project/issues/project_issue_board.js';
 import { ProjectWorkbenchConsoleReporter } from '@/project/workbench/project_workbench_console_reporter.js';
 import type { ControllerLevelBuild, LevelBuildResult } from '@/level_build/controller_level_build.js';
 import { levelBuildConsoleReport } from '@/level_build/level_build_console_report.js';
+import { gameProcessStatusEmptyCreate } from '@/project/process/game_process_status_empty.js';
+import { ProjectRunConfigurations } from '@/project/run_configuration/service/project_run_configurations.js';
+import type {
+  GameProcessCommandStartResult,
+  RunConfiguration,
+  RunConfigurationCommandSection,
+  RunConfigurationsWriteResult,
+} from '@/project/run_configuration/model/run_configuration_types.js';
 
 /** Interval between status reads of the managed game. */
 export const PROJECT_WORKBENCH_POLL_MILLISECONDS = 500;
@@ -62,6 +70,7 @@ export class ProjectWorkbench {
   private status: GameProcessStatus | null = null;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private projectOpenCount = 0;
+  private runConfigurations: ProjectRunConfigurations | null = null;
 
   /**
    * Creates a workbench without an open project.
@@ -142,12 +151,88 @@ export class ProjectWorkbench {
     if (prepareRefusal !== null) {
       return this.statusMessageAccept(prepareRefusal);
     }
-    const status = await this.hosts.control.actionStart(action, level);
+    return this.actionStartWithoutPrepare(action);
+  }
+
+  /**
+   * Returns the run configurations of the open project, creating their service
+   * on first use.
+   *
+   * @returns Run configurations.
+   */
+  runConfigurationsRead(): ProjectRunConfigurations {
+    this.runConfigurations ??= new ProjectRunConfigurations({ workbench: this });
+    return this.runConfigurations;
+  }
+
+  /**
+   * Starts an action in the open level as it is on disk, without saving or
+   * building the level first, and connects the preview when the game starts.
+   *
+   * @param action Action to run.
+   * @returns Status right after scheduling.
+   */
+  async actionStartWithoutPrepare(action: GameProcessAction): Promise<GameProcessStatus> {
+    const status = await this.hosts.control.actionStart(action, this.launchLevelTargetRead(action));
     this.statusAccept(status);
     if (action !== 'stop' && !this.hosts.link.isLinkActive()) {
       this.hosts.link.connect();
     }
     return status;
+  }
+
+  /**
+   * Returns the level of the open project that is open in the editor, whether
+   * or not the game starts in it.
+   *
+   * @returns Open project level, or null when the scene is no level of the open
+   *   project.
+   */
+  openProjectLevelRead(): ProjectLevelOpen | null {
+    const projectFile = this.status?.project?.projectFile ?? null;
+    const openLevel = this.hosts.openLevelRead?.() ?? null;
+    return openLevel !== null && openLevel.projectFile === projectFile ? openLevel : null;
+  }
+
+  /**
+   * Saves the open level.
+   *
+   * @returns Null when it was saved, or why not.
+   */
+  async openLevelSave(): Promise<string | null> {
+    if (this.hosts.openLevelSave === undefined) {
+      return 'Saving levels is not available in this editor.';
+    }
+    return this.hosts.openLevelSave();
+  }
+
+  /**
+   * Asks the desktop app to run a command to its end, with the open project
+   * level for level placeholders.
+   *
+   * @param command Program, arguments and folder.
+   * @returns Identifier of the command, or null with the reason in the status.
+   */
+  async commandStart(command: RunConfigurationCommandSection): Promise<GameProcessCommandStartResult> {
+    const level = this.openProjectLevelRead();
+    const target = level === null ? null : { levelId: level.id, levelDocument: level.document };
+    const result = await this.hosts.control.commandStart(command, target);
+    this.statusAccept(result.status);
+    return result;
+  }
+
+  /**
+   * Stores run configurations in the open project's file.
+   *
+   * @param configurations Configurations to store.
+   * @returns The stored configurations, or why they were not stored.
+   */
+  async runConfigurationsWrite(configurations: RunConfiguration[]): Promise<RunConfigurationsWriteResult> {
+    const result = await this.hosts.control.runConfigurationsWrite(configurations);
+    if (result.ok) {
+      await this.statusRefresh();
+    }
+    return result;
   }
 
   /**
@@ -157,7 +242,7 @@ export class ProjectWorkbench {
    * @returns Status right after the action was scheduled.
    */
   async levelPlay(): Promise<GameProcessStatus> {
-    return this.actionRun(this.levelPlayActionRead());
+    return this.actionRun(this.levelPlayActionResolve());
   }
 
   /**
@@ -166,7 +251,7 @@ export class ProjectWorkbench {
    *
    * @returns Action to run.
    */
-  private levelPlayActionRead(): GameProcessAction {
+  levelPlayActionResolve(): GameProcessAction {
     const phase = this.status?.phase ?? 'idle';
     const isGameActive = phase === 'running' || phase === 'starting' || phase === 'building';
     if (!isGameActive) {
@@ -237,29 +322,10 @@ export class ProjectWorkbench {
    * @returns Status holding the message.
    */
   private statusMessageAccept(message: string): GameProcessStatus {
-    const status = { ...(this.status ?? this.statusEmptyCreate()), message };
+    const status = { ...(this.status ?? gameProcessStatusEmptyCreate('')), message };
     this.status = status;
     this.changeNotify();
     return status;
-  }
-
-  /**
-   * Creates the status of an editor without an open project.
-   *
-   * @returns Idle status without a project.
-   */
-  private statusEmptyCreate(): GameProcessStatus {
-    return {
-      project: null,
-      phase: 'idle',
-      processId: null,
-      exitCode: null,
-      diagnostics: [],
-      gameNotices: [],
-      logTail: [],
-      message: '',
-      generation: 0,
-    };
   }
 
   /**
