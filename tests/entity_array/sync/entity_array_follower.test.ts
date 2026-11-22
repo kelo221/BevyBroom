@@ -79,6 +79,20 @@ describe('EntityArrayFollower', () => {
     expect(size.toArray()).toEqual(ENTITY_ARRAY_TEST_SHELF_BOX.size);
   });
 
+  it('keeps the spacing of a fixture however often it is measured and edited', () => {
+    const rig = entityArrayTestRigCreate(cleanups);
+    const shelf = entityArrayTestShelfPlace(rig, new THREE.Vector3());
+    EntityArrayFootprint.sizeOf(shelf);
+    expect(EntityArrayFootprint.sizeOf(shelf).toArray()).toEqual(ENTITY_ARRAY_TEST_SHELF_BOX.size);
+    const stepX = ENTITY_ARRAY_TEST_SHELF_BOX.size[0];
+    entityArrayTestSettingsSet(rig, shelf, settingsOf([3, 1, 1], [0, 0, 0]));
+    entityArrayTestSettingsSet(rig, shelf, settingsOf([5, 1, 1], [0, 0, 0]));
+    const offsets = EntityArrayCopyMark.copiesOf(shelf).map((copy) => copy.position.x);
+    expect(offsets).toHaveLength(4);
+    offsets.forEach((offset, index) => expect(offset).toBeCloseTo(stepX * (index + 1), 9));
+    expect(EntityArrayFootprint.sizeOf(shelf).toArray()).toEqual(ENTITY_ARRAY_TEST_SHELF_BOX.size);
+  });
+
   it('places one copy per cell, a footprint plus a gap apart, in the same undo step', () => {
     const rig = entityArrayTestRigCreate(cleanups);
     const origin = new THREE.Vector3(3, 0, -2);
