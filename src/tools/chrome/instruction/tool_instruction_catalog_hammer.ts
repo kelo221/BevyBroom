@@ -41,7 +41,7 @@ const TOOL_INSTRUCTIONS_BY_ID: Readonly<Record<EditorToolId, ToolInstruction>> =
     title: 'Clip Plane',
     shortcut: '{shift}+X',
     description:
-      'Place a cutting plane through the selected mesh. Flip keeps the other side, Clip discards one half, Split keeps both. Requires a selected mesh. Esc cancels.',
+      'Cut the selected brushes with a plane: drag a line across them in any view, or click two points (a third tilts the plane). Red shows what goes away and the arrows point into what stays. Tab or {shift}+X again cycles the kept side: Side A, Side B or Both (split). Enter applies, Esc cancels. Drag the round points to adjust.',
   },
   [EditorToolId.VERTEX]: {
     title: 'Vertex Tool',

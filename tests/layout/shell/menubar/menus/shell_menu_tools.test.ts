@@ -181,6 +181,16 @@ describe('ShellMenuTools', () => {
     expect(row.isChecked?.()).toBe(true);
   });
 
+  it('shows the rebindable shortcut of the Clip Plane, Object and Face tools and none for Grid', () => {
+    const { entries } = shellMenuToolsTestRigCreate();
+    const shortcutOf = (toolId: EditorToolId): string | null =>
+      shellTestMenuShortcutRead(shellTestMenuActionFind(entries, shellMenuToolsTestToolLabelRead(toolId)));
+    expect(shortcutOf(EditorToolId.CLIP_PLANE)).toBe(shellTestShortcutLabelFormat('tool_clip'));
+    expect(shortcutOf(EditorToolId.OBJECT)).toBe(shellTestShortcutLabelFormat('selection_object'));
+    expect(shortcutOf(EditorToolId.FACE)).toBe(shellTestShortcutLabelFormat('face'));
+    expect(shortcutOf(EditorToolId.GRID)).toBeNull();
+  });
+
   it('leaves the Solid Model panel to the Window menu', () => {
     const { entries } = shellMenuToolsTestRigCreate();
     expect(shellTestMenuLabelsRead(entries)).not.toContain('Solid Model…');

@@ -276,6 +276,25 @@ describe('layout window shortcut bindings', () => {
     expect(clashingActions).toEqual([]);
   });
 
+  it('activates the Clip Plane tool from Shift+X', () => {
+    const windowActions = windowActionsSpyCreate();
+    const handler = handlerWithWindowShortcutsCreate(windowActions, dockCommandsSpyCreate());
+    const shortcut = createDefaultKeyboardShortcutSettings().tool_clip;
+    expect(shortcut).toEqual({ code: 'KeyX', ctrl: false, shift: true, alt: false, meta: false });
+    shortcutPress(shortcut);
+    expect(windowActions.toolSelect).toHaveBeenCalledExactlyOnceWith(EditorToolId.CLIP_PLANE);
+    handler.unregister();
+  });
+
+  it('binds the Clip Plane tool shortcut to a key no other default shortcut uses', () => {
+    const defaults = createDefaultKeyboardShortcutSettings();
+    const clipShortcut = defaults.tool_clip;
+    const clashingActions = (Object.keys(defaults) as KeyboardShortcutAction[]).filter(
+      (action) => action !== 'tool_clip' && JSON.stringify(defaults[action]) === JSON.stringify(clipShortcut),
+    );
+    expect(clashingActions).toEqual([]);
+  });
+
   it('registers every callback it is given under its action', () => {
     const handler = new HandlerKeyboardShortcut(new ManagerInput());
     const actionCallbackSet = vi.spyOn(handler, 'actionCallbackSet');

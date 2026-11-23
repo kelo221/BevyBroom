@@ -236,7 +236,8 @@ function createDefaultCommandSearchAndCsgShortcuts(): Pick<
  * Default transform-mode, selection-tool, interaction-mode, and Edit Mode
  * component-mode shortcuts. Digit 1–3 select vertex / edge / face while Edit
  * Mode is active (object-mode shading keeps the same digits). Ctrl+Alt+S
- * activates the Sprinkle tool as in Hammer++ and Shift+V the Vertex tool.
+ * activates the Sprinkle tool as in Hammer++, Shift+V the Vertex tool and
+ * Shift+X the Clip tool.
  *
  * @returns Partial keyboard shortcut settings.
  */
@@ -250,6 +251,7 @@ function createDefaultTransformShortcuts(): Pick<
   | 'selection_object'
   | 'tool_sprinkle'
   | 'tool_vertex'
+  | 'tool_clip'
   | 'interaction_mode'
   | 'component_vertex'
   | 'component_edge'
@@ -264,6 +266,7 @@ function createDefaultTransformShortcuts(): Pick<
     selection_object: createShortcut('KeyO'),
     tool_sprinkle: createShortcut('KeyS', true, false, true),
     tool_vertex: createShortcut('KeyV', false, true),
+    tool_clip: createShortcut('KeyX', false, true),
     interaction_mode: createShortcut('Tab'),
     component_vertex: createShortcut('Digit1'),
     component_edge: createShortcut('Digit2'),
@@ -347,9 +350,8 @@ function createDefaultShadingSnapClipShortcuts(): Pick<
   | 'snap_forward_large'
   | 'snap_backward_large'
   | 'extrude'
-  | 'clip_flip'
+  | 'clip_side_cycle'
   | 'clip_commit'
-  | 'clip_split'
 > {
   return {
     shading_solid: createShortcut('Digit1'),
@@ -362,9 +364,8 @@ function createDefaultShadingSnapClipShortcuts(): Pick<
     snap_forward_large: createShortcut('Period', false, true),
     snap_backward_large: createShortcut('Comma', false, true),
     extrude: createShortcut('KeyE', false, true),
-    clip_flip: createShortcut('KeyF'),
+    clip_side_cycle: createShortcut('Tab'),
     clip_commit: createShortcut('Enter'),
-    clip_split: createShortcut('KeyX'),
   };
 }
 

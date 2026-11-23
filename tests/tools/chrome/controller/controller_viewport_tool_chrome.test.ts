@@ -42,9 +42,8 @@ describe('ControllerViewportToolChrome', () => {
     overlayPolicy = new PolicyEditorOverlay();
     modalRegistry = new RegistryModalToolSession();
     const clipHandler = {
-      flipPlane: () => undefined,
-      commitClip: () => undefined,
-      commitSplit: () => undefined,
+      keepModeSet: () => undefined,
+      applyCut: () => undefined,
       cancel: () => {
         clipTool.deactivate();
       },
@@ -100,9 +99,8 @@ describe('ControllerViewportToolChrome', () => {
       faceExtrusionController: faceController,
       clipPlaneTool: clipTool,
       clipPlaneHandler: {
-        flipPlane: () => undefined,
-        commitClip: () => undefined,
-        commitSplit: () => undefined,
+        keepModeSet: () => undefined,
+        applyCut: () => undefined,
         cancel: () => {
           clipTool.deactivate();
         },
@@ -138,9 +136,8 @@ describe('ControllerViewportToolChrome', () => {
       faceExtrusionController: faceController,
       clipPlaneTool: clipTool,
       clipPlaneHandler: {
-        flipPlane: () => undefined,
-        commitClip: () => undefined,
-        commitSplit: () => undefined,
+        keepModeSet: () => undefined,
+        applyCut: () => undefined,
         cancel: () => {
           clipTool.deactivate();
         },
@@ -172,9 +169,8 @@ describe('ControllerViewportToolChrome', () => {
       faceExtrusionController: faceController,
       clipPlaneTool: clipTool,
       clipPlaneHandler: {
-        flipPlane: () => undefined,
-        commitClip: () => undefined,
-        commitSplit: () => undefined,
+        keepModeSet: () => undefined,
+        applyCut: () => undefined,
         cancel: () => {
           clipTool.deactivate();
         },
@@ -277,9 +273,8 @@ describe('ControllerViewportToolChrome', () => {
       faceExtrusionController: faceController,
       clipPlaneTool: clipTool,
       clipPlaneHandler: {
-        flipPlane: () => undefined,
-        commitClip: () => undefined,
-        commitSplit: () => undefined,
+        keepModeSet: () => undefined,
+        applyCut: () => undefined,
         cancel: () => {
           clipTool.deactivate();
         },

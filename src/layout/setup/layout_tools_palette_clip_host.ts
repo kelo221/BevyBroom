@@ -54,8 +54,6 @@ export interface LayoutToolsPaletteClipHost {
   refreshOutliner(): void;
   /** Refreshes tool chrome and hides gizmos while clipping. */
   onClipToolStateChanged(): void;
-  /** Cancels the clip tool and returns to object select. */
-  onClipCancel(): void;
   /**
    * Activates a transform mode.
    *

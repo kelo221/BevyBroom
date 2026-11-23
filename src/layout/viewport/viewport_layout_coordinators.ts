@@ -10,7 +10,6 @@ import {
   setupCameraAndShadingCoordinators as createCameraAndShadingCoordinators,
   setupFaceModeCoordinator as createFaceModeCoordinator,
   setupToolsPaletteAndClipWiring as createToolsPaletteAndClip,
-  cancelClipToolSelection,
   refreshViewportToolChrome,
 } from '@/layout/setup/layout_coordinator_setup.js';
 import {
@@ -21,7 +20,6 @@ import {
 import { layoutToolsPaletteClipOptionsCreate } from '@/layout/setup/layout_tools_palette_clip_options.js';
 import type { LayoutToolsPaletteClipHost } from '@/layout/setup/layout_tools_palette_clip_host.js';
 import type { EditorOrientation } from '@/navigation/orientation/editor_orientation.js';
-import type { HandlerClipPlane } from '@/tools/clip_plane/handler_clip_plane.js';
 import { TransformMode } from '@/types/transform_mode.js';
 import type { ObjectApplyTransformKind } from '@/types/object_apply_transform_kind.js';
 import { HandlerObjectApplyTransform } from '@/transform/apply/handler_object_apply_transform.js';
@@ -429,7 +427,6 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     | 'syncPrimitivesToViewports'
     | 'refreshOutliner'
     | 'onClipToolStateChanged'
-    | 'onClipCancel'
     | 'onTransformMode'
     | 'faceInspectorReveal'
     | 'isEditModeActive'
@@ -440,7 +437,6 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
       syncPrimitivesToViewports: () => this.syncPrimitivesToViewports(),
       refreshOutliner: () => this.refreshOutliner(),
       onClipToolStateChanged: () => this.onClipToolStateChanged(),
-      onClipCancel: () => this.onClipCancel(),
       onTransformMode: (mode) => this.onTransformMode(mode),
       faceInspectorReveal: () => this.faceInspectorReveal(),
       isEditModeActive: () => this.isEditModeActive(),
@@ -483,32 +479,25 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     const result = createToolsPaletteAndClip(layoutToolsPaletteClipOptionsCreate(this.toolsPaletteClipHostRead()));
     this.clipPlaneHandler = result.clipPlaneHandler;
     this.toolsPaletteController = result.toolsPaletteController;
-    this.setupToolsPaletteKeyboardAndRenderLoop(result.clipPlaneHandler);
+    this.setupToolsPaletteKeyboardAndRenderLoop();
   }
 
   /**
    * Binds Edit Mode keyboard shortcuts, render-loop handlers, overlay refresh,
    * and floating tool chrome.
-   *
-   * @param clipPlaneHandler Clip plane handler from tool chrome wiring.
    */
-  private setupToolsPaletteKeyboardAndRenderLoop(clipPlaneHandler: HandlerClipPlane): void {
+  private setupToolsPaletteKeyboardAndRenderLoop(): void {
     this.keyboardShortcutHandler.setOnComponentMode(
       (mode) => this.toolsPaletteController?.setComponentMode(mode),
       () => this.isEditModeActive(),
     );
     this.keyboardShortcutHandler.setOnDeleteEditComponents(() => this.editModeCoordinator?.deleteSelection());
-    this.toolsPaletteRenderLoopBind(clipPlaneHandler);
+    this.toolsPaletteRenderLoopBind();
     this.floatingToolChromeSync();
   }
 
-  /**
-   * Binds clip, orientation, and overlay handlers onto the render loop.
-   *
-   * @param clipPlaneHandler Clip plane handler from tool chrome wiring.
-   */
-  private toolsPaletteRenderLoopBind(clipPlaneHandler: HandlerClipPlane): void {
-    this.renderLoop.setClipPlaneHandler(clipPlaneHandler);
+  /** Binds orientation and overlay handlers onto the render loop. */
+  private toolsPaletteRenderLoopBind(): void {
     this.renderLoop.setEditorOrientationCoordinator(this.editorOrientationCoordinator);
     this.renderLoop.setGridOrientationHandler(this.gridOrientationHandler);
     this.editorOverlayPolicy.addChangeListener(() => {
@@ -561,11 +550,6 @@ export abstract class ViewportLayoutCoordinators extends ViewportLayoutCore {
     if (orientation) {
       ManagerProjectedGrid.setPlaneFrame(orientation.getPlaneFrame());
     }
-  }
-
-  /** Cancels the clip tool and returns to object select in tool chrome. */
-  protected onClipCancel(): void {
-    cancelClipToolSelection(this.clipPlaneHandler, this.toolsPaletteController);
   }
 
   /** Refreshes tool chrome and hides transform gizmos while clipping. */

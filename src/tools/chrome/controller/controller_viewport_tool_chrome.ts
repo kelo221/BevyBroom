@@ -458,11 +458,7 @@ export class ControllerViewportToolChrome {
   /** Refreshes active tool highlight and clip enablement on all panes. */
   refreshChromeContext(): void {
     this.broadcastActiveTool();
-    if (this.activeTool === EditorToolId.CLIP_PLANE) {
-      this.broadcastClipEnabled(this.deps.clipPlaneTool.isPlaneReady());
-      return;
-    }
-    this.broadcastClipEnabled(false);
+    this.broadcastClipState(this.activeTool === EditorToolId.CLIP_PLANE && this.deps.clipPlaneTool.isPlaneReady());
   }
 
   /**
@@ -767,9 +763,8 @@ export class ControllerViewportToolChrome {
     return {
       onSelectTool: (toolId) => this.selectTool(toolId),
       onTransformMode: (mode) => this.deps.onTransformMode(mode),
-      onFlipClipPlane: () => this.deps.clipPlaneHandler.flipPlane(),
-      onCommitClip: () => this.deps.clipPlaneHandler.commitClip(),
-      onCommitSplit: () => this.deps.clipPlaneHandler.commitSplit(),
+      onClipKeepModeSet: (mode) => this.deps.clipPlaneHandler.keepModeSet(mode),
+      onClipApply: () => this.deps.clipPlaneHandler.applyCut(),
       faceInspectorReveal: () => this.deps.faceInspectorReveal(),
       onExtrudeFaces: () => this.deps.onExtrudeFaces(),
       onInteractionMode: (mode) => this.setInteractionMode(mode),
@@ -787,9 +782,8 @@ export class ControllerViewportToolChrome {
     ViewportToolChromeHandlers,
     | 'onSelectTool'
     | 'onTransformMode'
-    | 'onFlipClipPlane'
-    | 'onCommitClip'
-    | 'onCommitSplit'
+    | 'onClipKeepModeSet'
+    | 'onClipApply'
     | 'faceInspectorReveal'
     | 'onExtrudeFaces'
     | 'onInteractionMode'
@@ -853,13 +847,14 @@ export class ControllerViewportToolChrome {
   }
 
   /**
-   * Broadcasts clip action enablement.
+   * Broadcasts the clip keep mode and whether Apply may run.
    *
-   * @param enabled Whether clip actions are enabled.
+   * @param isPlaneReady True when a clip plane is placed.
    */
-  private broadcastClipEnabled(enabled: boolean): void {
+  private broadcastClipState(isPlaneReady: boolean): void {
+    const keepMode = this.deps.clipPlaneTool.keepModeRead();
     this.hosts.forEach((host) => {
-      host.setClipActionsEnabled(enabled);
+      host.setClipState(isPlaneReady, keepMode);
     });
   }
 

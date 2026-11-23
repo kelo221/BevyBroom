@@ -1,35 +1,32 @@
 import { Theme } from '@/theme.js';
 
 /**
- * Visual and interaction constants for clip plane placement markers. Sized for
- * a professional world-editor feel (small, readable, easy to grab). Point
- * colors are distinct so the three plane points stay recognizable across
- * views.
+ * Visual and interaction constants for clip plane placement markers. Sizes are
+ * CSS pixels on screen, so markers look the same in every pane and at every
+ * zoom. Point colors are distinct so the three plane points stay recognizable
+ * across views.
  */
 
-/** World-space radius of the solid marker core at unit scale. */
-export const CLIP_MARKER_CORE_RADIUS = 0.028;
+/** Radius of the colored marker core on screen, in CSS pixels. */
+export const CLIP_MARKER_CORE_PIXELS = 6;
 
-/** World-space radius of the dark halo behind the core at unit scale. */
-export const CLIP_MARKER_HALO_RADIUS = 0.042;
+/** Radius of the light rim around the core on screen, in CSS pixels. */
+export const CLIP_MARKER_RIM_PIXELS = 8;
 
-/** World-space radius of the light rim between halo and core. */
-export const CLIP_MARKER_RIM_RADIUS = 0.036;
+/** Radius of the dark outline around the rim on screen, in CSS pixels. */
+export const CLIP_MARKER_HALO_PIXELS = 10;
 
-/**
- * Multiplier from camera distance (perspective) or half-height (ortho) to
- * marker scale so markers stay roughly constant on screen.
- */
-export const CLIP_MARKER_DISTANCE_SCALE = 0.028;
+/** Extra radius of a marker under the pointer, in CSS pixels. */
+export const CLIP_MARKER_HOVER_GROWTH_PIXELS = 3;
 
-/** Minimum marker scale so points never become unusable when zoomed in. */
-export const CLIP_MARKER_MIN_SCALE = 0.55;
+/** Share of a placed marker's size used for the pointer preview marker. */
+export const CLIP_MARKER_PREVIEW_SIZE_SHARE = 0.75;
 
-/** Maximum marker scale so points never dominate the view when far away. */
-export const CLIP_MARKER_MAX_SCALE = 4.5;
+/** Opacity of the pointer preview marker core. */
+export const CLIP_MARKER_PREVIEW_OPACITY = 0.7;
 
 /** Screen-space pick radius in CSS pixels for grabbing a marker. */
-export const CLIP_MARKER_PICK_PIXELS = 18;
+export const CLIP_MARKER_PICK_PIXELS = 16;
 
 /** UserData key storing the placement point index on a marker group. */
 export const CLIP_MARKER_INDEX_KEY = 'clipPlaneMarkerIndex';

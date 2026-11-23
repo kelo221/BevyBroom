@@ -1,7 +1,14 @@
-import type { Vector2 } from 'three';
+import type { Camera, Vector2 } from 'three';
 import { Tool } from './tool.js';
 import type { ToolClipPlane } from '@/tools/clip_plane/tool_clip_plane.js';
 import type { HandlerClipPlane } from '@/tools/clip_plane/handler_clip_plane.js';
+import type { EditorServices } from '@/editor/window/editor_services.js';
+
+/** Camera and pick element of the pane a pointer event belongs to. */
+interface ClipToolPointerPane {
+  camera: Camera;
+  pickElement: HTMLElement;
+}
 
 /**
  * Clip plane tool as an editor Tool. Placement state stays on ToolClipPlane;
@@ -47,7 +54,7 @@ export class ClipTool extends Tool {
     if (!this.sessionActive) {
       return false;
     }
-    if (this.handler.isMarkerDragging()) {
+    if (this.handler.isPointerDragActive()) {
       return true;
     }
     return this.placement.getPoints().length > 0;
@@ -84,34 +91,75 @@ export class ClipTool extends Tool {
     if (!services || !this.editor) {
       return;
     }
-    const clientX = this.editor.lastPointerClientX;
-    const clientY = this.editor.lastPointerClientY;
-    const pane =
-      services.resolveInteractiveViewportAtClientPoint(clientX, clientY) ?? this.resolveActivePaneFallback(services);
-    if (!pane) {
+    const pointer = this.pointerPaneResolve(services, true);
+    if (!pointer) {
       return;
     }
-    const event = this.handler.createSyntheticMouseEvent(clientX, clientY, services.isShiftPressed());
-    this.handler.onPointerDown(event, pane.camera, pane.pickElement);
+    this.handler.onPointerDown(pointer.event, pointer.pane.camera, pointer.pane.pickElement);
     this.syncExclusiveViewportPin();
   }
 
   /**
-   * Called when the tool receives a mouse move event.
+   * Called when the tool receives a mouse move event. Continues a drag, or
+   * updates the hover preview under the pointer.
    *
    * @param _screenDelta Screen-space movement delta.
    * @param _gridDelta Grid/world-space movement delta.
    */
   override onMouseMove(_screenDelta: Vector2, _gridDelta: Vector2): void {
-    if (!this.sessionActive || !this.handler.isMarkerDragging() || !this.editor) {
+    if (!this.sessionActive || !this.editor) {
       return;
     }
     const services = this.editor.getServices();
-    this.handler.onEditorPointerMove(
-      this.editor.lastPointerClientX,
-      this.editor.lastPointerClientY,
-      services?.isShiftPressed() === true,
-    );
+    if (this.handler.isPointerDragActive()) {
+      this.handler.onEditorPointerMove(
+        this.editor.lastPointerClientX,
+        this.editor.lastPointerClientY,
+        services?.isShiftPressed() === true,
+      );
+      return;
+    }
+    this.pointerHoverForward(services);
+  }
+
+  /**
+   * Forwards a pointer move without a held button to the hover preview.
+   *
+   * @param services Editor services, or null before the window is ready.
+   */
+  private pointerHoverForward(services: EditorServices | null | undefined): void {
+    const pointer = services ? this.pointerPaneResolve(services, false) : null;
+    if (!pointer) {
+      return;
+    }
+    this.handler.onPointerHover(pointer.event, pointer.pane.camera, pointer.pane.pickElement);
+  }
+
+  /**
+   * Resolves the pane under the last pointer position and a synthetic event
+   * carrying that position and the Shift state.
+   *
+   * @param services Editor services.
+   * @param allowActivePaneFallback Whether to fall back to the active pane when
+   *   the pointer is over no pane.
+   * @returns Pointer event and pane, or null.
+   */
+  private pointerPaneResolve(
+    services: EditorServices,
+    allowActivePaneFallback: boolean,
+  ): { event: MouseEvent; pane: ClipToolPointerPane } | null {
+    if (!this.editor) {
+      return null;
+    }
+    const clientX = this.editor.lastPointerClientX;
+    const clientY = this.editor.lastPointerClientY;
+    const pane =
+      services.resolveInteractiveViewportAtClientPoint(clientX, clientY) ??
+      (allowActivePaneFallback ? this.resolveActivePaneFallback(services) : null);
+    if (!pane) {
+      return null;
+    }
+    return { event: this.handler.createSyntheticMouseEvent(clientX, clientY, services.isShiftPressed()), pane };
   }
 
   /**
@@ -148,7 +196,7 @@ export class ClipTool extends Tool {
     if (button !== 0) {
       return;
     }
-    if (this.handler.isMarkerDragging()) {
+    if (this.handler.isPointerDragActive()) {
       this.handler.onEditorPointerUp(true);
       this.syncExclusiveViewportPin();
     }
@@ -157,12 +205,14 @@ export class ClipTool extends Tool {
   /**
    * Called when the tool receives a key down event. Shape Editor: while
    * IsBusy(), only the active receiver gets keys — no global fallthrough — so
-   * clip commit/flip/split must be handled here (defaults: Enter / F / X).
+   * the clip keys (apply, cycle keep side) are matched here through the
+   * keyboard settings.
    *
    * @param keyCode Key code string.
+   * @param event Browser keyboard event, when one exists.
    * @returns True when consumed.
    */
-  override onKeyDown(keyCode: string, _event?: KeyboardEvent): boolean {
+  override onKeyDown(keyCode: string, event?: KeyboardEvent): boolean {
     if (!this.sessionActive) {
       return false;
     }
@@ -170,21 +220,11 @@ export class ClipTool extends Tool {
       this.toolOnCancel();
       return true;
     }
-    if (keyCode === 'Enter' || keyCode === 'NumpadEnter') {
-      this.handler.commitClip();
-      this.syncExclusiveViewportPin();
-      return true;
+    if (!event || !this.handler.keyDownHandle(event)) {
+      return false;
     }
-    if (keyCode === 'KeyF') {
-      this.handler.flipPlane();
-      return true;
-    }
-    if (keyCode === 'KeyX') {
-      this.handler.commitSplit();
-      this.syncExclusiveViewportPin();
-      return true;
-    }
-    return false;
+    this.syncExclusiveViewportPin();
+    return true;
   }
 
   /**
@@ -211,9 +251,7 @@ export class ClipTool extends Tool {
    * @param services Editor services.
    * @returns Active pane pick context, or null.
    */
-  private resolveActivePaneFallback(
-    services: NonNullable<ReturnType<NonNullable<typeof this.editor>['getServices']>>,
-  ): { camera: import('three').Camera; pickElement: HTMLElement } | null {
+  private resolveActivePaneFallback(services: EditorServices): ClipToolPointerPane | null {
     const camera = services.getActiveCamera();
     const pickElement = services.getActivePickElement();
     if (!camera || !pickElement) {

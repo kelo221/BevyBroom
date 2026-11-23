@@ -1,96 +1,117 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import {
-  buildClipHalfPreviewPair,
-  CLIP_HALF_KEEP_USERDATA_KEY,
-  CLIP_HALF_DISCARD_USERDATA_KEY,
+  buildClipPiecePreviews,
+  CLIP_PIECE_ROLE_USERDATA_KEY,
+  type ClipPieceRole,
 } from '@/tools/clip_plane/clip_plane_half_preview.js';
+import { ClipKeepMode } from '@/tools/clip_plane/clip_keep_mode.js';
 import { Theme } from '@/theme.js';
 
 /**
- * Creates a unit box mesh centered at the origin.
+ * Creates a box mesh centered at the origin.
  *
- * @returns Mesh ready for clip half preview.
+ * @returns Mesh ready for clip piece previews.
  */
-function createUnitBox(): THREE.Mesh {
+function createBox(): THREE.Mesh {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2));
   mesh.updateMatrixWorld(true);
   return mesh;
 }
 
-describe('buildClipHalfPreviewPair', () => {
-  it('should build keep and discard halves for a mid-plane box cut', () => {
-    const mesh = createUnitBox();
-    const plane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
-    const pair = buildClipHalfPreviewPair(mesh, plane, true);
-    expect(pair.keepMesh).toBeInstanceOf(THREE.Mesh);
-    expect(pair.discardMesh).toBeInstanceOf(THREE.Mesh);
-    expect(pair.keepMesh!.userData[CLIP_HALF_KEEP_USERDATA_KEY]).toBe(true);
-    expect(pair.discardMesh!.userData[CLIP_HALF_DISCARD_USERDATA_KEY]).toBe(true);
-    const keepMaterial = pair.keepMesh!.material as THREE.MeshBasicMaterial;
-    const discardMaterial = pair.discardMesh!.material as THREE.MeshBasicMaterial;
-    expect(keepMaterial.color.getHex()).toBe(Theme.clipKeepColor);
-    expect(discardMaterial.color.getHex()).toBe(Theme.clipDiscardColor);
-    expect(keepMaterial.opacity).toBeGreaterThan(0.2);
-    expect(discardMaterial.opacity).toBeGreaterThanOrEqual(0.25);
+/**
+ * Returns the smallest and largest signed distance of a mesh's vertices to a
+ * plane.
+ *
+ * @param mesh Piece preview mesh (world-space positions).
+ * @param plane Clip plane.
+ * @returns Distance range.
+ */
+function sideRange(mesh: THREE.Mesh, plane: THREE.Plane): { min: number; max: number } {
+  const positions = mesh.geometry.getAttribute('position');
+  const vertex = new THREE.Vector3();
+  let min = Infinity;
+  let max = -Infinity;
+  for (let index = 0; index < positions.count; index++) {
+    const distance = plane.distanceToPoint(vertex.fromBufferAttribute(positions, index));
+    min = Math.min(min, distance);
+    max = Math.max(max, distance);
+  }
+  return { min, max };
+}
+
+/**
+ * Finds the piece preview with a role.
+ *
+ * @param pieces Piece previews.
+ * @param role Wanted role.
+ * @returns Piece mesh, or undefined.
+ */
+function pieceWithRole(pieces: THREE.Mesh[], role: ClipPieceRole): THREE.Mesh | undefined {
+  return pieces.find((piece) => piece.userData[CLIP_PIECE_ROLE_USERDATA_KEY] === role);
+}
+
+describe('buildClipPiecePreviews', () => {
+  const plane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
+
+  it('shows only the removed piece, behind the plane, in red for Side A', () => {
+    const pieces = buildClipPiecePreviews(createBox(), plane, ClipKeepMode.SIDE_A);
+    expect(pieces).toHaveLength(1);
+    const discard = pieceWithRole(pieces, 'discard');
+    expect(discard).toBeDefined();
+    expect(sideRange(discard ?? pieces[0]!, plane).max).toBeLessThanOrEqual(1e-6);
+    expect(((discard ?? pieces[0]!).material as THREE.MeshBasicMaterial).color.getHex()).toBe(Theme.clipDiscardColor);
   });
 
-  it('should treat keep and discard materials the same except color and opacity', () => {
-    const mesh = createUnitBox();
-    const plane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
-    const pair = buildClipHalfPreviewPair(mesh, plane, true);
-    const keepMaterial = pair.keepMesh!.material as THREE.MeshBasicMaterial;
-    const discardMaterial = pair.discardMesh!.material as THREE.MeshBasicMaterial;
-    expect(keepMaterial.depthWrite).toBe(false);
-    expect(discardMaterial.depthWrite).toBe(false);
-    expect(keepMaterial.depthTest).toBe(false);
-    expect(discardMaterial.depthTest).toBe(false);
-    expect(keepMaterial.side).toBe(discardMaterial.side);
-    expect(keepMaterial.transparent).toBe(true);
-    expect(discardMaterial.transparent).toBe(true);
-    expect(pair.keepMesh!.renderOrder).toBe(pair.discardMesh!.renderOrder);
+  it('shows the removed piece in front of the plane for Side B', () => {
+    const pieces = buildClipPiecePreviews(createBox(), plane, ClipKeepMode.SIDE_B);
+    const discard = pieceWithRole(pieces, 'discard');
+    expect(discard).toBeDefined();
+    expect(sideRange(discard ?? pieces[0]!, plane).min).toBeGreaterThanOrEqual(-1e-6);
   });
 
-  it('should bias keep and discard opposite ways along the plane normal', () => {
-    const mesh = createUnitBox();
-    const plane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
-    const pair = buildClipHalfPreviewPair(mesh, plane, true);
-    expect(pair.keepMesh!.position.x).toBeGreaterThan(0);
-    expect(pair.discardMesh!.position.x).toBeLessThan(0);
-    expect(Math.abs(pair.keepMesh!.position.x)).toBeCloseTo(Math.abs(pair.discardMesh!.position.x));
+  it('shows both kept pieces in two colors, one on each side, for Both', () => {
+    const pieces = buildClipPiecePreviews(createBox(), plane, ClipKeepMode.BOTH);
+    const first = pieceWithRole(pieces, 'keep_first');
+    const second = pieceWithRole(pieces, 'keep_second');
+    expect(first && second).toBeTruthy();
+    expect(sideRange(first ?? pieces[0]!, plane).min).toBeGreaterThanOrEqual(-1e-6);
+    expect(sideRange(second ?? pieces[0]!, plane).max).toBeLessThanOrEqual(1e-6);
+    const firstColor = ((first ?? pieces[0]!).material as THREE.MeshBasicMaterial).color.getHex();
+    const secondColor = ((second ?? pieces[0]!).material as THREE.MeshBasicMaterial).color.getHex();
+    expect([firstColor, secondColor]).toEqual([Theme.clipKeepColor, Theme.clipKeepSecondColor]);
   });
 
-  it('should build comparable closed hulls for both halves', () => {
-    const mesh = createUnitBox();
-    const plane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
-    const pair = buildClipHalfPreviewPair(mesh, plane, true);
-    const keepCount = pair.keepMesh!.geometry.getAttribute('position').count;
-    const discardCount = pair.discardMesh!.geometry.getAttribute('position').count;
-    expect(keepCount).toBe(discardCount);
-    expect(keepCount).toBeGreaterThan(30);
+  it('never writes depth and wins against coplanar brush faces', () => {
+    const pieces = buildClipPiecePreviews(createBox(), plane, ClipKeepMode.BOTH);
+    pieces.forEach((piece) => {
+      const material = piece.material as THREE.MeshBasicMaterial;
+      expect(material.depthWrite).toBe(false);
+      expect(material.transparent).toBe(true);
+      expect(material.polygonOffset).toBe(true);
+      expect(material.polygonOffsetUnits).toBeLessThan(0);
+    });
   });
 
-  it('should swap keep and discard when keepFront is false', () => {
-    const mesh = createUnitBox();
-    const plane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
-    const keepFront = buildClipHalfPreviewPair(mesh, plane, true);
-    const keepBack = buildClipHalfPreviewPair(mesh, plane, false);
-    expect(keepFront.keepMesh).not.toBeNull();
-    expect(keepBack.keepMesh).not.toBeNull();
-    const frontKeepCount = keepFront.keepMesh!.geometry.getAttribute('position').count;
-    const backKeepCount = keepBack.keepMesh!.geometry.getAttribute('position').count;
-    expect(frontKeepCount).toBeGreaterThan(0);
-    expect(backKeepCount).toBeGreaterThan(0);
+  it('is depth-tested in perspective panes and drawn on top in orthographic panes', () => {
+    const [piece] = buildClipPiecePreviews(createBox(), plane, ClipKeepMode.SIDE_A);
+    expect(piece).toBeDefined();
+    const material = piece!.material as THREE.MeshBasicMaterial;
+    const renderer = {} as THREE.WebGLRenderer;
+    const scene = new THREE.Scene();
+    piece!.onBeforeRender(renderer, scene, new THREE.PerspectiveCamera(), piece!.geometry, material, null as never);
+    expect(material.depthTest).toBe(true);
+    piece!.onBeforeRender(renderer, scene, new THREE.OrthographicCamera(), piece!.geometry, material, null as never);
+    expect(material.depthTest).toBe(false);
   });
 
-  it('should put the whole mesh on the discard side when the plane misses', () => {
-    const mesh = createUnitBox();
-    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+  it('shows the whole mesh as removed when the kept side is empty', () => {
+    const missPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(
       new THREE.Vector3(1, 0, 0),
       new THREE.Vector3(20, 0, 0),
     );
-    const pair = buildClipHalfPreviewPair(mesh, plane, true);
-    expect(pair.keepMesh).toBeNull();
-    expect(pair.discardMesh).toBeInstanceOf(THREE.Mesh);
+    const pieces = buildClipPiecePreviews(createBox(), missPlane, ClipKeepMode.SIDE_A);
+    expect(pieces).toHaveLength(1);
+    expect(pieceWithRole(pieces, 'discard')).toBeDefined();
   });
 });

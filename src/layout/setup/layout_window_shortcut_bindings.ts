@@ -38,7 +38,7 @@ export function layoutWindowShortcutsRegister(
 
 /**
  * Builds the callbacks of the view, play, selection, Object Properties, paste
- * at original position and Sprinkle tool shortcuts.
+ * at original position, Sprinkle, Vertex and Clip tool shortcuts.
  *
  * @param windowActions Main window commands.
  * @returns Shortcut callbacks keyed by action.
@@ -60,6 +60,7 @@ export function layoutWindowShortcutsWindowActionsCreate(
     prefab_make: () => void prefabEditorActionsActive.read()?.makeFromSelection(),
     tool_sprinkle: () => windowActions.toolSelect(EditorToolId.SPRINKLE),
     tool_vertex: () => windowActions.toolSelect(EditorToolId.VERTEX),
+    tool_clip: () => windowActions.toolSelect(EditorToolId.CLIP_PLANE),
   };
 }
 

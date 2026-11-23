@@ -45,33 +45,48 @@ If extrusion is unavailable, confirm that at least one compatible face is select
 
 ## Clip Plane tool
 
-The Clip Plane tool slices selected geometry along a plane established with three points.
+The Clip Plane tool cuts the selected brushes and meshes with a plane you place in any view.
 
-1. Select the object you want to cut.
-2. Click the **Clip Plane** tool button in the tools palette, or choose **Tools > Clip Plane**.
-3. Place three points in a viewport to define the cutting plane.
-4. Inspect the preview to see which side will remain.
-5. Choose **Flip**, **Clip**, or **Split** in the tool options on the view bar.
+1. Select the brushes you want to cut.
+2. Press `Shift+X`, click the **Clip Plane** tool button in the tools palette, or choose **Tools > Clip Plane**.
+3. Drag a line across the brush in any view: press where the cut starts and release where it ends. Or click two points. A third click tilts the plane freely.
+4. Check the preview, then press `Enter` or click **Apply**.
 
-The clip actions remain disabled until a valid plane is ready.
+While you place the second point, the preview follows the pointer and shows the cut a click would make. In the 2D views you can start in empty space; points land on the view plane through the selection.
 
-### Clip actions
+### Reading the preview
 
-- **Flip** (`F`) swaps the side that will be kept.
-- **Clip** (`Enter`) removes one side and retains the other.
-- **Split** (`X`) creates separate results for both sides.
-- **Escape** cancels the tool.
+- The pale sheet with the yellow outline is the plane itself, a little larger than the selection. In a 2D view that looks along the plane it is a line across the brush.
+- Red marks the piece the clip removes.
+- Green arrows point from the cut into the piece that stays.
+- With **Both**, the two pieces show in green and blue with an arrow into each.
+- The round points are big handles: drag them to adjust the plane. A point under the pointer grows. Hold `Shift` while placing or dragging to skip grid snapping.
 
-The `F` key normally frames the selection, but while Clip Plane is active it flips the plane instead.
+### Choosing what to keep
+
+The **Keep** buttons in the tool options choose the pieces:
+
+- **Side A** keeps the piece the plane normal points to.
+- **Side B** keeps the other piece.
+- **Both** splits the brush into two brushes and keeps both.
+
+`Tab` cycles Side A, Side B and Both, the same way TrenchBroom does. Pressing `Shift+X` again while the tool is active cycles too, like Hammer. The choice stays for the next cut until you leave the tool.
+
+### Clip keys
+
+- `Shift+X` opens the tool; pressed again it cycles the kept side.
+- `Tab` cycles the kept side.
+- `Enter` applies the cut.
+- `Escape` cancels the tool.
+
+All of them can be changed in **Settings > Keyboard**.
 
 ## Placing a predictable plane
 
-The three points define both the plane and its orientation. For a clean result:
-
-- Place the points far enough apart to make the plane unambiguous.
-- Use Top, Front, or Side view for axis-aligned cuts.
-- Inspect the keep-side preview in Perspective before committing.
-- Use Flip rather than replacing all three points when only the kept side is wrong.
+- Use Top, Front, or Side view for axis-aligned cuts: a line dragged there cuts straight into the view.
+- Keep grid snapping on so the cut stays on grid points.
+- Check the red piece in Perspective before applying.
+- Cycle the kept side with `Tab` instead of placing the points again when only the kept side is wrong.
 
 ## Face selection for texturing
 

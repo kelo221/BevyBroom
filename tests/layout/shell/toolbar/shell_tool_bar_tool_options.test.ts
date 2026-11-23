@@ -32,9 +32,8 @@ function shellToolBarToolOptionsTestHandlersCreate(): ViewportToolChromeHandlers
   return {
     onSelectTool: vi.fn(),
     onTransformMode: vi.fn(),
-    onFlipClipPlane: vi.fn(),
-    onCommitClip: vi.fn(),
-    onCommitSplit: vi.fn(),
+    onClipKeepModeSet: vi.fn(),
+    onClipApply: vi.fn(),
     faceInspectorReveal: vi.fn(),
     onExtrudeFaces: vi.fn(),
     onGridReset: vi.fn(),

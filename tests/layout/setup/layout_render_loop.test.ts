@@ -42,7 +42,6 @@ describe('LayoutRenderLoop', () => {
     loop.bind({
       getActiveViewports: () => active,
       cameraFitCoordinator,
-      clipPlaneHandler: null,
       onBeforeRender: () => undefined,
       multiViewComposer,
       sharedScene,
@@ -92,7 +91,6 @@ describe('LayoutRenderLoop', () => {
     loop.bind({
       getActiveViewports: () => [viewport],
       cameraFitCoordinator,
-      clipPlaneHandler: null,
       cadRulerSystem: { prepareForCamera, endCameraPass } as never,
       onBeforeRender: () => undefined,
       multiViewComposer,
@@ -114,7 +112,6 @@ describe('LayoutRenderLoop', () => {
     loop.bind({
       getActiveViewports: () => [visible],
       cameraFitCoordinator,
-      clipPlaneHandler: null,
       onBeforeRender: () => undefined,
       multiViewComposer,
       sharedScene,

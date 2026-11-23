@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ViewportToolChromeHost } from '@/tools/chrome/host/viewport_tool_chrome_host.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
 import { TransformMode } from '@/types/transform_mode.js';
+import { ClipKeepMode } from '@/tools/clip_plane/clip_keep_mode.js';
 import { EditorInteractionMode } from '@/types/editor_interaction_mode.js';
 import { FloatingPanelStack } from '@/ui/floating_panel/panel_floating_stack.js';
 
@@ -19,9 +20,8 @@ function createHostHandlers(
   return {
     onSelectTool,
     onTransformMode: () => undefined,
-    onFlipClipPlane: () => undefined,
-    onCommitClip: () => undefined,
-    onCommitSplit: () => undefined,
+    onClipKeepModeSet: () => undefined,
+    onClipApply: () => undefined,
     faceInspectorReveal: () => undefined,
     onExtrudeFaces: () => undefined,
     onGridReset: () => undefined,
@@ -64,7 +64,7 @@ describe('ViewportToolChromeHost', () => {
     expect(options.style.display).toBe('flex');
     host.setActiveTool(EditorToolId.FACE);
     host.setActiveTransformMode(TransformMode.TRANSLATE);
-    host.setClipActionsEnabled(true);
+    host.setClipState(true, ClipKeepMode.BOTH);
     host.dispose();
   });
 

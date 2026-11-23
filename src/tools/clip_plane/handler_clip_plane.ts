@@ -1,20 +1,17 @@
 import * as THREE from 'three';
 import { CommandStack } from '@/commands/command_stack.js';
-import { CommandMeshClip } from '@/tools/clip_plane/commands/command_mesh_clip.js';
-import { CommandMeshSplit } from '@/tools/clip_plane/commands/command_mesh_split.js';
-import { CommandSolidBrushClip } from '@/solid/commands/brush/command_solid_brush_clip.js';
-import { CommandSolidBrushSplit } from '@/solid/commands/brush/command_solid_brush_split.js';
-import { CsgPlaneSplit } from '@/csg/csg_plane_split.js';
 import { ManagerSelection } from '@/selection/object/manager_selection.js';
+import { GridSnap } from '@/transform/snap/grid_snap.js';
+import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
+import type { RegistryModalToolSession } from '@/tools/session/registry_modal_tool_session.js';
 import { ToolClipPlane } from './tool_clip_plane.js';
-import { ClipPlanePointPicker } from './clip_plane_point_picker.js';
+import { ClipPlanePointPicker, type ClipPlanePickResult } from './clip_plane_point_picker.js';
 import { ClipPlanePointDrag } from './clip_plane_point_drag.js';
 import { ClipPlanePreview, CLIP_PREVIEW_USERDATA_KEY } from './clip_plane_preview.js';
-import { createClipPlanePlacementHint } from './clip_plane_depth_axis.js';
-import { GridSnap } from '@/transform/snap/grid_snap.js';
-import { SolidBrushVisual } from '@/solid/model/solid_brush_visual.js';
-import { SolidModel } from '@/solid/model/solid_model.js';
-import type { RegistryModalToolSession } from '@/tools/session/registry_modal_tool_session.js';
+import { ClipPlanePlacementHint, createClipPlanePlacementHint } from './clip_plane_depth_axis.js';
+import { ClipPlaneCommitRunner } from './clip_plane_commit_runner.js';
+import { ClipPlaneLineDrag } from './clip_plane_line_drag.js';
+import { ClipKeepMode, clipKeepModeLabel } from './clip_keep_mode.js';
 
 /** Dependencies for running clip/split operations from the clip tool. */
 export interface HandlerClipPlaneDependencies {
@@ -29,21 +26,33 @@ export interface HandlerClipPlaneDependencies {
   refreshOutliner: () => void;
   updateShadingMeshes: () => void;
   onToolStateChanged: () => void;
+  keyboardShortcutMatches: (event: KeyboardEvent, action: KeyboardShortcutAction) => boolean;
 }
 
-/** Coordinates clip plane point picking, preview, drag, and commit operations. */
+/** Point under the pointer with the placement context it was picked in. */
+interface ClipPlanePointerPick {
+  readonly point: THREE.Vector3;
+  readonly hint: ClipPlanePlacementHint;
+}
+
+/**
+ * Coordinates clip plane point picking, pointer preview, line drags, marker
+ * drags, keep-side cycling, keys and commits.
+ */
 export class HandlerClipPlane {
   private deps: HandlerClipPlaneDependencies;
   private pointPicker: ClipPlanePointPicker;
   private pointDrag: ClipPlanePointDrag;
   private preview: ClipPlanePreview;
-  private planeSplit: CsgPlaneSplit;
+  private commitRunner: ClipPlaneCommitRunner;
   private draggingPointIndex: number;
   private dragPlane: THREE.Plane | null;
   private dragCamera: THREE.Camera | null;
   private dragRenderer: HTMLElement | null;
-  private boundDragMove: ((event: PointerEvent) => void) | null;
-  private boundDragUp: ((event: PointerEvent) => void) | null;
+  private lineDrag: ClipPlaneLineDrag | null;
+  private pointerPick: ClipPlanePointerPick | null;
+  private hoveredMarkerIndex: number | null;
+  private placementMeshesCache: THREE.Mesh[] | null;
 
   /**
    * Creates a clip plane handler.
@@ -55,16 +64,17 @@ export class HandlerClipPlane {
     this.pointPicker = new ClipPlanePointPicker(deps.gridSnap);
     this.pointDrag = new ClipPlanePointDrag(deps.gridSnap);
     this.preview = new ClipPlanePreview();
-    this.planeSplit = new CsgPlaneSplit();
+    this.commitRunner = new ClipPlaneCommitRunner(deps);
     this.draggingPointIndex = -1;
     this.dragPlane = null;
     this.dragCamera = null;
     this.dragRenderer = null;
-    this.boundDragMove = null;
-    this.boundDragUp = null;
+    this.lineDrag = null;
+    this.pointerPick = null;
+    this.hoveredMarkerIndex = null;
+    this.placementMeshesCache = null;
     deps.worldObject.add(this.preview.getRoot());
-    deps.clipPlaneTool.setChangeCallback(() => this.onToolChanged());
-    deps.selectionManager.onSelectionChanged(() => this.onSelectionChangedWhileClipActive());
+    this.toolListenersAttach();
   }
 
   /**
@@ -89,18 +99,9 @@ export class HandlerClipPlane {
   }
 
   /**
-   * Scales placement markers for distance-based sizing with the given camera.
-   *
-   * @param camera Camera used for distance-based marker sizing.
-   */
-  updatePreviewScales(camera: THREE.Camera): void {
-    if (!this.deps.clipPlaneTool.isActive()) return;
-    this.preview.updateMarkerScalesForCamera(camera);
-  }
-
-  /**
    * Handles a viewport pointer-down while the clip tool is active. Grabs
-   * existing markers first; otherwise places a new point.
+   * existing markers first; otherwise places a new point. Placing point 1
+   * starts a line drag so press, drag and release places both points.
    *
    * @param event Pointer event.
    * @param camera Viewport camera.
@@ -110,7 +111,11 @@ export class HandlerClipPlane {
   onPointerDown(event: MouseEvent, camera: THREE.Camera, pickElement: HTMLElement): boolean {
     if (!this.deps.clipPlaneTool.isActive()) return false;
     if (this.tryBeginMarkerDrag(event, camera, pickElement)) return true;
-    return this.placeNewPoint(event, camera, pickElement);
+    this.placeNewPoint(event, camera, pickElement);
+    if (this.deps.clipPlaneTool.getPoints().length === 1) {
+      this.lineDrag = new ClipPlaneLineDrag(camera, pickElement, event.clientX, event.clientY);
+    }
+    return true;
   }
 
   /**
@@ -123,42 +128,70 @@ export class HandlerClipPlane {
   }
 
   /**
-   * Continues an active marker drag for the given pointer position.
+   * Returns whether the button is held for a marker drag or a line drag.
+   *
+   * @returns True while pointer moves belong to a drag.
+   */
+  isPointerDragActive(): boolean {
+    return this.isMarkerDragging() || this.lineDrag !== null;
+  }
+
+  /**
+   * Continues an active line drag or marker drag for the given pointer
+   * position.
    *
    * @param clientX Pointer client X.
    * @param clientY Pointer client Y.
    * @param shiftKey True when shift is held (disables snap).
    */
   onEditorPointerMove(clientX: number, clientY: number, shiftKey: boolean): void {
-    if (this.draggingPointIndex < 0) {
+    if (this.lineDrag) {
+      this.lineDragMove(this.lineDrag, clientX, clientY, shiftKey);
       return;
     }
-    if (!this.dragPlane || !this.dragCamera || !this.dragRenderer) {
-      return;
-    }
+    if (this.draggingPointIndex < 0 || !this.dragPlane || !this.dragCamera || !this.dragRenderer) return;
     const synthetic = this.createSyntheticMouseEvent(clientX, clientY, shiftKey);
-    const applySnap = !shiftKey;
     const point = this.pointDrag.projectOntoDragPlane(
       synthetic,
       this.dragCamera,
       this.dragRenderer,
       this.dragPlane,
-      applySnap,
+      !shiftKey,
     );
-    if (!point) {
-      return;
-    }
-    this.deps.clipPlaneTool.setPoint(this.draggingPointIndex, point);
+    if (point) this.deps.clipPlaneTool.setPoint(this.draggingPointIndex, point);
   }
 
   /**
-   * Ends an active marker drag.
+   * Ends an active line drag (placing point 2 when the pointer moved) or marker
+   * drag.
    *
    * @param syncViewports Whether to refresh viewport selectables and selection
    *   visuals.
    */
   onEditorPointerUp(syncViewports: boolean = true): void {
+    this.lineDragEnd();
     this.endMarkerDrag(syncViewports);
+  }
+
+  /**
+   * Updates the hover feedback for a pointer move without a held button: the
+   * marker under the pointer grows, and while exactly one point is placed the
+   * preview shows the cut a click here would make.
+   *
+   * @param event Pointer event (client position and Shift state).
+   * @param camera Camera of the pane under the pointer.
+   * @param pickElement Pick element of that pane.
+   */
+  onPointerHover(event: MouseEvent, camera: THREE.Camera, pickElement: HTMLElement): void {
+    const tool = this.deps.clipPlaneTool;
+    if (!tool.isActive() || this.isPointerDragActive()) return;
+    const points = tool.getPoints();
+    this.hoveredMarkerIndexSet(this.pointDrag.pickMarkerIndex(event, camera, pickElement, points));
+    if (points.length !== 1 || this.hoveredMarkerIndex !== null) {
+      tool.hoverPointSet(null);
+      return;
+    }
+    this.pointerPickUpdate(event, camera, pickElement);
   }
 
   /**
@@ -181,134 +214,138 @@ export class HandlerClipPlane {
     } as MouseEvent;
   }
 
-  /** Flips the keep side of the active plane. */
-  flipPlane(): void {
+  /** Moves to the next keep mode (Side A, Side B, Both) and reports it. */
+  keepModeCycle(): void {
     if (!this.deps.clipPlaneTool.isActive()) return;
-    this.deps.clipPlaneTool.flipKeepSide();
-    this.deps.showStatusMessage(
-      this.deps.clipPlaneTool.getKeepFront() ? 'Keep front half-space' : 'Keep back half-space',
-    );
+    this.deps.clipPlaneTool.keepModeCycle();
+    this.keepModeStatusShow();
   }
 
-  /** Commits a one-sided clip on all selected meshes and solid brushes. */
-  commitClip(): void {
+  /**
+   * Chooses which pieces the clip keeps and reports it.
+   *
+   * @param mode Keep mode to use.
+   */
+  keepModeSet(mode: ClipKeepMode): void {
+    if (!this.deps.clipPlaneTool.isActive()) return;
+    this.deps.clipPlaneTool.keepModeSet(mode);
+    this.keepModeStatusShow();
+  }
+
+  /** Applies the placed plane to the selection with the current keep mode. */
+  applyCut(): void {
     const plane = this.requireReadyPlane();
     if (!plane) return;
-    const targets = this.requireTargets();
-    if (!targets) return;
-    const results: THREE.Mesh[] = [];
-    let clippedCount = 0;
-    const keepFront = this.deps.clipPlaneTool.getKeepFront();
-    targets.forEach((mesh) => {
-      clippedCount += this.clipOneTarget(mesh, plane, keepFront, results) ? 1 : 0;
-    });
-    this.finishCommit(results, clippedCount, targets.length, 'Clipped');
-  }
-
-  /** Commits a split into two solids for each selected mesh or brush. */
-  commitSplit(): void {
-    const plane = this.requireReadyPlane();
-    if (!plane) return;
-    const targets = this.requireTargets();
-    if (!targets) return;
-    const results: THREE.Mesh[] = [];
-    let splitCount = 0;
-    targets.forEach((mesh) => {
-      splitCount += this.splitOneTarget(mesh, plane, results) ? 1 : 0;
-    });
-    this.finishCommit(results, splitCount, targets.length, 'Split');
+    this.commitRunner.apply(plane, this.deps.clipPlaneTool.keepModeRead());
   }
 
   /**
-   * Clips one mesh or solid brush into the keep half-space.
+   * Handles a key while the clip tool is active: the commit key applies the
+   * cut, and the side-cycle key or the clip tool key itself cycles the keep
+   * mode.
    *
-   * @param mesh Selected mesh target.
-   * @param plane Clip plane.
-   * @param keepFront Whether to keep the front half-space.
-   * @param results Accumulator for result meshes.
-   * @returns True when a clip was applied.
+   * @param event Keyboard event.
+   * @returns True when the key belonged to the clip tool.
    */
-  private clipOneTarget(mesh: THREE.Mesh, plane: THREE.Plane, keepFront: boolean, results: THREE.Mesh[]): boolean {
-    const brushResult = this.clipSolidBrushTarget(mesh, plane, keepFront);
-    if (brushResult) {
-      results.push(brushResult);
+  keyDownHandle(event: KeyboardEvent): boolean {
+    if (!this.deps.clipPlaneTool.isActive()) return false;
+    if (this.deps.keyboardShortcutMatches(event, 'clip_commit')) {
+      event.preventDefault();
+      this.applyCut();
       return true;
     }
-    if (SolidBrushVisual.isBrushObject(mesh)) return false;
-    const result = this.planeSplit.clipMeshToPlane(mesh, plane, keepFront);
-    if (!result) return false;
-    this.deps.commandStack.push(new CommandMeshClip(mesh, result, this.deps.worldObject));
-    results.push(result);
+    if (!this.keepModeCycleKeyIs(event)) return false;
+    event.preventDefault();
+    if (!event.repeat) this.keepModeCycle();
     return true;
-  }
-
-  /**
-   * Splits one mesh or solid brush into two halves.
-   *
-   * @param mesh Selected mesh target.
-   * @param plane Split plane.
-   * @param results Accumulator for result meshes.
-   * @returns True when a split was applied.
-   */
-  private splitOneTarget(mesh: THREE.Mesh, plane: THREE.Plane, results: THREE.Mesh[]): boolean {
-    const brushResults = this.splitSolidBrushTarget(mesh, plane);
-    if (brushResults) {
-      results.push(...brushResults);
-      return true;
-    }
-    if (SolidBrushVisual.isBrushObject(mesh)) return false;
-    const split = this.planeSplit.splitMeshByPlane(mesh, plane);
-    if (!split) return false;
-    this.deps.commandStack.push(new CommandMeshSplit(mesh, split.frontMesh, split.backMesh, this.deps.worldObject));
-    results.push(split.frontMesh, split.backMesh);
-    return true;
-  }
-
-  /**
-   * Clips a solid brush target when the mesh belongs to a solid model.
-   *
-   * @param mesh Selected mesh.
-   * @param plane World clip plane.
-   * @param keepFront Keep front half-space.
-   * @returns Updated brush mesh, or null when not a brush / clip failed.
-   */
-  private clipSolidBrushTarget(mesh: THREE.Mesh, plane: THREE.Plane, keepFront: boolean): THREE.Mesh | null {
-    if (!SolidBrushVisual.isBrushObject(mesh)) return null;
-    const model = SolidModel.fromObject(mesh);
-    const brush = model?.findBrushByMesh(mesh);
-    if (!model || !brush) return null;
-    const command = new CommandSolidBrushClip(model, brush.id, plane, keepFront);
-    command.execute();
-    if (!command.didClip()) return null;
-    this.deps.commandStack.recordExecuted(command);
-    const updated = model.findBrush(brush.id);
-    return updated?.mesh ?? null;
-  }
-
-  /**
-   * Splits a solid brush target into two brush pieces.
-   *
-   * @param mesh Selected mesh.
-   * @param plane World split plane.
-   * @returns Result meshes, or null when not a brush / split failed.
-   */
-  private splitSolidBrushTarget(mesh: THREE.Mesh, plane: THREE.Plane): THREE.Mesh[] | null {
-    if (!SolidBrushVisual.isBrushObject(mesh)) return null;
-    const model = SolidModel.fromObject(mesh);
-    const brush = model?.findBrushByMesh(mesh);
-    if (!model || !brush) return null;
-    const command = new CommandSolidBrushSplit(model, brush.id, plane);
-    command.execute();
-    if (!command.didSplit()) return null;
-    this.deps.commandStack.recordExecuted(command);
-    return command.getResultMeshes();
   }
 
   /** Cancels placement and deactivates the tool. */
   cancel(): void {
+    this.lineDrag = null;
     this.endMarkerDrag(false);
     this.deps.clipPlaneTool.deactivate();
     this.deps.showStatusMessage('Clip tool cancelled');
+  }
+
+  /** Subscribes to tool and selection changes. */
+  private toolListenersAttach(): void {
+    this.deps.clipPlaneTool.setChangeCallback(() => this.onToolChanged());
+    this.deps.clipPlaneTool.setPreviewChangeCallback(() => this.syncPreviewFromTool());
+    this.deps.selectionManager.onSelectionChanged(() => this.onSelectionChangedWhileClipActive());
+  }
+
+  /**
+   * Returns whether a key cycles the keep mode.
+   *
+   * @param event Keyboard event.
+   * @returns True for the side-cycle key and the clip tool key.
+   */
+  private keepModeCycleKeyIs(event: KeyboardEvent): boolean {
+    return (
+      this.deps.keyboardShortcutMatches(event, 'clip_side_cycle') ||
+      this.deps.keyboardShortcutMatches(event, 'tool_clip')
+    );
+  }
+
+  /** Shows the keep mode in the status bar. */
+  private keepModeStatusShow(): void {
+    const tool = this.deps.clipPlaneTool;
+    const message = tool.isPlaneReady()
+      ? tool.getStatusMessage()
+      : `Clip: the cut keeps ${clipKeepModeLabel(tool.keepModeRead())}`;
+    this.deps.showStatusMessage(message);
+  }
+
+  /**
+   * Stores which marker is under the pointer and redraws when it changed.
+   *
+   * @param index Marker index under the pointer, or null.
+   */
+  private hoveredMarkerIndexSet(index: number | null): void {
+    if (this.hoveredMarkerIndex === index) return;
+    this.hoveredMarkerIndex = index;
+    this.syncPreviewFromTool();
+  }
+
+  /**
+   * Picks the point under the pointer and shows it as the pointer preview.
+   *
+   * @param event Pointer event.
+   * @param camera Viewport camera.
+   * @param pickElement Viewport pickElement.
+   */
+  private pointerPickUpdate(event: MouseEvent, camera: THREE.Camera, pickElement: HTMLElement): void {
+    const pick = this.pickPlacementPoint(event, camera, pickElement);
+    this.pointerPick = pick
+      ? { point: pick.point, hint: createClipPlanePlacementHint(camera, pick.surfaceNormal) }
+      : null;
+    this.deps.clipPlaneTool.hoverPointSet(this.pointerPick?.point ?? null, this.pointerPick?.hint ?? null);
+  }
+
+  /**
+   * Drags out point 2 of a line drag once the pointer left the press spot.
+   *
+   * @param lineDrag Active line drag.
+   * @param clientX Pointer client X.
+   * @param clientY Pointer client Y.
+   * @param shiftKey True when shift is held (disables snap).
+   */
+  private lineDragMove(lineDrag: ClipPlaneLineDrag, clientX: number, clientY: number, shiftKey: boolean): void {
+    if (!lineDrag.pointerMove(clientX, clientY)) return;
+    const event = this.createSyntheticMouseEvent(clientX, clientY, shiftKey);
+    this.pointerPickUpdate(event, lineDrag.camera, lineDrag.pickElement);
+  }
+
+  /** Ends a line drag and places point 2 where a real drag was released. */
+  private lineDragEnd(): void {
+    const lineDrag = this.lineDrag;
+    this.lineDrag = null;
+    if (!lineDrag?.isDragged() || !this.pointerPick) return;
+    const pick = this.pointerPick;
+    this.pointerPick = null;
+    this.deps.clipPlaneTool.addPoint(pick.point, pick.hint);
+    this.deps.showStatusMessage(this.deps.clipPlaneTool.getStatusMessage());
   }
 
   /**
@@ -322,8 +359,9 @@ export class HandlerClipPlane {
   private tryBeginMarkerDrag(event: MouseEvent, camera: THREE.Camera, pickElement: HTMLElement): boolean {
     const points = this.deps.clipPlaneTool.getPoints();
     const index = this.pointDrag.pickMarkerIndex(event, camera, pickElement, points);
-    if (index === null) return false;
-    this.beginMarkerDrag(index, points[index]!, camera, pickElement);
+    const point = index === null ? undefined : points[index];
+    if (index === null || !point) return false;
+    this.beginMarkerDrag(index, point, camera, pickElement);
     return true;
   }
 
@@ -351,15 +389,7 @@ export class HandlerClipPlane {
    *   visuals.
    */
   private endMarkerDrag(syncViewports: boolean): void {
-    if (this.boundDragMove) {
-      window.removeEventListener('pointermove', this.boundDragMove);
-    }
-    if (this.boundDragUp) {
-      window.removeEventListener('pointerup', this.boundDragUp);
-    }
     const wasDragging = this.draggingPointIndex >= 0;
-    this.boundDragMove = null;
-    this.boundDragUp = null;
     this.draggingPointIndex = -1;
     this.dragPlane = null;
     this.dragCamera = null;
@@ -371,28 +401,61 @@ export class HandlerClipPlane {
   }
 
   /**
-   * Places a new clip point from a mesh or ground hit.
+   * Places a new clip point from a view-plane, mesh or ground hit.
    *
    * @param event Pointer event.
    * @param camera Viewport camera.
    * @param pickElement Viewport pickElement.
-   * @returns True (event always consumed while tool is active).
    */
-  private placeNewPoint(event: MouseEvent, camera: THREE.Camera, pickElement: HTMLElement): boolean {
-    const meshes = this.collectWorldMeshes();
-    const pick = this.pointPicker.pickPoint(event, camera, pickElement, meshes);
+  private placeNewPoint(event: MouseEvent, camera: THREE.Camera, pickElement: HTMLElement): void {
+    const pick = this.pickPlacementPoint(event, camera, pickElement);
     if (!pick) {
       this.deps.showStatusMessage('Click a mesh or the ground plane');
-      return true;
+      return;
     }
     const placementHint = createClipPlanePlacementHint(camera, pick.surfaceNormal);
     this.deps.clipPlaneTool.addPoint(pick.point, placementHint);
     this.deps.showStatusMessage(this.deps.clipPlaneTool.getStatusMessage());
-    return true;
+  }
+
+  /**
+   * Picks a placement point under the pointer.
+   *
+   * @param event Pointer event.
+   * @param camera Viewport camera.
+   * @param pickElement Viewport pickElement.
+   * @returns Pick result, or null when nothing was hit.
+   */
+  private pickPlacementPoint(
+    event: MouseEvent,
+    camera: THREE.Camera,
+    pickElement: HTMLElement,
+  ): ClipPlanePickResult | null {
+    return this.pointPicker.pickPoint(
+      event,
+      camera,
+      pickElement,
+      this.placementMeshesRead(),
+      this.viewPlaneAnchorRead(),
+    );
+  }
+
+  /**
+   * Returns the point 2D view picks pass through: the selection center, else
+   * point 1, else the world origin.
+   *
+   * @returns World anchor point.
+   */
+  private viewPlaneAnchorRead(): THREE.Vector3 {
+    const bounds = new THREE.Box3();
+    this.collectClipPreviewTargets().forEach((mesh) => bounds.expandByObject(mesh));
+    if (!bounds.isEmpty()) return bounds.getCenter(new THREE.Vector3());
+    return this.deps.clipPlaneTool.getPoints()[0] ?? new THREE.Vector3();
   }
 
   /** Syncs preview visuals after tool state changes. */
   private onToolChanged(): void {
+    this.placementMeshesCache = null;
     this.syncPreviewFromTool();
     this.deps.onToolStateChanged();
     if (this.draggingPointIndex < 0) {
@@ -406,15 +469,16 @@ export class HandlerClipPlane {
    */
   private onSelectionChangedWhileClipActive(): void {
     if (!this.deps.clipPlaneTool.isActive()) return;
+    this.placementMeshesCache = null;
     this.syncPreviewFromTool();
   }
 
   /**
-   * Rebuilds clip preview markers, guide line, and cut silhouettes from the
-   * tool and the current selected mesh targets.
+   * Rebuilds clip preview markers, sheet, pieces and arrows from the tool and
+   * the current selected mesh targets.
    */
   private syncPreviewFromTool(): void {
-    this.preview.syncFromTool(this.deps.clipPlaneTool, this.collectClipPreviewTargets());
+    this.preview.syncFromTool(this.deps.clipPlaneTool, this.collectClipPreviewTargets(), this.hoveredMarkerIndex);
   }
 
   /**
@@ -443,53 +507,14 @@ export class HandlerClipPlane {
   }
 
   /**
-   * Returns selected meshes or shows status and null.
+   * Returns the meshes points can be placed on, collected once per placement
+   * step so pointer moves do not walk the whole world each time.
    *
-   * @returns Selected meshes or null.
+   * @returns Mesh list.
    */
-  private requireTargets(): THREE.Mesh[] | null {
-    const targets = this.deps.selectionManager.getAllSelectedObjectsAsArray();
-    if (targets.length === 0) {
-      this.deps.showStatusMessage('Select a mesh to clip');
-      return null;
-    }
-    return targets;
-  }
-
-  /**
-   * Finalizes selection, viewport sync, outliner refresh, shading update, and
-   * status after a successful commit batch. Resets plane placement for another
-   * cut without deactivating the tool.
-   *
-   * @param results Created or updated meshes.
-   * @param successCount Meshes that produced results.
-   * @param totalCount Attempted targets.
-   * @param verb Status verb (Clipped / Split).
-   */
-  private finishCommit(results: THREE.Mesh[], successCount: number, totalCount: number, verb: string): void {
-    if (successCount === 0) {
-      this.deps.showStatusMessage('Plane does not cut the selection');
-      return;
-    }
-    this.deps.modalToolSessionRegistry.runWithSelectionEndSuppressed(() => {
-      this.selectCommitResults(results);
-    });
-    this.deps.clipPlaneTool.resetPlacementForNextCut();
-    this.deps.syncPrimitivesToViewports();
-    this.deps.refreshOutliner();
-    this.deps.updateShadingMeshes();
-    this.deps.showStatusMessage(`${verb} ${successCount}/${totalCount} · place points to cut again`);
-  }
-
-  /**
-   * Selects the meshes produced by a clip or split commit.
-   *
-   * @param results Candidate result meshes (nullish entries ignored).
-   */
-  private selectCommitResults(results: THREE.Mesh[]): void {
-    const selectable = results.filter((mesh) => mesh instanceof THREE.Mesh && mesh.parent !== null);
-    if (selectable.length === 0) return;
-    this.deps.selectionManager.setSelection(selectable);
+  private placementMeshesRead(): THREE.Mesh[] {
+    if (!this.placementMeshesCache) this.placementMeshesCache = this.collectWorldMeshes();
+    return this.placementMeshesCache;
   }
 
   /**

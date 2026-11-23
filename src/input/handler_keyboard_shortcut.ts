@@ -22,7 +22,6 @@ import {
 } from './handler_keyboard_shortcut_types.js';
 import {
   handlerKeyboardShortcutDispatchToolKeys,
-  handlerKeyboardShortcutHandleClipPlaneKeys,
   handlerKeyboardShortcutHandleDuplicateKey,
   handlerKeyboardShortcutHandleEscapeKey,
   handlerKeyboardShortcutHandleFileKeys,
@@ -82,11 +81,7 @@ export class HandlerKeyboardShortcut {
   private onSnapIntervalForward: ActionCallback | null;
   private onSnapIntervalBackward: ActionCallback | null;
   private onExtrudeFaces: ActionCallback | null;
-  private onClipFlip: ActionCallback | null;
-  private onClipCommit: ActionCallback | null;
-  private onClipSplit: ActionCallback | null;
   private onEscape: ActionCallback | null;
-  private isClipToolActive: (() => boolean) | null;
   private isEditModeActive: (() => boolean) | null;
   private isNavigationActive: NavigationActiveCallback | null;
   /**
@@ -175,11 +170,7 @@ export class HandlerKeyboardShortcut {
     this.onSnapIntervalForward = null;
     this.onSnapIntervalBackward = null;
     this.onExtrudeFaces = null;
-    this.onClipFlip = null;
-    this.onClipCommit = null;
-    this.onClipSplit = null;
     this.onEscape = null;
-    this.isClipToolActive = null;
     this.isEditModeActive = null;
     this.isNavigationActive = null;
     this.onModalTransformKeyDown = null;
@@ -306,9 +297,6 @@ export class HandlerKeyboardShortcut {
       return false;
     }
     if (this.registeredActionDispatch(event)) {
-      return true;
-    }
-    if (handlerKeyboardShortcutHandleClipPlaneKeys(host, event)) {
       return true;
     }
     handlerKeyboardShortcutDispatchToolKeys(host, event);
@@ -569,28 +557,6 @@ export class HandlerKeyboardShortcut {
   }
 
   /**
-   * Registers clip plane tool keyboard actions and an active-tool guard.
-   *
-   * @param isActive Returns true while the clip plane tool should own keys.
-   * @param onFlip Flip keep side callback.
-   * @param onCommit Clip keep callback.
-   * @param onSplit Split callback.
-   * @param onCancel Cancel callback.
-   */
-  setClipPlaneShortcuts(
-    isActive: () => boolean,
-    onFlip: ActionCallback,
-    onCommit: ActionCallback,
-    onSplit: ActionCallback,
-    _onCancel: ActionCallback,
-  ): void {
-    this.isClipToolActive = isActive;
-    this.onClipFlip = onFlip;
-    this.onClipCommit = onCommit;
-    this.onClipSplit = onSplit;
-  }
-
-  /**
    * Registers the main-window keydown listener for all keyboard shortcuts.
    * Detached popups should also call {@link registerOnWindow}.
    */
@@ -715,11 +681,7 @@ export class HandlerKeyboardShortcut {
       onSnapIntervalForward: this.onSnapIntervalForward,
       onSnapIntervalBackward: this.onSnapIntervalBackward,
       onExtrudeFaces: this.onExtrudeFaces,
-      onClipFlip: this.onClipFlip,
-      onClipCommit: this.onClipCommit,
-      onClipSplit: this.onClipSplit,
       onEscape: this.onEscape,
-      isClipToolActive: this.isClipToolActive,
       isEditModeActive: this.isEditModeActive,
     };
   }
@@ -742,6 +704,19 @@ export class HandlerKeyboardShortcut {
    */
   private runSnapIntervalAction(action: ActionCallback): void {
     for (let stepIndex = 0; stepIndex < 3; stepIndex++) action();
+  }
+
+  /**
+   * Returns whether a keyboard event matches the configured shortcut of an
+   * action or one of the bindings the platform key map adds for it. Lets tools
+   * that own the keyboard while busy honor the user's key settings.
+   *
+   * @param event Keyboard event to compare.
+   * @param action Configured action identifier.
+   * @returns True when the key and modifier state match one binding exactly.
+   */
+  shortcutMatches(event: KeyboardEvent, action: KeyboardShortcutAction): boolean {
+    return this.matchesShortcut(event, action);
   }
 
   /**

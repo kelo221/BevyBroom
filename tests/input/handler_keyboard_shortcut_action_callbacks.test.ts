@@ -108,14 +108,14 @@ describe('HandlerKeyboardShortcut registered action callbacks', () => {
 
   it('runs another action bound to the same key when the first one is unavailable', () => {
     const defaults = createDefaultKeyboardShortcutSettings();
-    expect(defaults.clip_flip).toEqual(defaults.fit_selection);
-    const unavailableClipFlip = vi.fn();
-    const fitSelection = vi.fn();
-    handler.actionCallbackSet('clip_flip', unavailableClipFlip, () => false);
-    handler.actionCallbackSet('fit_selection', fitSelection);
-    const event = defaultShortcutPress('fit_selection');
-    expect(unavailableClipFlip).not.toHaveBeenCalled();
-    expect(fitSelection).toHaveBeenCalledOnce();
+    expect(defaults.clip_side_cycle).toEqual(defaults.interaction_mode);
+    const unavailableClipSideCycle = vi.fn();
+    const interactionMode = vi.fn();
+    handler.actionCallbackSet('clip_side_cycle', unavailableClipSideCycle, () => false);
+    handler.actionCallbackSet('interaction_mode', interactionMode);
+    const event = defaultShortcutPress('interaction_mode');
+    expect(unavailableClipSideCycle).not.toHaveBeenCalled();
+    expect(interactionMode).toHaveBeenCalledOnce();
     expect(event.defaultPrevented).toBe(true);
   });
 

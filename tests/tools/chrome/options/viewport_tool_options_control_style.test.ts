@@ -41,9 +41,8 @@ describe('viewport tool options control sizing', () => {
     document.body.appendChild(host);
     const bar = new ViewportToolOptionsBar(host, {
       onTransformMode: () => undefined,
-      onFlipClipPlane: () => undefined,
-      onCommitClip: () => undefined,
-      onCommitSplit: () => undefined,
+      onClipKeepModeSet: () => undefined,
+      onClipApply: () => undefined,
       faceInspectorReveal: () => undefined,
       onExtrudeFaces: () => undefined,
       onGridReset: () => undefined,
