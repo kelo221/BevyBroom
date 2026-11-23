@@ -63,8 +63,11 @@ const CLASS_FILE = 'broom/e2e-entity-classes.json';
 /** An old category name and the name the class file renames it to. */
 const [ZONE_OLD_CATEGORY = '', ZONE_RENAMED_CATEGORY = ''] = Object.entries(TEST_SHELF_RUN_RENAMES)[0] ?? [];
 
+/** Current category names other than the renamed one, last first. */
+const ZONE_OTHER_CATEGORIES = TEST_SHELF_RUN_VARIANTS.filter((variant) => variant !== ZONE_RENAMED_CATEGORY).reverse();
+
 /** Categories the zone holds, in order, the old name in the middle. */
-const ZONE_CATEGORIES = [TEST_SHELF_RUN_VARIANTS.at(-1) ?? '', ZONE_OLD_CATEGORY, TEST_SHELF_RUN_VARIANTS[0] ?? ''];
+const ZONE_CATEGORIES = [ZONE_OTHER_CATEGORIES[0] ?? '', ZONE_OLD_CATEGORY, ZONE_OTHER_CATEGORIES[1] ?? ''];
 
 /** The Add > Box crate outside the room, and the game component it carries. */
 const CRATE_SIZE = new THREE.Vector3(1, 0.5, 0.75);

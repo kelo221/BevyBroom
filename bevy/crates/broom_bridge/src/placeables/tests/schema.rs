@@ -434,11 +434,11 @@ fn class_list_fixture_reads_enum_list_fields() {
         .expect("an enum list field");
     let default = field.default.as_array().expect("the default is a list");
     assert!(!default.is_empty());
-    assert!(
-        default
-            .iter()
-            .all(|entry| entry.as_str().is_some_and(|name| field.variants.iter().any(|variant| variant == name)))
-    );
+    assert!(default.iter().all(|entry| {
+        entry
+            .as_str()
+            .is_some_and(|name| field.variants.iter().any(|variant| variant == name))
+    }));
     assert!(
         field
             .renamed_variants
