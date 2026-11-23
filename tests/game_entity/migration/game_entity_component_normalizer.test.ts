@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { GameEntityClass, GameEntityField } from '@/game_entity/class/game_entity_class_schema.js';
 import { GameEntityComponentNormalizer } from '@/game_entity/migration/game_entity_component_normalizer.js';
+import {
+  TEST_SHELF_RUN_LIST_PATH,
+  TEST_SHELF_RUN_RENAMES,
+  TEST_SHELF_RUN_TYPE_PATH,
+  TEST_SHELF_RUN_VARIANTS,
+  testShelfRunClassCreate,
+} from '../game_entity_test_class_enum_list.js';
 
 /** Old type path of the shelf class, renamed into the stock fixture. */
 const OLD_SHELF = 'store::Shelf';
@@ -135,5 +142,41 @@ describe('GameEntityComponentNormalizer', () => {
   it('keeps components of unknown classes as they are and leaves current components alone', () => {
     const components = { 'other::Thing': { size: 3 }, [STOCK_FIXTURE]: { fixture: 'big-fridge' } };
     expect(normalizer.normalize(components)).toEqual({ components, rewrites: [] });
+  });
+});
+
+/**
+ * Enum list fields rename each old entry, keep their order, collapse entries
+ * renames make equal and get their default written in when left out.
+ */
+describe('GameEntityComponentNormalizer enum lists', () => {
+  const shelfRun = testShelfRunClassCreate();
+  const normalizer = new GameEntityComponentNormalizer([shelfRun], []);
+  const [oldName = '', newName = ''] = Object.entries(TEST_SHELF_RUN_RENAMES)[0] ?? [];
+  const kept = TEST_SHELF_RUN_VARIANTS.find((variant) => variant !== newName) ?? '';
+
+  it('renames every old entry in place and names the change', () => {
+    const result = normalizer.normalize({
+      [TEST_SHELF_RUN_TYPE_PATH]: { [TEST_SHELF_RUN_LIST_PATH]: [kept, oldName] },
+    });
+    expect(result.components[TEST_SHELF_RUN_TYPE_PATH]?.[TEST_SHELF_RUN_LIST_PATH]).toEqual([kept, newName]);
+    expect(result.rewrites.map((rewrite) => rewrite.kind)).toEqual(['variant']);
+    expect(result.rewrites[0]?.description).toContain(newName);
+  });
+
+  it('keeps the first of two entries a rename makes equal', () => {
+    const result = normalizer.normalize({
+      [TEST_SHELF_RUN_TYPE_PATH]: { [TEST_SHELF_RUN_LIST_PATH]: [newName, kept, oldName] },
+    });
+    expect(result.components[TEST_SHELF_RUN_TYPE_PATH]?.[TEST_SHELF_RUN_LIST_PATH]).toEqual([newName, kept]);
+  });
+
+  it('writes in the default list when left out and leaves current lists alone', () => {
+    const filled = normalizer.normalize({ [TEST_SHELF_RUN_TYPE_PATH]: {} });
+    const listField = shelfRun.fields.find((field) => field.path === TEST_SHELF_RUN_LIST_PATH);
+    expect(filled.components[TEST_SHELF_RUN_TYPE_PATH]?.[TEST_SHELF_RUN_LIST_PATH]).toEqual(listField?.default);
+    expect(filled.rewrites.map((rewrite) => rewrite.kind)).toEqual(['default']);
+    const current = { [TEST_SHELF_RUN_TYPE_PATH]: { [TEST_SHELF_RUN_LIST_PATH]: [kept], blocked: true } };
+    expect(normalizer.normalize(current)).toEqual({ components: current, rewrites: [] });
   });
 });

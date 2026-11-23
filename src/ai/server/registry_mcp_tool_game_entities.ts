@@ -1,7 +1,7 @@
 import { emptySchema, tool, vec3Schema, type McpToolDefinition } from './registry_mcp_tool_helpers.js';
 
 const FIELD_VALUES_DESCRIPTION =
-  'Field path to value, in the normalized form: numbers, booleans and strings as is, vectors as arrays, colors as sRGB [r,g,b,a] arrays, enums as the variant name, asset fields as the asset path (null for none), property maps as objects of string, number or boolean.';
+  'Field path to value, in the normalized form: numbers, booleans and strings as is, vectors as arrays, colors as sRGB [r,g,b,a] arrays, enums as the variant name, enum lists as an ordered array of distinct variant names, asset fields as the asset path (null for none), property maps as objects of string, number or boolean.';
 
 /**
  * Tools that list the game's component classes, place game entities, edit the

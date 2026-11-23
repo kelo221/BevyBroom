@@ -418,3 +418,35 @@ fn collision_kind_is_described_with_its_options() {
     assert!(properties.get("collision").is_none());
     let _ = TestZone::default().lap;
 }
+
+/// Enum list fields carry an ordered list of distinct variant names as their default; the shared
+/// fixture's shelf run reads with its kind, default, variants and renames, and survives a round
+/// trip as snake case.
+#[test]
+fn class_list_fixture_reads_enum_list_fields() {
+    let json = include_str!("../../../../../fixtures/placeable_classes_sample.json");
+    let list: PlaceableClassList = serde_json::from_str(json).expect("the fixture parses");
+    let field = list
+        .classes
+        .iter()
+        .flat_map(|class| class.fields.iter())
+        .find(|field| field.kind == PlaceableFieldKind::EnumList)
+        .expect("an enum list field");
+    let default = field.default.as_array().expect("the default is a list");
+    assert!(!default.is_empty());
+    assert!(
+        default
+            .iter()
+            .all(|entry| entry.as_str().is_some_and(|name| field.variants.iter().any(|variant| variant == name)))
+    );
+    assert!(
+        field
+            .renamed_variants
+            .values()
+            .all(|renamed| field.variants.contains(renamed))
+    );
+    assert_eq!(
+        serde_json::to_value(field.kind).expect("serializes"),
+        json!("enum_list")
+    );
+}

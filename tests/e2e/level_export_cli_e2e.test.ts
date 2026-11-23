@@ -23,6 +23,13 @@ import { PreviewE2eGameProcess, previewE2eProjectCopy, previewE2eProjectRemove }
 import { previewE2eSleep } from './preview_e2e_rig.js';
 import { e2eWindowsShownRead, previewE2eEnvironmentRead } from './preview_e2e_environment.js';
 import { previewE2eEntityRowsQuery } from './preview_e2e_game_query.js';
+import {
+  TEST_SHELF_RUN_LIST_PATH,
+  TEST_SHELF_RUN_RENAMES,
+  TEST_SHELF_RUN_TYPE_PATH,
+  TEST_SHELF_RUN_VARIANTS,
+  testShelfRunClassJson,
+} from '../game_entity/game_entity_test_class_enum_list.js';
 
 /**
  * End-to-end acceptance of the command-line level export: a level document in a
@@ -30,10 +37,11 @@ import { previewE2eEntityRowsQuery } from './preview_e2e_game_query.js';
  * scripts/level_export.ts`, twice with the same bytes, `--check` passes, the
  * collision pieces are the room's walls with nothing inside it, a volume is in
  * the collision but not drawn, an Add > Box crate with a game component is one
- * piece of its kind, a turned spawn keeps its rotation, and the game loads the
- * exported level with `--level` and shows the room. Skipped unless
- * BROOM_E2E_PREVIEW_EXE and BROOM_E2E_PROJECT_DIR are set; its game listens
- * thirty ports above BROOM_E2E_PORT.
+ * piece of its kind, the volume's enum list from the project's class file keeps
+ * its order with old names renamed, a turned spawn keeps its rotation, and the
+ * game loads the exported level with `--level` and shows the room. Skipped
+ * unless BROOM_E2E_PREVIEW_EXE and BROOM_E2E_PROJECT_DIR are set; its game
+ * listens thirty ports above BROOM_E2E_PORT.
  */
 const environment = previewE2eEnvironmentRead(30);
 const STEP_TIMEOUT_MILLISECONDS = 60000;
@@ -46,18 +54,31 @@ const OUTER = new THREE.Box3(new THREE.Vector3(-4, 0, -3), new THREE.Vector3(4, 
 const ROOM = new THREE.Box3(new THREE.Vector3(-3.5, 0.25, -2.5), new THREE.Vector3(3.5, 2.75, 2.5));
 const ZONE = new THREE.Box3(new THREE.Vector3(1, 0.25, 1), new THREE.Vector3(2, 1.25, 2));
 
+/**
+ * Class file the project copy declares, holding the enum list class the zone
+ * carries.
+ */
+const CLASS_FILE = 'broom/e2e-entity-classes.json';
+
+/** An old category name and the name the class file renames it to. */
+const [ZONE_OLD_CATEGORY = '', ZONE_RENAMED_CATEGORY = ''] = Object.entries(TEST_SHELF_RUN_RENAMES)[0] ?? [];
+
+/** Categories the zone holds, in order, the old name in the middle. */
+const ZONE_CATEGORIES = [TEST_SHELF_RUN_VARIANTS.at(-1) ?? '', ZONE_OLD_CATEGORY, TEST_SHELF_RUN_VARIANTS[0] ?? ''];
+
 /** The Add > Box crate outside the room, and the game component it carries. */
 const CRATE_SIZE = new THREE.Vector3(1, 0.5, 0.75);
 const CRATE_POSITION = new THREE.Vector3(7, 0.25, 0);
 const CRATE_COMPONENT = 'e2e_game::Pushable';
 
 /**
- * Builds the level: a room carved out of a block, a volume zone, a turned Add >
- * Box crate with a game component and a turned spawn point.
+ * Builds the level: a room carved out of a block, a volume zone holding an enum
+ * list, a turned Add > Box crate with a game component and a turned spawn
+ * point.
  *
- * @returns World, spawn and crate.
+ * @returns World, spawn, crate and zone.
  */
-function levelWorldCreate(): { world: THREE.Group; spawn: THREE.Group; crate: THREE.Mesh } {
+function levelWorldCreate(): { world: THREE.Group; spawn: THREE.Group; crate: THREE.Mesh; zone: THREE.Object3D } {
   const world = new THREE.Group();
   const room = collisionTestModelCreate([
     { box: OUTER, operation: SolidOperation.Additive },
@@ -65,6 +86,9 @@ function levelWorldCreate(): { world: THREE.Group; spawn: THREE.Group; crate: TH
   ]);
   const zone = collisionTestModelCreate([{ box: ZONE, operation: SolidOperation.Additive }]);
   CollisionKindStore.overrideWrite(zone.root, 'volume');
+  GameEntityComponentStore.write(zone.root, {
+    [TEST_SHELF_RUN_TYPE_PATH]: { [TEST_SHELF_RUN_LIST_PATH]: ZONE_CATEGORIES },
+  });
   const spawn = GameEntityOwner.createDefault('Spawn');
   spawn.position.set(-2, 0.25, 0);
   spawn.rotation.set(0, Math.PI / 3, 0);
@@ -76,7 +100,20 @@ function levelWorldCreate(): { world: THREE.Group; spawn: THREE.Group; crate: TH
   GameEntityComponentStore.write(crate, { [CRATE_COMPONENT]: { mass: 5 } });
   world.add(room.root, zone.root, spawn, crate);
   world.updateMatrixWorld(true);
-  return { world, spawn, crate };
+  return { world, spawn, crate, zone: zone.root };
+}
+
+/**
+ * Declares the enum list test class in a class file of the project copy and
+ * names that file in the copy's project file.
+ *
+ * @param projectDirectory Project copy.
+ */
+function projectClassFileWrite(projectDirectory: string): void {
+  writeFileSync(join(projectDirectory, CLASS_FILE), JSON.stringify({ classes: [testShelfRunClassJson()] }));
+  const projectFile = join(projectDirectory, 'broom.project.json');
+  const project = JSON.parse(readFileSync(projectFile, 'utf8')) as Record<string, unknown>;
+  writeFileSync(projectFile, JSON.stringify({ ...project, entity_classes: CLASS_FILE }, null, 2));
 }
 
 /**
@@ -121,13 +158,16 @@ describe.skipIf(!environment.isConfigured)('command-line level export end to end
   let levelDirectory = '';
   let spawn: THREE.Group;
   let crate: THREE.Mesh;
+  let zone: THREE.Object3D;
 
   beforeAll(() => {
     projectDirectory = previewE2eProjectCopy(environment.sourceProjectDirectory);
     const level = levelWorldCreate();
     spawn = level.spawn;
     crate = level.crate;
+    zone = level.zone;
     mkdirSync(join(projectDirectory, 'broom/documents'), { recursive: true });
+    projectClassFileWrite(projectDirectory);
     writeFileSync(
       join(projectDirectory, 'broom/documents', `${LEVEL_ID}.json`),
       JSON.stringify(new SceneSerializer().serialize(level.world)),
@@ -201,6 +241,25 @@ describe.skipIf(!environment.isConfigured)('command-line level export end to end
       corners.forEach((corner) => {
         const beyond = corner.clone().sub(CRATE_POSITION).multiplyScalar(1.05).add(CRATE_POSITION);
         expect(collisionTestPieceContains(piece, beyond)).toBe(false);
+      });
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'writes the zone’s enum list in its order with the old category renamed, as the class file declares',
+    () => {
+      const collision = JSON.parse(
+        readFileSync(join(levelDirectory, COLLISION_FILE_NAME), 'utf8'),
+      ) as CollisionDocument;
+      const pieces = collision.pieces.filter((piece) => piece.object_id === zone.uuid);
+      expect(pieces.length).toBeGreaterThan(0);
+      const expected = ZONE_CATEGORIES.map((category) =>
+        category === ZONE_OLD_CATEGORY ? ZONE_RENAMED_CATEGORY : category,
+      );
+      pieces.forEach((piece) => {
+        expect(piece.kind).toBe('volume');
+        expect(piece.components[TEST_SHELF_RUN_TYPE_PATH]?.[TEST_SHELF_RUN_LIST_PATH]).toEqual(expected);
       });
     },
     STEP_TIMEOUT_MILLISECONDS,

@@ -29,9 +29,51 @@ export function gameEntityFieldValueFromUnknown(value: unknown): PreviewFieldVal
     return Number.isFinite(value) ? value : undefined;
   }
   if (Array.isArray(value)) {
-    return gameEntityNumberListIs(value) ? [...value] : undefined;
+    return gameEntityListFromUnknown(value);
   }
   return gameEntityPropertyMapFromUnknown(value) ?? undefined;
+}
+
+/**
+ * Copies an untrusted list that is all finite numbers or all text.
+ *
+ * @param values Any list.
+ * @returns Copied list, or undefined when it mixes kinds or holds other values.
+ *   An empty list reads as an empty number list.
+ */
+function gameEntityListFromUnknown(values: readonly unknown[]): PreviewFieldValue | undefined {
+  if (gameEntityNumberListIs(values)) {
+    return [...values];
+  }
+  return gameEntityTextListIs(values) ? [...values] : undefined;
+}
+
+/**
+ * Returns whether every entry of a list is text.
+ *
+ * @param values Candidate list.
+ * @returns True for lists of strings.
+ */
+export function gameEntityTextListIs(values: readonly unknown[]): values is string[] {
+  return values.every((entry) => typeof entry === 'string');
+}
+
+/**
+ * Returns a value that fits an enum list field: distinct variant names in
+ * order.
+ *
+ * @param field Enum list field.
+ * @param value Candidate value.
+ * @returns Copied list, or undefined when the value is no list of text, holds
+ *   an entry twice or names a variant the field does not list.
+ */
+function gameEntityEnumListNormalize(field: PreviewPlaceableField, value: unknown): string[] | undefined {
+  if (!Array.isArray(value) || !gameEntityTextListIs(value) || new Set(value).size !== value.length) {
+    return undefined;
+  }
+  const variants = field.variants;
+  const allListed = variants === undefined || value.every((entry) => variants.includes(entry));
+  return allListed ? [...value] : undefined;
 }
 
 /** Coerces a candidate value into one that fits a field of one kind. */
@@ -45,6 +87,7 @@ const GAME_ENTITY_FIELD_NORMALIZERS: Partial<Record<PreviewPlaceableFieldKind, G
   text: (_field, value) => (typeof value === 'string' ? value : undefined),
   enum: (field, value) =>
     typeof value === 'string' && (field.variants ?? [value]).includes(value) ? value : undefined,
+  enum_list: gameEntityEnumListNormalize,
   asset: (_field, value) => (value === null || typeof value === 'string' ? value : undefined),
   property_map: (_field, value) => gameEntityPropertyMapFromUnknown(value) ?? undefined,
   vector2: (field, value) => gameEntityVectorNormalize(field.kind, value),
@@ -128,7 +171,7 @@ function gameEntityNumberClamp(field: PreviewPlaceableField, value: number): num
  * @param values Candidate list.
  * @returns True for lists of finite numbers.
  */
-function gameEntityNumberListIs(values: readonly unknown[]): values is number[] {
+export function gameEntityNumberListIs(values: readonly unknown[]): values is number[] {
   return values.every((entry) => typeof entry === 'number' && Number.isFinite(entry));
 }
 

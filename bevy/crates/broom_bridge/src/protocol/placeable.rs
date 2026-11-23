@@ -29,6 +29,9 @@ pub enum PlaceableFieldKind {
     Color,
     /// An enum whose variants carry no data; the value is the variant name.
     Enum,
+    /// An ordered list of distinct variant names of `variants`; the value is a JSON array of
+    /// strings.
+    EnumList,
     /// A `Handle` to an asset; the value is the asset path or null.
     Asset,
     /// A map of names to text, number or boolean values.
