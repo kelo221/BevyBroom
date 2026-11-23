@@ -162,7 +162,7 @@ impl PlaceableOptions {
 
     /// Draws the entries of the enum list field at `field_path` as equal bands on the floor of
     /// the editor's volume marker, in list order from the negative end of the volume's longer
-    /// local horizontal axis (X on a tie), each labelled with its number and variant label.
+    /// local horizontal axis (X on a tie within 0.0001 m), each labelled with its number and variant label.
     pub fn marker_runs_field(mut self, field_path: impl Into<String>) -> Self {
         self.marker_runs_field = Some(field_path.into());
         self

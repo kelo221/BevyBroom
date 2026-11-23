@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { GameEntityVisualVolumeRunLayout } from '@/game_entity/visual/volume/game_entity_visual_volume_run_layout.js';
+import {
+  GAME_ENTITY_VOLUME_RUN_AXIS_TIE_TOLERANCE,
+  GameEntityVisualVolumeRunLayout,
+} from '@/game_entity/visual/volume/game_entity_visual_volume_run_layout.js';
 
 /**
  * Returns bounds of the given size whose corner sits at an arbitrary offset, so
@@ -32,6 +35,24 @@ describe('GameEntityVisualVolumeRunLayout', () => {
 
   it('runs along local X when both horizontal extents are equal, whatever the height', () => {
     expect(GameEntityVisualVolumeRunLayout.axisOf(boundsOfSize(new THREE.Vector3(4, 20, 4)), UNIT_SCALE)).toBe('x');
+  });
+
+  it('runs a square aisle along local X, also when float noise makes X a hair shorter than Z', () => {
+    const side = 3;
+    const square = boundsOfSize(new THREE.Vector3(side, 2.5, side));
+    expect(GameEntityVisualVolumeRunLayout.axisOf(square, UNIT_SCALE)).toBe('x');
+    const shortByNoise = side - GAME_ENTITY_VOLUME_RUN_AXIS_TIE_TOLERANCE / 2;
+    const nearlySquare = boundsOfSize(new THREE.Vector3(shortByNoise, 2.5, side));
+    expect(GameEntityVisualVolumeRunLayout.axisOf(nearlySquare, UNIT_SCALE)).toBe('x');
+    const squareByScale = boundsOfSize(new THREE.Vector3(side * 0.1, 2.5, side));
+    expect(GameEntityVisualVolumeRunLayout.axisOf(squareByScale, new THREE.Vector3(10, 1, 1))).toBe('x');
+  });
+
+  it('runs along local Z once X is shorter than Z by more than the tie tolerance', () => {
+    const side = 3;
+    const shortByMore = side - GAME_ENTITY_VOLUME_RUN_AXIS_TIE_TOLERANCE * 2;
+    const bounds = boundsOfSize(new THREE.Vector3(shortByMore, 2.5, side));
+    expect(GameEntityVisualVolumeRunLayout.axisOf(bounds, UNIT_SCALE)).toBe('z');
   });
 
   it('measures the extents with the local scale applied', () => {

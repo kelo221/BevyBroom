@@ -160,7 +160,7 @@ The class file uses the same format the game bridge reports its classes in:
   lighter or darker shade of `marker_color`) and labelled with its number
   and variant label. **Run rule** (games stock by the same rule): the bands
   follow the volume's longer local horizontal axis, local X when its X extent
-  is at least its Z extent, else local Z, and the first band starts at that
+  is at least its Z extent less 0.0001 m (after scale), else local Z, and the first band starts at that
   axis's negative end in the volume's own space. The plan is drawn on the
   volume's floor and on its roof, so it reads from above and from inside,
   follows every edit and resize live, and is never picked, saved or exported.

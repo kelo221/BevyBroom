@@ -284,7 +284,7 @@ pub struct PlaceableClass {
     pub marker_hatched_when_true: Option<String>,
     /// The enum list field path whose entries a volume marker draws as equal floor bands, in
     /// list order from the negative end of the volume's longer local horizontal axis (X on a
-    /// tie).
+    /// tie within 0.0001 m, after scale).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub marker_runs_field: Option<String>,
     /// Type paths this class had before, with what an old component left out meant. The
