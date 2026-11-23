@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { entityVisualPartIs } from '@/entity/model/entity_owner_keys.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import type { UndoCommand } from '@/commands/command_undo.js';
+import { TextureAssignmentObjectHandlerRegistry } from '@/texture/assignment/texture_assignment_object_handler_registry.js';
 import { CommandTextureSurfaceAssign } from '@/texture/commands/command_texture_surface_assign.js';
 import { CommandTextureSolidBrushAssign } from '@/texture/commands/command_texture_solid_brush_assign.js';
 import { CommandTextureSolidFaceAssign } from '@/texture/commands/command_texture_solid_face_assign.js';
@@ -198,7 +199,8 @@ export class ControllerTextureAssignment {
   }
 
   /**
-   * Paints solid brushes or content meshes in the object selection.
+   * Paints solid brushes, objects that keep their texture in their settings, or
+   * content meshes in the object selection.
    *
    * @param meshes Current object selection.
    * @param entry Texture identity and display name.
@@ -209,12 +211,33 @@ export class ControllerTextureAssignment {
       this.assignSolidBrushTextures(solidBrushes, entry);
       return;
     }
+    if (this.assignSettingsObjects(meshes, entry)) {
+      return;
+    }
     const targets = this.collectContentObjectTargets(meshes);
     if (targets.length === 0) {
       this.statusCallback?.(`Paint texture: ${entry.displayName} (select faces, objects, or solid brushes)`);
       return;
     }
     this.assignTextureToTargets(targets, entry);
+  }
+
+  /**
+   * Gives the texture to selected objects that keep it in their settings, such
+   * as procedural objects.
+   *
+   * @param objects Current object selection.
+   * @param entry Texture identity and display name.
+   * @returns True when such objects were selected and got the texture.
+   */
+  private assignSettingsObjects(objects: readonly THREE.Object3D[], entry: TextureAssignmentChoice): boolean {
+    const change = TextureAssignmentObjectHandlerRegistry.changeBuild(objects, entry.id);
+    if (change === null) {
+      return false;
+    }
+    this.commandStack.push(change.command);
+    this.statusCallback?.(`Assigned ${entry.displayName} to ${change.objectCount} ${change.objectNoun}`);
+    return true;
   }
 
   /**

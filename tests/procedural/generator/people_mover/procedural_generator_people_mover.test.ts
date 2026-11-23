@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import {
+  PROCEDURAL_GENERATOR_PEOPLE_MOVER_ID,
   PROCEDURAL_PEOPLE_MOVER_BELT,
+  PROCEDURAL_PEOPLE_MOVER_DIRECTION,
   PROCEDURAL_PEOPLE_MOVER_END,
+  PROCEDURAL_PEOPLE_MOVER_SPEED,
   PROCEDURAL_PEOPLE_MOVER_START,
   PROCEDURAL_PEOPLE_MOVER_WIDTH,
   ProceduralGeneratorPeopleMover,
 } from '@/procedural/generator/people_mover/procedural_generator_people_mover.js';
+import {
+  PROCEDURAL_PEOPLE_MOVER_DIRECTION_END_TO_START,
+  PROCEDURAL_PEOPLE_MOVER_DIRECTION_START_TO_END,
+} from '@/procedural/generator/people_mover/procedural_people_mover_travel.js';
+import { ProceduralSettingsRules } from '@/procedural/model/procedural_settings_rules.js';
 import {
   PROCEDURAL_PEOPLE_MOVER_PART_CAR,
   PROCEDURAL_PEOPLE_MOVER_SIZES,
@@ -22,6 +30,7 @@ import { endAtAngle } from './procedural_people_mover_test_ends.js';
 
 const generator = new ProceduralGeneratorPeopleMover();
 const start = new THREE.Vector3(2, 1, -3);
+const speed = 0.75;
 
 /**
  * Returns mover parameters between two ends.
@@ -35,8 +44,42 @@ function moverParameters(end: THREE.Vector3, width = 1.6): ProceduralParameters 
     [PROCEDURAL_PEOPLE_MOVER_START]: start.toArray(),
     [PROCEDURAL_PEOPLE_MOVER_END]: end.toArray(),
     [PROCEDURAL_PEOPLE_MOVER_WIDTH]: width,
-    [PROCEDURAL_PEOPLE_MOVER_BELT]: 0.75,
+    [PROCEDURAL_PEOPLE_MOVER_SPEED]: speed,
   });
+}
+
+/**
+ * Returns parameters of a mover between two ends carrying people one way.
+ *
+ * @param from Start end.
+ * @param to End end.
+ * @param direction Direction value.
+ * @returns Sanitized parameters.
+ */
+function moverDirected(from: THREE.Vector3, to: THREE.Vector3, direction: string): ProceduralParameters {
+  return generator.parametersSanitize({
+    [PROCEDURAL_PEOPLE_MOVER_START]: from.toArray(),
+    [PROCEDURAL_PEOPLE_MOVER_END]: to.toArray(),
+    [PROCEDURAL_PEOPLE_MOVER_DIRECTION]: direction,
+    [PROCEDURAL_PEOPLE_MOVER_SPEED]: speed,
+  });
+}
+
+/**
+ * Sanitizes people mover parameters saved by parameter layout version 1.
+ *
+ * @param from Start end.
+ * @param to End end.
+ * @param belt Signed belt speed, positive toward the high end.
+ * @returns Parameters in the current layout.
+ */
+function moverFromVersionOne(from: THREE.Vector3, to: THREE.Vector3, belt: number): ProceduralParameters {
+  return ProceduralSettingsRules.sanitize({
+    generatorId: PROCEDURAL_GENERATOR_PEOPLE_MOVER_ID,
+    generatorVersion: 1,
+    parameters: { [PROCEDURAL_PEOPLE_MOVER_START]: from.toArray(), [PROCEDURAL_PEOPLE_MOVER_END]: to.toArray(), belt },
+    materials: {},
+  }).parameters;
 }
 
 /**
@@ -143,5 +186,73 @@ describe('ProceduralGeneratorPeopleMover', () => {
   it('shows the ends as point handles and the width as a span across them', () => {
     expect(generator.handlePointPaths()).toEqual([PROCEDURAL_PEOPLE_MOVER_START, PROCEDURAL_PEOPLE_MOVER_END]);
     expect(generator.handleSpans().map((span) => span.path)).toEqual([PROCEDURAL_PEOPLE_MOVER_WIDTH]);
+  });
+
+  it('carries people the chosen way: entry, exit and the belt sign toward the high end follow the direction', () => {
+    const high = endAtAngle(start, 25, 6);
+    for (const [from, to] of [
+      [start, high],
+      [high, start],
+    ] as const) {
+      const forward = generator.derivedValues(moverDirected(from, to, PROCEDURAL_PEOPLE_MOVER_DIRECTION_START_TO_END));
+      const reverse = generator.derivedValues(moverDirected(from, to, PROCEDURAL_PEOPLE_MOVER_DIRECTION_END_TO_START));
+      expect(forward['entry_end']).toEqual(from.toArray());
+      expect(forward['exit_end']).toEqual(to.toArray());
+      expect(reverse['entry_end']).toEqual(to.toArray());
+      expect(reverse['exit_end']).toEqual(from.toArray());
+      const forwardRisesToExit = to.y > from.y;
+      expect(forward[PROCEDURAL_PEOPLE_MOVER_BELT]).toBe(forwardRisesToExit ? speed : -speed);
+      expect(reverse[PROCEDURAL_PEOPLE_MOVER_BELT]).toBe(-Number(forward[PROCEDURAL_PEOPLE_MOVER_BELT]));
+    }
+    expect(generator.derivedPointNames()).toEqual(expect.arrayContaining(['entry_end', 'exit_end']));
+  });
+
+  it('turns a saved signed belt speed into the direction it ran and an unsigned speed', () => {
+    const high = endAtAngle(start, 25, 6);
+    for (const [from, to] of [
+      [start, high],
+      [high, start],
+    ] as const) {
+      for (const belt of [speed, -speed]) {
+        const parameters = moverFromVersionOne(from, to, belt);
+        expect(parameters[PROCEDURAL_PEOPLE_MOVER_SPEED]).toBe(speed);
+        expect(parameters).not.toHaveProperty(PROCEDURAL_PEOPLE_MOVER_BELT);
+        expect(generator.derivedValues(parameters)[PROCEDURAL_PEOPLE_MOVER_BELT]).toBe(belt);
+      }
+    }
+  });
+
+  it('keeps current parameters as they are when sanitized again', () => {
+    const parameters = moverDirected(start, endAtAngle(start, 6, 5), PROCEDURAL_PEOPLE_MOVER_DIRECTION_END_TO_START);
+    const settings = ProceduralSettingsRules.sanitize({
+      generatorId: PROCEDURAL_GENERATOR_PEOPLE_MOVER_ID,
+      generatorVersion: generator.version,
+      parameters,
+      materials: {},
+    });
+    expect(settings.parameters).toEqual(parameters);
+    expect(ProceduralSettingsRules.sanitize(settings)).toEqual(settings);
+  });
+
+  it('draws travel arrows that point from the entry to the exit, and none for a refused mover', () => {
+    const end = endAtAngle(start, 6, 5);
+    for (const direction of [
+      PROCEDURAL_PEOPLE_MOVER_DIRECTION_START_TO_END,
+      PROCEDURAL_PEOPLE_MOVER_DIRECTION_END_TO_START,
+    ]) {
+      const parameters = moverDirected(start, end, direction);
+      const derived = generator.derivedValues(parameters);
+      const entry = new THREE.Vector3(...(derived['entry_end'] as number[]));
+      const exit = new THREE.Vector3(...(derived['exit_end'] as number[]));
+      const forward = exit.clone().sub(entry).normalize();
+      const segments = generator.guideSegmentsBuild(parameters);
+      expect(segments.length).toBeGreaterThan(0);
+      for (let index = 0; index < segments.length; index += 2) {
+        const tail = segments[index] ?? new THREE.Vector3();
+        const tip = segments[index + 1] ?? new THREE.Vector3();
+        expect(tip.clone().sub(tail).dot(forward)).toBeGreaterThan(0);
+      }
+    }
+    expect(generator.guideSegmentsBuild(moverAt((PROCEDURAL_PEOPLE_MOVER_ESCALATOR_MAX_DEGREES + 90) / 2))).toEqual([]);
   });
 });

@@ -101,6 +101,28 @@ describe('PanelPropertiesProceduralSection', () => {
     expect(ProceduralOwner.settingsRead(box)?.materials[PROCEDURAL_GENERATOR_BOX_SLOT_SURFACE]).toBe('metal/plate');
   });
 
+  it('picks a slot texture from the texture list as one undo step', () => {
+    const stack = new CommandStack(8);
+    const section = sectionCreate();
+    const box = ProceduralOwner.createDefault('Box');
+    const before = ProceduralOwner.settingsRead(box);
+    section.setCommandStack(stack);
+    section.updateFromObjects([box]);
+    const slotLabel = ProceduralGeneratorRegistry.find('box')
+      ?.materialSlots()
+      .find((slot) => slot.name === PROCEDURAL_GENERATOR_BOX_SLOT_SURFACE)?.label;
+    const list = section.getElement().querySelector(`select[aria-label="${slotLabel} Texture"]`);
+    if (!(list instanceof HTMLSelectElement)) throw new Error('the slot shows a texture list');
+    const option = document.createElement('option');
+    option.value = 'metal/plate';
+    list.appendChild(option);
+    list.value = 'metal/plate';
+    list.dispatchEvent(new Event('change'));
+    expect(ProceduralOwner.settingsRead(box)?.materials[PROCEDURAL_GENERATOR_BOX_SLOT_SURFACE]).toBe('metal/plate');
+    stack.undo();
+    expect(ProceduralOwner.settingsRead(box)).toEqual(before);
+  });
+
   it('explains when the selection mixes generators it cannot edit together', () => {
     const section = sectionCreate();
     const unknown = ProceduralOwner.create('Future', {

@@ -45,4 +45,14 @@ describe('ContentSceneLitMaterial', () => {
     expect(material.uniforms['map']?.value).toBeInstanceOf(THREE.DataTexture);
     material.dispose();
   });
+
+  it('starts opaque and blends the map alpha with an opacity once made see-through', () => {
+    const material = new ContentSceneLitMaterial(0xffffff, null, THREE.FrontSide);
+    expect(material.fragmentShader).toContain('surfaceAlpha');
+    expect(material.translucencyRead()).toBeNull();
+    material.translucencySet(0.5);
+    expect(material.transparent).toBe(true);
+    expect(material.translucencyRead()).toBeCloseTo(0.5);
+    material.dispose();
+  });
 });

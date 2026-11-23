@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CONTENT_VIEW_LIT_AMBIENT } from '@/materials/content_view_lit_constants.js';
 import type { ShaderProgramBase } from '../generator/shader_program_base.js';
+import { ShaderProgramTranslucency } from './shader_program_translucency.js';
 
 /** Shader program for distance-independent multi-light studio viewport lighting. */
 export class ShaderProgramContentViewLit implements ShaderProgramBase {
@@ -19,7 +20,8 @@ export class ShaderProgramContentViewLit implements ShaderProgramBase {
   }
 
   /**
-   * Returns diffuse and map uniforms for this program.
+   * Returns diffuse, map and see-through uniforms for this program; a new
+   * program is opaque.
    *
    * @returns Base uniform dictionary.
    */
@@ -27,6 +29,7 @@ export class ShaderProgramContentViewLit implements ShaderProgramBase {
     return {
       diffuse: { value: this.tint },
       map: { value: this.map },
+      ...ShaderProgramTranslucency.uniforms(),
     };
   }
 
@@ -74,6 +77,7 @@ export class ShaderProgramContentViewLit implements ShaderProgramBase {
     return /* glsl */ `
       uniform vec3 diffuse;
       uniform sampler2D map;
+      ${ShaderProgramTranslucency.fragmentDeclarations()}
       varying vec3 vViewNormal;
       varying vec2 vUv;
     `;
@@ -89,7 +93,8 @@ export class ShaderProgramContentViewLit implements ShaderProgramBase {
   }
 
   /**
-   * Samples albedo and multiplies by studio lighting into linearColor.
+   * Samples albedo and multiplies by studio lighting into linearColor, keeping
+   * the sample for the output alpha.
    *
    * @param linearColorVariableName Output variable name.
    * @returns Fragment statements.
@@ -98,19 +103,21 @@ export class ShaderProgramContentViewLit implements ShaderProgramBase {
     return /* glsl */ `
       vec3 normalUnit = normalize(vViewNormal);
       float lit = studioViewportLuminance(normalUnit);
-      vec3 ${linearColorVariableName} = lit * texture2D(map, vUv).rgb * diffuse;
+      vec4 surfaceTexel = texture2D(map, vUv);
+      vec3 ${linearColorVariableName} = lit * surfaceTexel.rgb * diffuse;
     `;
   }
 
   /**
-   * Writes linear lit color through Three.js output encoding.
+   * Writes linear lit color through Three.js output encoding, opaque unless the
+   * translucency uniform blends in the opacity times the map's alpha.
    *
    * @param linearColorVariableName Final linear albedo variable.
    * @returns Fragment output statements.
    */
   fragmentWriteOutput(linearColorVariableName: string): string {
     return /* glsl */ `
-      gl_FragColor = linearToOutputTexel(vec4(${linearColorVariableName}, 1.0));
+      ${ShaderProgramTranslucency.fragmentWriteOutput(linearColorVariableName, 'surfaceTexel')}
     `;
   }
 }

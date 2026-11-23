@@ -40,6 +40,17 @@ export class ProceduralBuild {
   }
 
   /**
+   * Returns the editor-only guide lines the object's generator draws.
+   *
+   * @param settings Valid settings.
+   * @returns Line segments in owner space, two points per segment; none when
+   *   the generator is unknown.
+   */
+  static guideSegmentsOf(settings: ProceduralSettings): THREE.Vector3[] {
+    return ProceduralGeneratorRegistry.find(settings.generatorId)?.guideSegmentsBuild(settings.parameters) ?? [];
+  }
+
+  /**
    * Returns a key equal for settings that build the same parts with the same
    * textures.
    *

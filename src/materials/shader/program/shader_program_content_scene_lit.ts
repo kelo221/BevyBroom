@@ -1,4 +1,5 @@
 import type * as THREE from 'three';
+import { ShaderProgramTranslucency } from './shader_program_translucency.js';
 import type { ShaderProgramBase } from '../generator/shader_program_base.js';
 import {
   SCENE_LIT_MAXIMUM_LIGHT_COUNT,
@@ -31,7 +32,8 @@ export class ShaderProgramContentSceneLit implements ShaderProgramBase {
   }
 
   /**
-   * Returns diffuse and map uniforms plus the shared scene light uniforms.
+   * Returns diffuse, map and see-through uniforms plus the shared scene light
+   * uniforms; a new program is opaque.
    *
    * @returns Base uniform dictionary.
    */
@@ -39,6 +41,7 @@ export class ShaderProgramContentSceneLit implements ShaderProgramBase {
     const uniforms: Record<string, THREE.IUniform> = {
       diffuse: { value: this.tint },
       map: { value: this.map },
+      ...ShaderProgramTranslucency.uniforms(),
     };
     uniformSceneLitSharedAttach(uniforms);
     return uniforms;
@@ -91,6 +94,7 @@ export class ShaderProgramContentSceneLit implements ShaderProgramBase {
     return /* glsl */ `
       uniform vec3 diffuse;
       uniform sampler2D map;
+      ${ShaderProgramTranslucency.fragmentDeclarations()}
       uniform int ${names.count};
       uniform float ${names.ambient};
       uniform highp sampler2D ${names.texture};
@@ -123,20 +127,20 @@ export class ShaderProgramContentSceneLit implements ShaderProgramBase {
     return /* glsl */ `
       vec3 sceneLitNormal = normalize(vSceneLitWorldNormal) * (gl_FrontFacing ? 1.0 : -1.0);
       vec3 sceneLitLight = vec3(${SCENE_LIT_UNIFORM_NAMES.ambient}) + sceneLitGather(vSceneLitWorldPosition, sceneLitNormal);
-      vec3 ${linearColorVariableName} = texture2D(map, vUv).rgb * diffuse * sceneLitLight;
+      vec4 surfaceTexel = texture2D(map, vUv);
+      vec3 ${linearColorVariableName} = surfaceTexel.rgb * diffuse * sceneLitLight;
     `;
   }
 
   /**
-   * Writes linear lit color through Three.js output encoding.
+   * Writes linear lit color through Three.js output encoding, opaque unless the
+   * translucency uniform blends in the opacity times the map's alpha.
    *
    * @param linearColorVariableName Final linear color variable.
    * @returns Fragment output statements.
    */
   fragmentWriteOutput(linearColorVariableName: string): string {
-    return /* glsl */ `
-      gl_FragColor = linearToOutputTexel(vec4(${linearColorVariableName}, 1.0));
-    `;
+    return ShaderProgramTranslucency.fragmentWriteOutput(linearColorVariableName, 'surfaceTexel');
   }
 }
 

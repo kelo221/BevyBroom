@@ -17,6 +17,9 @@ export const PROCEDURAL_VISUAL_MESH_NAME = 'Procedural Mesh';
 /** Name of the outline drawn over the generated mesh. */
 export const PROCEDURAL_VISUAL_EDGES_NAME = 'Procedural Edges';
 
+/** Name of the editor-only guide lines a generator draws over the mesh. */
+export const PROCEDURAL_VISUAL_GUIDES_NAME = 'Procedural Guides';
+
 /** Smallest angle between faces whose shared edge is outlined, in degrees. */
 const PROCEDURAL_VISUAL_EDGE_ANGLE_DEGREES = 1;
 
@@ -49,6 +52,22 @@ export class ProceduralVisualBuilder {
         ? existing
         : ProceduralVisualBuilder.meshRebuild(owner, parts, settings, key);
     owner.add(ProceduralVisualBuilder.edgesCreate(mesh));
+    ProceduralVisualBuilder.guidesAdd(owner, settings);
+  }
+
+  /**
+   * Adds the guide lines the object's generator draws, when it draws any.
+   *
+   * @param owner Procedural owner group.
+   * @param settings Valid settings.
+   */
+  private static guidesAdd(owner: THREE.Object3D, settings: ProceduralSettings): void {
+    const segments = ProceduralBuild.guideSegmentsOf(settings);
+    if (segments.length === 0) {
+      return;
+    }
+    const style = { colorHex: Theme.proceduralGuideColor, opacity: 1, dashed: false };
+    owner.add(EntityVisualBuilder.linesCreate(segments, style, PROCEDURAL_VISUAL_GUIDES_NAME));
   }
 
   /**

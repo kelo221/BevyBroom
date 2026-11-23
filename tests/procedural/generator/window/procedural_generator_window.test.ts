@@ -101,6 +101,25 @@ describe('ProceduralGeneratorWindow', () => {
     }
   });
 
+  it('starts as one pane without mullions, and columns or rows add only their own mullions', () => {
+    const isMullion = (part: ProceduralPart): boolean => part.name.startsWith('Mullion');
+    const plain = generator.partsBuild(generator.parametersCreateDefault());
+    expect(plain.filter(isMullion)).toEqual([]);
+    expect(partsOfSlot(plain, PROCEDURAL_WINDOW_SLOT_GLASS)).toHaveLength(1);
+    const size = new THREE.Vector3(2, 1.5, 0.125);
+    const uprightsOnly = generator.partsBuild(windowParameters(size, { [PROCEDURAL_WINDOW_COLUMNS]: 3 }));
+    expect(uprightsOnly.filter(isMullion).every((part) => part.name.startsWith('Mullion Column'))).toBe(true);
+    expect(uprightsOnly.filter(isMullion)).toHaveLength(2);
+    const crossingOnly = generator.partsBuild(windowParameters(size, { [PROCEDURAL_WINDOW_ROWS]: 2 }));
+    expect(crossingOnly.filter(isMullion).every((part) => part.name.startsWith('Mullion Row'))).toBe(true);
+    expect(crossingOnly.filter(isMullion)).toHaveLength(1);
+  });
+
+  it('marks only its glass slot as glass', () => {
+    const glassSlots = generator.materialSlots().filter((slot) => slot.isGlass === true);
+    expect(glassSlots.map((slot) => slot.name)).toEqual([PROCEDURAL_WINDOW_SLOT_GLASS]);
+  });
+
   it('builds a pane per cell', () => {
     const parameters = windowParameters(new THREE.Vector3(2, 1.5, 0.125), {
       [PROCEDURAL_WINDOW_COLUMNS]: 3,

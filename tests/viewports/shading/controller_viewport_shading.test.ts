@@ -5,6 +5,7 @@ import { ShadingMode } from '@/types/shading_mode.js';
 import { LightOwner } from '@/light/model/light_owner.js';
 import { lightSettingsCreateDefault } from '@/light/model/light_settings.js';
 import { ContentSceneLitMaterial } from '@/materials/factory_content_scene_lit_material.js';
+import { createContentViewLitMaterial } from '@/materials/factory_content_view_lit_material.js';
 import {
   SCENE_LIT_UNIFORM_NAMES,
   uniformSceneLitSharedGet,
@@ -203,6 +204,19 @@ describe('ViewportShadingController', () => {
       viewport.getScene().add(LightOwner.create('lit_test_light_second', lightSettingsCreateDefault('spot')));
       controller.applyForRenderPass(new THREE.PerspectiveCamera());
       expect(sceneLitLightCountRead()).toBe(2);
+    });
+
+    it('keeps a see-through content material see-through with its opacity', () => {
+      const glassOpacity = 0.3;
+      const glass = createContentViewLitMaterial(0xffffff, null);
+      glass.translucencySet(glassOpacity);
+      const glassMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), glass);
+      viewport.addMesh(glassMesh);
+      controller.setShadingMode(ShadingMode.LIT);
+      const lit = glassMesh.material;
+      expect(lit).toBeInstanceOf(ContentSceneLitMaterial);
+      expect(lit instanceof ContentSceneLitMaterial ? lit.translucencyRead() : null).toBeCloseTo(glassOpacity);
+      expect(meshA.material instanceof ContentSceneLitMaterial ? meshA.material.translucencyRead() : 0).toBeNull();
     });
 
     it('leaves the shared light uniforms alone in other modes', () => {

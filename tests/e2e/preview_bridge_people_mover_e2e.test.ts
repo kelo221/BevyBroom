@@ -7,9 +7,15 @@ import { PROCEDURAL_EXPORT_COMPONENT_TYPE_PATH } from '@/procedural/export/proce
 import {
   PROCEDURAL_GENERATOR_PEOPLE_MOVER_ID,
   PROCEDURAL_PEOPLE_MOVER_BELT,
+  PROCEDURAL_PEOPLE_MOVER_DIRECTION,
   PROCEDURAL_PEOPLE_MOVER_END,
+  PROCEDURAL_PEOPLE_MOVER_SPEED,
   PROCEDURAL_PEOPLE_MOVER_START,
 } from '@/procedural/generator/people_mover/procedural_generator_people_mover.js';
+import {
+  PROCEDURAL_PEOPLE_MOVER_DIRECTION_END_TO_START,
+  PROCEDURAL_PEOPLE_MOVER_DIRECTION_START_TO_END,
+} from '@/procedural/generator/people_mover/procedural_people_mover_travel.js';
 import { PROCEDURAL_PEOPLE_MOVER_PART_CAR } from '@/procedural/generator/people_mover/procedural_people_mover_dimensions.js';
 import { editorApiTestHostCreate, type EditorApiTestHostParts } from '../ai/client/editor_api_test_host.js';
 import { PreviewE2eGameProcess, previewE2eProjectCopy, previewE2eProjectRemove } from './preview_e2e_game_process.js';
@@ -21,27 +27,56 @@ import { PREVIEW_E2E_AUTHORED_NODE_COMPONENT, previewE2eObjectComponentRead } fr
 /**
  * End-to-end acceptance of the people mover: a travelator, an escalator and an
  * elevator placed through MCP each reach the game preview with the shape the
- * editor resolved and their belt speed, and the elevator's car arrives as its
- * own named node the game can move. Skipped unless BROOM_E2E_PREVIEW_EXE and
- * BROOM_E2E_PROJECT_DIR are set; its game listens twenty-nine ports above
- * BROOM_E2E_PORT.
+ * editor resolved, their direction and their belt speed signed toward the high
+ * end, and the elevator's car arrives as its own named node the game can move.
+ * Skipped unless BROOM_E2E_PREVIEW_EXE and BROOM_E2E_PROJECT_DIR are set; its
+ * game listens twenty-nine ports above BROOM_E2E_PORT.
  */
 const environment = previewE2eEnvironmentRead(29);
 const STEP_TIMEOUT_MILLISECONDS = 60000;
 
-/** One mover to place: its shape, ends and belt speed. */
+/**
+ * One mover to place: its shape, ends, direction and speed, and the belt speed
+ * signed toward the high end the game must receive.
+ */
 interface PeopleMoverE2eCase {
   readonly shape: string;
   readonly start: THREE.Vector3;
   readonly end: THREE.Vector3;
+  readonly direction: string;
+  readonly speed: number;
   readonly belt: number;
 }
 
-/** A gentle, a steep and a vertical mover, far enough apart not to overlap. */
+/**
+ * A gentle, a steep and a vertical mover, far enough apart not to overlap; the
+ * escalator carries people down from its high end.
+ */
 const PEOPLE_MOVER_E2E_CASES: readonly PeopleMoverE2eCase[] = [
-  { shape: 'travelator', start: new THREE.Vector3(0, 0, 0), end: new THREE.Vector3(10, 1, 0), belt: 0.75 },
-  { shape: 'escalator', start: new THREE.Vector3(0, 0, 10), end: new THREE.Vector3(6, 4, 10), belt: -0.5 },
-  { shape: 'elevator', start: new THREE.Vector3(20, 0, 0), end: new THREE.Vector3(20, 8, 0), belt: 1.5 },
+  {
+    shape: 'travelator',
+    start: new THREE.Vector3(0, 0, 0),
+    end: new THREE.Vector3(10, 1, 0),
+    direction: PROCEDURAL_PEOPLE_MOVER_DIRECTION_START_TO_END,
+    speed: 0.75,
+    belt: 0.75,
+  },
+  {
+    shape: 'escalator',
+    start: new THREE.Vector3(0, 0, 10),
+    end: new THREE.Vector3(6, 4, 10),
+    direction: PROCEDURAL_PEOPLE_MOVER_DIRECTION_END_TO_START,
+    speed: 0.5,
+    belt: -0.5,
+  },
+  {
+    shape: 'elevator',
+    start: new THREE.Vector3(20, 0, 0),
+    end: new THREE.Vector3(20, 8, 0),
+    direction: PROCEDURAL_PEOPLE_MOVER_DIRECTION_START_TO_END,
+    speed: 1.5,
+    belt: 1.5,
+  },
 ];
 
 /**
@@ -121,7 +156,8 @@ describe.skipIf(!environment.isConfigured)('people movers in the game preview en
           parameters: {
             [PROCEDURAL_PEOPLE_MOVER_START]: moverCase.start.toArray(),
             [PROCEDURAL_PEOPLE_MOVER_END]: moverCase.end.toArray(),
-            [PROCEDURAL_PEOPLE_MOVER_BELT]: moverCase.belt,
+            [PROCEDURAL_PEOPLE_MOVER_DIRECTION]: moverCase.direction,
+            [PROCEDURAL_PEOPLE_MOVER_SPEED]: moverCase.speed,
           },
         },
       }),
@@ -129,7 +165,8 @@ describe.skipIf(!environment.isConfigured)('people movers in the game preview en
   }
 
   /**
-   * Waits until the game holds a mover's prop with its shape and belt speed.
+   * Waits until the game holds a mover's prop with its shape, direction and
+   * signed belt speed.
    *
    * @param id Mover object id.
    * @param moverCase Placed mover.
@@ -145,11 +182,11 @@ describe.skipIf(!environment.isConfigured)('people movers in the game preview en
       if (prop === null) {
         return null;
       }
-      const derived = JSON.parse(String(prop['derived'])) as { shape?: string };
+      const derived = JSON.parse(String(prop['derived'])) as Record<string, unknown>;
       const parameters = JSON.parse(String(prop['parameters'])) as Record<string, unknown>;
-      return derived.shape === moverCase.shape && parameters[PROCEDURAL_PEOPLE_MOVER_BELT] === moverCase.belt
-        ? true
-        : null;
+      const isShapeSent = derived['shape'] === moverCase.shape;
+      const isDirectionSent = parameters[PROCEDURAL_PEOPLE_MOVER_DIRECTION] === moverCase.direction;
+      return isShapeSent && isDirectionSent && derived[PROCEDURAL_PEOPLE_MOVER_BELT] === moverCase.belt ? true : null;
     });
   }
 

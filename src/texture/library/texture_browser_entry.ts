@@ -18,6 +18,11 @@ export interface TextureBrowserEntry {
   sourceFile: File;
   /** Name of the texture library source the entry belongs to. */
   sourceName: string;
+  /**
+   * Opacity of a see-through material such as glass, from zero to one; absent
+   * for opaque textures.
+   */
+  blendOpacity?: number;
 }
 
 /**

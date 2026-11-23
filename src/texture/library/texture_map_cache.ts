@@ -87,6 +87,18 @@ export class TextureMapCache {
   }
 
   /**
+   * Returns the opacity of a see-through texture, such as a glass game
+   * material.
+   *
+   * @param textureId Stable texture id.
+   * @returns Opacity from zero to one, or null when the texture is opaque or
+   *   not in the library.
+   */
+  blendOpacityOf(textureId: string): number | null {
+    return this.library?.getEntryById(textureId)?.blendOpacity ?? null;
+  }
+
+  /**
    * Returns the shared debug checker with the active global filter policy.
    *
    * @returns Shared debug checker texture.

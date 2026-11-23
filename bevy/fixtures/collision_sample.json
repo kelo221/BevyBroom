@@ -932,14 +932,14 @@
       "components": {
         "broom_bridge::placeables::procedural::BroomProceduralProp": {
           "generator": "people_mover",
-          "version": 1,
-          "parameters": "{\"start\":[0,0,0],\"end\":[4,0.5,0],\"width\":1.2,\"belt\":3}",
-          "derived": "{\"shape\":\"travelator\",\"run\":4,\"rise\":0.5,\"length\":4.031128874149275,\"angle_degrees\":7.125016348901798,\"step_count\":0,\"low_end\":[0,0,0],\"high_end\":[4,0.5,0]}"
+          "version": 2,
+          "parameters": "{\"start\":[0,0,0],\"end\":[4,0.5,0],\"width\":1.2,\"direction\":\"start_to_end\",\"speed\":3}",
+          "derived": "{\"shape\":\"travelator\",\"run\":4,\"rise\":0.5,\"length\":4.031128874149275,\"angle_degrees\":7.125016348901798,\"step_count\":0,\"low_end\":[0,0,0],\"high_end\":[4,0.5,0],\"belt\":3,\"entry_end\":[0,0,0],\"exit_end\":[4,0.5,0]}"
         }
       },
       "procedural": {
         "generator": "people_mover",
-        "version": 1,
+        "version": 2,
         "parameters": {
           "start": [
             0,
@@ -952,7 +952,8 @@
             0
           ],
           "width": 1.2,
-          "belt": 3
+          "direction": "start_to_end",
+          "speed": 3
         },
         "derived": {
           "shape": "travelator",
@@ -970,6 +971,17 @@
             4,
             0.5,
             0
+          ],
+          "belt": 3,
+          "entry_end": [
+            0,
+            0,
+            0
+          ],
+          "exit_end": [
+            4,
+            0.5,
+            0
           ]
         },
         "derived_points_world": {
@@ -979,6 +991,16 @@
             -3
           ],
           "high_end": [
+            -2,
+            0.5,
+            -3
+          ],
+          "entry_end": [
+            -6,
+            0,
+            -3
+          ],
+          "exit_end": [
             -2,
             0.5,
             -3
