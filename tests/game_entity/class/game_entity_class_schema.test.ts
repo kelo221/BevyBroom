@@ -187,6 +187,66 @@ describe('game entity class schema', () => {
     });
   });
 
+  it('keeps the volume marker keys that name a field and drops empty or non-text ones', () => {
+    const gameClass = gameEntityClassFromUnknown({
+      type_path: 'game::store::Aisle',
+      marker_label_field: 'categories',
+      marker_hatched_when_true: 'blocked',
+      marker_runs_field: 'categories',
+      fields: [],
+    });
+    expect(gameClass?.marker_label_field).toBe('categories');
+    expect(gameClass?.marker_hatched_when_true).toBe('blocked');
+    expect(gameClass?.marker_runs_field).toBe('categories');
+    const malformed = gameEntityClassFromUnknown({
+      type_path: 'game::store::Aisle',
+      marker_label_field: '',
+      marker_hatched_when_true: true,
+      marker_runs_field: ['categories'],
+    });
+    expect(malformed === null ? [] : Object.keys(malformed)).not.toEqual(
+      expect.arrayContaining(['marker_label_field', 'marker_hatched_when_true', 'marker_runs_field']),
+    );
+  });
+
+  it('keeps the volume marker keys and variant band colors of the shared bridge fixture', () => {
+    const raw = JSON.parse(
+      readFileSync(resolve(FIXTURE_BRIDGE_DIRECTORY, 'placeable_classes_sample.json'), 'utf8'),
+    ) as { classes: Array<Record<string, unknown>> };
+    const keys = ['marker_label_field', 'marker_hatched_when_true', 'marker_runs_field'] as const;
+    const rawVolume = raw.classes.find((rawClass) => keys.every((key) => typeof rawClass[key] === 'string'));
+    const list = gameEntityClassListFromUnknown(raw);
+    const volume = list?.classes.find((entry) => entry.type_path === rawVolume?.['type_path']);
+    keys.forEach((key) => expect(volume?.[key]).toBe(rawVolume?.[key]));
+    const runsField = volume?.fields.find((field) => field.path === volume.marker_runs_field);
+    expect(runsField?.kind).toBe('enum_list');
+    const colored = Object.values(runsField?.variant_details ?? {}).filter((detail) => detail.color !== undefined);
+    expect(colored.length).toBeGreaterThan(0);
+  });
+
+  it('keeps a variant band color clamped to zero to one and drops malformed ones', () => {
+    const gameClass = gameEntityClassFromUnknown({
+      type_path: 'game::store::Aisle',
+      fields: [
+        {
+          path: 'kind',
+          kind: 'enum',
+          default: 'cereal',
+          variants: ['cereal', 'tins', 'bottles'],
+          variant_details: {
+            cereal: { color: [0.85, 1.5, -0.2] },
+            tins: { label: 'Tins', color: [1, 0] },
+            bottles: { color: 'red' },
+          },
+        },
+      ],
+    });
+    const details = gameClass?.fields[0]?.variant_details;
+    expect(details?.['cereal']?.color).toEqual([0.85, 1, 0]);
+    expect(details?.['tins']).toEqual({ label: 'Tins' });
+    expect(details?.['bottles']).toBeUndefined();
+  });
+
   it('leaves marker box keys out of classes that declare none', () => {
     const gameClass = gameEntityClassFromUnknown({ type_path: 'game::store::Start', marker_boxes: {} });
     expect(gameClass === null ? [] : Object.keys(gameClass)).not.toEqual(

@@ -102,6 +102,11 @@ export interface PreviewPlaceableField {
 export interface PreviewPlaceableVariantDetail {
   label?: string;
   group?: string;
+  /**
+   * SRGB color, 0 to 1 per channel, of the band a volume marker draws for the
+   * variant.
+   */
+  color?: [number, number, number];
   /** Light the editor adds as a child of an entity holding the variant. */
   light?: PreviewPlaceableVariantLight;
 }
@@ -182,6 +187,15 @@ export interface PreviewPlaceableClass {
   marker_box_field?: string;
   /** Marker boxes by the text value of `marker_box_field`. */
   marker_boxes?: Record<string, PreviewPlaceableMarkerBox>;
+  /** Field path whose value a volume marker writes as a label on its floor. */
+  marker_label_field?: string;
+  /** Bool field path that draws a volume marker hatched while it holds true. */
+  marker_hatched_when_true?: string;
+  /**
+   * List field path whose entries a volume marker draws as equal floor bands
+   * along its longer horizontal axis, in list order.
+   */
+  marker_runs_field?: string;
   /**
    * Collision kind brush entities carrying this class take unless they override
    * it.

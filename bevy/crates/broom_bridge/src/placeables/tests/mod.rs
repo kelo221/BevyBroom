@@ -119,7 +119,12 @@ pub(super) fn placeables_app() -> App {
                 .marker_model_for("Iron", "models/iron_door.glb")
                 .marker_model_for("Glass", "models/glass_door.glb"),
         )
-        .register_placeable::<TestWeight>(PlaceableOptions::any())
+        .register_placeable::<TestWeight>(
+            PlaceableOptions::any()
+                .marker_label_field("0")
+                .marker_hatched_when_true("blocked")
+                .marker_runs_field("categories"),
+        )
         .register_placeable_asset::<TestDoorStats>(&["stats.ron"]);
     app
 }

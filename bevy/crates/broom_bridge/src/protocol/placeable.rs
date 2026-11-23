@@ -117,6 +117,10 @@ pub struct PlaceableVariantDetail {
     pub label: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
+    /// The sRGB color, 0 to 1 per channel, of the floor band a volume marker draws for this
+    /// variant.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<[f32; 3]>,
     /// The light the editor adds as a child of an entity holding this variant.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub light: Option<PlaceableVariantLight>,
@@ -271,6 +275,18 @@ pub struct PlaceableClass {
     /// Marker boxes by the text value of `marker_box_field`.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub marker_boxes: BTreeMap<String, PlaceableMarkerBox>,
+    /// The field path whose value a volume marker writes as a label on its floor; the labels of
+    /// a list are joined by " · ".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub marker_label_field: Option<String>,
+    /// The bool field path that draws a volume marker hatched, as blocked, while it is true.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub marker_hatched_when_true: Option<String>,
+    /// The enum list field path whose entries a volume marker draws as equal floor bands, in
+    /// list order from the negative end of the volume's longer local horizontal axis (X on a
+    /// tie within 0.0001 m, after scale).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub marker_runs_field: Option<String>,
     /// Type paths this class had before, with what an old component left out meant. The
     /// editor rewrites components of these type paths into this class.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
