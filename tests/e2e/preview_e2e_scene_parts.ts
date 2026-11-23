@@ -5,9 +5,12 @@ import type { TextureMapCache } from '@/texture/library/texture_map_cache.js';
 
 /**
  * Texture cache stand-in: game materials are drawn by the game, so no map is
- * needed.
+ * needed, and every surface is opaque.
  */
-const previewE2eTextureCacheWithoutMaps = { resolve: () => null } as unknown as TextureMapCache;
+const previewE2eTextureCacheWithoutMaps = {
+  resolve: () => null,
+  blendOpacityOf: () => null,
+} as unknown as TextureMapCache;
 
 /**
  * Creates a box mesh assigned a game material the editor's way.
