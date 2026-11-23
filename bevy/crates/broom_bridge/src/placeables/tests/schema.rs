@@ -72,6 +72,31 @@ fn registered_classes_are_described_with_their_options() {
 
 /// The marker boxes a class is registered with reach the editor, the picked ones keyed by the
 /// field value, and a class registered without them reports none.
+/// The three volume marker keys reach the class list as the options set them, and a class
+/// without them leaves them out.
+#[test]
+fn volume_marker_keys_are_described_with_their_options() {
+    let app = placeables_app();
+    let directory = TemporaryDirectory::new("placeable_volume_marker_keys");
+    let list = classes_of(&app, directory.path());
+    let weight = class_of::<TestWeight>(&list);
+    assert_eq!(weight.marker_label_field.as_deref(), Some("0"));
+    assert_eq!(weight.marker_hatched_when_true.as_deref(), Some("blocked"));
+    assert_eq!(weight.marker_runs_field.as_deref(), Some("categories"));
+    let door = class_of::<TestDoor>(&list);
+    assert_eq!(door.marker_label_field, None);
+    assert_eq!(door.marker_hatched_when_true, None);
+    assert_eq!(door.marker_runs_field, None);
+    let json = serde_json::to_value(door).expect("the door class serializes");
+    for key in [
+        "marker_label_field",
+        "marker_hatched_when_true",
+        "marker_runs_field",
+    ] {
+        assert!(json.get(key).is_none(), "{key} is left out when unset");
+    }
+}
+
 #[test]
 fn marker_boxes_are_described_with_their_options() {
     let app = placeables_app();
@@ -290,6 +315,43 @@ fn class_list_fixture_reads_variant_details() {
             .keys()
             .all(|variant| detailed.variants.contains(variant))
     );
+}
+
+/// A volume class may name the fields its editor marker labels, hatches and bands by, and a
+/// variant may give its band color; the shared fixture's shelf run does, and both survive a
+/// round trip.
+#[test]
+fn class_list_fixture_reads_volume_marker_keys() {
+    let json = include_str!("../../../../../fixtures/placeable_classes_sample.json");
+    let list: PlaceableClassList = serde_json::from_str(json).expect("the fixture parses");
+    let volume = list
+        .classes
+        .iter()
+        .find(|class| class.marker_runs_field.is_some())
+        .expect("a class with runs");
+    let runs_path = volume.marker_runs_field.as_deref().expect("a runs field");
+    assert_eq!(volume.marker_label_field.as_deref(), Some(runs_path));
+    let hatched_path = volume
+        .marker_hatched_when_true
+        .as_deref()
+        .expect("a hatching field");
+    let field_paths: Vec<&str> = volume
+        .fields
+        .iter()
+        .map(|field| field.path.as_str())
+        .collect();
+    assert!(field_paths.contains(&runs_path));
+    assert!(field_paths.contains(&hatched_path));
+    let runs = volume
+        .fields
+        .iter()
+        .find(|field| field.path == runs_path)
+        .expect("the runs field");
+    assert!(runs.variant_details.values().any(|detail| {
+        detail
+            .color
+            .is_some_and(|color| color.iter().all(|channel| (0.0..=1.0).contains(channel)))
+    }));
 }
 
 /// A variant may carry the light the editor adds to entities holding it; the shared fixture's

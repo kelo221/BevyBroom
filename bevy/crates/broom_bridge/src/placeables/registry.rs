@@ -31,6 +31,12 @@ pub struct PlaceableOptions {
     pub marker_box_field: Option<String>,
     /// Editor marker boxes by the text value of `marker_box_field`.
     pub marker_boxes: BTreeMap<String, PlaceableMarkerBox>,
+    /// The field path whose value a volume marker writes on its floor.
+    pub marker_label_field: Option<String>,
+    /// The bool field path that draws a volume marker hatched while true.
+    pub marker_hatched_when_true: Option<String>,
+    /// The enum list field path whose entries a volume marker draws as floor bands.
+    pub marker_runs_field: Option<String>,
     /// Type paths this class had before; the editor rewrites old components into it.
     pub renamed_from: Vec<PlaceableClassRename>,
     /// Components of other classes this class takes over by an enum value.
@@ -57,6 +63,9 @@ impl PlaceableOptions {
             marker_box: None,
             marker_box_field: None,
             marker_boxes: BTreeMap::new(),
+            marker_label_field: None,
+            marker_hatched_when_true: None,
+            marker_runs_field: None,
             renamed_from: Vec::new(),
             absorbs: Vec::new(),
             renamed_variants: BTreeMap::new(),
@@ -134,6 +143,28 @@ impl PlaceableOptions {
         if let Some(marker_box) = self.marker_boxes.get_mut(value) {
             marker_box.model = Some(model.into());
         }
+        self
+    }
+
+    /// Writes the value of the field at `field_path` as a label on the floor of the editor's
+    /// volume marker; the labels of an enum list are joined by " · ".
+    pub fn marker_label_field(mut self, field_path: impl Into<String>) -> Self {
+        self.marker_label_field = Some(field_path.into());
+        self
+    }
+
+    /// Draws the editor's volume marker hatched, as blocked, while the bool field at
+    /// `field_path` is true.
+    pub fn marker_hatched_when_true(mut self, field_path: impl Into<String>) -> Self {
+        self.marker_hatched_when_true = Some(field_path.into());
+        self
+    }
+
+    /// Draws the entries of the enum list field at `field_path` as equal bands on the floor of
+    /// the editor's volume marker, in list order from the negative end of the volume's longer
+    /// local horizontal axis (X on a tie), each labelled with its number and variant label.
+    pub fn marker_runs_field(mut self, field_path: impl Into<String>) -> Self {
+        self.marker_runs_field = Some(field_path.into());
         self
     }
 

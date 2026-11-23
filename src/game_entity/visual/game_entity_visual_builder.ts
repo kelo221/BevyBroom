@@ -14,6 +14,7 @@ import { EntityVisualBillboard } from '@/entity/visual/entity_visual_billboard.j
 import { GameEntityVisualMarkerModel } from '@/game_entity/visual/game_entity_visual_marker_model.js';
 import { GameEntityVisualMarkerDim } from '@/game_entity/visual/game_entity_visual_marker_dim.js';
 import { GameEntityModelLibrary } from '@/game_entity/model/game_entity_model_library.js';
+import { GameEntityVisualVolumeRunColors } from '@/game_entity/visual/volume/game_entity_visual_volume_run_colors.js';
 import { Theme } from '@/theme.js';
 
 /** Marker color of game entities whose classes the editor does not know. */
@@ -78,8 +79,7 @@ export class GameEntityVisualBuilder {
    * @returns Color as an sRGB hex number.
    */
   static classColorOf(gameClass: GameEntityClass): number {
-    const [red, green, blue] = gameClass.marker_color;
-    return new THREE.Color().setRGB(red, green, blue, THREE.SRGBColorSpace).getHex(THREE.SRGBColorSpace);
+    return GameEntityVisualVolumeRunColors.srgbHexOf(gameClass.marker_color);
   }
 
   /**

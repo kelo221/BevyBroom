@@ -314,6 +314,13 @@ export const ThemePaletteHammer = Object.freeze({
   entityIconHaloColor: 0x0c0e12,
   /** Marker of game entities whose classes the editor does not know. */
   gameEntityUnknownColor: 0x808080,
+  /** Text and backing plate of the labels volume markers write on their floor. */
+  volumeMarkerLabelTextColor: 0xffffff,
+  volumeMarkerLabelBackColor: 0x101418,
+  /** Stripes of a volume marker drawn hatched, such as a blocked aisle. */
+  volumeMarkerHatchColor: 0x0c0c0c,
+  /** Lines between the floor bands of a volume marker. */
+  volumeMarkerBandSeparatorColor: 0xf0f0f0,
   /** Default color of new user visgroups. */
   visgroupDefaultColor: 0x5c9aff,
   /**

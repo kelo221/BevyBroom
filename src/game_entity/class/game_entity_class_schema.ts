@@ -98,8 +98,26 @@ export function gameEntityClassFromUnknown(value: unknown): GameEntityClass | nu
   gameEntityClassMigrationRead(value, gameClass);
   gameEntityClassPinsRead(value, gameClass);
   gameEntityClassMarkerBoxesRead(value, gameClass);
+  gameEntityClassMarkerVolumeKeysRead(value, gameClass);
   gameEntityClassCollisionRead(value, gameClass);
   return gameClass;
+}
+
+/**
+ * Copies the field paths a volume marker labels, hatches and bands by when they
+ * are filled text.
+ *
+ * @param value Untrusted class record.
+ * @param gameClass Class being built.
+ */
+function gameEntityClassMarkerVolumeKeysRead(value: Record<string, unknown>, gameClass: GameEntityClass): void {
+  const keys = ['marker_label_field', 'marker_hatched_when_true', 'marker_runs_field'] as const;
+  for (const key of keys) {
+    const fieldPath = value[key];
+    if (gameEntityTextIsFilled(fieldPath)) {
+      gameClass[key] = fieldPath;
+    }
+  }
 }
 
 /**
@@ -363,6 +381,10 @@ function gameEntityVariantDetailFromUnknown(value: unknown): GameEntityVariantDe
   if (gameEntityTextIsFilled(value['group'])) {
     detail.group = value['group'];
   }
+  const color = gameEntityColorReadOrNull(value['color']);
+  if (color !== null) {
+    detail.color = color;
+  }
   const light = gameEntityVariantLightFromUnknown(value['light']);
   if (light !== null) {
     detail.light = light;
@@ -500,8 +522,19 @@ function gameEntityFieldKindRead(value: unknown): PreviewPlaceableFieldKind {
  * @returns Color channels.
  */
 function gameEntityColorRead(value: unknown): [number, number, number] {
+  return gameEntityColorReadOrNull(value) ?? [...GAME_ENTITY_CLASS_DEFAULT_COLOR];
+}
+
+/**
+ * Reads an sRGB color with channels clamped to zero to one.
+ *
+ * @param value Any value.
+ * @returns Color channels, or null when the value is not a list of at least
+ *   three entries.
+ */
+function gameEntityColorReadOrNull(value: unknown): [number, number, number] | null {
   if (!Array.isArray(value) || value.length < 3) {
-    return [...GAME_ENTITY_CLASS_DEFAULT_COLOR];
+    return null;
   }
   const channel = (index: number): number => Math.min(1, Math.max(0, gameEntityNumberRead(value[index], 0)));
   return [channel(0), channel(1), channel(2)];

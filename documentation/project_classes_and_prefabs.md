@@ -141,6 +141,30 @@ The class file uses the same format the game bridge reports its classes in:
   names in `src/ui/icons/icon_name.ts` such as `"lightbulb"` or `"door-closed"`.
   Markers, the outliner, the Add menu and the Place tiles show it; an unknown
   name or none shows the puzzle piece.
+- A volume (a brush carrying a class) can show what it holds with three
+  class keys, each naming a field of the class:
+
+  ```json
+  "marker_label_field": "categories",
+  "marker_hatched_when_true": "blocked",
+  "marker_runs_field": "categories"
+  ```
+
+  `marker_label_field` writes the field's value as a label along the volume's
+  plan (the labels of an `enum_list` joined by " · ", an enum's label, other
+  values as text). `marker_hatched_when_true` names a bool field; while it is
+  true the plan is drawn with diagonal stripes, for example a blocked aisle.
+  `marker_runs_field` names an `enum_list` field: the plan is split into one
+  equal band per entry, in list order, coloured by the variant's
+  `"color"` in `variant_details` (sRGB, 0 to 1 per channel; without one, a
+  lighter or darker shade of `marker_color`) and labelled with its number
+  and variant label. **Run rule** (games stock by the same rule): the bands
+  follow the volume's longer local horizontal axis, local X when its X extent
+  is at least its Z extent, else local Z, and the first band starts at that
+  axis's negative end in the volume's own space. The plan is drawn on the
+  volume's floor and on its roof, so it reads from above and from inside,
+  follows every edit and resize live, and is never picked, saved or exported.
+
 - An entity whose marker field holds a value the enum no longer lists, such as
   a fixture id the game renamed, shows a plain marker box, never another
   variant's model, and the Issues list warns about it with the object and the

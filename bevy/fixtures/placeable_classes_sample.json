@@ -60,8 +60,12 @@
       "placement": "any",
       "marker_color": [0.3, 0.55, 0.9],
       "collision": "volume",
+      "marker_label_field": "categories",
+      "marker_hatched_when_true": "blocked",
+      "marker_runs_field": "categories",
       "fields": [
-        { "path": "categories", "label": "Categories", "kind": "enum_list", "default": ["generic"], "variants": ["bottles", "cereal", "generic", "tins"], "renamed_variants": { "cans": "tins" }, "variant_details": { "cereal": { "label": "Cereal", "group": "Dry goods" } } }
+        { "path": "categories", "label": "Categories", "kind": "enum_list", "default": ["generic"], "variants": ["bottles", "cereal", "generic", "tins"], "renamed_variants": { "cans": "tins" }, "variant_details": { "cereal": { "label": "Cereal", "group": "Dry goods", "color": [0.85, 0.6, 0.2] } } },
+        { "path": "blocked", "label": "Blocked off", "kind": "bool", "default": false }
       ]
     },
     {
