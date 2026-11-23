@@ -95,13 +95,11 @@ describe('ClipTool editor integration', () => {
     const placement = new ToolClipPlane();
     const handler = {
       onEditorPointerUp: vi.fn(),
-      isMarkerDragging: () => false,
+      isPointerDragActive: () => false,
       onPointerDown: vi.fn(() => true),
       createSyntheticMouseEvent: () => ({ clientX: 0, clientY: 0 }) as MouseEvent,
       onEditorPointerMove: vi.fn(),
-      commitClip: vi.fn(),
-      flipPlane: vi.fn(),
-      commitSplit: vi.fn(),
+      keyDownHandle: vi.fn(() => false),
     } as unknown as HandlerClipPlane;
     const editor = new EditorWindow();
     editor.setServices(createStubServices());
@@ -121,7 +119,7 @@ describe('ClipTool editor integration', () => {
     const placement = new ToolClipPlane();
     const handler = {
       onEditorPointerUp: vi.fn(),
-      isMarkerDragging: () => false,
+      isPointerDragActive: () => false,
       onPointerDown: vi.fn(() => true),
       createSyntheticMouseEvent: () => ({ clientX: 0, clientY: 0 }) as MouseEvent,
       onEditorPointerMove: vi.fn(),
@@ -141,13 +139,11 @@ describe('ClipTool editor integration', () => {
     const placement = new ToolClipPlane();
     const handler = {
       onEditorPointerUp: vi.fn(),
-      isMarkerDragging: () => false,
+      isPointerDragActive: () => false,
       onPointerDown: vi.fn(() => true),
       createSyntheticMouseEvent: () => ({ clientX: 0, clientY: 0 }) as MouseEvent,
       onEditorPointerMove: vi.fn(),
-      commitClip: vi.fn(),
-      flipPlane: vi.fn(),
-      commitSplit: vi.fn(),
+      keyDownHandle: vi.fn(() => false),
     } as unknown as HandlerClipPlane;
     const editor = new EditorWindow();
     editor.setServices(createStubServices());
@@ -161,24 +157,20 @@ describe('ClipTool editor integration', () => {
     expect(placement.isActive()).toBe(false);
   });
 
-  it('while points are set, Enter/F/X are handled on the clip tool (busy exclusive keys)', () => {
+  it('while points are set, keys go to the clip handler and only its keys are consumed', () => {
     const placement = new ToolClipPlane();
-    const commitClip = vi.fn(() => {
+    const keyDownHandle = vi.fn((event: KeyboardEvent) => {
+      if (event.code !== 'Enter') return false;
       placement.resetPlacementForNextCut();
-    });
-    const flipPlane = vi.fn();
-    const commitSplit = vi.fn(() => {
-      placement.resetPlacementForNextCut();
+      return true;
     });
     const handler = {
       onEditorPointerUp: vi.fn(),
-      isMarkerDragging: () => false,
+      isPointerDragActive: () => false,
       onPointerDown: vi.fn(() => true),
       createSyntheticMouseEvent: () => ({ clientX: 0, clientY: 0 }) as MouseEvent,
       onEditorPointerMove: vi.fn(),
-      commitClip,
-      flipPlane,
-      commitSplit,
+      keyDownHandle,
     } as unknown as HandlerClipPlane;
     const editor = new EditorWindow();
     editor.setServices(createStubServices());
@@ -189,14 +181,48 @@ describe('ClipTool editor integration', () => {
     placement.addPoint(new THREE.Vector3(0, 0, 0));
     placement.addPoint(new THREE.Vector3(1, 0, 0));
     expect(clipTool.isBusy()).toBe(true);
-    expect(editor.getActiveEventReceiver().onKeyDown('Enter')).toBe(true);
-    expect(commitClip).toHaveBeenCalledTimes(1);
+    const otherKey = new KeyboardEvent('keydown', { code: 'KeyQ' });
+    expect(clipTool.onKeyDown('KeyQ', otherKey)).toBe(false);
+    const enterKey = new KeyboardEvent('keydown', { code: 'Enter' });
+    expect(editor.getActiveEventReceiver().onKeyDown('Enter', enterKey)).toBe(true);
+    expect(keyDownHandle).toHaveBeenCalledWith(enterKey);
     expect(clipTool.isBusy()).toBe(false);
-    placement.addPoint(new THREE.Vector3(0, 0, 0));
-    expect(editor.getActiveEventReceiver().onKeyDown('KeyF')).toBe(true);
-    expect(flipPlane).toHaveBeenCalledTimes(1);
-    expect(editor.getActiveEventReceiver().onKeyDown('KeyX')).toBe(true);
-    expect(commitSplit).toHaveBeenCalledTimes(1);
+    expect(clipTool.onKeyDown('Enter')).toBe(false);
+  });
+
+  it('forwards pointer moves to the hover preview, and to the drag while one is held', () => {
+    const placement = new ToolClipPlane();
+    let isDragging = false;
+    const onPointerHover = vi.fn();
+    const onEditorPointerMove = vi.fn();
+    const camera = new THREE.OrthographicCamera();
+    const pick = document.createElement('div');
+    const handler = {
+      onEditorPointerUp: vi.fn(),
+      isPointerDragActive: () => isDragging,
+      onPointerDown: vi.fn(() => true),
+      onPointerHover,
+      createSyntheticMouseEvent: (x: number, y: number) => ({ clientX: x, clientY: y, shiftKey: false }) as MouseEvent,
+      onEditorPointerMove,
+      keyDownHandle: vi.fn(() => false),
+    } as unknown as HandlerClipPlane;
+    const editor = new EditorWindow();
+    editor.setServices(
+      createStubServices({ resolveInteractiveViewportAtClientPoint: () => ({ camera, pickElement: pick }) }),
+    );
+    editor.validateTools();
+    const clipTool = new ClipTool(placement, handler);
+    editor.setClipTool(clipTool);
+    editor.userSwitchToClipTool();
+    editor.lastPointerClientX = 30;
+    editor.lastPointerClientY = 40;
+    clipTool.onMouseMove(new THREE.Vector2(), new THREE.Vector2());
+    expect(onPointerHover).toHaveBeenCalledTimes(1);
+    expect(onPointerHover.mock.calls[0]?.[1]).toBe(camera);
+    isDragging = true;
+    clipTool.onMouseMove(new THREE.Vector2(), new THREE.Vector2());
+    expect(onEditorPointerMove).toHaveBeenCalledWith(30, 40, false);
+    expect(onPointerHover).toHaveBeenCalledTimes(1);
   });
 
   it('OnMouseDown forwards to the clip handler with the pane under the pointer', () => {
@@ -207,13 +233,11 @@ describe('ClipTool editor integration', () => {
     const pick = document.createElement('div');
     const handler = {
       onEditorPointerUp: vi.fn(),
-      isMarkerDragging: () => false,
+      isPointerDragActive: () => false,
       onPointerDown,
       createSyntheticMouseEvent: (x: number, y: number) => ({ clientX: x, clientY: y, shiftKey: false }) as MouseEvent,
       onEditorPointerMove: vi.fn(),
-      commitClip: vi.fn(),
-      flipPlane: vi.fn(),
-      commitSplit: vi.fn(),
+      keyDownHandle: vi.fn(() => false),
     } as unknown as HandlerClipPlane;
     const editor = new EditorWindow();
     editor.setServices(

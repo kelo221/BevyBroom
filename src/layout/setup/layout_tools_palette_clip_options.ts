@@ -31,7 +31,6 @@ type LayoutToolsPaletteClipCoreStatusOptions = Pick<
   | 'refreshOutliner'
   | 'updateShadingMeshes'
   | 'onToolStateChanged'
-  | 'onClipCancel'
   | 'onTransformMode'
   | 'faceInspectorReveal'
   | 'editorOverlayPolicy'
@@ -135,7 +134,6 @@ function layoutToolsPaletteClipCoreStatusOptionsCreate(
     refreshOutliner: () => host.refreshOutliner(),
     updateShadingMeshes: () => host.shadingModeCoordinator.updateShadingMeshes(),
     onToolStateChanged: () => host.onClipToolStateChanged(),
-    onClipCancel: () => host.onClipCancel(),
     onTransformMode: (mode) => host.onTransformMode(mode),
     faceInspectorReveal: () => host.faceInspectorReveal(),
     editorOverlayPolicy: host.editorOverlayPolicy,

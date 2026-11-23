@@ -45,7 +45,7 @@ The Keyboard tab displays editable bindings for tool, selection, file, view, sna
 When assigning a shortcut:
 
 - Avoid conflicts between actions used in the same context.
-- Remember that Clip Plane intentionally reuses keys such as `F`.
+- Remember that Clip Plane intentionally reuses keys while it is active: `Tab` cycles the kept side and `Shift+X` pressed again cycles it too.
 - Keep fly-navigation movement practical; right-mouse fly mode uses the physical `WASD` plus `Q` and `E` positions on every layout, including Colemak WARS and AZERTY ZQSD. Command shortcuts still follow the typed letter.
 - Use the displayed binding rather than assuming a guide's default after customization.
 

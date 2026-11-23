@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { EntityHandleTarget } from '@/entity/handles/entity_handle_drag_session.js';
 import { entityHandleTargetOwned, entityHandleTargetsKey } from '@/entity/handles/entity_handle_targets.js';
 import { Theme } from '@/theme.js';
-import { worldSizeFromScreenPixels } from '@/transform/bounds/bounds_handle_screen_size.js';
+import { viewportScreenPixelWorldSize } from '@/viewports/scale/viewport_screen_pixel_size.js';
 import { shadingExemptFlag } from '@/viewports/shading/shading_exempt.js';
 import { EntityHandleOverlayArrow } from '@/entity/handles/entity_handle_overlay_arrow.js';
 
@@ -17,9 +17,6 @@ const ENTITY_HANDLE_RENDER_ORDER = 1000;
 
 /** Name of the group holding the balls. */
 export const ENTITY_HANDLE_OVERLAY_NAME = 'Entity Handles';
-
-/** Scratch viewport rectangle read while placing a ball. */
-const entityHandleViewportScratch = new THREE.Vector4();
 
 /**
  * Draws one ball per entity handle, outside the world so it is never saved,
@@ -118,9 +115,7 @@ export class EntityHandleOverlay {
       target.owner.updateWorldMatrix(true, false);
       ball.position.copy(target.handle.worldPositionFor({ owner: target.owner, camera }, settings));
     }
-    const viewportHeight = renderer.getViewport(entityHandleViewportScratch).w;
-    const distance = ball.position.distanceTo(camera.getWorldPosition(new THREE.Vector3()));
-    const radius = worldSizeFromScreenPixels(camera, ENTITY_HANDLE_BALL_PIXELS, viewportHeight, distance);
+    const radius = viewportScreenPixelWorldSize(renderer, camera, ball.position, ENTITY_HANDLE_BALL_PIXELS);
     ball.scale.setScalar(isShown ? radius : 0);
     ball.updateMatrixWorld();
   }

@@ -737,7 +737,6 @@ export class ManagerViewportLayout extends ViewportLayoutShellWiring {
     this.renderLoop.bind({
       getActiveViewports: () => this.getActiveViewports(),
       cameraFitCoordinator: this.cameraFitCoordinator,
-      clipPlaneHandler: this.clipPlaneHandler,
       editorOrientationCoordinator: this.editorOrientationCoordinator,
       gridOrientationHandler: this.gridOrientationHandler,
       cadRulerSystem: this.cadRulerSystem,

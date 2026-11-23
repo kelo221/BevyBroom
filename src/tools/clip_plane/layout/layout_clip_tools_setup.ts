@@ -6,7 +6,6 @@ import { ManagerSelection } from '@/selection/object/manager_selection.js';
 import { CommandStack } from '@/commands/command_stack.js';
 import { GridSnap } from '@/transform/snap/grid_snap.js';
 import { HandlerKeyboardShortcut } from '@/input/handler_keyboard_shortcut.js';
-import { EditorToolId } from '@/types/editor_tool_id.js';
 import { TransformMode } from '@/types/transform_mode.js';
 import { EditorComponentMode } from '@/types/editor_component_mode.js';
 import type { ObjectApplyTransformKind } from '@/types/object_apply_transform_kind.js';
@@ -37,7 +36,6 @@ export interface ClipToolsSetupDeps {
   refreshOutliner: () => void;
   updateShadingMeshes: () => void;
   onToolStateChanged: () => void;
-  onClipCancel: () => void;
   onTransformMode: (mode: TransformMode) => void;
   faceInspectorReveal: () => void;
   onExtrudeFaces: () => void;
@@ -92,7 +90,6 @@ export interface ClipToolsSetupResult {
 export function setupClipToolsAndPalette(deps: ClipToolsSetupDeps): ClipToolsSetupResult {
   const clipPlaneHandler = createClipPlaneHandler(deps);
   const toolsPaletteController = createViewportToolChromeController(deps, clipPlaneHandler);
-  wireClipPlaneKeyboardShortcuts(deps, clipPlaneHandler);
   toolsPaletteController.dockedChromeAttach(deps.toolChromeDocking);
   syncToolChromeToViewports(toolsPaletteController, deps.getFloatingChromeViewports);
   return { toolsPaletteController, clipPlaneHandler };
@@ -132,6 +129,7 @@ function createClipPlaneHandler(deps: ClipToolsSetupDeps): HandlerClipPlane {
     refreshOutliner: deps.refreshOutliner,
     updateShadingMeshes: deps.updateShadingMeshes,
     onToolStateChanged: deps.onToolStateChanged,
+    keyboardShortcutMatches: (event, action) => deps.keyboardShortcutHandler.shortcutMatches(event, action),
   });
   deps.registerClipTool?.(deps.clipPlaneTool, handler);
   return handler;
@@ -193,34 +191,4 @@ function createViewportToolChromeController(
     controller.toggleInteractionMode();
   });
   return controller;
-}
-
-/**
- * Wires keyboard shortcuts used while the clip plane tool is active.
- *
- * @param deps Clip/tools setup dependencies.
- * @param clipPlaneHandler Clip plane handler for flip/commit actions.
- */
-function wireClipPlaneKeyboardShortcuts(deps: ClipToolsSetupDeps, clipPlaneHandler: HandlerClipPlane): void {
-  deps.keyboardShortcutHandler.setClipPlaneShortcuts(
-    () => deps.clipPlaneTool.isActive(),
-    () => clipPlaneHandler.flipPlane(),
-    () => clipPlaneHandler.commitClip(),
-    () => clipPlaneHandler.commitSplit(),
-    () => deps.onClipCancel(),
-  );
-}
-
-/**
- * Cancels the clip tool and returns tool chrome to object select.
- *
- * @param clipPlaneHandler Active clip plane handler, if any.
- * @param toolsPaletteController Tool chrome controller, if any.
- */
-export function cancelClipAndSelectObject(
-  clipPlaneHandler: HandlerClipPlane | null,
-  toolsPaletteController: ControllerViewportToolChrome | null,
-): void {
-  clipPlaneHandler?.cancel();
-  toolsPaletteController?.selectTool(EditorToolId.OBJECT);
 }

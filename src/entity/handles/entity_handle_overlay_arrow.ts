@@ -7,7 +7,7 @@ import {
   entityHandleAxisColorOf,
 } from '@/entity/handles/entity_handle_axis.js';
 import { entityHandleTargetOwned } from '@/entity/handles/entity_handle_targets.js';
-import { worldSizeFromScreenPixels } from '@/transform/bounds/bounds_handle_screen_size.js';
+import { viewportScreenPixelWorldSize } from '@/viewports/scale/viewport_screen_pixel_size.js';
 import { shadingExemptFlag } from '@/viewports/shading/shading_exempt.js';
 
 /** Share of an arrow's length taken by its shaft; the head takes the rest. */
@@ -114,7 +114,7 @@ export class EntityHandleOverlayArrow {
    */
   private shaftPlace(shaft: THREE.Mesh, renderer: THREE.WebGLRenderer, camera: THREE.Camera): void {
     const placement = this.placementCompute(renderer, camera);
-    const radius = this.screenSize(camera, renderer, placement.origin, ENTITY_HANDLE_ARROW_SHAFT_PIXELS);
+    const radius = viewportScreenPixelWorldSize(renderer, camera, placement.origin, ENTITY_HANDLE_ARROW_SHAFT_PIXELS);
     shaft.position.copy(placement.origin);
     shaft.quaternion.setFromUnitVectors(ENTITY_HANDLE_ARROW_UP, placement.axis);
     shaft.scale.set(radius, placement.length * ENTITY_HANDLE_ARROW_SHAFT_SHARE, radius);
@@ -130,7 +130,7 @@ export class EntityHandleOverlayArrow {
    */
   private headPlace(head: THREE.Mesh, renderer: THREE.WebGLRenderer, camera: THREE.Camera): void {
     const placement = this.placementCompute(renderer, camera);
-    const radius = this.screenSize(camera, renderer, placement.origin, ENTITY_HANDLE_ARROW_HEAD_PIXELS);
+    const radius = viewportScreenPixelWorldSize(renderer, camera, placement.origin, ENTITY_HANDLE_ARROW_HEAD_PIXELS);
     head.position
       .copy(placement.origin)
       .addScaledVector(placement.axis, placement.length * ENTITY_HANDLE_ARROW_SHAFT_SHARE);
@@ -161,26 +161,6 @@ export class EntityHandleOverlayArrow {
       EntityHandleOverlayArrow.screenLengthPixels(origin, tip, camera, viewport) >=
       ENTITY_HANDLE_ARROW_PIXELS * ENTITY_HANDLE_ARROW_MIN_SCREEN_SHARE;
     return { origin, axis, length: origin.distanceTo(tip), isShown };
-  }
-
-  /**
-   * Converts a size in CSS pixels to world units at a point.
-   *
-   * @param camera Camera of the pane.
-   * @param renderer Renderer drawing the pane.
-   * @param point World point.
-   * @param pixels Size in CSS pixels.
-   * @returns World size.
-   */
-  private screenSize(
-    camera: THREE.Camera,
-    renderer: THREE.WebGLRenderer,
-    point: THREE.Vector3,
-    pixels: number,
-  ): number {
-    const viewportHeight = renderer.getViewport(entityHandleArrowViewportScratch).w;
-    const distance = point.distanceTo(camera.getWorldPosition(new THREE.Vector3()));
-    return worldSizeFromScreenPixels(camera, pixels, viewportHeight, distance);
   }
 
   /**

@@ -68,25 +68,35 @@ export const TOOL_INSTRUCTION_EXTRUDE: ToolInstruction = {
   description: 'Extrude the selected face regions into a new solid prism along their normals.',
 };
 
-/** Instruction for clip flip. */
-export const TOOL_INSTRUCTION_CLIP_FLIP: ToolInstruction = {
-  title: 'Flip Plane',
-  shortcut: 'F',
-  description: 'Flip which side of the clip plane is kept.',
+/** Instruction for keeping Side A of the clip plane. */
+export const TOOL_INSTRUCTION_CLIP_KEEP_SIDE_A: ToolInstruction = {
+  title: 'Keep Side A',
+  shortcut: 'Tab',
+  description:
+    'Keep the piece the arrow points to and remove the red piece. Tab or {shift}+X cycles Side A, Side B and Both.',
 };
 
-/** Instruction for clip commit. */
-export const TOOL_INSTRUCTION_CLIP_COMMIT: ToolInstruction = {
-  title: 'Clip',
+/** Instruction for keeping Side B of the clip plane. */
+export const TOOL_INSTRUCTION_CLIP_KEEP_SIDE_B: ToolInstruction = {
+  title: 'Keep Side B',
+  shortcut: 'Tab',
+  description:
+    'Keep the piece on the other side of the plane and remove the red piece. Tab or {shift}+X cycles Side A, Side B and Both.',
+};
+
+/** Instruction for keeping both pieces of the clip plane. */
+export const TOOL_INSTRUCTION_CLIP_KEEP_BOTH: ToolInstruction = {
+  title: 'Keep Both',
+  shortcut: 'Tab',
+  description:
+    'Split into two brushes, shown in two colors, and keep both. Tab or {shift}+X cycles Side A, Side B and Both.',
+};
+
+/** Instruction for applying the clip. */
+export const TOOL_INSTRUCTION_CLIP_APPLY: ToolInstruction = {
+  title: 'Apply Clip',
   shortcut: 'Enter',
-  description: 'Keep one side of the plane and discard the other. The plane must be ready.',
-};
-
-/** Instruction for clip split. */
-export const TOOL_INSTRUCTION_CLIP_SPLIT: ToolInstruction = {
-  title: 'Split',
-  shortcut: 'X',
-  description: 'Cut the mesh into two pieces, keeping both sides of the plane.',
+  description: 'Cut the selection with the plane and keep the chosen pieces. The plane must be ready.',
 };
 
 /** Instruction for Edit Mode vertex component select. */

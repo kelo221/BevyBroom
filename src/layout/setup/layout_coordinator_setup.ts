@@ -14,7 +14,6 @@ import { PolicyEditorOverlay } from '@/tools/overlay/policy_editor_overlay.js';
 import { RegistryModalToolSession } from '@/tools/session/registry_modal_tool_session.js';
 import {
   setupClipToolsAndPalette,
-  cancelClipAndSelectObject,
   syncToolChromeToViewports,
 } from '@/tools/clip_plane/layout/layout_clip_tools_setup.js';
 import { ToolClipPlane } from '@/tools/clip_plane/tool_clip_plane.js';
@@ -120,7 +119,6 @@ export function setupToolsPaletteAndClipWiring(parts: {
   refreshOutliner: () => void;
   updateShadingMeshes: () => void;
   onToolStateChanged: () => void;
-  onClipCancel: () => void;
   onTransformMode: (mode: TransformMode) => void;
   faceInspectorReveal: () => void;
   editorOverlayPolicy: PolicyEditorOverlay;
@@ -176,7 +174,6 @@ export function setupToolsPaletteAndClipWiring(parts: {
     refreshOutliner: parts.refreshOutliner,
     updateShadingMeshes: parts.updateShadingMeshes,
     onToolStateChanged: parts.onToolStateChanged,
-    onClipCancel: parts.onClipCancel,
     editorOverlayPolicy: parts.editorOverlayPolicy,
     modalToolSessionRegistry: parts.modalToolSessionRegistry,
     onTransformMode: parts.onTransformMode,
@@ -213,19 +210,6 @@ export function setupToolsPaletteAndClipWiring(parts: {
     ...(parts.onEditDissolve !== undefined ? { onEditDissolve: parts.onEditDissolve } : {}),
     ...(parts.onEditDelete !== undefined ? { onEditDelete: parts.onEditDelete } : {}),
   });
-}
-
-/**
- * Cancels clip mode and selects the object tool in the chrome.
- *
- * @param clipPlaneHandler Active clip handler.
- * @param toolsPaletteController Tool chrome controller.
- */
-export function cancelClipToolSelection(
-  clipPlaneHandler: HandlerClipPlane | null,
-  toolsPaletteController: ControllerViewportToolChrome | null,
-): void {
-  cancelClipAndSelectObject(clipPlaneHandler, toolsPaletteController);
 }
 
 /**

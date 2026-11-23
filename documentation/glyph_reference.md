@@ -68,13 +68,13 @@ Glyphs 20 to 22 are tool buttons in the tools palette; they choose what kind of 
 | --- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | 20  | Object Select | Makes clicks and drag-selection target complete objects. Use this before moving, rotating, scaling, grouping, duplicating, or deleting objects. |
 | 21  | Face Select   | Makes selection target surface regions. Use it before per-face texturing, UV editing, or extrusion.                                             |
-| 22  | Clip Plane    | Starts the three-point clipping workflow for selected geometry. Place three points, inspect the preview, then Flip, Clip, or Split.             |
+| 22  | Clip Plane    | Starts the clipping workflow for selected geometry. Drag a line or click points, choose Keep Side A, Side B or Both, then Apply.                |
 | 23  | Bounds        | Shows a resizable bounding box around the object selection. Drag a face or handle to change dimensions; default shortcut `T`.                   |
 | 24  | Move          | Shows translation handles for moving along axes or planes; default shortcut `W`.                                                                |
 | 25  | Rotate        | Shows rotation handles for turning the selection around an axis; default shortcut `E`.                                                          |
 | 26  | Scale         | Shows scale handles for proportional or per-axis resizing; default shortcut `R`.                                                                |
 
-The tools palette also has a **Grid** tool button after Sprinkle Tool; it is not part of the numbered plate. The Face Select options contain text actions for **Textures**, which opens the Face Edit Sheet, and **Extrude**, while Clip Plane uses text buttons for **Flip**, **Clip**, and **Split**. Their visible words are the glyphs' labels, so they are not repeated in the numbered visual plate.
+The tools palette also has a **Grid** tool button after Sprinkle Tool; it is not part of the numbered plate. The Face Select options contain text actions for **Textures**, which opens the Face Edit Sheet, and **Extrude**, while Clip Plane uses text buttons for **Side A**, **Side B**, **Both** and **Apply**. Their visible words are the glyphs' labels, so they are not repeated in the numbered visual plate.
 
 ## Face attribute glyphs
 

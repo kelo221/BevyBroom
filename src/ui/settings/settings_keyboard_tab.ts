@@ -17,6 +17,7 @@ const PRIMARY_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, str
   ['face', 'Face Selection'],
   ['tool_sprinkle', 'Sprinkle Tool'],
   ['tool_vertex', 'Vertex Tool'],
+  ['tool_clip', 'Clip Tool (again: cycle kept side)'],
   ['delete_selected', 'Delete Selected Object / Dissolve Components'],
   ['component_vertex', 'Edit Mode Vertex Select'],
   ['component_edge', 'Edit Mode Edge Select'],
@@ -60,9 +61,8 @@ const SHADING_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, str
 
 /** Clip plane tool shortcuts. */
 const CLIP_SHORTCUT_ROWS: ReadonlyArray<readonly [KeyboardShortcutAction, string]> = [
-  ['clip_flip', 'Flip Keep Side'],
-  ['clip_commit', 'Commit Clip'],
-  ['clip_split', 'Split Clip'],
+  ['clip_side_cycle', 'Clip: Cycle Kept Side (A, B, Both)'],
+  ['clip_commit', 'Clip: Apply'],
 ];
 
 /** Sprinkle tool shortcuts, active only while the Sprinkle tool is. */

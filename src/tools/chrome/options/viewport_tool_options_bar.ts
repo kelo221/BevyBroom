@@ -6,13 +6,10 @@ import { TransformMode, isBoundsWidgetMode } from '@/types/transform_mode.js';
 import { EditorInteractionMode, getEditorInteractionModeLabel } from '@/types/editor_interaction_mode.js';
 import { EditorComponentMode, getEditorComponentModeLabel } from '@/types/editor_component_mode.js';
 import { UiStackLayers } from '@/ui/stack/ui_stack_layers.js';
-import { formatToolInstructionTooltip, type ToolInstruction } from '@/tools/chrome/instruction/tool_instruction.js';
+import type { ToolInstruction } from '@/tools/chrome/instruction/tool_instruction.js';
 import {
   TOOL_INSTRUCTION_CAMERA_ALIGN_TO_FACE,
   TOOL_INSTRUCTION_CAMERA_RESET,
-  TOOL_INSTRUCTION_CLIP_COMMIT,
-  TOOL_INSTRUCTION_CLIP_FLIP,
-  TOOL_INSTRUCTION_CLIP_SPLIT,
   TOOL_INSTRUCTION_COMPONENT_EDGE,
   TOOL_INSTRUCTION_COMPONENT_FACE,
   TOOL_INSTRUCTION_COMPONENT_VERTEX,
@@ -34,8 +31,10 @@ import {
 } from '@/tools/chrome/rail/viewport_tool_rail_button.js';
 import {
   applyViewportToolOptionsIconButtonMetrics,
-  applyViewportToolOptionsTextButtonMetrics,
+  viewportToolOptionsTextActionCreate,
 } from './viewport_tool_options_control_style.js';
+import { ViewportToolClipControls, type ViewportToolClipControlsHandlers } from './viewport_tool_clip_controls.js';
+import type { ClipKeepMode } from '@/tools/clip_plane/clip_keep_mode.js';
 import { ViewportToolModeDropdown } from './viewport_tool_mode_dropdown.js';
 import { ViewportToolObjectDropdown } from './viewport_tool_object_dropdown.js';
 import { ViewportToolNamedDropdown } from './viewport_tool_named_dropdown.js';
@@ -61,11 +60,8 @@ import {
 } from './viewport_tool_edit_menu.js';
 
 /** Callbacks for tool options actions. */
-export interface ViewportToolOptionsBarHandlers {
+export interface ViewportToolOptionsBarHandlers extends ViewportToolClipControlsHandlers {
   onTransformMode: (mode: TransformMode) => void;
-  onFlipClipPlane: () => void;
-  onCommitClip: () => void;
-  onCommitSplit: () => void;
   faceInspectorReveal: () => void;
   onExtrudeFaces: () => void;
   onGridReset: () => void;
@@ -106,9 +102,7 @@ export class ViewportToolOptionsBar {
   private readonly edgeMenuDropdown: ViewportToolNamedDropdown;
   private readonly faceMenuDropdown: ViewportToolNamedDropdown;
   private handlers: ViewportToolOptionsBarHandlers;
-  private flipButton: HTMLButtonElement;
-  private clipButton: HTMLButtonElement;
-  private splitButton: HTMLButtonElement;
+  private readonly clipControls: ViewportToolClipControls;
   private faceInspectorButton: HTMLButtonElement;
   private extrudeButton: HTMLButtonElement;
   private gridResetButton: HTMLButtonElement;
@@ -166,14 +160,9 @@ export class ViewportToolOptionsBar {
     });
     this.entityPlaceControls = new ViewportToolEntityPlaceControls(parentElement.ownerDocument);
     this.polygonSprinkleControls = new ViewportToolPolygonSprinkleControls(parentElement.ownerDocument);
-    this.flipButton = this.createTextAction('Flip', TOOL_INSTRUCTION_CLIP_FLIP, () => {
-      this.handlers.onFlipClipPlane();
-    });
-    this.clipButton = this.createTextAction('Clip', TOOL_INSTRUCTION_CLIP_COMMIT, () => {
-      this.handlers.onCommitClip();
-    });
-    this.splitButton = this.createTextAction('Split', TOOL_INSTRUCTION_CLIP_SPLIT, () => {
-      this.handlers.onCommitSplit();
+    this.clipControls = new ViewportToolClipControls(parentElement.ownerDocument, {
+      onClipKeepModeSet: (mode) => this.handlers.onClipKeepModeSet(mode),
+      onClipApply: () => this.handlers.onClipApply(),
     });
     this.faceInspectorButton = this.createTextAction('Textures', TOOL_INSTRUCTION_FACE_INSPECTOR, () => {
       this.handlers.faceInspectorReveal();
@@ -216,7 +205,6 @@ export class ViewportToolOptionsBar {
     this.setActiveTransformMode(TransformMode.BOUNDS);
     this.setActiveInteractionMode(EditorInteractionMode.OBJECT_MODE);
     this.setActiveComponentMode(EditorComponentMode.VERTEX);
-    this.setClipActionsEnabled(false);
     this.setVisible(false);
   }
 
@@ -287,18 +275,13 @@ export class ViewportToolOptionsBar {
   }
 
   /**
-   * Enables or disables clip action buttons.
+   * Shows the clip keep mode and whether Apply may run.
    *
-   * @param enabled Whether Flip/Clip/Split may run.
+   * @param isPlaneReady True when a clip plane is placed.
+   * @param keepMode Current clip keep mode.
    */
-  setClipActionsEnabled(enabled: boolean): void {
-    this.flipButton.disabled = !enabled;
-    this.clipButton.disabled = !enabled;
-    this.splitButton.disabled = !enabled;
-    const opacity = enabled ? '1' : '0.45';
-    this.flipButton.style.opacity = opacity;
-    this.clipButton.style.opacity = opacity;
-    this.splitButton.style.opacity = opacity;
+  setClipState(isPlaneReady: boolean, keepMode: ClipKeepMode): void {
+    this.clipControls.clipStateSet(isPlaneReady, keepMode);
   }
 
   /**
@@ -330,6 +313,7 @@ export class ViewportToolOptionsBar {
     this.vertexMenuDropdown.dispose();
     this.edgeMenuDropdown.dispose();
     this.faceMenuDropdown.dispose();
+    this.clipControls.dispose();
     this.root.remove();
     this.transformButtons.clear();
   }
@@ -476,8 +460,7 @@ export class ViewportToolOptionsBar {
    */
   private appendObjectModeActionsForTool(toolId: EditorToolId): void {
     if (toolId === EditorToolId.FACE) return void this.actionsRow.append(this.faceInspectorButton, this.extrudeButton);
-    if (toolId === EditorToolId.CLIP_PLANE)
-      return void this.actionsRow.append(this.flipButton, this.clipButton, this.splitButton);
+    if (toolId === EditorToolId.CLIP_PLANE) return void this.actionsRow.appendChild(this.clipControls.elementRead());
     if (toolId === EditorToolId.GRID) return this.appendGridActions();
     if (toolId === EditorToolId.BLOCK) return this.appendBlockActions();
     if (toolId === EditorToolId.ENTITY)
@@ -610,17 +593,7 @@ export class ViewportToolOptionsBar {
    * @returns Button element.
    */
   private createTextAction(label: string, instruction: ToolInstruction, onClick: () => void): HTMLButtonElement {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = label;
-    button.title = formatToolInstructionTooltip(instruction);
-    button.setAttribute('aria-label', instruction.title);
-    applyViewportToolOptionsTextButtonMetrics(button);
-    button.addEventListener('click', (event) => {
-      event.stopPropagation();
-      onClick();
-    });
-    return button;
+    return viewportToolOptionsTextActionCreate(document, label, instruction, onClick);
   }
 
   /** Applies orange active styles to the armed single-use grid/camera button. */

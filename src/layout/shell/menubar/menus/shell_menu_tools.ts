@@ -1,7 +1,15 @@
 import type { ToolbarMenuEntry } from '@/ui/menu/menu_types.js';
 import { EditorToolId } from '@/types/editor_tool_id.js';
+import type { KeyboardShortcutAction } from '@/settings/store/settings_types.js';
 import { toolInstructionForEditorTool } from '@/tools/chrome/instruction/tool_instruction_catalog.js';
 import { ShellMenu, type ShellMenuContext } from '@/layout/shell/menubar/shell_menu.js';
+
+/** Keyboard shortcut actions shown next to the tools that have one. */
+const SHELL_MENU_TOOLS_SHORTCUT_ACTIONS: ReadonlyMap<EditorToolId, KeyboardShortcutAction> = new Map([
+  [EditorToolId.OBJECT, 'selection_object'],
+  [EditorToolId.FACE, 'face'],
+  [EditorToolId.CLIP_PLANE, 'tool_clip'],
+]);
 
 /** Editor tools listed in the Tools menu, in display order. */
 const SHELL_MENU_TOOLS_ORDER: readonly EditorToolId[] = [
@@ -49,8 +57,10 @@ export class ShellMenuTools extends ShellMenu {
    */
   private toolEntryBuild(context: ShellMenuContext, toolId: EditorToolId): ToolbarMenuEntry {
     const window = context.windowActions;
+    const shortcutAction = SHELL_MENU_TOOLS_SHORTCUT_ACTIONS.get(toolId);
     return this.actionEntry(context, toolInstructionForEditorTool(toolId).title, () => window.toolSelect(toolId), {
       isChecked: () => window.toolActiveRead() === toolId,
+      ...(shortcutAction ? { shortcutAction } : {}),
     });
   }
 

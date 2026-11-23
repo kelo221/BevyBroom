@@ -98,6 +98,7 @@ Shortcuts can be changed in **Settings > Keyboard**. The table below describes t
 | `R`             | Scale                                                     |
 | `Tab`           | Return to Object Select                                   |
 | `Shift+Tab`     | Enter Face Select                                         |
+| `Shift+X`       | Clip Plane tool                                           |
 | `Escape`        | Cancel the active tool or clear selection                 |
 | `Ctrl+A`        | Select all                                                |
 | `Ctrl+Shift+A`  | Select none                                               |
@@ -205,12 +206,12 @@ These shortcuts are listed under **Window and Views** and **Browsers** in **Sett
 
 These keys are interpreted differently while Clip Plane is active:
 
-| Shortcut | Action                          |
-| -------- | ------------------------------- |
-| `F`      | Flip the side that will be kept |
-| `Enter`  | Commit the clip                 |
-| `X`      | Split into both sides           |
-| `Escape` | Cancel                          |
+| Shortcut  | Action                                    |
+| --------- | ----------------------------------------- |
+| `Tab`     | Cycle the kept side: Side A, Side B, Both |
+| `Shift+X` | Cycle the kept side (same as `Tab`)       |
+| `Enter`   | Apply the cut                             |
+| `Escape`  | Cancel                                    |
 
 ## When a shortcut does not work
 

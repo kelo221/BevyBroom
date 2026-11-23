@@ -62,11 +62,7 @@ export interface HandlerKeyboardShortcutActionHost {
   onSnapIntervalForward: ActionCallback | null;
   onSnapIntervalBackward: ActionCallback | null;
   onExtrudeFaces: ActionCallback | null;
-  onClipFlip: ActionCallback | null;
-  onClipCommit: ActionCallback | null;
-  onClipSplit: ActionCallback | null;
   onEscape: ActionCallback | null;
-  isClipToolActive: (() => boolean) | null;
   isEditModeActive: (() => boolean) | null;
 }
 
@@ -88,38 +84,6 @@ export function handlerKeyboardShortcutHandleEscapeKey(
   event.preventDefault();
   host.onEscape?.();
   return true;
-}
-
-/**
- * Handles clip plane tool keys when that tool is active.
- *
- * @param host Action host.
- * @param event Keyboard event.
- * @returns True when a clip shortcut consumed the event.
- */
-export function handlerKeyboardShortcutHandleClipPlaneKeys(
-  host: HandlerKeyboardShortcutActionHost,
-  event: KeyboardEvent,
-): boolean {
-  if (!host.isClipToolActive || !host.isClipToolActive()) {
-    return false;
-  }
-  if (host.matchesShortcut(event, 'clip_flip')) {
-    event.preventDefault();
-    host.onClipFlip?.();
-    return true;
-  }
-  if (host.matchesShortcut(event, 'clip_commit')) {
-    event.preventDefault();
-    host.onClipCommit?.();
-    return true;
-  }
-  if (host.matchesShortcut(event, 'clip_split')) {
-    event.preventDefault();
-    host.onClipSplit?.();
-    return true;
-  }
-  return false;
 }
 
 /**

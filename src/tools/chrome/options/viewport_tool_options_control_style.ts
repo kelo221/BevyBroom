@@ -1,5 +1,6 @@
 import { Theme } from '@/theme.js';
 import { hexToRgb } from '@/utils/utils_color.js';
+import { formatToolInstructionTooltip, type ToolInstruction } from '@/tools/chrome/instruction/tool_instruction.js';
 
 /**
  * Applies fixed control height, border radius, font metrics, pointer cursor,
@@ -59,4 +60,33 @@ export function applyViewportToolOptionsTextButtonMetrics(button: HTMLButtonElem
   button.style.color = Theme.buttonTextColor;
   button.style.fontWeight = '500';
   button.style.whiteSpace = 'nowrap';
+}
+
+/**
+ * Creates a compact options-bar text button whose tooltip and accessible label
+ * come from a tool instruction.
+ *
+ * @param ownerDocument Document used to construct the button.
+ * @param label Button text.
+ * @param instruction Tooltip instruction.
+ * @param onClick Click action; the click does not propagate.
+ * @returns Button element.
+ */
+export function viewportToolOptionsTextActionCreate(
+  ownerDocument: Document,
+  label: string,
+  instruction: ToolInstruction,
+  onClick: () => void,
+): HTMLButtonElement {
+  const button = ownerDocument.createElement('button');
+  button.type = 'button';
+  button.textContent = label;
+  button.title = formatToolInstructionTooltip(instruction);
+  button.setAttribute('aria-label', instruction.title);
+  applyViewportToolOptionsTextButtonMetrics(button);
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    onClick();
+  });
+  return button;
 }

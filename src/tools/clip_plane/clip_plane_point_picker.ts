@@ -11,7 +11,10 @@ export interface ClipPlanePickResult {
   surfaceNormal: THREE.Vector3 | null;
 }
 
-/** Picks world points for clip plane placement from mesh hits or a ground plane. */
+/**
+ * Picks world points for clip plane placement from view planes, mesh hits or a
+ * ground plane.
+ */
 export class ClipPlanePointPicker {
   private faceRaycaster: RaycasterFaceSelection;
   private raycaster: THREE.Raycaster;
@@ -31,9 +34,37 @@ export class ClipPlanePointPicker {
   }
 
   /**
-   * Picks a world point from a pointer event. Prefers mesh surface hits, then
-   * falls back to the XZ ground plane. Hold Shift to skip grid snap (precision
-   * placement, same convention as bounds/transform tools).
+   * Picks a world point from a pointer event. Orthographic views place the
+   * point on the view plane through the anchor, so empty space works in every
+   * 2D view. Perspective views prefer mesh surface hits, then fall back to the
+   * XZ ground plane. Hold Shift to skip grid snap (precision placement, same
+   * convention as bounds/transform tools).
+   *
+   * @param event Pointer event.
+   * @param camera Viewport camera.
+   * @param pickElement Viewport pickElement.
+   * @param meshes Candidate meshes for surface hits.
+   * @param viewPlaneAnchor World point the orthographic view plane passes
+   *   through.
+   * @returns Pick result, or null when nothing was hit.
+   */
+  pickPoint(
+    event: MouseEvent,
+    camera: THREE.Camera,
+    pickElement: HTMLElement,
+    meshes: THREE.Mesh[],
+    viewPlaneAnchor: THREE.Vector3 = new THREE.Vector3(),
+  ): ClipPlanePickResult | null {
+    if (camera instanceof THREE.OrthographicCamera) {
+      const viewHit = this.pickViewPlane(event, camera, pickElement, viewPlaneAnchor);
+      return viewHit ? { point: this.resolvePoint(viewHit, !event.shiftKey), surfaceNormal: null } : null;
+    }
+    return this.pickPerspectivePoint(event, camera, pickElement, meshes);
+  }
+
+  /**
+   * Picks a perspective point: a mesh surface hit with its normal, else the XZ
+   * ground plane.
    *
    * @param event Pointer event.
    * @param camera Viewport camera.
@@ -41,7 +72,7 @@ export class ClipPlanePointPicker {
    * @param meshes Candidate meshes for surface hits.
    * @returns Pick result, or null when nothing was hit.
    */
-  pickPoint(
+  private pickPerspectivePoint(
     event: MouseEvent,
     camera: THREE.Camera,
     pickElement: HTMLElement,
@@ -56,11 +87,29 @@ export class ClipPlanePointPicker {
       };
     }
     const groundHit = this.pickGroundPlane(event, camera, pickElement);
-    if (!groundHit) return null;
-    return {
-      point: this.resolvePoint(groundHit, applySnap),
-      surfaceNormal: null,
-    };
+    return groundHit ? { point: this.resolvePoint(groundHit, applySnap), surfaceNormal: null } : null;
+  }
+
+  /**
+   * Intersects the pointer ray with the plane facing the camera through an
+   * anchor point.
+   *
+   * @param event Pointer event.
+   * @param camera Viewport camera.
+   * @param pickElement Viewport pickElement.
+   * @param anchor World point on the view plane.
+   * @returns Hit point or null.
+   */
+  private pickViewPlane(
+    event: MouseEvent,
+    camera: THREE.Camera,
+    pickElement: HTMLElement,
+    anchor: THREE.Vector3,
+  ): THREE.Vector3 | null {
+    this.rayFromPointer(event, camera, pickElement);
+    const viewDirection = camera.getWorldDirection(new THREE.Vector3());
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(viewDirection, anchor);
+    return this.raycaster.ray.intersectPlane(plane, new THREE.Vector3());
   }
 
   /**
@@ -72,13 +121,24 @@ export class ClipPlanePointPicker {
    * @returns Hit point or null.
    */
   private pickGroundPlane(event: MouseEvent, camera: THREE.Camera, pickElement: HTMLElement): THREE.Vector3 | null {
-    camera.updateMatrixWorld(true);
-    pointerEventToNdc(event, pickElement, this.ndc);
-    this.raycaster.setFromCamera(this.ndc, camera);
+    this.rayFromPointer(event, camera, pickElement);
     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const hit = new THREE.Vector3();
     const intersected = this.raycaster.ray.intersectPlane(plane, hit);
     return intersected ? hit : null;
+  }
+
+  /**
+   * Aims the raycaster through the pointer position.
+   *
+   * @param event Pointer event.
+   * @param camera Viewport camera.
+   * @param pickElement Viewport pickElement.
+   */
+  private rayFromPointer(event: MouseEvent, camera: THREE.Camera, pickElement: HTMLElement): void {
+    camera.updateMatrixWorld(true);
+    pointerEventToNdc(event, pickElement, this.ndc);
+    this.raycaster.setFromCamera(this.ndc, camera);
   }
 
   /**

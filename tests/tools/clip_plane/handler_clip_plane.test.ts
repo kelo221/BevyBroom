@@ -29,6 +29,7 @@ describe('ClipPlaneHandler preview after scene load', () => {
       refreshOutliner: vi.fn(),
       updateShadingMeshes: vi.fn(),
       onToolStateChanged: vi.fn(),
+      keyboardShortcutMatches: () => false,
     });
   });
 

@@ -192,21 +192,21 @@ describe('KeyboardShortcutHandler', () => {
     expect(onInteractionMode).toHaveBeenCalledOnce();
   });
 
-  it('should dispatch reconfigured command and clip plane shortcuts', () => {
+  it('should dispatch reconfigured command and clip tool shortcuts', () => {
     const shortcuts = createDefaultKeyboardShortcutSettings();
     shortcuts.save.code = 'KeyP';
     shortcuts.save.ctrl = false;
     shortcuts.shading_solid.code = 'KeyV';
-    shortcuts.clip_flip.code = 'KeyL';
+    shortcuts.tool_clip = { code: 'KeyL', ctrl: false, shift: false, alt: false, meta: false };
     handler.unregister();
     handler = new HandlerKeyboardShortcut(inputManager, () => shortcuts);
     handler.register();
     const onSave = vi.fn();
     const onShading = vi.fn();
-    const onClipFlip = vi.fn();
+    const onClipTool = vi.fn();
     handler.setOnSaveScene(onSave);
     handler.setOnShadingMode(onShading);
-    handler.setClipPlaneShortcuts(() => true, onClipFlip, vi.fn(), vi.fn(), vi.fn());
+    handler.actionCallbackSet('tool_clip', onClipTool);
 
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyP' }));
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyV' }));
@@ -214,7 +214,18 @@ describe('KeyboardShortcutHandler', () => {
 
     expect(onSave).toHaveBeenCalledOnce();
     expect(onShading).toHaveBeenCalledWith(ShadingMode.SOLID);
-    expect(onClipFlip).toHaveBeenCalledOnce();
+    expect(onClipTool).toHaveBeenCalledOnce();
+  });
+
+  it('should match a key against the configured binding of an action for busy tools', () => {
+    const shortcuts = createDefaultKeyboardShortcutSettings();
+    shortcuts.clip_side_cycle = { code: 'KeyK', ctrl: false, shift: false, alt: false, meta: false };
+    handler.unregister();
+    handler = new HandlerKeyboardShortcut(inputManager, () => shortcuts);
+    const reconfiguredKey = new KeyboardEvent('keydown', { code: 'KeyK', key: 'k' });
+    const defaultKey = new KeyboardEvent('keydown', { code: 'Tab', key: 'Tab' });
+    expect(handler.shortcutMatches(reconfiguredKey, 'clip_side_cycle')).toBe(true);
+    expect(handler.shortcutMatches(defaultKey, 'clip_side_cycle')).toBe(false);
   });
 
   it('saves on the save shortcut and saves as on the save as shortcut, never both', () => {

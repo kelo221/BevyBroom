@@ -3,7 +3,6 @@ import type { ViewportEditor } from '@/viewports/core/viewport_editor.js';
 import { getCadViewPlaneForKind, isPerspectiveViewport } from '@/viewports/core/viewport_editor.js';
 import { CoordinatorCameraFit } from '@/navigation/camera/coordinator_camera_fit.js';
 import type { CoordinatorEditorOrientation } from '@/navigation/orientation/coordinator_editor_orientation.js';
-import { HandlerClipPlane } from '@/tools/clip_plane/handler_clip_plane.js';
 import type { HandlerGridOrientation } from '@/tools/grid/handler_grid_orientation.js';
 import { MultiViewComposer, type MultiViewPanePass } from '@/viewports/core/multi_view_composer.js';
 import type { SharedWorldScene } from '@/viewports/shared/shared_world_scene.js';
@@ -33,7 +32,6 @@ export class LayoutRenderLoop {
   private getActiveViewports: (() => readonly ViewportEditor[]) | null;
   private cameraFitCoordinator: CoordinatorCameraFit | null;
   private editorOrientationCoordinator: CoordinatorEditorOrientation | null;
-  private clipPlaneHandler: HandlerClipPlane | null;
   private gridOrientationHandler: HandlerGridOrientation | null;
   private cadRulerSystem: CadRulerSystem | null;
   private transformGizmo: GizmoTransform | null;
@@ -55,7 +53,6 @@ export class LayoutRenderLoop {
     this.getActiveViewports = null;
     this.cameraFitCoordinator = null;
     this.editorOrientationCoordinator = null;
-    this.clipPlaneHandler = null;
     this.gridOrientationHandler = null;
     this.cadRulerSystem = null;
     this.transformGizmo = null;
@@ -77,7 +74,6 @@ export class LayoutRenderLoop {
   bind(parts: {
     getActiveViewports: () => readonly ViewportEditor[];
     cameraFitCoordinator: CoordinatorCameraFit;
-    clipPlaneHandler: HandlerClipPlane | null;
     editorOrientationCoordinator?: CoordinatorEditorOrientation | null;
     gridOrientationHandler?: HandlerGridOrientation | null;
     cadRulerSystem?: CadRulerSystem | null;
@@ -89,7 +85,6 @@ export class LayoutRenderLoop {
   }): void {
     this.getActiveViewports = parts.getActiveViewports;
     this.cameraFitCoordinator = parts.cameraFitCoordinator;
-    this.clipPlaneHandler = parts.clipPlaneHandler;
     this.editorOrientationCoordinator = parts.editorOrientationCoordinator ?? null;
     this.gridOrientationHandler = parts.gridOrientationHandler ?? null;
     this.cadRulerSystem = parts.cadRulerSystem ?? null;
@@ -116,15 +111,6 @@ export class LayoutRenderLoop {
    */
   setEditorOrientationCoordinator(coordinator: CoordinatorEditorOrientation | null): void {
     this.editorOrientationCoordinator = coordinator;
-  }
-
-  /**
-   * Updates the clip handler used for preview scale each frame.
-   *
-   * @param handler Clip plane handler or null.
-   */
-  setClipPlaneHandler(handler: HandlerClipPlane | null): void {
-    this.clipPlaneHandler = handler;
   }
 
   /**
@@ -202,7 +188,6 @@ export class LayoutRenderLoop {
     this.cameraFitCoordinator?.updateAnimations();
     this.editorOrientationCoordinator?.updateAnimations();
     this.onBeforeRender?.();
-    this.updateClipPreviewScales(activeViewports);
     this.gridOrientationHandler?.updatePreviewScreenScales();
     this.renderMultiView(activeViewports);
     this.updateMouseCursorForFrame();
@@ -355,36 +340,6 @@ export class LayoutRenderLoop {
         viewport.update(delta);
       }
     }
-  }
-
-  /**
-   * Updates clip preview scales from the first active perspective camera.
-   *
-   * @param viewports Active viewports this frame.
-   */
-  private updateClipPreviewScales(viewports: readonly ViewportEditor[]): void {
-    if (!this.clipPlaneHandler) return;
-    const camera = this.findScaleCamera(viewports);
-    if (camera) {
-      this.clipPlaneHandler.updatePreviewScales(camera);
-    }
-  }
-
-  /**
-   * Picks the camera used for clip preview scaling (prefer perspective).
-   *
-   * @param viewports Active viewports this frame.
-   * @returns Camera or undefined when no panes are active.
-   */
-  private findScaleCamera(viewports: readonly ViewportEditor[]): THREE.Camera | undefined {
-    for (let i = 0; i < viewports.length; i++) {
-      const viewport = viewports[i];
-      if (!viewport) continue;
-      if (isPerspectiveViewport(viewport)) {
-        return viewport.getCamera();
-      }
-    }
-    return viewports[0]?.getCamera();
   }
 
   /** Disconnects the viewport resize observer when present. */

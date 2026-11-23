@@ -7,12 +7,17 @@ import { planeToCsgForm } from '@/csg/csg_plane_from_points.js';
 import { getTriangleCount } from '@/selection/pick/utils_triangle_geometry.js';
 import { Theme } from '@/theme.js';
 import { CLIP_PREVIEW_USERDATA_KEY } from './clip_plane_preview_keys.js';
+import { ClipKeepMode } from './clip_keep_mode.js';
+import { clipPreviewDepthTestPerPaneApply } from './clip_plane_preview_render_hooks.js';
 
-/** UserData marking the keep half of a clip preview. */
-export const CLIP_HALF_KEEP_USERDATA_KEY = 'isClipKeepHalf';
+/** UserData key storing the role of a clip piece preview mesh. */
+export const CLIP_PIECE_ROLE_USERDATA_KEY = 'clipPieceRole';
 
-/** UserData marking the discard half of a clip preview. */
-export const CLIP_HALF_DISCARD_USERDATA_KEY = 'isClipDiscardHalf';
+/**
+ * What happens to a previewed piece: removed, kept, or kept as the second of
+ * two.
+ */
+export type ClipPieceRole = 'discard' | 'keep_first' | 'keep_second';
 
 /**
  * Skip full half-mesh rebuilds above this triangle count so dragging stays
@@ -20,89 +25,85 @@ export const CLIP_HALF_DISCARD_USERDATA_KEY = 'isClipDiscardHalf';
  */
 const MAX_HALF_PREVIEW_TRIANGLES = 6000;
 
-/** Keep-side fill opacity (muted remainder, not neon). */
-const KEEP_OPACITY = 0.3;
+/** Fill opacity of the piece a clip removes. */
+const DISCARD_OPACITY = 0.45;
 
-/** Discard-side fill opacity (stronger ghost so red actually reads). */
-const DISCARD_OPACITY = 0.28;
+/** Fill opacity of each piece when a clip keeps both. */
+const KEEP_BOTH_OPACITY = 0.35;
 
-/**
- * Pull each half slightly into its own side of the plane so the two cut caps
- * are not coplanar (stops z-fighting). Applied identically to keep and
- * discard.
- */
-const HALF_NORMAL_BIAS = 0.0015;
+/** Polygon offset that pulls piece fills in front of the coplanar brush faces. */
+const PIECE_POLYGON_OFFSET_UNITS = -4;
+
+/** Look of one piece preview: its side of the plane, color, opacity and role. */
+interface ClipPiecePreviewLook {
+  readonly isFrontSide: boolean;
+  readonly color: number;
+  readonly opacity: number;
+  readonly role: ClipPieceRole;
+}
 
 /** Shared CSG helpers reused across preview rebuilds. */
 const sharedMeshBuilder = new BuilderCsgMesh();
 const sharedClipper = new CsgClipper();
 
 /**
- * Builds lightweight keep/discard half meshes for one source target. Both
- * halves are closed (capped) solids built the same way; only color, opacity,
- * and opposite normal bias differ.
+ * Builds the piece previews of one source target. Keeping one side shows only
+ * the removed piece, in red; keeping both shows the two pieces in two colors.
+ * Pieces are closed (capped) solids, depth-tested in perspective panes and
+ * drawn on top in orthographic panes.
  *
  * @param sourceMesh Selected mesh to preview-clip.
  * @param plane World clip plane.
- * @param keepFront Whether the front half-space is the keep side.
- * @returns Keep and discard preview meshes (either may be null).
+ * @param mode Which pieces the clip keeps.
+ * @returns Piece preview meshes (empty pieces are left out).
  */
-export function buildClipHalfPreviewPair(
-  sourceMesh: THREE.Mesh,
-  plane: THREE.Plane,
-  keepFront: boolean,
-): { keepMesh: THREE.Mesh | null; discardMesh: THREE.Mesh | null } {
-  if (!canBuildHalfPreview(sourceMesh)) {
-    return { keepMesh: null, discardMesh: null };
-  }
+export function buildClipPiecePreviews(sourceMesh: THREE.Mesh, plane: THREE.Plane, mode: ClipKeepMode): THREE.Mesh[] {
+  if (!canBuildHalfPreview(sourceMesh)) return [];
   sourceMesh.updateMatrixWorld(true);
   const sourcePolygons = sharedMeshBuilder.meshToPolygons(sourceMesh);
-  if (sourcePolygons.length === 0) {
-    return { keepMesh: null, discardMesh: null };
-  }
-  const keepBias = resolveKeepBiasDirection(plane, keepFront);
-  const keepMesh = buildHalfMesh(
-    sourcePolygons,
-    plane,
-    keepFront,
-    Theme.clipKeepColor,
-    KEEP_OPACITY,
-    CLIP_HALF_KEEP_USERDATA_KEY,
-  );
-  const discardMesh = buildHalfMesh(
-    sourcePolygons,
-    plane,
-    !keepFront,
-    Theme.clipDiscardColor,
-    DISCARD_OPACITY,
-    CLIP_HALF_DISCARD_USERDATA_KEY,
-  );
-  if (keepMesh) keepMesh.position.addScaledVector(keepBias, HALF_NORMAL_BIAS);
-  if (discardMesh) discardMesh.position.addScaledVector(keepBias, -HALF_NORMAL_BIAS);
-  return { keepMesh, discardMesh };
+  if (sourcePolygons.length === 0) return [];
+  const meshes: THREE.Mesh[] = [];
+  clipPieceLooksFor(mode).forEach((look) => {
+    const mesh = buildHalfMesh(sourcePolygons, plane, look);
+    if (mesh) meshes.push(mesh);
+  });
+  return meshes;
 }
 
 /**
- * Builds one capped half preview mesh for a CSG side.
+ * Returns the pieces to preview for a keep mode and how each one looks.
+ *
+ * @param mode Which pieces the clip keeps.
+ * @returns Piece looks.
+ */
+function clipPieceLooksFor(mode: ClipKeepMode): ClipPiecePreviewLook[] {
+  if (mode === ClipKeepMode.BOTH) {
+    return [
+      { isFrontSide: true, color: Theme.clipKeepColor, opacity: KEEP_BOTH_OPACITY, role: 'keep_first' },
+      { isFrontSide: false, color: Theme.clipKeepSecondColor, opacity: KEEP_BOTH_OPACITY, role: 'keep_second' },
+    ];
+  }
+  const isDiscardFrontSide = mode === ClipKeepMode.SIDE_B;
+  return [
+    { isFrontSide: isDiscardFrontSide, color: Theme.clipDiscardColor, opacity: DISCARD_OPACITY, role: 'discard' },
+  ];
+}
+
+/**
+ * Builds one capped piece preview mesh for a CSG side.
  *
  * @param sourcePolygons World-space source polygons.
  * @param plane Cutting plane.
- * @param keepFront Whether this half is the CSG front side.
- * @param color Fill color.
- * @param opacity Fill opacity.
- * @param kindKey UserData kind flag.
+ * @param look Piece side, color, opacity and role.
  * @returns Preview mesh, or null when that side is empty.
  */
 function buildHalfMesh(
   sourcePolygons: CsgPolygon[],
   plane: THREE.Plane,
-  keepFront: boolean,
-  color: number,
-  opacity: number,
-  kindKey: string,
+  look: ClipPiecePreviewLook,
 ): THREE.Mesh | null {
-  const polygons = buildCappedHalf(sourcePolygons, plane, keepFront);
-  return polygonsToPreviewMesh(polygons, color, opacity, kindKey);
+  const polygons = buildCappedHalf(sourcePolygons, plane, look.isFrontSide);
+  return polygonsToPreviewMesh(polygons, look);
 }
 
 /**
@@ -115,19 +116,6 @@ function canBuildHalfPreview(mesh: THREE.Mesh): boolean {
   const geometry = mesh.geometry;
   if (!(geometry instanceof THREE.BufferGeometry)) return false;
   return getTriangleCount(geometry) <= MAX_HALF_PREVIEW_TRIANGLES;
-}
-
-/**
- * Unit direction pointing into the keep half-space along the plane normal.
- *
- * @param plane World clip plane.
- * @param keepFront Whether front is kept.
- * @returns Unit bias direction for the keep mesh.
- */
-function resolveKeepBiasDirection(plane: THREE.Plane, keepFront: boolean): THREE.Vector3 {
-  const direction = plane.normal.clone().normalize();
-  if (!keepFront) direction.negate();
-  return direction;
 }
 
 /**
@@ -169,43 +157,50 @@ function clipToSide(
 }
 
 /**
- * Fan-triangulates polygons into a transparent overlay mesh without textures.
- * Depth test is disabled so the preview never z-fights the live mesh.
+ * Fan-triangulates polygons into a transparent piece preview mesh without
+ * textures.
  *
  * @param polygons Half-space polygons.
- * @param color Fill color.
- * @param opacity Material opacity.
- * @param kindKey UserData kind flag.
+ * @param look Piece color, opacity and role.
  * @returns Preview mesh, or null when empty.
  */
-function polygonsToPreviewMesh(
-  polygons: CsgPolygon[],
-  color: number,
-  opacity: number,
-  kindKey: string,
-): THREE.Mesh | null {
+function polygonsToPreviewMesh(polygons: CsgPolygon[], look: ClipPiecePreviewLook): THREE.Mesh | null {
   if (polygons.length === 0) return null;
   const positions: number[] = [];
   polygons.forEach((polygon) => appendFanTriangles(polygon.getVertices(), positions));
   if (positions.length < 9) return null;
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geometry.computeVertexNormals();
-  const material = new THREE.MeshBasicMaterial({
-    color,
-    transparent: true,
-    opacity,
-    depthWrite: false,
-    depthTest: false,
-    side: THREE.DoubleSide,
-    toneMapped: false,
-  });
-  const mesh = new THREE.Mesh(geometry, material);
+  const mesh = new THREE.Mesh(geometry, piecePreviewMaterialCreate(look));
   mesh.userData[CLIP_PREVIEW_USERDATA_KEY] = true;
-  mesh.userData[kindKey] = true;
+  mesh.userData[CLIP_PIECE_ROLE_USERDATA_KEY] = look.role;
   mesh.renderOrder = 980;
   mesh.frustumCulled = false;
+  mesh.raycast = () => undefined;
+  clipPreviewDepthTestPerPaneApply(mesh);
   return mesh;
+}
+
+/**
+ * Creates the translucent material of a piece preview. It never writes depth
+ * and is pulled toward the camera so it wins against the coplanar brush faces.
+ *
+ * @param look Piece color and opacity.
+ * @returns Piece material.
+ */
+function piecePreviewMaterialCreate(look: ClipPiecePreviewLook): THREE.MeshBasicMaterial {
+  const material = new THREE.MeshBasicMaterial({
+    color: look.color,
+    transparent: true,
+    opacity: look.opacity,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: PIECE_POLYGON_OFFSET_UNITS,
+  });
+  material.toneMapped = false;
+  return material;
 }
 
 /**

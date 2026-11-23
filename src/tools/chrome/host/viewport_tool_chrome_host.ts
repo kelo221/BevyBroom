@@ -1,4 +1,5 @@
 import { EditorToolId } from '@/types/editor_tool_id.js';
+import type { ClipKeepMode } from '@/tools/clip_plane/clip_keep_mode.js';
 import { TransformMode } from '@/types/transform_mode.js';
 import { EditorInteractionMode } from '@/types/editor_interaction_mode.js';
 import { EditorComponentMode } from '@/types/editor_component_mode.js';
@@ -124,9 +125,8 @@ export class ViewportToolChromeHost {
   private static optionsHandlersFrom(handlers: ViewportToolChromeHandlers): ViewportToolOptionsBarHandlers {
     return {
       onTransformMode: (mode) => handlers.onTransformMode(mode),
-      onFlipClipPlane: () => handlers.onFlipClipPlane(),
-      onCommitClip: () => handlers.onCommitClip(),
-      onCommitSplit: () => handlers.onCommitSplit(),
+      onClipKeepModeSet: (mode) => handlers.onClipKeepModeSet(mode),
+      onClipApply: () => handlers.onClipApply(),
       faceInspectorReveal: () => handlers.faceInspectorReveal(),
       onExtrudeFaces: () => handlers.onExtrudeFaces(),
       onGridReset: () => handlers.onGridReset(),
@@ -212,12 +212,13 @@ export class ViewportToolChromeHost {
   }
 
   /**
-   * Enables or disables clip actions.
+   * Shows the clip keep mode and whether Apply may run.
    *
-   * @param enabled Whether clip actions are available.
+   * @param isPlaneReady True when a clip plane is placed.
+   * @param keepMode Current clip keep mode.
    */
-  setClipActionsEnabled(enabled: boolean): void {
-    this.optionsBar.setClipActionsEnabled(enabled);
+  setClipState(isPlaneReady: boolean, keepMode: ClipKeepMode): void {
+    this.optionsBar.setClipState(isPlaneReady, keepMode);
   }
 
   /**

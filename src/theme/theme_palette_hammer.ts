@@ -34,14 +34,21 @@ export const ThemePaletteHammer = Object.freeze({
   clipPoint1Color: 0xf0b429,
   clipPoint2Color: 0x3db8c9,
   clipPoint3Color: 0xc48ad9,
-  /** Keep-side half-brush preview fill. */
-  clipKeepColor: 0x3a8f6e,
-  /** Discard-side half-brush preview fill. */
-  clipDiscardColor: 0xe45b4c,
+  /**
+   * Kept piece of a clip: side arrow and, when both pieces stay, the first
+   * piece fill.
+   */
+  clipKeepColor: 0x3ec98e,
+  /** Second kept piece of a clip that keeps both sides. */
+  clipKeepSecondColor: 0x4a9df0,
+  /** Piece a clip removes. */
+  clipDiscardColor: 0xe8483a,
   /** Thin construction polyline between clip points. */
-  clipConstructionLineColor: 0x7a8a9a,
-  /** Plane-brush cut edge silhouette. */
-  clipCutEdgeColor: 0xff4040,
+  clipConstructionLineColor: 0x9aa8b6,
+  /** Plane-brush cut edge silhouette and the clip plane outline. */
+  clipCutEdgeColor: 0xffd84a,
+  /** Translucent sheet showing the clip plane. */
+  clipPlaneSheetColor: 0xdfe8f2,
   /** Placed Polygon tool outline edges and points. */
   polygonOutlineColor: 0xffe040,
   /** Polygon tool rubber-band edges from the outline to the pointer. */
