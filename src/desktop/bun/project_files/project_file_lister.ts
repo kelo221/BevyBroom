@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from 'node:fs';
+import { type Dirent, readdirSync, statSync } from 'node:fs';
 import { ProjectFilePaths } from '@/desktop/bun/project_files/project_file_paths.js';
 
 /** Decides from its name whether a file is listed. */
@@ -7,8 +7,8 @@ export type ProjectFileNameFilter = (fileName: string) => boolean;
 /** Finds the files of chosen kinds below directories of a project's asset root. */
 export class ProjectFileLister {
   /**
-   * Lists every accepted file below the directories; directories that do not
-   * exist are skipped.
+   * Lists every accepted file below the directories, including links to files
+   * such as git-annex links; directories that do not exist are skipped.
    *
    * @param assetRoot Absolute asset root, forward slashes.
    * @param directories Directories relative to the asset root.
@@ -44,10 +44,33 @@ export class ProjectFileLister {
       const relativePath = ProjectFilePaths.relativeJoin(relativeDirectory, directoryEntry.name);
       if (directoryEntry.isDirectory()) {
         ProjectFileLister.directoryWalk(assetRoot, relativePath, fileNameAccepts, collected);
-      } else if (directoryEntry.isFile() && fileNameAccepts(directoryEntry.name)) {
+      } else if (
+        ProjectFileLister.isFileOrFileLink(assetRoot, relativePath, directoryEntry) &&
+        fileNameAccepts(directoryEntry.name)
+      ) {
         collected.add(relativePath);
       }
     });
+  }
+
+  /**
+   * Returns whether a directory entry is a file or a link that leads to an
+   * existing file. Links to directories are not followed.
+   *
+   * @param assetRoot Absolute asset root, forward slashes.
+   * @param relativePath Path of the entry relative to the asset root.
+   * @param directoryEntry Entry as the directory listing reports it.
+   * @returns True for files and links to files.
+   */
+  private static isFileOrFileLink(assetRoot: string, relativePath: string, directoryEntry: Dirent): boolean {
+    if (directoryEntry.isFile()) {
+      return true;
+    }
+    if (!directoryEntry.isSymbolicLink()) {
+      return false;
+    }
+    const linkTarget = statSync(ProjectFilePaths.absoluteJoin(assetRoot, relativePath), { throwIfNoEntry: false });
+    return linkTarget?.isFile() ?? false;
   }
 
   /**

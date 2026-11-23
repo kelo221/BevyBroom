@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 import type { McpToolResult } from '@/ai/shared/mcp_protocol_types.js';
 import { isImageFileName } from '@/texture/library/image_file_filter.js';
 import { TEXTURE_LIBRARY_SOURCE_PROJECT_TEXTURES } from '@/texture/library/texture_library_source.js';
@@ -20,8 +20,9 @@ import { desktopE2eProjectPrepare, type DesktopE2eProject } from './desktop_e2e_
  * opens a temporary copy of the game project whose texture_directories name the
  * shipped textures folder and a folder the test fills, and its Texture Browser
  * lists every image of both under its asset-relative id, picking up a new image
- * when the project is opened again. Needs BROOM_E2E_DESKTOP_EXE,
- * BROOM_E2E_PREVIEW_EXE and BROOM_E2E_PROJECT_DIR.
+ * when the project is opened again and an image stored as a git-annex link.
+ * Needs BROOM_E2E_DESKTOP_EXE, BROOM_E2E_PREVIEW_EXE and
+ * BROOM_E2E_PROJECT_DIR.
  */
 const desktopExecutable = process.env['BROOM_E2E_DESKTOP_EXE'] ? resolve(process.env['BROOM_E2E_DESKTOP_EXE']) : '';
 e2eRequiredConfigurationAssert(desktopExecutable !== '', ['BROOM_E2E_DESKTOP_EXE']);
@@ -93,6 +94,23 @@ function imageWrite(assetRoot: string, relativePath: string): void {
   const filePath = join(assetRoot, relativePath);
   mkdirSync(dirname(filePath), { recursive: true });
   writeFileSync(filePath, E2E_PNG_BYTES);
+}
+
+/**
+ * Stores the test PNG the way git-annex does: the bytes in the project's git
+ * directory and a relative link to them at the asset-relative path.
+ *
+ * @param project Prepared project.
+ * @param assetRoot Absolute asset root.
+ * @param relativePath Asset-relative path of the link, forward slashes.
+ */
+function imageAnnexLinkWrite(project: DesktopE2eProject, assetRoot: string, relativePath: string): void {
+  const objectPath = join(project.directory, '.git/annex/objects/e2e/SHA256E-s70--e2e.png/SHA256E-s70--e2e.png');
+  mkdirSync(dirname(objectPath), { recursive: true });
+  writeFileSync(objectPath, E2E_PNG_BYTES);
+  const linkPath = join(assetRoot, relativePath);
+  mkdirSync(dirname(linkPath), { recursive: true });
+  symlinkSync(relative(dirname(linkPath), objectPath), linkPath);
 }
 
 /**
@@ -193,6 +211,18 @@ describe.skipIf(!isConfigured)('desktop app project texture directories end to e
       expect(projectEntries.some((entry) => entry.id === `${E2E_TEXTURE_DIRECTORY}/probe/e2e_probe_first.png`)).toBe(
         true,
       );
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
+    'lists an image stored as a git-annex link into the git directory of the project',
+    async () => {
+      const annexedPath = `${E2E_TEXTURE_DIRECTORY}/e2e_probe_annexed.png`;
+      imageAnnexLinkWrite(project, assetRoot, annexedPath);
+      await client.toolCallExpectOk('project_open', { path: project.projectFile });
+      const projectEntries = await projectEntriesWait([annexedPath]);
+      expect(projectEntries.find((entry) => entry.id === annexedPath)?.displayName).toBe('e2e_probe_annexed');
     },
     STEP_TIMEOUT_MILLISECONDS,
   );
