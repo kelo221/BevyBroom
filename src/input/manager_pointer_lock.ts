@@ -1,7 +1,11 @@
+import { PointerLockCursorHide } from '@/input/pointer_lock_cursor_hide.js';
+
 /**
- * ShowCursor-style pointer lock: one integer counter. {@link lock} increments
- * and requests browser lock on 0→1. {@link unlock} decrements and exits browser
- * lock on 1→0. Browser success or failure never changes the counter.
+ * ShowCursor-style pointer lock: one integer counter. {@link lock} increments,
+ * hides the cursor and requests browser lock on 0→1. {@link unlock} decrements,
+ * exits browser lock and shows the cursor on 1→0. Browser success or failure
+ * never changes the counter, and the cursor stays hidden while locked even
+ * where the browser refuses the lock.
  */
 export class ManagerPointerLock {
   private lockCount: number;
@@ -14,8 +18,8 @@ export class ManagerPointerLock {
   }
 
   /**
-   * Increments the lock counter. Requests browser lock when the count becomes
-   * 1.
+   * Increments the lock counter. Hides the cursor and requests browser lock
+   * when the count becomes 1.
    *
    * @param element Element to lock the pointer to.
    */
@@ -23,11 +27,15 @@ export class ManagerPointerLock {
     this.lockCount += 1;
     this.element = element;
     if (this.lockCount === 1) {
+      PointerLockCursorHide.hide(element.ownerDocument);
       this.requestBrowserLock(element);
     }
   }
 
-  /** Decrements the lock counter. Exits browser lock when the count reaches 0. */
+  /**
+   * Decrements the lock counter. Exits browser lock and shows the cursor when
+   * the count reaches 0.
+   */
   unlock(): void {
     if (this.lockCount <= 0) {
       this.lockCount = 0;
@@ -36,6 +44,7 @@ export class ManagerPointerLock {
     this.lockCount -= 1;
     if (this.lockCount === 0) {
       this.exitBrowserLock();
+      this.cursorShow();
       this.element = null;
     }
   }
@@ -70,10 +79,21 @@ export class ManagerPointerLock {
     return this.element;
   }
 
-  /** Clears the counter (tests / teardown). Does not call exitPointerLock. */
+  /**
+   * Clears the counter and shows the cursor again (tests / teardown). Does not
+   * call exitPointerLock.
+   */
   reset(): void {
+    this.cursorShow();
     this.lockCount = 0;
     this.element = null;
+  }
+
+  /** Shows the cursor again in the document of the locked element. */
+  private cursorShow(): void {
+    if (this.element) {
+      PointerLockCursorHide.show(this.element.ownerDocument);
+    }
   }
 
   /**

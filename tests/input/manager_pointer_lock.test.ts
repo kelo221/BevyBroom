@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ManagerPointerLock, managerPointerLock } from '@/input/manager_pointer_lock.js';
+import { PointerLockCursorHide } from '@/input/pointer_lock_cursor_hide.js';
 
 /**
  * Builds a fake lockable element.
@@ -126,5 +127,32 @@ describe('ManagerPointerLock', () => {
     clearBrowserLock();
     expect(manager.isBrowserLocked()).toBe(false);
     manager.unlock();
+  });
+
+  it('hides the cursor while locked even when the browser refuses the lock, and shows it at zero', () => {
+    const manager = new ManagerPointerLock();
+    const element = document.createElement('div');
+    document.body.appendChild(element);
+    const refusedRequest = vi.fn(() => Promise.reject(new DOMException('no focus', 'WrongDocumentError')));
+    Object.defineProperty(element, 'requestPointerLock', { configurable: true, value: refusedRequest });
+    expect(PointerLockCursorHide.isHidden(document)).toBe(false);
+    manager.lock(element);
+    manager.lock(element);
+    expect(refusedRequest).toHaveBeenCalledTimes(1);
+    expect(manager.isBrowserLocked()).toBe(false);
+    expect(PointerLockCursorHide.isHidden(document)).toBe(true);
+    manager.unlock();
+    expect(PointerLockCursorHide.isHidden(document)).toBe(true);
+    manager.unlock();
+    expect(PointerLockCursorHide.isHidden(document)).toBe(false);
+  });
+
+  it('shows the cursor again on reset', () => {
+    const manager = new ManagerPointerLock();
+    const { element } = createLockableElement();
+    manager.lock(element);
+    expect(PointerLockCursorHide.isHidden(document)).toBe(true);
+    manager.reset();
+    expect(PointerLockCursorHide.isHidden(document)).toBe(false);
   });
 });
