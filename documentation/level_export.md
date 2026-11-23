@@ -74,8 +74,8 @@ The format is a contract. The editor writes it, and the fixture `bevy/fixtures/c
       "position": [x, y, z], "rotation": [x, y, z, w], "scale": [x, y, z],
       "components": { "broom_bridge::placeables::procedural::BroomProceduralProp": { … } },
       "procedural": {
-        "generator": "people_mover", "version": 1, "parameters": { … }, "derived": { "shape": "escalator", … },
-        "derived_points_world": { "low_end": [x, y, z], "high_end": [x, y, z] }
+        "generator": "people_mover", "version": 2, "parameters": { … }, "derived": { "shape": "escalator", "belt": 3, … },
+        "derived_points_world": { "low_end": [x, y, z], "high_end": [x, y, z], "entry_end": [x, y, z], "exit_end": [x, y, z] }
       }
     }
   ]
@@ -95,5 +95,6 @@ The format is a contract. The editor writes it, and the fixture `bevy/fixtures/c
 - **placements**: every game entity, every procedural object and every other object carrying game components. Each one has its world position, rotation as a quaternion, scale and resolved components.
   - Procedural objects also carry their generator, parameters and derived values.
   - Derived values that are points, such as a people mover's `low_end` and `high_end`, are also given in world space, so a game never composes transforms.
+  - A people mover's parameters hold its `direction` (`start_to_end` or `end_to_start`) and its unsigned belt `speed` in meters per second. Its derived values add `entry_end` and `exit_end`, where people step on and off, and `belt`, the speed signed positive toward the high end. Version 1 movers stored that signed `belt` as a parameter; the editor turns them into a direction and a speed when it loads them.
 
 In Rust, `broom_bridge::prelude::CollisionDocument::read(level_directory)` parses the file into `CollisionPiece`, `CollisionFlagged` and `CollisionPlacement` values. `CollisionPiece::contains` tests a point, and `CollisionPlacement::transform` gives the world `Transform`.

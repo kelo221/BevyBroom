@@ -78,6 +78,41 @@ export class ContentProgramMaterial extends THREE.ShaderMaterial {
     }
   }
 
+  /**
+   * Makes the material see-through with an opacity, or opaque again.
+   *
+   * @param opacity Opacity from zero to one, or null for an opaque material.
+   */
+  translucencySet(opacity: number | null): void {
+    const isTranslucent = opacity !== null;
+    this.transparent = isTranslucent;
+    this.depthWrite = !isTranslucent;
+    this.uniformValueSet('opacity', opacity ?? 1);
+    this.uniformValueSet('translucency', isTranslucent ? 1 : 0);
+  }
+
+  /**
+   * Returns the opacity of a see-through material.
+   *
+   * @returns Opacity from zero to one, or null when the material is opaque.
+   */
+  translucencyRead(): number | null {
+    return this.transparent ? Number(this.uniforms['opacity']?.value ?? 1) : null;
+  }
+
+  /**
+   * Writes a uniform value when the program has the uniform.
+   *
+   * @param name Uniform name.
+   * @param value New value.
+   */
+  private uniformValueSet(name: string, value: number): void {
+    const uniform = this.uniforms[name];
+    if (uniform) {
+      uniform.value = value;
+    }
+  }
+
   /** Keeps the diffuse uniform on the live color object. */
   override onBeforeRender(): void {
     if (this.uniforms['diffuse']) {

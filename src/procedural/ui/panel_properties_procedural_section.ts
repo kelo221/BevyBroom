@@ -7,6 +7,7 @@ import { ProceduralGeneratorRegistry } from '@/procedural/generator/procedural_g
 import { ProceduralOwner } from '@/procedural/model/procedural_owner.js';
 import type { ProceduralSettings } from '@/procedural/model/procedural_settings.js';
 import { getStateTexturePaint } from '@/texture/paint/state_texture_paint.js';
+import { InputTexture } from '@/texture/ui/input_texture/input_texture.js';
 import { PanelPropertiesEntitySection } from '@/ui/properties/panel_properties_entity_section.js';
 import { panelPropertiesRowFieldStretch } from '@/ui/properties/panel_properties_row.js';
 
@@ -83,8 +84,9 @@ export class PanelPropertiesProceduralSection extends PanelPropertiesEntitySecti
   }
 
   /**
-   * Creates the row showing a material slot's texture, with a button that gives
-   * the slot the texture chosen in the texture browser.
+   * Creates the row picking a material slot's texture from the texture library,
+   * with a button that gives the slot the texture chosen in the texture
+   * browser.
    *
    * @param slot Material slot.
    * @param settingsList Settings of the bound objects.
@@ -92,9 +94,9 @@ export class PanelPropertiesProceduralSection extends PanelPropertiesEntitySecti
    */
   private materialRowCreate(slot: ProceduralMaterialSlot, settingsList: readonly ProceduralSettings[]): HTMLElement {
     const field: GameEntityField = { path: slot.name, label: `${slot.label} Texture`, kind: 'text', default: '' };
-    const editor = gameEntityFieldEditorCreate(field, true);
-    editor.valuesShow(settingsList.map((settings) => settings.materials[slot.name] ?? ''));
-    editor.bindCommit((edit) => this.materialCommit(slot, (current) => String(edit(current))));
+    const picker = new InputTexture(field.label);
+    picker.setSharedValues(settingsList.map((settings) => settings.materials[slot.name] ?? ''));
+    picker.bindCommit((textureId) => this.materialCommit(slot, () => textureId));
     const apply = GameEntityUiChrome.iconButtonCreate('⇦', `Use the texture browser's texture for ${slot.label}`, () =>
       this.materialCommit(slot, () => getStateTexturePaint().getLastTextureId()),
     );
@@ -102,7 +104,7 @@ export class PanelPropertiesProceduralSection extends PanelPropertiesEntitySecti
       field,
       0,
       false,
-      panelPropertiesRowFieldStretch(editor.getElement()),
+      panelPropertiesRowFieldStretch(picker.getElement()),
       apply,
     );
   }

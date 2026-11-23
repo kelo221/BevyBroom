@@ -56,8 +56,8 @@ const PROCEDURAL_WINDOW_FIELDS: readonly GameEntityField[] = [
     maximum: 0.5,
     step: 0.03125,
   },
-  { path: PROCEDURAL_WINDOW_COLUMNS, label: 'Columns', kind: 'integer', default: 2, minimum: 1, maximum: 12, step: 1 },
-  { path: PROCEDURAL_WINDOW_ROWS, label: 'Rows', kind: 'integer', default: 2, minimum: 1, maximum: 12, step: 1 },
+  { path: PROCEDURAL_WINDOW_COLUMNS, label: 'Columns', kind: 'integer', default: 1, minimum: 1, maximum: 12, step: 1 },
+  { path: PROCEDURAL_WINDOW_ROWS, label: 'Rows', kind: 'integer', default: 1, minimum: 1, maximum: 12, step: 1 },
   {
     path: PROCEDURAL_WINDOW_MULLION_WIDTH,
     label: 'Mullion Width',
@@ -79,13 +79,14 @@ const PROCEDURAL_WINDOW_FACES: readonly ProceduralHandleFaceDefinition[] = proce
 /** Material slots of a window. */
 const PROCEDURAL_WINDOW_SLOTS: readonly ProceduralMaterialSlot[] = [
   { name: PROCEDURAL_WINDOW_SLOT_FRAME, label: 'Frame' },
-  { name: PROCEDURAL_WINDOW_SLOT_GLASS, label: 'Glass' },
+  { name: PROCEDURAL_WINDOW_SLOT_GLASS, label: 'Glass', isGlass: true },
 ];
 
 /**
- * A window in the XY plane: a frame around columns and rows of glass panes. The
- * frame and the mullions keep their width when the box is resized; the panes
- * absorb the change.
+ * A window in the XY plane: a frame around columns and rows of glass panes. A
+ * new window is one pane with no mullions; more columns add upright mullions
+ * and more rows add crossing ones. The frame and the mullions keep their width
+ * when the box is resized; the panes absorb the change.
  */
 export class ProceduralGeneratorWindow extends ProceduralGenerator {
   readonly generatorId: string = PROCEDURAL_GENERATOR_WINDOW_ID;

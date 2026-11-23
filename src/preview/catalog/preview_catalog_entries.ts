@@ -86,7 +86,20 @@ export class PreviewCatalogEntryLoader {
       : PreviewCatalogEntryLoader.swatchFileCreate(material);
     const entry = createTextureBrowserEntry(file, material.id, TEXTURE_LIBRARY_SOURCE_GAME_MATERIALS);
     entry.displayName = material.label || material.id;
+    if (material.alpha === 'blend') {
+      entry.blendOpacity = PreviewCatalogEntryLoader.opacityOf(material);
+    }
     return entry;
+  }
+
+  /**
+   * Returns the opacity of a material: the alpha of its base color.
+   *
+   * @param material Catalog material.
+   * @returns Opacity from zero to one.
+   */
+  static opacityOf(material: PreviewCatalogMaterial): number {
+    return Math.max(0, Math.min(1, material.base_color[3]));
   }
 
   /**
@@ -107,7 +120,8 @@ export class PreviewCatalogEntryLoader {
   }
 
   /**
-   * Creates a small image file filled with a material's base color.
+   * Creates a small image file filled with a material's base color, see-through
+   * for a blended material.
    *
    * @param material Catalog material without a base color texture.
    * @returns SVG swatch file.
@@ -116,7 +130,8 @@ export class PreviewCatalogEntryLoader {
     const [red, green, blue] = material.base_color.map((channel) =>
       Math.round(Math.max(0, Math.min(1, channel)) * 255),
     );
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="rgb(${red},${green},${blue})"/></svg>`;
+    const opacity = material.alpha === 'blend' ? PreviewCatalogEntryLoader.opacityOf(material) : 1;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="rgb(${red},${green},${blue})" fill-opacity="${opacity}"/></svg>`;
     return new File([svg], `${material.id.replaceAll('/', '_')}.svg`, { type: 'image/svg+xml' });
   }
 }

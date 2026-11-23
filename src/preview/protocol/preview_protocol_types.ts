@@ -250,12 +250,17 @@ export interface PreviewBridgeStatus {
   errors: PreviewBridgeError[];
 }
 
+/** How a game material treats alpha. */
+export type PreviewCatalogAlpha = 'opaque' | 'mask' | 'blend';
+
 /** One game material of the catalog. */
 export interface PreviewCatalogMaterial {
   id: string;
   label: string;
   base_color: [number, number, number, number];
   base_color_texture: string | null;
+  alpha?: PreviewCatalogAlpha;
+  double_sided?: boolean;
   tile_meters?: [number, number] | null;
 }
 

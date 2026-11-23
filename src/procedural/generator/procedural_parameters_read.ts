@@ -32,6 +32,18 @@ export class ProceduralParametersRead {
   }
 
   /**
+   * Returns a text or enum parameter.
+   *
+   * @param parameters Sanitized parameters.
+   * @param path Field path of a text or enum field.
+   * @returns The text, or an empty text when the parameter is not text.
+   */
+  static text(parameters: Readonly<Record<string, unknown>>, path: string): string {
+    const value = parameters[path];
+    return typeof value === 'string' ? value : '';
+  }
+
+  /**
    * Returns a vector as the list a vector3 parameter stores.
    *
    * @param point Point to store.

@@ -42,7 +42,8 @@ export class ProceduralSettingsRules {
   }
 
   /**
-   * Returns settings whose parameters and materials satisfy their generator.
+   * Returns settings whose parameters and materials satisfy their generator,
+   * with parameters of an older layout version migrated first.
    *
    * @param settings Possibly invalid settings.
    * @returns Valid settings.
@@ -55,9 +56,26 @@ export class ProceduralSettingsRules {
     return {
       generatorId: generator.generatorId,
       generatorVersion: generator.version,
-      parameters: generator.parametersSanitize(settings.parameters),
+      parameters: generator.parametersSanitize(ProceduralSettingsRules.parametersMigrated(generator, settings)),
       materials: generator.materialsSanitize(settings.materials),
     };
+  }
+
+  /**
+   * Returns the parameters in the generator's current layout.
+   *
+   * @param generator Generator of the settings.
+   * @param settings Possibly invalid settings.
+   * @returns The parameters, migrated when they were written for an older
+   *   layout version.
+   */
+  private static parametersMigrated(
+    generator: ProceduralGenerator,
+    settings: ProceduralSettings,
+  ): Readonly<Record<string, unknown>> {
+    return settings.generatorVersion < generator.version
+      ? generator.parametersMigrate(settings.parameters, settings.generatorVersion)
+      : settings.parameters;
   }
 
   /**

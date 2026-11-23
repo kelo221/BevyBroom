@@ -17,6 +17,11 @@ const PROCEDURAL_GENERATOR_PLACEHOLDER_SIZE = 0.25;
 export interface ProceduralMaterialSlot {
   readonly name: string;
   readonly label: string;
+  /**
+   * True for see-through parts such as window panes: a texture picked for the
+   * whole object fills these slots only when it is see-through too.
+   */
+  readonly isGlass?: boolean;
 }
 
 /**
@@ -174,6 +179,19 @@ export abstract class ProceduralGenerator {
   }
 
   /**
+   * Returns editor-only guide lines drawn over the object, such as arrows that
+   * show a direction. They are never exported. None unless a generator draws
+   * them.
+   *
+   * @param parameters Valid parameters.
+   * @returns Line segments in owner space, two points per segment.
+   */
+  guideSegmentsBuild(parameters: ProceduralParameters): THREE.Vector3[] {
+    void parameters;
+    return [];
+  }
+
+  /**
    * Returns what the editor shows of an object whose parameters build no parts,
    * so it can still be seen, clicked and fixed. Never exported. The default is
    * a small cube on the object's origin.
@@ -216,6 +234,20 @@ export abstract class ProceduralGenerator {
       parameters[field.path] = structuredClone(proceduralFieldValueSanitize(field, candidate[field.path]));
     }
     return this.parametersConstrain(parameters);
+  }
+
+  /**
+   * Rewrites parameters written for an older parameter layout into the current
+   * layout, before they are sanitized. Generators that changed their layout
+   * override it; the default keeps the parameters.
+   *
+   * @param candidate Untrusted parameters in the older layout.
+   * @param fromVersion Parameter layout version the candidate was written for.
+   * @returns Untrusted parameters in the current layout.
+   */
+  parametersMigrate(candidate: Readonly<Record<string, unknown>>, fromVersion: number): Record<string, unknown> {
+    void fromVersion;
+    return { ...candidate };
   }
 
   /**

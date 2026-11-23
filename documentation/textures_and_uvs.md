@@ -15,7 +15,9 @@ The browser shows the folder name, texture thumbnails, and the number of texture
 
 For manageable projects, keep related textures in a dedicated folder with clear filenames. The editor scans the selected folder and presents eligible images.
 
-When a game preview is connected, the browser also lists the game's material catalog as **Game materials**. Assigning one of them to a face stores the game material id, and the game uses its own material for that face.
+When a game preview is connected, the browser also lists the game's material catalog as **Game materials**. Assigning one of them to a face stores the game material id, and the game uses its own material for that face. Game materials with `"alpha": "blend"`, such as the sample game's `glass/clear`, `glass/tinted` and `glass/frosted`, are see-through in the editor too, at the alpha of their base color.
+
+Procedural objects keep one texture per material slot. Pick it from the slot's list in the Properties panel, use the arrow button beside it to take the browser's current texture, or click a texture in the browser with the objects selected: a see-through texture such as glass fills their glass slots (a window's panes), any other texture fills the other slots.
 
 ## Project texture folders
 

@@ -540,8 +540,9 @@ function pickMaterialAssignment(materials: ContentViewLitMaterial[]): THREE.Mate
 }
 
 /**
- * Creates one surface material for a texture id with view-direction lighting
- * and stamps the id on the material.
+ * Creates one surface material for a texture id with view-direction lighting,
+ * see-through when the texture is a blended material such as glass, and stamps
+ * the id on the material.
  *
  * @param color Hex tint.
  * @param textureId Texture or game material identity of the surface.
@@ -557,6 +558,7 @@ export function createSurfaceMaterial(
     flatShading: true,
     side: THREE.FrontSide,
   });
+  material.translucencySet(cache.blendOpacityOf(textureId));
   materialIdentityWrite(material, textureId);
   return material;
 }

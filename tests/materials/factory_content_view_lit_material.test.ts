@@ -32,4 +32,22 @@ describe('content_view_lit_material', () => {
     material.dispose();
     texture.dispose();
   });
+
+  it('starts opaque and turns see-through with an opacity, and opaque again', () => {
+    const material = createContentViewLitMaterial(0xffffff, null);
+    expect(material.transparent).toBe(false);
+    expect(material.translucencyRead()).toBeNull();
+    expect(material.fragmentShader).toContain('surfaceAlpha');
+    const glassOpacity = 0.35;
+    material.translucencySet(glassOpacity);
+    expect(material.transparent).toBe(true);
+    expect(material.depthWrite).toBe(false);
+    expect(material.translucencyRead()).toBeCloseTo(glassOpacity);
+    expect(material.uniforms['translucency']?.value).toBe(1);
+    material.translucencySet(null);
+    expect(material.transparent).toBe(false);
+    expect(material.depthWrite).toBe(true);
+    expect(material.uniforms['translucency']?.value).toBe(0);
+    material.dispose();
+  });
 });

@@ -308,6 +308,8 @@ export const ThemePaletteHammer = Object.freeze({
   portalClosedColor: 0xef5350,
   /** Guide outline of rooms. */
   roomGuideColor: 0x4fc3f7,
+  /** Editor-only guide lines of procedural objects, such as travel arrows. */
+  proceduralGuideColor: 0xffd21f,
   /** Marker of entity kinds without their own color. */
   entityIconDefaultColor: 0xb0b0b0,
   /** Dark halo around entity icons so they read on light and dark surfaces. */

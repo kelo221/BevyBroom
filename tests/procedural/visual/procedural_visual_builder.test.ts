@@ -12,8 +12,12 @@ import { ProceduralOwner } from '@/procedural/model/procedural_owner.js';
 import type { ProceduralSettings } from '@/procedural/model/procedural_settings.js';
 import {
   PROCEDURAL_VISUAL_EDGES_NAME,
+  PROCEDURAL_VISUAL_GUIDES_NAME,
   ProceduralVisualBuilder,
 } from '@/procedural/visual/procedural_visual_builder.js';
+import { PROCEDURAL_GENERATOR_PEOPLE_MOVER_ID } from '@/procedural/generator/people_mover/procedural_generator_people_mover.js';
+import { ProceduralGeneratorRegistry } from '@/procedural/generator/procedural_generator_registry.js';
+import { ProceduralSettingsRules } from '@/procedural/model/procedural_settings_rules.js';
 
 /**
  * Returns settings with corner B moved by an offset.
@@ -89,6 +93,23 @@ describe('ProceduralVisualBuilder', () => {
     ProceduralOwner.settingsWrite(owner, settings);
     expect(edgesOf()).toHaveLength(1);
     expect(edgesOf().every((edges) => entityVisualPartIs(edges) && !entityPickMeshIs(edges))).toBe(true);
+  });
+
+  it('draws the guide lines a generator asks for as one editor-only part, kept single over refreshes', () => {
+    const generator = ProceduralGeneratorRegistry.find(PROCEDURAL_GENERATOR_PEOPLE_MOVER_ID);
+    if (generator === null) throw new Error('the people mover is built in');
+    const settings = ProceduralSettingsRules.createForGenerator(generator);
+    const mover = ProceduralOwner.create('Mover', settings);
+    const guidesOf = (owner: THREE.Object3D): THREE.Object3D[] =>
+      owner.children.filter((child) => child.name === PROCEDURAL_VISUAL_GUIDES_NAME);
+    expect(guidesOf(mover)).toHaveLength(1);
+    expect(guidesOf(mover).every((guides) => entityVisualPartIs(guides) && !entityPickMeshIs(guides))).toBe(true);
+    const guides = guidesOf(mover)[0];
+    const pointCount = guides instanceof THREE.LineSegments ? guides.geometry.getAttribute('position').count : 0;
+    expect(pointCount).toBe(generator.guideSegmentsBuild(settings.parameters).length);
+    ProceduralOwner.settingsWrite(mover, settings);
+    expect(guidesOf(mover)).toHaveLength(1);
+    expect(guidesOf(ProceduralOwner.createDefault('Box'))).toEqual([]);
   });
 
   it('textures every part with its slot texture', () => {

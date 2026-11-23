@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ContentSceneLitMaterial } from '@/materials/factory_content_scene_lit_material.js';
+import { ContentProgramMaterial } from '@/materials/content_program_material.js';
 import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import { ShadingMode } from '@/types/shading_mode.js';
 import { SELECTION_HIGHLIGHT_USERDATA_KEY } from '@/selection/object/selection_highlight.js';
@@ -233,10 +234,26 @@ export class ManagerShadingMode {
    * materials.
    */
   private applyLitMode(): void {
-    this.applyOverrideMaterials(
-      (source) =>
-        new ContentSceneLitMaterial(readMaterialColorHex(source), readMaterialMap(source), readMaterialSide(source)),
+    this.applyOverrideMaterials((source) => this.createSceneLitMaterial(source));
+  }
+
+  /**
+   * Builds a scene-lit material that mirrors the source's color, map, side and
+   * see-through opacity.
+   *
+   * @param source Content material to mirror.
+   * @returns Scene-lit material.
+   */
+  private createSceneLitMaterial(source: THREE.Material): ContentSceneLitMaterial {
+    const lit = new ContentSceneLitMaterial(
+      readMaterialColorHex(source),
+      readMaterialMap(source),
+      readMaterialSide(source),
     );
+    if (source instanceof ContentProgramMaterial) {
+      lit.translucencySet(source.translucencyRead());
+    }
+    return lit;
   }
 
   /**

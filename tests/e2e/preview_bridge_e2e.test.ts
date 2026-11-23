@@ -151,6 +151,22 @@ describe.skipIf(!environment.isConfigured)('game preview end to end', () => {
   );
 
   it(
+    'lists the game glass materials as see-through textures',
+    () => {
+      const entries = rig.loadedCatalogs[rig.loadedCatalogs.length - 1]?.entries ?? [];
+      const glass = entries.filter((entry) => entry.id.startsWith('glass/'));
+      expect(glass.map((entry) => entry.id)).toEqual(
+        expect.arrayContaining(['glass/clear', 'glass/tinted', 'glass/frosted']),
+      );
+      for (const entry of glass) {
+        expect(entry.blendOpacity).toBeGreaterThan(0);
+        expect(entry.blendOpacity).toBeLessThan(1);
+      }
+    },
+    STEP_TIMEOUT_MILLISECONDS,
+  );
+
+  it(
     'follows a light drag and a light settings edit',
     async () => {
       for (let step = 1; step <= 10; step++) {
