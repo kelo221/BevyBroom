@@ -6,7 +6,7 @@
 
 /** A normalized field value as it travels on the wire. */
 export type PreviewFieldValue =
-  number | boolean | string | null | number[] | { [key: string]: string | number | boolean };
+  number | boolean | string | null | number[] | string[] | { [key: string]: string | number | boolean };
 
 /** Overrides of one component: field path to normalized value. */
 export type PreviewComponentFields = Record<string, PreviewFieldValue>;
@@ -25,6 +25,7 @@ export const PREVIEW_PLACEABLE_FIELD_KINDS = [
   'vector4',
   'color',
   'enum',
+  'enum_list',
   'asset',
   'property_map',
   'group',
@@ -73,11 +74,15 @@ export interface PreviewPlaceableField {
   maximum?: number;
   step?: number;
   variants?: string[];
-  /** How the editor names and groups each variant of an enum field, by variant. */
+  /**
+   * How the editor names and groups each variant of an enum or enum list field,
+   * by variant.
+   */
   variant_details?: Record<string, PreviewPlaceableVariantDetail>;
   /**
    * Values the enum field used to hold, by old value: the value each means now.
-   * The editor rewrites old values, so the game never sees them.
+   * Enum list fields rename each element. The editor rewrites old values, so
+   * the game never sees them.
    */
   renamed_variants?: Record<string, string>;
   asset_type?: string;

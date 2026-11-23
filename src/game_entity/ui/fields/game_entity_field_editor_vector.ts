@@ -1,3 +1,4 @@
+import { gameEntityNumberListIs } from '@/game_entity/component/game_entity_component_value.js';
 import type { GameEntityField } from '@/game_entity/class/game_entity_class_schema.js';
 import { GameEntityFieldEditor } from '@/game_entity/ui/fields/game_entity_field_editor.js';
 import type { PreviewFieldValue } from '@/preview/protocol/preview_protocol_placeable_types.js';
@@ -71,7 +72,7 @@ export class GameEntityFieldEditorVector extends GameEntityFieldEditor {
    * @returns Components, zero where missing.
    */
   private vectorOf(value: PreviewFieldValue): number[] {
-    const source = Array.isArray(value) ? value : [];
+    const source = Array.isArray(value) && gameEntityNumberListIs(value) ? value : [];
     return Array.from({ length: this.size }, (_unused, index) => source[index] ?? 0);
   }
 }

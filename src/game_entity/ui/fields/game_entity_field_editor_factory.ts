@@ -4,6 +4,7 @@ import type { GameEntityFieldEditor } from '@/game_entity/ui/fields/game_entity_
 import { GameEntityFieldEditorBool } from '@/game_entity/ui/fields/game_entity_field_editor_bool.js';
 import { GameEntityFieldEditorChoice } from '@/game_entity/ui/fields/game_entity_field_editor_choice.js';
 import { GameEntityFieldEditorColor } from '@/game_entity/ui/fields/game_entity_field_editor_color.js';
+import { GameEntityFieldEditorEnumList } from '@/game_entity/ui/fields/game_entity_field_editor_enum_list.js';
 import { GameEntityFieldEditorDataAsset } from '@/game_entity/ui/fields/game_entity_field_editor_data_asset.js';
 import { GameEntityFieldEditorNumber } from '@/game_entity/ui/fields/game_entity_field_editor_number.js';
 import { GameEntityFieldEditorPropertyMap } from '@/game_entity/ui/fields/game_entity_field_editor_property_map.js';
@@ -26,6 +27,7 @@ const GAME_ENTITY_FIELD_EDITORS: Partial<Record<PreviewPlaceableFieldKind, GameE
   vector4: (field) => new GameEntityFieldEditorVector(field),
   color: (field) => new GameEntityFieldEditorColor(field),
   enum: (field) => new GameEntityFieldEditorChoice(field, field.variants ?? []),
+  enum_list: (field) => new GameEntityFieldEditorEnumList(field),
   asset: gameEntityFieldEditorAssetCreate,
   property_map: (field) => new GameEntityFieldEditorPropertyMap(field),
 };

@@ -1,3 +1,4 @@
+import { gameEntityNumberListIs } from '@/game_entity/component/game_entity_component_value.js';
 import * as THREE from 'three';
 import { MaterialColorNeutral } from '@/materials/material_color_neutral.js';
 import type { GameEntityField } from '@/game_entity/class/game_entity_class_schema.js';
@@ -57,7 +58,7 @@ export class GameEntityFieldEditorColor extends GameEntityFieldEditor {
    * @returns Color number, white when the value is not a color.
    */
   private static hexOf(value: PreviewFieldValue): number {
-    if (!Array.isArray(value) || value.length < 3) {
+    if (!Array.isArray(value) || value.length < 3 || !gameEntityNumberListIs(value)) {
       return MaterialColorNeutral.white;
     }
     const [red = 1, green = 1, blue = 1] = value;

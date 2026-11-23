@@ -4,7 +4,8 @@ import {
   type GameEntityClassAbsorb,
   gameEntityClassRenameNormalize,
 } from '@/game_entity/class/game_entity_class_migration_schema.js';
-import type { GameEntityClass } from '@/game_entity/class/game_entity_class_schema.js';
+import type { GameEntityClass, GameEntityField } from '@/game_entity/class/game_entity_class_schema.js';
+import { gameEntityTextListIs } from '@/game_entity/component/game_entity_component_value.js';
 import { GameEntityComponentResolver } from '@/game_entity/component/game_entity_component_resolver.js';
 import type { GameEntityComponents } from '@/game_entity/component/game_entity_component_store.js';
 import type { PreviewComponentFields, PreviewFieldValue } from '@/preview/protocol/preview_protocol_placeable_types.js';
@@ -226,8 +227,8 @@ export class GameEntityComponentNormalizer {
   }
 
   /**
-   * Renames old enum values and writes in the values of enum fields left out,
-   * for every component of a known class.
+   * Renames old enum values and writes in the values of enum and enum list
+   * fields left out, for every component of a known class.
    *
    * @param components Components being normalized, changed in place.
    * @param rewrites Receives the changes.
@@ -236,7 +237,7 @@ export class GameEntityComponentNormalizer {
     for (const [typePath, fields] of Object.entries(components)) {
       const gameClass = this.classesByTypePath.get(typePath);
       const enumFields = GameEntityComponentResolver.fieldsLeaf(gameClass?.fields ?? []).filter(
-        (field) => field.kind === 'enum',
+        (field) => field.kind === 'enum' || field.kind === 'enum_list',
       );
       for (const field of enumFields) {
         const rewrite = this.enumFieldSettle(gameClass?.label ?? typePath, field, fields);
@@ -248,31 +249,55 @@ export class GameEntityComponentNormalizer {
   }
 
   /**
-   * Renames an old value of one enum field or writes in its default.
+   * Renames old values of one enum or enum list field or writes in its default.
    *
    * @param classLabel Label of the class, for the description.
-   * @param field Enum field.
+   * @param field Enum or enum list field.
    * @param fields Overrides of the component, changed in place.
-   * @returns The change made, or null when the field already holds a current
-   *   value.
+   * @returns The change made, or null when the field already holds current
+   *   values.
    */
   private enumFieldSettle(
     classLabel: string,
-    field: GameEntityClass['fields'][number],
+    field: GameEntityField,
     fields: PreviewComponentFields,
   ): GameEntityComponentRewrite | null {
     const value = fields[field.path];
     if (value === undefined) {
       fields[field.path] = field.default;
-      const description = `${classLabel} ${field.label} had no value; filled from the class default "${String(field.default)}"`;
+      const description = `${classLabel} ${field.label} had no value; filled from the class default ${JSON.stringify(field.default)}`;
       return { kind: 'default', description };
     }
-    const renamed = typeof value === 'string' ? field.renamed_variants?.[value] : undefined;
+    const renamed = GameEntityComponentNormalizer.variantsRenamed(field, value);
     if (renamed === undefined) {
       return null;
     }
     fields[field.path] = renamed;
-    return { kind: 'variant', description: `${classLabel} ${field.label} "${String(value)}" became "${renamed}"` };
+    const description = `${classLabel} ${field.label} ${JSON.stringify(value)} became ${JSON.stringify(renamed)}`;
+    return { kind: 'variant', description };
+  }
+
+  /**
+   * Returns the value an enum or enum list field holds once its old variant
+   * names take their new names. An enum list whose renames make two entries the
+   * same keeps the first.
+   *
+   * @param field Enum or enum list field.
+   * @param value Stored value.
+   * @returns Renamed value, or undefined when no entry has an old name.
+   */
+  static variantsRenamed(field: GameEntityField, value: PreviewFieldValue): PreviewFieldValue | undefined {
+    const renames = field.renamed_variants ?? {};
+    if (typeof value === 'string') {
+      return renames[value];
+    }
+    if (field.kind !== 'enum_list' || !Array.isArray(value) || !gameEntityTextListIs(value)) {
+      return undefined;
+    }
+    if (!value.some((entry) => renames[entry] !== undefined)) {
+      return undefined;
+    }
+    return [...new Set(value.map((entry) => renames[entry] ?? entry))];
   }
 
   /**

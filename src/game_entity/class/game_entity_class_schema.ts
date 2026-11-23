@@ -2,6 +2,7 @@ import {
   PREVIEW_PLACEABLE_COLLISION_KINDS,
   PREVIEW_PLACEABLE_FIELD_KINDS,
   PREVIEW_PLACEABLE_IO_PARAMETER_KINDS,
+  type PreviewFieldValue,
   type PreviewPlaceableAssetType,
   type PreviewPlaceableClass,
   type PreviewPlaceableClassList,
@@ -12,7 +13,10 @@ import {
   type PreviewPlaceableMarkerBox,
   type PreviewPlaceableVariantDetail,
 } from '@/preview/protocol/preview_protocol_placeable_types.js';
-import { gameEntityFieldValueFromUnknown } from '@/game_entity/component/game_entity_component_value.js';
+import {
+  gameEntityFieldValueFromUnknown,
+  gameEntityTextListIs,
+} from '@/game_entity/component/game_entity_component_value.js';
 import { gameEntityVariantLightFromUnknown } from '@/game_entity/class/game_entity_class_variant_light.js';
 import {
   gameEntityClassMigrationRead,
@@ -252,14 +256,31 @@ export function gameEntityFieldFromUnknown(value: unknown): GameEntityField | nu
   if (!gameEntityRecordIs(value) || !gameEntityTextIsFilled(value['path'])) {
     return null;
   }
+  const kind = gameEntityFieldKindRead(value['kind']);
   const field: GameEntityField = {
     path: value['path'],
     label: gameEntityTextRead(value['label'], value['path']),
-    kind: gameEntityFieldKindRead(value['kind']),
-    default: gameEntityFieldValueFromUnknown(value['default']) ?? null,
+    kind,
+    default: gameEntityFieldDefaultRead(kind, value['default']),
   };
   gameEntityFieldOptionalsRead(value, field);
   return field;
+}
+
+/**
+ * Reads the default of an untrusted field. Enum list defaults are lists of
+ * distinct text; any other default of an enum list reads as the empty list.
+ *
+ * @param kind Field kind.
+ * @param value Untrusted default.
+ * @returns Default value; null when it cannot travel as a field value.
+ */
+function gameEntityFieldDefaultRead(kind: PreviewPlaceableFieldKind, value: unknown): PreviewFieldValue {
+  const read = gameEntityFieldValueFromUnknown(value) ?? null;
+  if (kind !== 'enum_list') {
+    return read;
+  }
+  return Array.isArray(read) && gameEntityTextListIs(read) ? [...new Set(read)] : [];
 }
 
 /**
@@ -301,7 +322,8 @@ function gameEntityFieldFlagsRead(value: Record<string, unknown>, field: GameEnt
 }
 
 /**
- * Copies the well-formed variant names and groups of an untrusted enum field.
+ * Copies the well-formed variant names and groups of an untrusted enum or enum
+ * list field.
  *
  * @param value Untrusted field record.
  * @param field Field being built.

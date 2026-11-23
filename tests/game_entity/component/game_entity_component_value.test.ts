@@ -5,6 +5,7 @@ import {
   gameEntityFieldValueNormalize,
 } from '@/game_entity/component/game_entity_component_value.js';
 import { testDoorField as doorField } from '../game_entity_test_classes.js';
+import { TEST_SHELF_RUN_VARIANTS, testShelfRunClassCreate } from '../game_entity_test_class_enum_list.js';
 
 /**
  * Field values are checked against their field before they are stored, so the
@@ -48,5 +49,32 @@ describe('game entity field values', () => {
     expect(gameEntityFieldValueFromUnknown([1, 'a'])).toBeUndefined();
     expect(gameEntityFieldValueFromUnknown(Number.POSITIVE_INFINITY)).toBeUndefined();
     expect(gameEntityFieldValueEquals([1, 2], [1, 2])).toBe(true);
+  });
+});
+
+/**
+ * Enum list values are ordered lists of distinct listed variant names; stored
+ * lists of text survive reading untouched so unknown names can be reported.
+ */
+describe('game entity enum list values', () => {
+  const listField = testShelfRunClassCreate().fields.find((field) => field.kind === 'enum_list');
+
+  it('accepts listed names in any order and refuses repeats, unlisted names and other values', () => {
+    if (!listField) {
+      throw new Error('the shelf run has an enum list field');
+    }
+    const reordered = [...TEST_SHELF_RUN_VARIANTS].reverse();
+    expect(gameEntityFieldValueNormalize(listField, reordered)).toEqual(reordered);
+    expect(gameEntityFieldValueNormalize(listField, [])).toEqual([]);
+    const [first = ''] = TEST_SHELF_RUN_VARIANTS;
+    expect(gameEntityFieldValueNormalize(listField, [first, first])).toBeUndefined();
+    expect(gameEntityFieldValueNormalize(listField, [first, 'unlisted'])).toBeUndefined();
+    expect(gameEntityFieldValueNormalize(listField, first)).toBeUndefined();
+    expect(gameEntityFieldValueNormalize(listField, [first, 3])).toBeUndefined();
+  });
+
+  it('reads stored lists of text, unknown names included, and refuses mixed lists', () => {
+    expect(gameEntityFieldValueFromUnknown(['tins', 'unlisted'])).toEqual(['tins', 'unlisted']);
+    expect(gameEntityFieldValueFromUnknown(['tins', 2])).toBeUndefined();
   });
 });

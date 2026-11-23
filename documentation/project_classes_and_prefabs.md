@@ -91,6 +91,28 @@ The class file uses the same format the game bridge reports its classes in:
   The Add menu and the Place browser list each boxed value under its group, and
   the field's dropdown in the Properties panel shows the labels under their
   groups. Values without details show a readable form of the value itself.
+- An `"enum_list"` field holds an ordered list of distinct values from its
+  `"variants"`, such as the categories of a shelf run along an aisle. Its
+  `"default"` is a list. In the Properties panel each held value is a numbered
+  row with move up, move down and remove buttons, and an **Add…** dropdown,
+  grouped like an enum field's, adds a value the list does not hold yet.
+  `"variant_details"` and `"renamed_variants"` work as for an enum field;
+  renames apply to each entry. Saved levels, the game preview and the
+  exported `collision.json` carry the value as a JSON array of strings in the
+  component's field, in order. An entry the field does not list shows an
+  Issues line naming the object and the value.
+
+  ```json
+  {
+    "path": "categories",
+    "label": "Categories",
+    "kind": "enum_list",
+    "default": ["generic"],
+    "variants": ["bottles", "cereal", "generic"],
+    "renamed_variants": { "cans": "bottles" }
+  }
+  ```
+
 - A variant's details may also declare the light an entity holding the
   variant carries, such as a fluorescent fixture's tube:
 
@@ -156,13 +178,15 @@ The class file uses the same format the game bridge reports its classes in:
   - `absorbs` moves components of another class (`from`) whose enum `field`
     holds one of `variants` into this class, with all their values. `default`
     is the value an old component without the field held.
-  - `renamed_variants` on an enum field maps old values to new ones.
+  - `renamed_variants` on an enum or enum list field maps old values to new
+    ones.
   - The editor rewrites levels when they are loaded or pasted and whenever the
     class file changes, and the Issues list shows one line per rewrite. Saved
     files, the game preview and every export use the new names, so the game
     never sees an old one.
 
-- **Values never depend on a default.** The editor writes every enum field's
+- **Values never depend on a default.** The editor writes every enum and enum
+  list field's
   value into the level, so changing a default in the class file never changes
   an object already placed. A component loaded without a value gets the
   current default written in, with an Issues line saying so.

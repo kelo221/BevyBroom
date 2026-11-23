@@ -9,6 +9,7 @@ import {
   gameEntityMarkerBoxFromUnknown,
 } from '@/game_entity/class/game_entity_class_schema.js';
 import { testClassListCreate, testDoorClassCreate } from '../game_entity_test_classes.js';
+import { testShelfRunClassJson } from '../game_entity_test_class_enum_list.js';
 
 /** Wire fixtures of the game bridge workspace, parsed by its Rust tests too. */
 const FIXTURE_BRIDGE_DIRECTORY = resolve(__dirname, '../../../bevy/fixtures');
@@ -228,5 +229,51 @@ describe('game entity class schema', () => {
     expect(gameEntityClassFromUnknown({ ...base, collision: 'volume' })?.collision).toBe('volume');
     expect(gameEntityClassFromUnknown({ ...base, collision: 'lava' })?.collision).toBeUndefined();
     expect(gameEntityClassFromUnknown(base)).not.toHaveProperty('collision');
+  });
+});
+
+/**
+ * Class files may declare enum list fields: the kind, its ordered default and
+ * its variant names, groups and renames all read.
+ */
+describe('gameEntityClassFromUnknown enum list fields', () => {
+  it('reads the kind, the default list, the variant details and the renames', () => {
+    const raw = testShelfRunClassJson();
+    const rawField = (raw['fields'] as Array<Record<string, unknown>>)[0] ?? {};
+    const field = gameEntityClassFromUnknown(raw)?.fields[0];
+    expect(field?.kind).toBe('enum_list');
+    expect(field?.default).toEqual(rawField['default']);
+    expect(field?.variants).toEqual(rawField['variants']);
+    expect(field?.variant_details).toEqual(rawField['variant_details']);
+    expect(field?.renamed_variants).toEqual(rawField['renamed_variants']);
+  });
+
+  it('reads every enum list field of the shared bridge fixture as the bridge declares it', () => {
+    const raw = JSON.parse(
+      readFileSync(resolve(FIXTURE_BRIDGE_DIRECTORY, 'placeable_classes_sample.json'), 'utf8'),
+    ) as { classes: Array<{ fields?: Array<Record<string, unknown>> }> };
+    const rawFields = raw.classes
+      .flatMap((entry) => entry.fields ?? [])
+      .filter((field) => field['kind'] === 'enum_list');
+    const parsed = gameEntityClassListFromUnknown(raw)?.classes.flatMap((entry) => entry.fields) ?? [];
+    expect(rawFields.length).toBeGreaterThan(0);
+    rawFields.forEach((rawField) => {
+      const field = parsed.find((candidate) => candidate.kind === 'enum_list' && candidate.path === rawField['path']);
+      expect(field?.default).toEqual(rawField['default']);
+      expect(field?.variants).toEqual(rawField['variants']);
+      expect(field?.renamed_variants).toEqual(rawField['renamed_variants']);
+    });
+  });
+
+  it('reads a default that is no list of text as the empty list and drops repeats', () => {
+    const fieldWith = (defaultValue: unknown): unknown =>
+      gameEntityClassFromUnknown({
+        type_path: 'test_game::Run',
+        fields: [{ path: 'list', kind: 'enum_list', default: defaultValue, variants: ['a', 'b'] }],
+      })?.fields[0]?.default;
+    expect(fieldWith('a')).toEqual([]);
+    expect(fieldWith([1, 2])).toEqual([]);
+    expect(fieldWith(undefined)).toEqual([]);
+    expect(fieldWith(['b', 'a', 'b'])).toEqual(['b', 'a']);
   });
 });

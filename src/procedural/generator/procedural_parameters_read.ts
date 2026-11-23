@@ -1,3 +1,4 @@
+import { gameEntityNumberListIs } from '@/game_entity/component/game_entity_component_value.js';
 import * as THREE from 'three';
 import type { ProceduralParameters } from '@/procedural/model/procedural_settings.js';
 
@@ -12,7 +13,7 @@ export class ProceduralParametersRead {
    */
   static vector3(parameters: ProceduralParameters, path: string): THREE.Vector3 {
     const value = parameters[path];
-    if (!Array.isArray(value) || value.length !== 3) {
+    if (!Array.isArray(value) || value.length !== 3 || !gameEntityNumberListIs(value)) {
       return new THREE.Vector3();
     }
     return new THREE.Vector3(value[0], value[1], value[2]);

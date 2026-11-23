@@ -54,6 +54,17 @@
       ]
     },
     {
+      "type_path": "broom_preview::placeables::ShelfRun",
+      "label": "Shelf Run",
+      "category": "Store",
+      "placement": "any",
+      "marker_color": [0.3, 0.55, 0.9],
+      "collision": "volume",
+      "fields": [
+        { "path": "categories", "label": "Categories", "kind": "enum_list", "default": ["generic"], "variants": ["bottles", "cereal", "generic", "tins"], "renamed_variants": { "cans": "tins" }, "variant_details": { "cereal": { "label": "Cereal", "group": "Dry goods" } } }
+      ]
+    },
+    {
       "type_path": "broom_preview::placeables::Spinner",
       "label": "Spinner",
       "category": "Motion",
