@@ -268,23 +268,25 @@ export abstract class ViewportLayoutCore {
 
   /**
    * Gives a detached popup window the editor shortcuts and the platform pointer
-   * remap.
+   * remap, and lets its input keep the editor views drawing.
    *
    * @param popup Popup window that just opened.
    */
   private popupWindowInputRegister(popup: Window): void {
+    this.renderLoop.renderDemandWindowWatchAdd(popup);
     this.keyboardShortcutHandler?.registerOnWindow(popup);
     this.platformPointerRemap.installOnWindow(popup);
     this.platformWindowCloseShortcut?.installOnWindow(popup);
   }
 
   /**
-   * Removes the editor shortcuts and the platform pointer remap from a closing
-   * popup window.
+   * Removes the editor shortcuts, the platform pointer remap and the view
+   * drawing watch from a closing popup window.
    *
    * @param popup Popup window that is closing.
    */
   private popupWindowInputUnregister(popup: Window): void {
+    this.renderLoop.renderDemandWindowWatchRemove(popup);
     this.keyboardShortcutHandler?.unregisterFromWindow(popup);
     this.platformPointerRemap.uninstallFromWindow(popup);
     this.platformWindowCloseShortcut?.uninstallFromWindow(popup);

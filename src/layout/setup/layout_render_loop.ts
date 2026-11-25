@@ -13,6 +13,10 @@ import { managerMouseCursor } from '@/input/manager_mouse_cursor.js';
 import { notificationFrameEvents } from '@/audio/notification/notification_frame_events.js';
 import { controllerAudioPlayback } from '@/audio/playback/controller_audio_playback.js';
 import { Theme } from '@/theme.js';
+import {
+  RENDER_DEMAND_SCHEDULER_TIMING_DEFAULT,
+  RenderDemandScheduler,
+} from '@/layout/render_demand/render_demand_scheduler.js';
 
 /**
  * Mutable multi-view pass with a stable viewport reference so per-frame
@@ -42,9 +46,18 @@ export class LayoutRenderLoop {
   private boundOnAnimationFrame: () => void;
   private multiViewPassPool: ReusableMultiViewPass[];
   private multiViewPasses: ReusableMultiViewPass[];
+  private readonly renderDemandScheduler: RenderDemandScheduler | null;
+  private readonly frameCameras: THREE.Camera[];
 
-  /** Creates an idle render loop. */
-  constructor() {
+  /**
+   * Creates an idle render loop.
+   *
+   * @param renderDemandScheduler Scheduler that decides which frames draw; null
+   *   draws every frame. Defaults to one watching the page window.
+   */
+  constructor(
+    renderDemandScheduler: RenderDemandScheduler | null = LayoutRenderLoop.renderDemandSchedulerCreateDefault(),
+  ) {
     this.isRunning = false;
     this.isDisposed = false;
     this.animationFrameId = null;
@@ -63,6 +76,45 @@ export class LayoutRenderLoop {
     this.boundOnAnimationFrame = () => this.onAnimationFrame();
     this.multiViewPassPool = [];
     this.multiViewPasses = [];
+    this.renderDemandScheduler = renderDemandScheduler;
+    this.frameCameras = [];
+  }
+
+  /**
+   * Creates the scheduler watching the page window, or none outside a browser.
+   *
+   * @returns Default scheduler or null.
+   */
+  private static renderDemandSchedulerCreateDefault(): RenderDemandScheduler | null {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    return new RenderDemandScheduler(window, () => performance.now(), RENDER_DEMAND_SCHEDULER_TIMING_DEFAULT);
+  }
+
+  /** Asks for the views to be drawn on the next frames even without user input. */
+  renderRequest(): void {
+    this.renderDemandScheduler?.request();
+  }
+
+  /**
+   * Treats input on another window, such as a popup viewport, like input on the
+   * editor window.
+   *
+   * @param watchedWindow Window to watch.
+   */
+  renderDemandWindowWatchAdd(watchedWindow: Window): void {
+    this.renderDemandScheduler?.windowWatchAdd(watchedWindow);
+  }
+
+  /**
+   * Stops treating input on a window added with
+   * {@link renderDemandWindowWatchAdd}.
+   *
+   * @param watchedWindow Window to stop watching.
+   */
+  renderDemandWindowWatchRemove(watchedWindow: Window): void {
+    this.renderDemandScheduler?.windowWatchRemove(watchedWindow);
   }
 
   /**
@@ -122,12 +174,13 @@ export class LayoutRenderLoop {
   watchResize(elements: HTMLElement[], onResize: () => void): void {
     this.disconnectResizeObserver();
     this.resizeObserver = new ResizeObserver(() => {
+      this.renderRequest();
       requestAnimationFrame(() => onResize());
     });
     elements.forEach((element) => this.resizeObserver?.observe(element));
   }
 
-  /** Starts the continuous render loop. */
+  /** Starts the render loop. */
   start(): void {
     if (this.isRunning || this.isDisposed) return;
     this.isRunning = true;
@@ -150,6 +203,7 @@ export class LayoutRenderLoop {
     this.isDisposed = true;
     this.stop();
     this.disconnectResizeObserver();
+    this.renderDemandScheduler?.dispose();
     managerMouseCursor.reset();
   }
 
@@ -169,30 +223,77 @@ export class LayoutRenderLoop {
 
   /** Advances one frame of viewport updates and multi-view rendering. */
   private onAnimationFrame(): void {
-    if (
-      !this.isRunning ||
-      this.isDisposed ||
-      !this.getActiveViewports ||
-      !this.multiViewComposer ||
-      !this.sharedScene
-    ) {
+    if (!this.isFrameRunnable() || !this.getActiveViewports) {
       this.animationFrameId = null;
       return;
     }
     notificationFrameEvents.beginFrame();
+    const activeViewports = this.getActiveViewports();
+    this.frameAnimationsAdvance(activeViewports);
+    this.frameCamerasCollect(activeViewports);
+    if (this.isFrameDrawNeeded()) {
+      this.frameDraw(activeViewports);
+    }
+    controllerAudioPlayback.endFrame();
+    this.scheduleNextFrame();
+  }
+
+  /**
+   * Returns whether the loop is running, not disposed and bound to a composer
+   * and a scene.
+   *
+   * @returns True when a frame can run.
+   */
+  private isFrameRunnable(): boolean {
+    return this.isRunning && !this.isDisposed && this.multiViewComposer !== null && this.sharedScene !== null;
+  }
+
+  /**
+   * Advances flying cameras, camera fits and orientation animations by the time
+   * since the previous frame.
+   *
+   * @param activeViewports Active panes this frame.
+   */
+  private frameAnimationsAdvance(activeViewports: readonly ViewportEditor[]): void {
     const now = performance.now();
     const delta = (now - this.lastTime) / 1000;
     this.lastTime = now;
-    const activeViewports = this.getActiveViewports();
     this.updatePerspectiveViewports(activeViewports, delta);
     this.cameraFitCoordinator?.updateAnimations();
     this.editorOrientationCoordinator?.updateAnimations();
+  }
+
+  /**
+   * Fills the reusable camera list with the camera of every active pane.
+   *
+   * @param activeViewports Active panes this frame.
+   */
+  private frameCamerasCollect(activeViewports: readonly ViewportEditor[]): void {
+    this.frameCameras.length = 0;
+    activeViewports.forEach((viewport) => this.frameCameras.push(viewport.getCamera()));
+  }
+
+  /**
+   * Returns whether this frame draws, asking the scheduler when there is one.
+   *
+   * @returns True when the views must be drawn.
+   */
+  private isFrameDrawNeeded(): boolean {
+    return this.renderDemandScheduler?.isDrawNeeded(this.frameCameras) ?? true;
+  }
+
+  /**
+   * Runs the per-drawing hooks, draws every active pane, refreshes the cursor
+   * and records the drawing with the scheduler.
+   *
+   * @param activeViewports Active panes this frame.
+   */
+  private frameDraw(activeViewports: readonly ViewportEditor[]): void {
     this.onBeforeRender?.();
     this.gridOrientationHandler?.updatePreviewScreenScales();
     this.renderMultiView(activeViewports);
     this.updateMouseCursorForFrame();
-    controllerAudioPlayback.endFrame();
-    this.scheduleNextFrame();
+    this.renderDemandScheduler?.drawnRecord(this.frameCameras);
   }
 
   /**
