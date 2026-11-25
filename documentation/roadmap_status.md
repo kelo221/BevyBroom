@@ -122,6 +122,7 @@ Done:
 
 - **Unsaved changes** in the status bar while the scene differs from its saved file; undoing back to the save clears it (the saved point is the newest undo step at save time).
 - **Autosave and recovery**: about fifteen seconds after an edit, and when the window closes, the unsaved scene is written to the editor's local storage, never to the scene file. Save, New and Load remove it. At startup the editor offers **Restore** (loads it as an unsaved scene that stays protected) or **Discard** (deletes it). A snapshot that fails to load is kept. A storage that refuses the write is reported once in the Console.
+- **Idle views stop drawing**: the editor draws its views every frame only while a pointer button or key is held, for 300 ms after any input or request, and while a camera moves or a pane changes; otherwise it draws four times a second, so changes without input (game link, MCP, loads) still appear. Detached viewport windows count as input too. Unit tests in `tests/layout/render_demand/` and `tests/layout/setup/layout_render_loop.test.ts`.
 - **Safe saves**: the scene file is replaced only when the whole write finishes, and a failed write is aborted, so the previous file stays intact.
 - **Newer file on disk**: when another program changed the scene file after it was opened or saved, Save asks before overwriting it and never overwrites it unasked.
 - Unit tests in `tests/scene_recovery/`, `tests/io/dialog/` and `tests/tools/io/handler_scene_io.test.ts`, on real scenes, history and status bar.

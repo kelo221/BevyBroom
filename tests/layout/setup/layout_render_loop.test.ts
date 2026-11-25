@@ -6,6 +6,20 @@ import { MultiViewComposer } from '@/viewports/core/multi_view_composer.js';
 import type { SharedWorldScene } from '@/viewports/shared/shared_world_scene.js';
 import * as THREE from 'three';
 import { Theme } from '@/theme.js';
+import {
+  RENDER_DEMAND_SCHEDULER_TIMING_DEFAULT,
+  RenderDemandScheduler,
+} from '@/layout/render_demand/render_demand_scheduler.js';
+import { RenderDemandTestClock, renderDemandTestWindowCreate } from '../render_demand/render_demand_test_helpers.js';
+
+/**
+ * Waits for the next animation frame.
+ *
+ * @returns Promise resolved on the next frame.
+ */
+function animationFrameNext(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
 
 function createViewportMock(): ViewportEditor {
   const container = document.createElement('div');
@@ -31,7 +45,7 @@ describe('LayoutRenderLoop', () => {
   });
 
   it('should multi-view render only active viewports', async () => {
-    loop = new LayoutRenderLoop();
+    loop = new LayoutRenderLoop(null);
     const visible = createViewportMock();
     const hidden = createViewportMock();
     let active: ViewportEditor[] = [visible];
@@ -61,7 +75,7 @@ describe('LayoutRenderLoop', () => {
   });
 
   it('should prepare and end CAD ruler camera passes when cadRulerSystem is bound', async () => {
-    loop = new LayoutRenderLoop();
+    loop = new LayoutRenderLoop(null);
     const camera = new THREE.PerspectiveCamera();
     const container = document.createElement('div');
     const content = document.createElement('div');
@@ -102,8 +116,44 @@ describe('LayoutRenderLoop', () => {
     expect(endCameraPass).toHaveBeenCalled();
   });
 
+  it('skips drawing idle frames, still runs camera updates, and draws again on request', async () => {
+    const clock = new RenderDemandTestClock(0);
+    const scheduler = new RenderDemandScheduler(
+      renderDemandTestWindowCreate(),
+      clock.nowMs,
+      RENDER_DEMAND_SCHEDULER_TIMING_DEFAULT,
+    );
+    loop = new LayoutRenderLoop(scheduler);
+    const camera = new THREE.PerspectiveCamera();
+    const viewport = { ...createViewportMock(), getCamera: () => camera } as unknown as ViewportEditor;
+    const render = vi.fn();
+    const onBeforeRender = vi.fn();
+    const updateAnimations = vi.fn();
+    loop.bind({
+      getActiveViewports: () => [viewport],
+      cameraFitCoordinator: { updateAnimations } as unknown as CoordinatorCameraFit,
+      onBeforeRender,
+      multiViewComposer: { render } as unknown as MultiViewComposer,
+      sharedScene: { getScene: () => new THREE.Scene() } as unknown as SharedWorldScene,
+    });
+    loop.start();
+    await animationFrameNext();
+    expect(render).toHaveBeenCalledTimes(1);
+    clock.advance(RENDER_DEMAND_SCHEDULER_TIMING_DEFAULT.inputLingerMs + 1);
+    scheduler.drawnRecord([camera]);
+    const animationCallsBeforeIdle = updateAnimations.mock.calls.length;
+    await animationFrameNext();
+    await animationFrameNext();
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(onBeforeRender).toHaveBeenCalledTimes(1);
+    expect(updateAnimations.mock.calls.length).toBeGreaterThan(animationCallsBeforeIdle);
+    loop.renderRequest();
+    await animationFrameNext();
+    expect(render).toHaveBeenCalledTimes(2);
+  });
+
   it('reuses the same multi-view pass objects and hooks across frames', async () => {
-    loop = new LayoutRenderLoop();
+    loop = new LayoutRenderLoop(null);
     const visible = createViewportMock();
     const cameraFitCoordinator = { updateAnimations: vi.fn() } as unknown as CoordinatorCameraFit;
     const render = vi.fn();
